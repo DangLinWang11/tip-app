@@ -23,13 +23,12 @@ interface MapProps {
 }
 
 const getQualityColor = (percentage: number): string => {
-  if (percentage >= 95) return '#FFD700'; // Gold
-  if (percentage >= 85) return '#A3D977'; // Yellow-Green  
-  if (percentage >= 75) return '#4ADE80'; // Green
-  if (percentage >= 60) return '#EAB308'; // Yellow
-  if (percentage >= 45) return '#FB923C'; // Orange
-  if (percentage >= 30) return '#F87171'; // Orange-Red
-  return '#DC2626'; // Red
+  if (percentage >= 90) return '#10B981'; // Green for high ratings (90%+)
+  if (percentage >= 80) return '#34D399'; // Light green (80-89%)
+  if (percentage >= 70) return '#FCD34D'; // Yellow (70-79%)
+  if (percentage >= 60) return '#FBBF24'; // Orange-yellow (60-69%)
+  if (percentage >= 50) return '#FB923C'; // Orange (50-59%)
+  return '#EF4444'; // Red for low ratings (<50%)
 };
 
 const Map: React.FC<MapProps> = ({ center, zoom, restaurants, onRestaurantClick }) => {
@@ -197,7 +196,7 @@ const RestaurantMap: React.FC<RestaurantMapProps> = ({
   return (
     <div className={`w-full h-full ${className}`}>
       <Wrapper
-        apiKey="AIzaSyDQZxKifCa6rs-0h1W2mCSU2iYvZ4UKpV0"
+        apiKey="AIzaSyDH-MgeMBC3_yvge3yLz_gaCl_2x8Ra6PY"
         render={render}
         libraries={['places']}
       />
