@@ -10,13 +10,15 @@ import Onboarding from './pages/Onboarding';
 import RestaurantDetail from './pages/RestaurantDetail';
 import MenuDetail from './pages/MenuDetail';
 import FoodMap from './pages/FoodMap';
+import { LocationProvider } from './contexts/LocationContext';
 
 export function App() {
   const [isOnboarded, setIsOnboarded] = useState(false);
   if (!isOnboarded) {
     return <Onboarding onComplete={() => setIsOnboarded(true)} />;
   }
-  return <Router>
+  return <LocationProvider>
+    <Router>
       <Routes>
         <Route path="/" element={<Layout />}>
           <Route index element={<Home />} />
@@ -29,5 +31,6 @@ export function App() {
         <Route path="/restaurant/:id" element={<RestaurantDetail />} />
         <Route path="/restaurant/:id/menu" element={<MenuDetail />} />
       </Routes>
-    </Router>;
+    </Router>
+  </LocationProvider>;
 }

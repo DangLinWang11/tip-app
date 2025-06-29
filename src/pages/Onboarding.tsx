@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronRightIcon, MapPinIcon, ShuffleIcon, UserIcon } from 'lucide-react';
+import { ChevronRightIcon, ShuffleIcon, UserIcon } from 'lucide-react';
 
 interface OnboardingProps {
   onComplete: () => void;
@@ -20,7 +20,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
   };
 
   const handleNext = () => {
-    if (step < 3) {
+    if (step < 2) {
       setStep(step + 1);
     } else {
       onComplete();
@@ -157,42 +157,6 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
           </>
         )}
 
-        {/* Step 3: Location Permission */}
-        {step === 3 && (
-          <>
-            <MapPinIcon size={64} className="text-secondary mb-4" />
-            <h1 className="text-3xl font-bold mb-6 text-center">
-              Enable location
-            </h1>
-            <p className="text-center text-gray-600 mb-8">
-              To discover restaurants near you, Tip needs access to your
-              location
-            </p>
-            <div className="w-full mb-8 bg-gray-50 p-4 rounded-xl">
-              <h3 className="font-medium mb-2">With location, you can:</h3>
-              <ul className="space-y-2">
-                <li className="flex items-start">
-                  <div className="h-5 w-5 rounded-full bg-secondary flex items-center justify-center text-white mr-2 mt-0.5">
-                    ✓
-                  </div>
-                  <span>Find restaurants near you</span>
-                </li>
-                <li className="flex items-start">
-                  <div className="h-5 w-5 rounded-full bg-secondary flex items-center justify-center text-white mr-2 mt-0.5">
-                    ✓
-                  </div>
-                  <span>See what's trending in your area</span>
-                </li>
-                <li className="flex items-start">
-                  <div className="h-5 w-5 rounded-full bg-secondary flex items-center justify-center text-white mr-2 mt-0.5">
-                    ✓
-                  </div>
-                  <span>Get personalized recommendations</span>
-                </li>
-              </ul>
-            </div>
-          </>
-        )}
       </div>
 
       {/* Bottom Button */}
@@ -201,7 +165,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
         className="w-full bg-primary text-white py-4 rounded-xl font-medium flex items-center justify-center transition-colors hover:opacity-90 disabled:opacity-50"
         disabled={step === 1 && phoneNumber.length < 14} // Disable if phone incomplete
       >
-        {step === 3 ? 'Allow Location & Get Started' : 
+        {step === 2 ? 'Get Started' : 
          step === 1 ? 'Continue' : 'Next'}
         <ChevronRightIcon size={20} className="ml-1" />
       </button>
