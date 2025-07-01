@@ -8,6 +8,44 @@ const Discover: React.FC = () => {
   const [isListView, setIsListView] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
+  // Location button handler
+  const handleLocationRequest = () => {
+    if (!navigator.geolocation) {
+      alert('Geolocation is not supported by this browser.');
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        // This will trigger the map to center on user location
+        // The actual map centering is handled in RestaurantMap component
+        console.log('User location:', latitude, longitude);
+      },
+      (error) => {
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            alert('Location access needed to show your position on the map.');
+            break;
+          case error.POSITION_UNAVAILABLE:
+            alert('Location information is unavailable.');
+            break;
+          case error.TIMEOUT:
+            alert('Location request timed out.');
+            break;
+          default:
+            alert('An unknown error occurred.');
+            break;
+        }
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 300000
+      }
+    );
+  };
+
   return (
     <div className="min-h-screen bg-light-gray pb-16">
       <header className="bg-white sticky top-0 z-10 p-4 shadow-sm">
@@ -56,6 +94,24 @@ const Discover: React.FC = () => {
         
         {/* Restaurant cards at bottom with List View toggle */}
         <div className="absolute bottom-0 left-0 right-0 bg-white border-t">
+          {/* Location Button - positioned above Card View toggle */}
+          <div className="absolute -top-12 right-4 z-20">
+            <button
+              onClick={handleLocationRequest}
+              className="bg-white rounded-full p-3 shadow-lg border border-gray-200 hover:shadow-xl transition-shadow duration-200"
+              title="Show my location"
+            >
+              <svg 
+                width="20" 
+                height="20" 
+                viewBox="0 0 24 24" 
+                fill="#00aeef"
+              >
+                <path d="M12 2L22 22L12 18L2 22L12 2Z"/>
+              </svg>
+            </button>
+          </div>
+
           {/* List View Toggle */}
           <div className="flex justify-center py-2 border-b">
             <div className="flex bg-light-gray rounded-full">

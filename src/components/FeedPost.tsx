@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { HeartIcon, MessageCircleIcon, BookmarkIcon, ShareIcon, CheckCircleIcon, MapPinIcon } from 'lucide-react';
 import RatingBadge from './RatingBadge';
+import { useFeature } from '../utils/features';
 
 interface FeedPostProps {
   id: string;
@@ -16,7 +17,7 @@ interface FeedPostProps {
   restaurant?: {
     name: string;
     isVerified?: boolean;
-    qualityScore?: number; // Added for restaurant quality percentage
+    qualityScore?: number;
   };
   dish: {
     name: string;
@@ -44,8 +45,11 @@ const FeedPost: React.FC<FeedPostProps> = ({
   review,
   engagement
 }) => {
-  const [liked, setLiked] = useState(false);
   const [saved, setSaved] = useState(false);
+  
+  // Feature flags
+  const showLikesComments = useFeature('LIKES_COMMENTS');
+  const showSocialSharing = useFeature('SOCIAL_SHARING');
 
   // Function to get quality circle color based on percentage
   const getQualityColor = (score: number): string => {
@@ -119,6 +123,8 @@ const FeedPost: React.FC<FeedPostProps> = ({
             dish.name
           )}
         </h3>
+        
+        {/* Dual Review System */}
         <div className="space-y-2 mb-4">
           <div className="flex items-start">
             <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center mr-2 mt-1">
@@ -133,27 +139,49 @@ const FeedPost: React.FC<FeedPostProps> = ({
             <p className="text-sm flex-1">{review.negative}</p>
           </div>
         </div>
+
+        {/* Review Date */}
+        <div className="text-xs text-gray-500 mb-4">
+          Reviewed on {review.date}
+        </div>
         
-        {/* Engagement */}
+        {/* Engagement - Conditional based on features */}
         <div className="flex justify-between items-center pt-3 border-t border-light-gray">
-          <div className="flex items-center space-x-4">
-            <button onClick={() => setLiked(!liked)} className="flex items-center">
-              <HeartIcon size={22} className={liked ? 'text-primary fill-primary' : 'text-dark-gray'} />
-              <span className="ml-1 text-sm">{engagement.likes}</span>
-            </button>
-            <button className="flex items-center">
-              <MessageCircleIcon size={22} className="text-dark-gray" />
-              <span className="ml-1 text-sm">{engagement.comments}</span>
-            </button>
-          </div>
-          <div className="flex items-center space-x-4">
-            <button onClick={() => setSaved(!saved)}>
-              <BookmarkIcon size={22} className={saved ? 'text-secondary fill-secondary' : 'text-dark-gray'} />
-            </button>
-            <button>
-              <ShareIcon size={22} className="text-dark-gray" />
-            </button>
-          </div>
+          {showLikesComments ? (
+            <>
+              <div className="flex items-center space-x-4">
+                <button className="flex items-center">
+                  <HeartIcon size={22} className="text-dark-gray" />
+                  <span className="ml-1 text-sm">{engagement.likes}</span>
+                </button>
+                <button className="flex items-center">
+                  <MessageCircleIcon size={22} className="text-dark-gray" />
+                  <span className="ml-1 text-sm">{engagement.comments}</span>
+                </button>
+              </div>
+              <div className="flex items-center space-x-4">
+                <button onClick={() => setSaved(!saved)}>
+                  <BookmarkIcon size={22} className={saved ? 'text-secondary fill-secondary' : 'text-dark-gray'} />
+                </button>
+                {showSocialSharing && (
+                  <button>
+                    <ShareIcon size={22} className="text-dark-gray" />
+                  </button>
+                )}
+              </div>
+            </>
+          ) : (
+            /* MVP: Show only save functionality */
+            <div className="flex justify-between items-center w-full">
+              <div className="text-sm text-gray-600">
+                Rating: <span className="font-medium text-primary">{dish.rating}/10</span>
+              </div>
+              <button onClick={() => setSaved(!saved)} className="flex items-center text-sm text-gray-600 hover:text-primary">
+                <BookmarkIcon size={18} className={saved ? 'text-primary fill-primary mr-1' : 'text-gray-600 mr-1'} />
+                {saved ? 'Saved' : 'Save'}
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>
