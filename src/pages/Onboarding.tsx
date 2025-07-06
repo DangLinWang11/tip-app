@@ -1,65 +1,40 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronRightIcon, ShuffleIcon, UserIcon } from 'lucide-react';
+import { ChevronRightIcon, ShuffleIcon, UserIcon, EyeIcon, EyeOffIcon } from 'lucide-react';
+import { onAuthStateChanged, User } from 'firebase/auth';
 import { 
-  signInWithPhoneNumber, 
-  RecaptchaVerifier, 
-  ConfirmationResult,
-  PhoneAuthProvider,
-  signInWithCredential,
-  onAuthStateChanged,
-  User
-} from 'firebase/auth';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
-import { auth, db } from '../lib/firebase';
+  auth, 
+  signUpWithEmail, 
+  signInWithEmail, 
+  createUserProfile, 
+  getUserProfile,
+  updateLastLogin 
+} from '../lib/firebase';
 
 interface OnboardingProps {
   onComplete: () => void;
-  needsPhoneOnly?: boolean;
 }
 
-const Onboarding: React.FC<OnboardingProps> = ({ onComplete, needsPhoneOnly = false }) => {
-  const [step, setStep] = useState(needsPhoneOnly ? 1 : 0);
+const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
+  const [step, setStep] = useState(0);
   const [username, setUsername] = useState('');
-  const [phoneNumber, setPhoneNumber] = useState('');
-  const [isSignInMode, setIsSignInMode] = useState(needsPhoneOnly);
-  const [verificationCode, setVerificationCode] = useState('');
-  const [isVerifying, setIsVerifying] = useState(false);
-  const [isSendingCode, setIsSendingCode] = useState(false);
-  const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
-  const [recaptchaVerifier, setRecaptchaVerifier] = useState<RecaptchaVerifier | null>(null);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [isSignInMode, setIsSignInMode] = useState(false);
+  const [isAuthenticating, setIsAuthenticating] = useState(false);
+  const [authError, setAuthError] = useState('');
 
-  // Initialize reCAPTCHA verifier
+  // Clear auth error when switching modes or changing inputs
   useEffect(() => {
-    const initRecaptcha = () => {
-      if (!recaptchaVerifier) {
-        const verifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-          size: 'invisible',
-          callback: () => {
-            console.log('reCAPTCHA solved');
-          },
-          'expired-callback': () => {
-            console.log('reCAPTCHA expired');
-          }
-        });
-        setRecaptchaVerifier(verifier);
-      }
-    };
+    setAuthError('');
+  }, [isSignInMode, email, password]);
 
-    initRecaptcha();
-
-    return () => {
-      if (recaptchaVerifier) {
-        recaptchaVerifier.clear();
-      }
-    };
-  }, [recaptchaVerifier]);
-
-  // Check if user already exists in Firestore
+  // Check if user already has a complete profile
   const checkExistingUser = async (user: User) => {
     try {
-      const userDoc = await getDoc(doc(db, 'users', user.uid));
-      if (userDoc.exists()) {
-        return userDoc.data();
+      const result = await getUserProfile(user.uid);
+      if (result.success && result.profile) {
+        return result.profile;
       }
       return null;
     } catch (error) {
@@ -68,76 +43,45 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, needsPhoneOnly = fa
     }
   };
 
-  // Save user profile to Firestore
-  const saveUserProfile = async (user: User, profileData: any) => {
+  // Handle email/password authentication
+  const handleAuthentication = async () => {
+    if (!email.trim() || !password.trim()) return;
+
+    setIsAuthenticating(true);
+    setAuthError('');
+
     try {
-      await setDoc(doc(db, 'users', user.uid), {
-        uid: user.uid,
-        phoneNumber: user.phoneNumber,
-        ...profileData,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        lastLogin: new Date()
-      });
-      return true;
-    } catch (error) {
-      console.error('Error saving user profile:', error);
-      return false;
-    }
-  };
-
-  // Send SMS verification code
-  const sendVerificationCode = async () => {
-    if (!recaptchaVerifier || !phoneNumber) return;
-
-    setIsSendingCode(true);
-    try {
-      // Convert formatted phone to E.164 format
-      const cleanPhone = phoneNumber.replace(/\D/g, '');
-      const e164Phone = `+1${cleanPhone}`;
-      
-      const confirmation = await signInWithPhoneNumber(auth, e164Phone, recaptchaVerifier);
-      setConfirmationResult(confirmation);
-      setStep(1.5);
-      console.log('SMS sent successfully');
-    } catch (error: any) {
-      console.error('Error sending SMS:', error);
-      alert(`Error sending verification code: ${error.message}`);
-      
-      // Reset reCAPTCHA on error
-      if (recaptchaVerifier) {
-        recaptchaVerifier.clear();
-        setRecaptchaVerifier(null);
-      }
-    } finally {
-      setIsSendingCode(false);
-    }
-  };
-
-  // Verify SMS code
-  const verifyCode = async () => {
-    if (!confirmationResult || !verificationCode) return;
-
-    setIsVerifying(true);
-    try {
-      const result = await confirmationResult.confirm(verificationCode);
-      const user = result.user;
-
-      // Check if user already has a profile
-      const existingProfile = await checkExistingUser(user);
-      
-      if (existingProfile && existingProfile.username) {
-        // User exists with complete profile - sign them in
-        onComplete();
+      let result;
+      if (isSignInMode) {
+        result = await signInWithEmail(email.trim(), password);
       } else {
-        // New user or incomplete profile - go to username step
-        setStep(2);
+        result = await signUpWithEmail(email.trim(), password);
+      }
+
+      if (result.success && result.user) {
+        // Update last login for existing users
+        if (isSignInMode) {
+          await updateLastLogin();
+        }
+
+        // Check if user already has a complete profile
+        const existingProfile = await checkExistingUser(result.user);
+        
+        if (existingProfile && existingProfile.username && existingProfile.isOnboarded) {
+          // User exists with complete profile - complete onboarding
+          onComplete();
+        } else {
+          // New user or incomplete profile - go to username step
+          setStep(2);
+        }
+      } else {
+        setAuthError(result.error || 'Authentication failed');
       }
     } catch (error: any) {
-      console.error('Error verifying code:', error);
-      alert('Invalid verification code. Please try again.');
+      console.error('Authentication error:', error);
+      setAuthError('An unexpected error occurred. Please try again.');
     } finally {
-      setIsVerifying(false);
+      setIsAuthenticating(false);
     }
   };
 
@@ -152,71 +96,45 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, needsPhoneOnly = fa
 
   const handleNext = async () => {
     if (step === 1) {
-      // Send SMS verification code
-      await sendVerificationCode();
-    } else if (step === 1.5) {
-      // This will be handled by verifyCode
-      return;
+      // Handle email/password authentication
+      await handleAuthentication();
     } else if (step < 2) {
       setStep(step + 1);
     } else {
-      // Final step - save user profile and complete onboarding
+      // Final step - create user profile and complete onboarding
       const currentUser = auth.currentUser;
       if (currentUser && username.trim()) {
-        const success = await saveUserProfile(currentUser, {
+        setIsAuthenticating(true);
+        
+        const result = await createUserProfile(currentUser, {
           username: username.trim(),
-          isOnboarded: true
+          displayName: username.trim()
         });
         
-        if (success) {
+        if (result.success) {
           onComplete();
         } else {
-          alert('Error saving profile. Please try again.');
+          setAuthError(result.error || 'Error saving profile. Please try again.');
         }
+        
+        setIsAuthenticating(false);
       }
     }
   };
 
-  const handleSkip = () => {
-    // Skip phone number step, go to username
-    if (step === 1) {
-      setStep(2);
-    }
+  // Email validation
+  const isValidEmail = (email: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
   };
 
-  const formatPhoneNumber = (value: string) => {
-    // Remove all non-digits
-    const phoneNumber = value.replace(/\D/g, '');
-    
-    // Format as (XXX) XXX-XXXX
-    if (phoneNumber.length >= 6) {
-      return `(${phoneNumber.slice(0, 3)}) ${phoneNumber.slice(3, 6)}-${phoneNumber.slice(6, 10)}`;
-    } else if (phoneNumber.length >= 3) {
-      return `(${phoneNumber.slice(0, 3)}) ${phoneNumber.slice(3)}`;
-    } else {
-      return phoneNumber;
-    }
-  };
-
-  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const formatted = formatPhoneNumber(e.target.value);
-    setPhoneNumber(formatted);
+  // Password validation
+  const isValidPassword = (password: string) => {
+    return password.length >= 6;
   };
 
   return (
     <div className="flex flex-col min-h-screen bg-white p-6">
-      {/* Skip button for phone number step */}
-      {step === 1 && !needsPhoneOnly && (
-        <div className="flex justify-end mb-4">
-          <button 
-            onClick={handleSkip}
-            className="text-gray-500 hover:text-gray-700 text-sm font-medium transition-colors"
-          >
-            Skip
-          </button>
-        </div>
-      )}
-
       <div className="flex-1 flex flex-col justify-center items-center">
         {/* Step 0: Welcome Screen */}
         {step === 0 && (
@@ -238,69 +156,72 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, needsPhoneOnly = fa
           </>
         )}
 
-        {/* Step 1: Phone Number Input */}
+        {/* Step 1: Email/Password Input */}
         {step === 1 && (
           <>
             <h1 className="text-3xl font-bold mb-8 text-center">
               {isSignInMode ? "Welcome Back!" : "Create an Account"}
             </h1>
             <div className="w-full max-w-sm mb-8">
-              <label className="block text-sm font-medium mb-2">Phone Number</label>
-              <input
-                type="tel"
-                value={phoneNumber}
-                onChange={handlePhoneChange}
-                className="w-full p-4 border border-gray-300 rounded-xl text-lg"
-                placeholder="(555) 123-4567"
-                maxLength={14}
-                inputMode="numeric"
-              />
-              <p className="text-xs text-gray-500 mt-2">
-                {isSignInMode ? "We'll send you a verification code to confirm it's you" : "We'll send you a verification code"}
-              </p>
-              {!needsPhoneOnly && (
-                <div className="mt-3 text-center">
-                  <button 
-                    onClick={() => setIsSignInMode(!isSignInMode)}
-                    className="text-red-500 hover:text-red-700 text-sm font-medium transition-colors cursor-pointer"
+              {/* Email Input */}
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-2">Email Address</label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className={`w-full p-4 border rounded-xl text-lg ${
+                    email && !isValidEmail(email) ? 'border-red-300' : 'border-gray-300'
+                  }`}
+                  placeholder="your@email.com"
+                  autoComplete="email"
+                />
+                {email && !isValidEmail(email) && (
+                  <p className="text-xs text-red-500 mt-1">Please enter a valid email address</p>
+                )}
+              </div>
+
+              {/* Password Input */}
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-2">Password</label>
+                <div className="relative">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className={`w-full p-4 border rounded-xl text-lg pr-12 ${
+                      password && !isValidPassword(password) ? 'border-red-300' : 'border-gray-300'
+                    }`}
+                    placeholder={isSignInMode ? "Enter your password" : "Create a password"}
+                    autoComplete={isSignInMode ? "current-password" : "new-password"}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
                   >
-                    {isSignInMode ? "New user? Create account" : "Already have an account? Sign In"}
+                    {showPassword ? <EyeOffIcon size={20} /> : <EyeIcon size={20} />}
                   </button>
                 </div>
-              )}
-            </div>
-          </>
-        )}
+                {!isSignInMode && password && !isValidPassword(password) && (
+                  <p className="text-xs text-red-500 mt-1">Password must be at least 6 characters long</p>
+                )}
+              </div>
 
-        {/* Step 1.5: Verification Code Input */}
-        {step === 1.5 && (
-          <>
-            <h1 className="text-3xl font-bold mb-8 text-center">
-              {isSignInMode ? "Welcome back!" : "Verify your phone"}
-            </h1>
-            <div className="w-full max-w-sm mb-8">
-              <label className="block text-sm font-medium mb-2">Verification Code</label>
-              <input
-                type="text"
-                value={verificationCode}
-                onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                className="w-full p-4 border border-gray-300 rounded-xl text-lg text-center tracking-widest"
-                placeholder="000000"
-                maxLength={6}
-                inputMode="numeric"
-              />
-              <p className="text-xs text-gray-500 mt-2 text-center">
-                {isSignInMode 
-                  ? `Enter the 6-digit code sent to ${phoneNumber}`
-                  : `Enter the 6-digit code sent to ${phoneNumber}`
-                }
-              </p>
+              {/* Error Message */}
+              {authError && (
+                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                  <p className="text-sm text-red-600">{authError}</p>
+                </div>
+              )}
+
+              {/* Toggle Sign In/Sign Up */}
               <div className="mt-4 text-center">
                 <button 
-                  onClick={() => setStep(1)}
-                  className="text-secondary text-sm font-medium hover:opacity-75 transition-opacity"
+                  onClick={() => setIsSignInMode(!isSignInMode)}
+                  className="text-red-500 hover:text-red-700 text-sm font-medium transition-colors cursor-pointer"
                 >
-                  Change phone number
+                  {isSignInMode ? "New user? Create account" : "Already have an account? Sign In"}
                 </button>
               </div>
             </div>
@@ -334,6 +255,13 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, needsPhoneOnly = fa
                 You can always change this later
               </p>
             </div>
+            {/* Error Message */}
+            {authError && (
+              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                <p className="text-sm text-red-600">{authError}</p>
+              </div>
+            )}
+
             <div className="w-full mb-8">
               <label className="block text-sm font-medium mb-2">
                 Profile Picture
@@ -345,7 +273,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, needsPhoneOnly = fa
               </div>
               <div className="flex justify-center mt-2">
                 <button className="text-secondary text-sm font-medium hover:opacity-75 transition-opacity">
-                  Upload photo
+                  Upload photo (coming soon)
                 </button>
               </div>
             </div>
@@ -356,31 +284,26 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, needsPhoneOnly = fa
 
       {/* Bottom Button */}
       <button 
-        onClick={step === 1.5 ? verifyCode : handleNext} 
+        onClick={handleNext} 
         className="w-full bg-primary text-white py-4 rounded-xl font-medium flex items-center justify-center transition-colors hover:opacity-90 disabled:opacity-50"
         disabled={
-          (step === 1 && (phoneNumber.length < 14 || isSendingCode)) || 
-          (step === 1.5 && (verificationCode.length < 6 || isVerifying)) ||
-          (step === 2 && !username.trim())
+          (step === 1 && (!email.trim() || !password.trim() || !isValidEmail(email) || (!isSignInMode && !isValidPassword(password)) || isAuthenticating)) ||
+          (step === 2 && (!username.trim() || isAuthenticating))
         }
       >
-        {(isVerifying || isSendingCode) ? (
+        {isAuthenticating ? (
           <>
             <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-            {step === 1 ? 'Sending...' : 'Verifying...'}
+            {step === 2 ? 'Creating Profile...' : isSignInMode ? 'Signing In...' : 'Creating Account...'}
           </>
         ) : (
           <>
             {step === 2 ? 'Get Started' : 
-             step === 1.5 ? 'Verify' :
-             step === 1 ? 'Send Code' : 'Next'}
+             step === 1 ? (isSignInMode ? 'Sign In' : 'Create Account') : 'Next'}
             <ChevronRightIcon size={20} className="ml-1" />
           </>
         )}
       </button>
-
-      {/* Invisible reCAPTCHA container */}
-      <div id="recaptcha-container"></div>
     </div>
   );
 };

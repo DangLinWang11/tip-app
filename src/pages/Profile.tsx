@@ -1,22 +1,54 @@
 import React, { useState, useEffect } from 'react';
 import { EditIcon, GridIcon, BookmarkIcon, SearchIcon, PlusIcon } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { userProfile } from '../utils/mockData';
 import FeedPost from '../components/FeedPost';
 import HamburgerMenu from '../components/HamburgerMenu';
 import { useFeature } from '../utils/features';
-import { fetchReviews, convertReviewToFeedPost, FirebaseReview } from '../services/reviewService';
+import { fetchReviews, convertReviewsToFeedPosts, FirebaseReview } from '../services/reviewService';
+import { getUserProfile, UserProfile, getCurrentUser } from '../lib/firebase';
 
 const Profile: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'activity' | 'saved'>('activity');
   const [searchTerm, setSearchTerm] = useState('');
   const [firebaseReviews, setFirebaseReviews] = useState<FirebaseReview[]>([]);
   const [feedPosts, setFeedPosts] = useState<any[]>([]);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [profileLoading, setProfileLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   
   // Feature flags
   const showTierRankings = useFeature('TIER_RANKINGS');
   const showSocialActivity = useFeature('SOCIAL_FEED');
+  
+  // Fetch user profile on component mount
+  useEffect(() => {
+    const loadUserProfile = async () => {
+      try {
+        setProfileLoading(true);
+        const currentUser = getCurrentUser();
+        
+        if (!currentUser) {
+          setError('No authenticated user found');
+          return;
+        }
+
+        const result = await getUserProfile();
+        if (result.success && result.profile) {
+          setUserProfile(result.profile);
+        } else {
+          setError(result.error || 'Failed to load user profile');
+        }
+      } catch (err) {
+        console.error('Failed to load user profile:', err);
+        setError('Failed to load user profile');
+      } finally {
+        setProfileLoading(false);
+      }
+    };
+
+    loadUserProfile();
+  }, []);
   
   // Fetch reviews from Firebase on component mount
   useEffect(() => {
@@ -26,8 +58,8 @@ const Profile: React.FC = () => {
         const reviews = await fetchReviews(50);
         setFirebaseReviews(reviews);
         
-        // Convert Firebase reviews to feed post format
-        const posts = reviews.map(convertReviewToFeedPost);
+        // Convert Firebase reviews to feed post format with real user data
+        const posts = await convertReviewsToFeedPosts(reviews);
         setFeedPosts(posts);
       } catch (err) {
         console.error('Failed to load reviews:', err);
@@ -47,14 +79,48 @@ const Profile: React.FC = () => {
     post.restaurant?.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Calculate personal stats from Firebase reviews
+  // Calculate personal stats from Firebase reviews and user profile
   const personalStats = {
-    totalReviews: firebaseReviews.length,
-    restaurantsTried: new Set(firebaseReviews.map(r => r.restaurant).filter(Boolean)).size,
-    averageRating: firebaseReviews.length > 0 
-      ? (firebaseReviews.reduce((sum, r) => sum + r.rating, 0) / firebaseReviews.length).toFixed(1)
-      : '0.0'
+    totalReviews: userProfile?.stats?.totalReviews || firebaseReviews.length,
+    restaurantsTried: userProfile?.stats?.totalRestaurants || new Set(firebaseReviews.map(r => r.restaurant).filter(Boolean)).size,
+    averageRating: userProfile?.stats?.averageRating || (firebaseReviews.length > 0 
+      ? parseFloat((firebaseReviews.reduce((sum, r) => sum + r.rating, 0) / firebaseReviews.length).toFixed(1))
+      : 0),
+    pointsEarned: userProfile?.stats?.pointsEarned || 0
   };
+
+  // Default avatar if none provided
+  const defaultAvatar = "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face";
+
+  // Loading state
+  if (profileLoading) {
+    return (
+      <div className="min-h-screen bg-light-gray flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading profile...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error || !userProfile) {
+    return (
+      <div className="min-h-screen bg-light-gray flex items-center justify-center">
+        <div className="text-center p-4">
+          <h2 className="text-xl font-bold text-gray-900 mb-2">Profile Error</h2>
+          <p className="text-gray-600 mb-4">{error || 'Unable to load profile'}</p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="bg-primary text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-colors"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-light-gray pb-16">
@@ -69,18 +135,42 @@ const Profile: React.FC = () => {
         <div className="p-4">
           <div className="flex items-center">
             <img 
-              src={userProfile.avatar} 
-              alt={userProfile.name} 
+              src={userProfile.avatar || defaultAvatar} 
+              alt={userProfile.displayName || userProfile.username} 
               className="w-20 h-20 rounded-full object-cover border-2 border-primary" 
             />
             <div className="ml-4 flex-1">
-              <h2 className="font-semibold text-lg">@{userProfile.username}</h2>
+              <div className="flex items-center">
+                <h2 className="font-semibold text-lg">@{userProfile.username}</h2>
+                {userProfile.isVerified && (
+                  <span className="ml-2 text-blue-500" title="Verified user">✓</span>
+                )}
+              </div>
+              {userProfile.displayName && userProfile.displayName !== userProfile.username && (
+                <p className="text-sm text-gray-600">{userProfile.displayName}</p>
+              )}
+              {userProfile.bio && (
+                <p className="text-sm text-gray-600 mt-1">{userProfile.bio}</p>
+              )}
               
+              {/* Join Date */}
+              {userProfile.createdAt && (
+                <p className="text-xs text-gray-500 mt-1">
+                  Joined {new Date(userProfile.createdAt.seconds * 1000).toLocaleDateString('en-US', { 
+                    month: 'long', 
+                    year: 'numeric' 
+                  })}
+                </p>
+              )}
+
               {/* MVP Stats - Personal Only */}
-              <div className="flex text-sm text-dark-gray mt-1">
+              <div className="flex text-sm text-dark-gray mt-2">
                 <span className="mr-4">{personalStats.totalReviews} Reviews</span>
                 <span className="mr-4">{personalStats.restaurantsTried} Restaurants</span>
-                <span>{personalStats.averageRating} Avg Rating</span>
+                <span className="mr-4">{personalStats.averageRating.toFixed(1)} Avg Rating</span>
+                {personalStats.pointsEarned > 0 && (
+                  <span>{personalStats.pointsEarned} Points</span>
+                )}
               </div>
               
               <button className="mt-2 px-4 py-1 border border-medium-gray rounded-full text-sm flex items-center">
@@ -91,39 +181,14 @@ const Profile: React.FC = () => {
           </div>
         </div>
 
-        {/* Tier Rankings Section - Only if feature enabled */}
+
+        {/* Tier Rankings Section - Coming Soon */}
         {showTierRankings && (
           <div className="px-4 py-3 border-t border-light-gray">
-            <div className="space-y-2">
-              <div className="flex items-center">
-                <span className="text-lg mr-2">🏆</span>
-                <span className="text-sm font-medium mr-2">Top Dish:</span>
-                <Link 
-                  to={`/dish/${userProfile.tierRankings.topDish.dishId}`}
-                  className="text-black hover:text-primary transition-colors"
-                >
-                  <span className="font-medium">{userProfile.tierRankings.topDish.name}</span>
-                </Link>
-                <span className="ml-1 text-primary font-medium">({userProfile.tierRankings.topDish.rating})</span>
-                <span className="ml-2 bg-gray-100 px-2 py-1 rounded-full text-xs text-dark-gray">
-                  Tried {userProfile.tierRankings.topDish.visitCount}x
-                </span>
-              </div>
-
-              <div className="flex items-center">
-                <span className="text-lg mr-2">🥇</span>
-                <span className="text-sm font-medium mr-2">Top Restaurant:</span>
-                <Link 
-                  to={`/restaurant/${userProfile.tierRankings.topRestaurant.restaurantId}`}
-                  className="text-black hover:text-primary transition-colors"
-                >
-                  <span className="font-medium">{userProfile.tierRankings.topRestaurant.name}</span>
-                </Link>
-                <span className="ml-1 text-primary font-medium">({userProfile.tierRankings.topRestaurant.qualityPercentage}%)</span>
-                <span className="ml-2 bg-gray-100 px-2 py-1 rounded-full text-xs text-dark-gray">
-                  Been {userProfile.tierRankings.topRestaurant.visitCount}x
-                </span>
-              </div>
+            <div className="text-center py-4">
+              <div className="text-2xl mb-2">🏆</div>
+              <p className="text-sm text-gray-600">Tier Rankings Coming Soon!</p>
+              <p className="text-xs text-gray-500">See your top dishes and restaurants</p>
             </div>
           </div>
         )}
@@ -221,36 +286,22 @@ const Profile: React.FC = () => {
       ) : (
         <div className="p-4">
           <h3 className="font-semibold mb-3">Saved Reviews</h3>
-          <div className="space-y-4">
-            {userProfile.wishlists.map((wishlist) => (
-              <div key={wishlist.id} className="bg-white rounded-xl shadow-sm overflow-hidden">
-                <div className="relative">
-                  <img 
-                    src={wishlist.coverImage} 
-                    alt={wishlist.name} 
-                    className="w-full h-32 object-cover" 
-                  />
-                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-3">
-                    <h4 className="text-white font-medium">{wishlist.name}</h4>
-                    <p className="text-white text-sm">
-                      {wishlist.count} {wishlist.type}
-                    </p>
-                  </div>
-                  <div className="absolute top-2 right-2 bg-white/90 px-2 py-1 rounded-full text-xs font-medium">
-                    {wishlist.type === 'restaurants' ? '🏪' : '🍽️'} {wishlist.type}
-                  </div>
-                </div>
-              </div>
-            ))}
-            
-            <div className="grid grid-cols-2 gap-3">
-              <button className="py-4 border border-dashed border-dark-gray rounded-xl flex flex-col items-center justify-center">
-                <PlusIcon size={20} className="mb-1" />
-                <span className="text-sm">Restaurant List</span>
+          <div className="text-center py-12">
+            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <BookmarkIcon size={24} className="text-gray-400" />
+            </div>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">Saved Lists Coming Soon!</h3>
+            <p className="text-gray-600 mb-6">
+              Save your favorite restaurants and dishes to custom lists
+            </p>
+            <div className="grid grid-cols-2 gap-3 max-w-xs mx-auto">
+              <button className="py-4 border border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center">
+                <PlusIcon size={20} className="mb-1 text-gray-400" />
+                <span className="text-sm text-gray-500">Restaurant List</span>
               </button>
-              <button className="py-4 border border-dashed border-dark-gray rounded-xl flex flex-col items-center justify-center">
-                <PlusIcon size={20} className="mb-1" />
-                <span className="text-sm">Menu Items</span>
+              <button className="py-4 border border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center">
+                <PlusIcon size={20} className="mb-1 text-gray-400" />
+                <span className="text-sm text-gray-500">Menu Items</span>
               </button>
             </div>
           </div>

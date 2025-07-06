@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Wrapper, Status } from '@googlemaps/react-wrapper';
-import { restaurants } from '../utils/mockData';
 
 interface Restaurant {
   id: number;
@@ -389,6 +388,7 @@ const ErrorComponent = ({ status }: { status: Status }) => (
 interface RestaurantMapProps {
   className?: string;
   mapType: 'restaurant' | 'dish';
+  restaurants?: Restaurant[];
   onItemClick?: (item: Restaurant | Dish) => void;
 }
 
@@ -424,6 +424,7 @@ const getTopDishes = (restaurants: Restaurant[]): Dish[] => {
 const RestaurantMap: React.FC<RestaurantMapProps> = ({ 
   className = '',
   mapType,
+  restaurants = [],
   onItemClick 
 }) => {
   const sarasotaCenter = {

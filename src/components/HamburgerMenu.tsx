@@ -60,7 +60,7 @@ const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isO
             <h3 className="text-lg font-medium text-gray-900 mb-3">Account</h3>
             <div className="space-y-3">
               <button className="w-full text-left py-2 text-gray-700 hover:text-primary">
-                Change Phone Number
+                Change Email Address
               </button>
               <button className="w-full text-left py-2 text-gray-700 hover:text-primary">
                 Export My Data
@@ -201,7 +201,7 @@ const HamburgerMenu: React.FC = () => {
   };
 
   return (
-    <>
+    <div className="relative">
       {/* Menu Button */}
       <button
         onClick={toggleMenu}
@@ -219,40 +219,28 @@ const HamburgerMenu: React.FC = () => {
         />
       )}
 
-      {/* Slide-out Menu */}
+      {/* Dropdown Menu */}
       <div className={`
-        fixed top-0 right-0 h-full w-80 bg-white shadow-lg z-50 transform transition-transform duration-300 ease-in-out
-        ${isOpen ? 'translate-x-0' : 'translate-x-full'}
+        absolute top-full right-0 mt-2 w-56 bg-white rounded-lg shadow-xl z-50 transform transition-all duration-200 ease-in-out
+        ${isOpen ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'}
       `}>
-        {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-900">Menu</h2>
-          <button
-            onClick={closeMenu}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-            aria-label="Close menu"
-          >
-            <X size={20} className="text-gray-700" />
-          </button>
-        </div>
-
         {/* Menu Items */}
-        <div className="py-4">
+        <div className="py-2">
           {/* Settings */}
           <button
             onClick={openSettings}
-            className="flex items-center px-6 py-3 text-gray-700 hover:bg-gray-100 transition-colors w-full text-left"
+            className="flex items-center px-4 py-3 text-gray-700 hover:bg-gray-100 transition-colors w-full text-left"
           >
-            <Settings size={20} className="mr-3" />
+            <Settings size={18} className="mr-3" />
             <span>Settings</span>
           </button>
 
           {/* Help & Support */}
           <button
             onClick={openHelp}
-            className="flex items-center px-6 py-3 text-gray-700 hover:bg-gray-100 transition-colors w-full text-left"
+            className="flex items-center px-4 py-3 text-gray-700 hover:bg-gray-100 transition-colors w-full text-left"
           >
-            <HelpCircle size={20} className="mr-3" />
+            <HelpCircle size={18} className="mr-3" />
             <span>Help & Support</span>
           </button>
         </div>
@@ -263,7 +251,7 @@ const HamburgerMenu: React.FC = () => {
 
       {/* Help Modal */}
       <HelpModal isOpen={helpOpen} onClose={() => setHelpOpen(false)} />
-    </>
+    </div>
   );
 };
 

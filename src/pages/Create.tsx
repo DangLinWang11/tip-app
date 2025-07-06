@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import RatingSlider from '../components/RatingSlider';
 import ImageGrid from '../components/ImageGrid';
 import RestaurantSearch from '../components/RestaurantSearch';
+import DishSearch from '../components/DishSearch';
 import { saveReview, processAndUploadImages, ReviewData } from '../services/reviewService';
 
 const Create: React.FC = () => {
@@ -13,6 +14,7 @@ const Create: React.FC = () => {
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [selectedRestaurant, setSelectedRestaurant] = useState<any>(null);
   const [dishName, setDishName] = useState('');
+  const [selectedMenuItem, setSelectedMenuItem] = useState<any>(null);
   const [rating, setRating] = useState(7.5);
   const [price, setPrice] = useState('');
   const [currency, setCurrency] = useState('USD');
@@ -58,6 +60,27 @@ const Create: React.FC = () => {
     }
   };
 
+  const handleDishSelect = (menuItem: any) => {
+    setSelectedMenuItem(menuItem);
+    setDishName(menuItem.name);
+    // If the menu item has a price, pre-populate it
+    if (menuItem.price) {
+      setPrice(menuItem.price.toString());
+    }
+  };
+
+  const handleAddNewDish = (dishName: string, newMenuItem: any) => {
+    setSelectedMenuItem(newMenuItem);
+    setDishName(dishName);
+  };
+
+  const handleRestaurantSelect = (restaurant: any) => {
+    setSelectedRestaurant(restaurant);
+    // Reset dish selection when restaurant changes
+    setSelectedMenuItem(null);
+    setDishName('');
+  };
+
   const saveReviewToFirebase = async () => {
     try {
       // Upload images to Firebase Storage if any
@@ -68,6 +91,8 @@ const Create: React.FC = () => {
 
       // Create review data object
       const reviewData: ReviewData = {
+        restaurantId: selectedRestaurant?.id || null, // Add Firebase restaurant ID
+        menuItemId: selectedMenuItem?.id || null, // Add Firebase menu item ID
         restaurant: selectedRestaurant?.name || 'Unknown Restaurant',
         location: selectedRestaurant?.cuisine || 'Unknown Location',
         dish: dishName,
@@ -209,7 +234,7 @@ const Create: React.FC = () => {
                 <label className="block text-sm font-medium mb-2 text-red-500">
                   Restaurant *
                 </label>
-                <RestaurantSearch onSelect={setSelectedRestaurant} />
+                <RestaurantSearch onSelect={handleRestaurantSelect} />
                 {selectedRestaurant && (
                   <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-xl">
                     <p className="font-medium text-green-800">{selectedRestaurant.name}</p>
@@ -223,13 +248,25 @@ const Create: React.FC = () => {
                 <label className="block text-sm font-medium mb-2 text-red-500">
                   Dish Name *
                 </label>
-                <input 
-                  type="text" 
-                  value={dishName} 
-                  onChange={(e) => setDishName(e.target.value)}
-                  placeholder="What did you eat?"
-                  className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                <DishSearch 
+                  restaurantId={selectedRestaurant?.id || null}
+                  onSelect={handleDishSelect}
+                  onAddNew={handleAddNewDish}
+                  disabled={!selectedRestaurant}
                 />
+                {selectedMenuItem && (
+                  <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-xl">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-medium text-blue-800">{selectedMenuItem.name}</p>
+                        <p className="text-sm text-blue-600">{selectedMenuItem.category}</p>
+                      </div>
+                      {selectedMenuItem.price && (
+                        <span className="text-sm font-medium text-blue-700">${selectedMenuItem.price}</span>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Rating */}

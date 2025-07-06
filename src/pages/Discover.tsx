@@ -1,12 +1,94 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { SearchIcon, FilterIcon, MapPinIcon, StarIcon } from 'lucide-react';
-import { restaurants } from '../utils/mockData';
+import { collection, getDocs } from 'firebase/firestore';
+import { db } from '../lib/firebase';
 import RestaurantMap from '../components/RestaurantMap';
+
+interface FirebaseRestaurant {
+  id: string;
+  name: string;
+  address: string;
+  cuisine: string;
+  phone: string;
+  coordinates: {
+    latitude: number;
+    longitude: number;
+  };
+  createdAt: any;
+  updatedAt: any;
+}
+
+interface RestaurantWithExtras extends FirebaseRestaurant {
+  rating: number;
+  qualityPercentage: number;
+  distance: string;
+  priceRange: string;
+  coverImage: string;
+  location: {
+    lat: number;
+    lng: number;
+  };
+}
 
 const Discover: React.FC = () => {
   const [mapType, setMapType] = useState<'restaurant' | 'dish'>('restaurant');
   const [isListView, setIsListView] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [restaurants, setRestaurants] = useState<RestaurantWithExtras[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch restaurants from Firebase
+  useEffect(() => {
+    const fetchRestaurants = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        const restaurantsCollection = collection(db, 'restaurants');
+        const restaurantSnapshot = await getDocs(restaurantsCollection);
+        
+        const restaurantList: RestaurantWithExtras[] = restaurantSnapshot.docs.map((doc, index) => {
+          const data = doc.data() as FirebaseRestaurant;
+          
+          // Add mock data for fields not in Firebase yet
+          const mockExtras = {
+            rating: 4.0 + Math.random() * 1.0, // Random rating between 4.0-5.0
+            qualityPercentage: 80 + Math.floor(Math.random() * 20), // Random between 80-99
+            distance: `${(0.5 + Math.random() * 2).toFixed(1)} mi`, // Random distance
+            priceRange: ['$', '$$', '$$$'][Math.floor(Math.random() * 3)], // Random price range
+            coverImage: `https://images.unsplash.com/photo-${1579684947550 + index}?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80`,
+            location: {
+              lat: data.coordinates.latitude,
+              lng: data.coordinates.longitude
+            }
+          };
+          
+          return {
+            id: doc.id,
+            ...data,
+            ...mockExtras
+          };
+        });
+        
+        setRestaurants(restaurantList);
+        console.log(`Loaded ${restaurantList.length} restaurants from Firebase`);
+      } catch (err: any) {
+        console.error('Error fetching restaurants:', err);
+        setError('Failed to load restaurants. Please try again.');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchRestaurants();
+  }, []);
+
+  // Filter restaurants based on search query
+  const filteredRestaurants = restaurants.filter(restaurant =>
+    restaurant.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    restaurant.cuisine.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   // Location button handler
   const handleLocationRequest = () => {
@@ -88,9 +170,31 @@ const Discover: React.FC = () => {
 
       {/* Map Section */}
       <div className="relative">
-        <div className="h-[calc(100vh-220px)]">
-          <RestaurantMap mapType={mapType} />
-        </div>
+        {loading ? (
+          <div className="h-[calc(100vh-220px)] flex items-center justify-center bg-gray-100">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
+              <p className="text-gray-600">Loading restaurants...</p>
+            </div>
+          </div>
+        ) : error ? (
+          <div className="h-[calc(100vh-220px)] flex items-center justify-center bg-red-50">
+            <div className="text-center">
+              <p className="text-red-600 font-medium">Error loading restaurants</p>
+              <p className="text-red-500 text-sm">{error}</p>
+              <button 
+                onClick={() => window.location.reload()} 
+                className="mt-2 px-4 py-2 bg-primary text-white rounded-lg text-sm"
+              >
+                Retry
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="h-[calc(100vh-220px)]">
+            <RestaurantMap mapType={mapType} restaurants={filteredRestaurants} />
+          </div>
+        )}
         
         {/* Restaurant cards at bottom with List View toggle */}
         <div className="absolute bottom-0 left-0 right-0 bg-white border-t">
@@ -135,14 +239,19 @@ const Discover: React.FC = () => {
           </div>
 
           {/* Restaurant Cards */}
-          {!isListView ? (
-            <div className="p-4 overflow-x-auto flex space-x-3 pb-6">
-              {restaurants.map(restaurant => (
+          {!loading && !error && (
+            <>
+              {!isListView ? (
+                <div className="p-4 overflow-x-auto flex space-x-3 pb-6">
+                  {filteredRestaurants.length > 0 ? filteredRestaurants.map(restaurant => (
                 <div key={restaurant.id} className="bg-white rounded-xl shadow-sm p-3 min-w-[200px] border">
                   <img
                     src={restaurant.coverImage}
                     alt={restaurant.name}
                     className="w-full h-24 object-cover rounded-lg mb-2"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80';
+                    }}
                   />
                   <h3 className="font-medium">{restaurant.name}</h3>
                   <div className="flex items-center text-sm text-dark-gray">
@@ -152,23 +261,31 @@ const Discover: React.FC = () => {
                   </div>
                   <div className="flex items-center mt-1">
                     <StarIcon size={16} className="text-accent mr-1" />
-                    <span className="font-medium text-sm">{restaurant.rating}</span>
+                    <span className="font-medium text-sm">{restaurant.rating.toFixed(1)}</span>
                     <div className="ml-2 px-2 py-0.5 bg-light-gray rounded-full">
                       <span className="text-xs">{restaurant.qualityPercentage}%</span>
                     </div>
                   </div>
                 </div>
-              ))}
-            </div>
-          ) : (
-            <div className="p-4">
-              <div className="space-y-3">
-                {restaurants.map(restaurant => (
+              )) : (
+                <div className="text-center py-8 text-gray-500">
+                  <p>No restaurants found</p>
+                  {searchQuery && <p className="text-sm">Try adjusting your search</p>}
+                </div>
+              )}
+                </div>
+              ) : (
+                <div className="p-4">
+                  <div className="space-y-3">
+                    {filteredRestaurants.length > 0 ? filteredRestaurants.map(restaurant => (
                   <div key={restaurant.id} className="bg-white rounded-xl shadow-sm flex overflow-hidden border">
                     <img
                       src={restaurant.coverImage}
                       alt={restaurant.name}
                       className="w-20 h-20 object-cover"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80';
+                      }}
                     />
                     <div className="p-3 flex-1">
                       <h3 className="font-medium">{restaurant.name}</h3>
@@ -180,7 +297,7 @@ const Discover: React.FC = () => {
                       <div className="flex items-center mt-1 justify-between">
                         <div className="flex items-center">
                           <StarIcon size={16} className="text-accent mr-1" />
-                          <span className="font-medium text-sm">{restaurant.rating}</span>
+                          <span className="font-medium text-sm">{restaurant.rating.toFixed(1)}</span>
                         </div>
                         <div className="flex items-center">
                           <MapPinIcon size={14} className="text-dark-gray mr-1" />
@@ -189,9 +306,16 @@ const Discover: React.FC = () => {
                       </div>
                     </div>
                   </div>
-                ))}
-              </div>
-            </div>
+                )) : (
+                  <div className="text-center py-8 text-gray-500">
+                    <p>No restaurants found</p>
+                    {searchQuery && <p className="text-sm">Try adjusting your search</p>}
+                  </div>
+                )}
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>

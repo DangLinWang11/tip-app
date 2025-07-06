@@ -53,7 +53,7 @@ const FeedPost: React.FC<FeedPostProps> = ({
 
   // Function to get quality circle color based on percentage
   const getQualityColor = (score: number): string => {
-    if (score >= 95) return 'bg-yellow-400'; // Gold
+    if (score >= 95) return 'bg-green-500'; // Green
     if (score >= 85) return 'bg-lime-400';   // Yellow-Green
     if (score >= 75) return 'bg-green-400';  // Green
     if (score >= 60) return 'bg-yellow-500'; // Yellow
@@ -127,16 +127,16 @@ const FeedPost: React.FC<FeedPostProps> = ({
         {/* Dual Review System */}
         <div className="space-y-2 mb-4">
           <div className="flex items-start">
-            <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center mr-2 mt-1">
+            <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center mr-2 flex-shrink-0">
               <span className="text-green-600">+</span>
             </div>
-            <p className="text-sm flex-1">{review.positive}</p>
+            <p className="text-sm flex-1 leading-6">{review.positive}</p>
           </div>
           <div className="flex items-start">
-            <div className="w-6 h-6 rounded-full bg-red-100 flex items-center justify-center mr-2 mt-1">
+            <div className="w-6 h-6 rounded-full bg-red-100 flex items-center justify-center mr-2 flex-shrink-0">
               <span className="text-red-600">-</span>
             </div>
-            <p className="text-sm flex-1">{review.negative}</p>
+            <p className="text-sm flex-1 leading-6">{review.negative}</p>
           </div>
         </div>
 

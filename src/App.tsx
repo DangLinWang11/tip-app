@@ -10,6 +10,7 @@ import Profile from './pages/Profile';
 import RestaurantDetail from './pages/RestaurantDetail';
 import MenuDetail from './pages/MenuDetail';
 import FoodMap from './pages/FoodMap';
+import AdminUpload from './pages/AdminUpload';
 import { LocationProvider } from './contexts/LocationContext';
 import { useFeature } from './utils/features';
 
@@ -106,9 +107,11 @@ export function App() {
             />
             <Route path="profile" element={<Profile />} />
             <Route path="/food-map" element={<FoodMap />} />
+            <Route path="/list-view" element={<FoodMap />} />
           </Route>
           <Route path="/restaurant/:id" element={<RestaurantDetail />} />
           <Route path="/restaurant/:id/menu" element={<MenuDetail />} />
+          <Route path="/admin-upload" element={<AdminUpload />} />
         </Routes>
       </Router>
     </LocationProvider>

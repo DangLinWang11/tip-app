@@ -1,6 +1,6 @@
 import { collection, addDoc, serverTimestamp, getDocs, query, orderBy, limit } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { db, storage } from '../lib/firebase';
+import { db, storage, getUserProfile, getCurrentUser } from '../lib/firebase';
 
 // Photo upload service
 export const uploadPhoto = async (file: File): Promise<string> => {
@@ -41,6 +41,8 @@ export const uploadMultiplePhotos = async (files: File[]): Promise<string[]> => 
 
 // Review data interface
 export interface ReviewData {
+  restaurantId?: string | null; // Firebase restaurant ID for linking
+  menuItemId?: string | null; // Firebase menu item ID for linking
   restaurant: string;
   location: string;
   dish: string;
@@ -57,9 +59,15 @@ export interface ReviewData {
 // Save review to Firestore
 export const saveReview = async (reviewData: ReviewData): Promise<string> => {
   try {
+    const currentUser = getCurrentUser();
+    if (!currentUser) {
+      throw new Error('User must be authenticated to save reviews');
+    }
+
     // Create review document with auto-generated ID and timestamp
     const docRef = await addDoc(collection(db, 'reviews'), {
       ...reviewData,
+      userId: currentUser.uid, // Link review to authenticated user
       timestamp: serverTimestamp(),
       createdAt: new Date().toISOString(),
       triedTimes: 1,
@@ -92,6 +100,9 @@ export const processAndUploadImages = async (imageFiles: File[]): Promise<string
 // Firebase review interface (what comes from Firestore)
 export interface FirebaseReview {
   id: string;
+  userId?: string; // Author's user ID
+  restaurantId?: string | null; // Firebase restaurant ID for linking
+  menuItemId?: string | null; // Firebase menu item ID for linking
   restaurant: string;
   location: string;
   dish: string;
@@ -136,40 +147,61 @@ export const fetchReviews = async (limitCount = 20): Promise<FirebaseReview[]> =
   }
 };
 
-// Convert Firebase review to feed post format
-export const convertReviewToFeedPost = (review: FirebaseReview) => {
-  // Generate a mock author for now - later can be tied to user authentication
-  const mockAuthors = [
-    {
-      name: "Alex Johnson",
-      image: "https://randomuser.me/api/portraits/women/65.jpg",
-      isVerified: true
-    },
-    {
-      name: "Sarah Chen",
-      image: "https://randomuser.me/api/portraits/women/32.jpg",
-      isVerified: false
-    },
-    {
-      name: "Mike Rodriguez",
-      image: "https://randomuser.me/api/portraits/men/85.jpg",
-      isVerified: true  
-    },
-    {
-      name: "Emma Wilson",
-      image: "https://randomuser.me/api/portraits/women/44.jpg",
-      isVerified: false
+// Feed post author interface
+interface FeedPostAuthor {
+  name: string;
+  username: string;
+  image: string;
+  isVerified: boolean;
+}
+
+// Cache for user profiles to avoid redundant fetches
+const userProfileCache = new Map<string, FeedPostAuthor>();
+
+// Convert Firebase review to feed post format with real user data
+export const convertReviewToFeedPost = async (review: FirebaseReview) => {
+  let author: FeedPostAuthor = {
+    name: "Anonymous User",
+    username: "anonymous",
+    image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face",
+    isVerified: false
+  };
+
+  // Fetch real user profile if userId exists
+  if (review.userId) {
+    try {
+      // Check cache first
+      if (userProfileCache.has(review.userId)) {
+        author = userProfileCache.get(review.userId)!;
+      } else {
+        // Fetch user profile from Firebase
+        const userProfileResult = await getUserProfile(review.userId);
+        if (userProfileResult.success && userProfileResult.profile) {
+          const profile = userProfileResult.profile;
+          author = {
+            name: profile.displayName || profile.username,
+            username: profile.username,
+            image: profile.avatar || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face",
+            isVerified: profile.isVerified || false
+          };
+          
+          // Cache the result
+          userProfileCache.set(review.userId, author);
+        }
+      }
+    } catch (error) {
+      console.warn('Failed to fetch user profile for review:', review.id, error);
+      // Keep default anonymous author
     }
-  ];
-  
-  const randomAuthor = mockAuthors[Math.floor(Math.random() * mockAuthors.length)];
+  }
   
   return {
     id: review.id,
-    author: randomAuthor,
+    userId: review.userId,
+    author,
     restaurant: {
       name: review.restaurant,
-      isVerified: Math.random() > 0.5,
+      isVerified: Math.random() > 0.7, // Some restaurants are verified
       qualityScore: Math.floor(Math.random() * 40) + 60 // 60-100
     },
     dish: {
@@ -186,6 +218,57 @@ export const convertReviewToFeedPost = (review: FirebaseReview) => {
     engagement: {
       likes: Math.floor(Math.random() * 100) + 10,
       comments: Math.floor(Math.random() * 30) + 1
-    }
+    },
+    location: review.location,
+    tags: review.tags,
+    price: review.price
   };
+};
+
+// Batch convert reviews to feed posts with user data
+export const convertReviewsToFeedPosts = async (reviews: FirebaseReview[]) => {
+  try {
+    console.log(`Converting ${reviews.length} reviews to feed posts...`);
+    const feedPosts = await Promise.all(
+      reviews.map(review => convertReviewToFeedPost(review))
+    );
+    console.log(`✅ Converted ${feedPosts.length} reviews to feed posts`);
+    return feedPosts;
+  } catch (error) {
+    console.error('Error converting reviews to feed posts:', error);
+    // Fallback to synchronous conversion without user data
+    return reviews.map(review => ({
+      id: review.id,
+      userId: review.userId,
+      author: {
+        name: "Anonymous User",
+        username: "anonymous",
+        image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face",
+        isVerified: false
+      },
+      restaurant: {
+        name: review.restaurant,
+        isVerified: false,
+        qualityScore: 75
+      },
+      dish: {
+        name: review.dish,
+        image: review.images.length > 0 ? review.images[0] : `https://source.unsplash.com/500x500/?food,${encodeURIComponent(review.dish)}`,
+        rating: review.rating,
+        visitCount: review.visitedTimes
+      },
+      review: {
+        positive: review.personalNote,
+        negative: review.negativeNote,
+        date: new Date(review.createdAt).toLocaleDateString()
+      },
+      engagement: {
+        likes: Math.floor(Math.random() * 100) + 10,
+        comments: Math.floor(Math.random() * 30) + 1
+      },
+      location: review.location,
+      tags: review.tags,
+      price: review.price
+    }));
+  }
 };

@@ -3,17 +3,39 @@ import { MapIcon, PlusIcon, MapPinIcon } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import HamburgerMenu from '../components/HamburgerMenu';
 import FeedPost from '../components/FeedPost';
-import { fetchReviews, convertReviewToFeedPost, FirebaseReview } from '../services/reviewService';
+import { fetchReviews, convertReviewsToFeedPosts, FirebaseReview } from '../services/reviewService';
+import { getUserProfile, getCurrentUser } from '../lib/firebase';
 
 const Home: React.FC = () => {
   const [firebaseReviews, setFirebaseReviews] = useState<FirebaseReview[]>([]);
   const [feedPosts, setFeedPosts] = useState<any[]>([]);
+  const [userProfile, setUserProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [profileLoading, setProfileLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
-  // Get saved reviews from localStorage for stats
-  const savedReviews = JSON.parse(localStorage.getItem('userReviews') || '[]');
-  const savedStats = JSON.parse(localStorage.getItem('userStats') || '{}');
+  // Fetch user profile on component mount
+  useEffect(() => {
+    const loadUserProfile = async () => {
+      try {
+        setProfileLoading(true);
+        const currentUser = getCurrentUser();
+        
+        if (currentUser) {
+          const result = await getUserProfile();
+          if (result.success && result.profile) {
+            setUserProfile(result.profile);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load user profile:', err);
+      } finally {
+        setProfileLoading(false);
+      }
+    };
+
+    loadUserProfile();
+  }, []);
   
   // Fetch reviews from Firebase on component mount
   useEffect(() => {
@@ -23,8 +45,8 @@ const Home: React.FC = () => {
         const reviews = await fetchReviews(20);
         setFirebaseReviews(reviews);
         
-        // Convert Firebase reviews to feed post format
-        const posts = reviews.map(convertReviewToFeedPost);
+        // Convert Firebase reviews to feed post format with real user data
+        const posts = await convertReviewsToFeedPosts(reviews);
         setFeedPosts(posts);
         
         setError(null);
@@ -40,77 +62,25 @@ const Home: React.FC = () => {
     loadReviews();
   }, []);
 
-  // Sample user data - replace with real data later
-  const userProfile = {
-    profilePicture: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face",
-    points: savedStats.pointsEarned || 2685
-  };
-
-  const userStats = savedStats.totalReviews ? {
-    averageRating: savedStats.averageRating,
-    totalRestaurants: savedStats.totalRestaurants,
-    totalDishes: savedStats.totalDishes,
-    pointsEarned: savedStats.pointsEarned
+  // Default profile picture and stats calculation
+  const defaultAvatar = "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face";
+  
+  const userStats = userProfile?.stats ? {
+    averageRating: userProfile.stats.averageRating.toFixed(1),
+    totalRestaurants: userProfile.stats.totalRestaurants,
+    totalDishes: firebaseReviews.length, // Use actual review count for dishes
+    pointsEarned: userProfile.stats.pointsEarned
   } : {
-    averageRating: 8.2,
-    totalRestaurants: 450,
-    totalDishes: 950,
-    pointsEarned: "10.2k"
+    averageRating: "0.0",
+    totalRestaurants: 0,
+    totalDishes: 0,
+    pointsEarned: 0
   };
 
-  const recentVisits = savedReviews.length > 0 ? savedReviews.map((review: any) => ({
-    id: review.id,
-    restaurant: review.restaurant,
-    location: review.location,
-    dish: review.dish,
-    rating: review.rating,
-    date: review.date,
-    personalNote: review.personalNote,
-    triedTimes: review.triedTimes,
-    visitedTimes: review.visitedTimes,
-    rewardReason: review.rewardReason,
-    pointsEarned: review.pointsEarned
-  })) : [
-    { 
-      id: 1,
-      restaurant: "The Octane Burger", 
-      location: "Ford's Garage",
-      dish: "Classic Burger", 
-      rating: 8.5, 
-      date: "5h ago",
-      personalNote: "Good choice! Solid burger, will have to order again. Added to the Best Bets!",
-      triedTimes: 2,
-      visitedTimes: 11,
-      rewardReason: "New menu item review",
-      pointsEarned: 250
-    },
-    { 
-      id: 2,
-      restaurant: "Cinnamon Roll", 
-      location: "Philly's Diner",
-      dish: "Cinnamon Roll with Ice Cream", 
-      rating: 10, 
-      date: "5d ago",
-      personalNote: "Hands down one of the best desserts I've ever had. Warm roll with cold ice cream.",
-      triedTimes: 1,
-      visitedTimes: 7,
-      rewardReason: "First-time visit bonus",
-      pointsEarned: 150
-    },
-    { 
-      id: 3,
-      restaurant: "Pasta Paradise", 
-      location: "Downtown",
-      dish: "Truffle Pasta", 
-      rating: 9.2, 
-      date: "2 days ago",
-      personalNote: "Ask for extra truffle oil - makes all the difference!",
-      triedTimes: 3,
-      visitedTimes: 5,
-      rewardReason: "Featured dish promotion",
-      pointsEarned: 300
-    },
-  ];
+  // Get user's recent reviews for personal section
+  const userRecentReviews = feedPosts
+    .filter(post => post.userId === getCurrentUser()?.uid)
+    .slice(0, 3);
 
   const handleVisitClick = (visitId: number) => {
     console.log(`Navigate to post ${visitId}`);
@@ -152,7 +122,7 @@ const Home: React.FC = () => {
   );
 
   // Show loading state
-  if (loading) {
+  if (loading || profileLoading) {
     return (
       <div className="min-h-screen bg-light-gray flex items-center justify-center">
         <div className="text-center">
@@ -163,8 +133,8 @@ const Home: React.FC = () => {
     );
   }
   
-  // If no Firebase reviews and no saved reviews, show empty state
-  if (firebaseReviews.length === 0 && savedReviews.length === 0 && !loading) {
+  // If no Firebase reviews and no user reviews, show empty state
+  if (firebaseReviews.length === 0 && userRecentReviews.length === 0 && !loading) {
     return (
       <div className="min-h-screen bg-light-gray">
         <header className="bg-white sticky top-0 z-10 shadow-sm">
@@ -197,10 +167,10 @@ const Home: React.FC = () => {
           </div>
           <div className="flex items-center">
             <div className="bg-primary text-white px-3 py-1 rounded-full text-sm font-semibold mr-3">
-              {userProfile.points} 🪙
+              {userStats.pointsEarned} 🪙
             </div>
             <img 
-              src={userProfile.profilePicture} 
+              src={userProfile?.avatar || defaultAvatar} 
               alt="Profile" 
               className="w-12 h-12 rounded-full border-2 border-gray-200"
             />
@@ -232,7 +202,7 @@ const Home: React.FC = () => {
         {/* Your Food Journey Section */}
         <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
           <h2 className="text-lg font-bold text-black mb-4">Your Food Journey</h2>
-          <div className="h-64 bg-gray-100 rounded-lg flex items-center justify-center">
+          <div className="h-64 bg-gray-100 rounded-lg flex items-center justify-center mb-4">
             <div className="text-center">
               <MapIcon size={48} className="text-gray-400 mx-auto mb-2" />
               <p className="text-gray-600 font-medium">Interactive map coming soon!</p>
@@ -240,16 +210,14 @@ const Home: React.FC = () => {
             </div>
           </div>
 
-          {/* Simple Journey Stats */}
-          <div className="mt-6 grid grid-cols-2 gap-4">
-            <div className="text-center">
-              <p className="text-2xl font-bold text-primary">15</p>
-              <p className="text-sm text-black">Miles Traveled</p>
-            </div>
-            <div className="text-center">
-              <p className="text-2xl font-bold text-primary">8</p>
-              <p className="text-sm text-black">Neighborhoods</p>
-            </div>
+          {/* List View Button */}
+          <div className="text-center">
+            <Link 
+              to="/list-view"
+              className="inline-block bg-gray-100 text-red-500 px-6 py-2 rounded-lg font-medium hover:bg-gray-200 transition-colors"
+            >
+              List View
+            </Link>
           </div>
         </div>
 
@@ -295,44 +263,52 @@ const Home: React.FC = () => {
         </div>
         
         {/* Personal Reviews Section */}
-        {savedReviews.length > 0 && (
+        {userRecentReviews.length > 0 && (
           <div className="space-y-4 mt-8">
             <h2 className="text-lg font-bold text-black">Your Recent Reviews</h2>
-            {recentVisits.slice(0, 3).map((visit) => (
+            {userRecentReviews.map((post) => (
               <div 
-                key={visit.id}
-                onClick={() => handleVisitClick(visit.id)}
-                className="bg-white rounded-xl shadow-sm p-4 cursor-pointer hover:shadow-md transition-shadow"
+                key={post.id}
+                className="bg-white rounded-xl shadow-sm p-4"
               >
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex-1">
                     <div className="flex items-center mb-1">
                       <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center mr-3">
-                        <span className="text-white font-bold text-sm">{visit.rating}</span>
+                        <span className="text-white font-bold text-sm">{post.dish.rating}</span>
                       </div>
                       <div>
-                        <h3 className="font-bold text-black">{visit.restaurant}</h3>
+                        <h3 className="font-bold text-black">{post.restaurant.name}</h3>
                         <p className="text-sm text-gray-600 flex items-center">
                           <MapPinIcon size={14} className="text-red-500 mr-1" />
-                          {visit.location} ✓
+                          {post.location} ✓
                         </p>
                       </div>
                     </div>
                   </div>
                   <div className="text-right flex flex-col items-end">
-                    <p className="text-sm text-gray-500">{visit.date}</p>
+                    <p className="text-sm text-gray-500">{post.review.date}</p>
                     <div className="bg-primary text-white px-2 py-1 rounded-full text-xs font-semibold mt-1">
-                      +{visit.pointsEarned}🪙
+                      +200🪙
                     </div>
                   </div>
                 </div>
                 <div className="ml-11">
+                  <h4 className="font-medium text-black mb-1">{post.dish.name}</h4>
                   <div className="bg-green-100 text-green-800 p-3 rounded-lg text-sm italic">
-                    {visit.personalNote}
+                    {post.review.positive}
                   </div>
                 </div>
               </div>
             ))}
+            <div className="text-center">
+              <Link 
+                to="/profile"
+                className="text-primary font-medium hover:underline"
+              >
+                View all your reviews →
+              </Link>
+            </div>
           </div>
         )}
       </div>
