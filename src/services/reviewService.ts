@@ -198,6 +198,8 @@ export const convertReviewToFeedPost = async (review: FirebaseReview) => {
   return {
     id: review.id,
     userId: review.userId,
+    restaurantId: review.restaurantId,
+    dishId: review.menuItemId,
     author,
     restaurant: {
       name: review.restaurant,
@@ -240,6 +242,8 @@ export const convertReviewsToFeedPosts = async (reviews: FirebaseReview[]) => {
     return reviews.map(review => ({
       id: review.id,
       userId: review.userId,
+      restaurantId: review.restaurantId,
+      dishId: review.menuItemId,
       author: {
         name: "Anonymous User",
         username: "anonymous",

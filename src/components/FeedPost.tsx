@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { HeartIcon, MessageCircleIcon, BookmarkIcon, ShareIcon, CheckCircleIcon, MapPinIcon } from 'lucide-react';
 import RatingBadge from './RatingBadge';
 import { useFeature } from '../utils/features';
@@ -45,6 +45,7 @@ const FeedPost: React.FC<FeedPostProps> = ({
   review,
   engagement
 }) => {
+  const navigate = useNavigate();
   const [saved, setSaved] = useState(false);
   
   // Feature flags
@@ -75,13 +76,12 @@ const FeedPost: React.FC<FeedPostProps> = ({
           {restaurant && (
             <div className="text-sm text-dark-gray flex items-center">
               <MapPinIcon size={14} className="text-red-500 mr-1" />
-              {restaurantId ? (
-                <Link to={`/restaurant/${restaurantId}`} className="hover:text-primary">
-                  {restaurant.name}
-                </Link>
-              ) : (
-                <span>{restaurant.name}</span>
-              )}
+              <span 
+                onClick={() => restaurantId && navigate(`/restaurant/${restaurantId}`)}
+                className={restaurantId ? "hover:text-primary cursor-pointer" : ""}
+              >
+                {restaurant.name}
+              </span>
               {restaurant.isVerified && <CheckCircleIcon size={14} className="ml-1 text-secondary" />}
               {restaurant.qualityScore && (
                 <>
@@ -111,17 +111,18 @@ const FeedPost: React.FC<FeedPostProps> = ({
       {/* Content */}
       <div className="p-4">
         <h3 className="font-medium text-lg mb-2">
-          {dishId ? (
-            <Link to={`/dish/${dishId}`} className="hover:text-primary">
-              {dish.name}
-            </Link>
-          ) : restaurantId ? (
-            <Link to={`/restaurant/${restaurantId}/menu`} className="hover:text-primary">
-              {dish.name}
-            </Link>
-          ) : (
-            dish.name
-          )}
+          <span 
+            onClick={() => {
+              if (dishId) {
+                navigate(`/dish/${dishId}`);
+              } else if (restaurantId) {
+                navigate(`/restaurant/${restaurantId}`);
+              }
+            }}
+            className={(dishId || restaurantId) ? "hover:text-primary cursor-pointer" : ""}
+          >
+            {dish.name}
+          </span>
         </h3>
         
         {/* Dual Review System */}

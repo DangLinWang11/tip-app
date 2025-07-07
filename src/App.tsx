@@ -111,6 +111,7 @@ export function App() {
           </Route>
           <Route path="/restaurant/:id" element={<RestaurantDetail />} />
           <Route path="/restaurant/:id/menu" element={<MenuDetail />} />
+          <Route path="/dish/:id" element={<MenuDetail />} />
           <Route path="/admin-upload" element={<AdminUpload />} />
         </Routes>
       </Router>
