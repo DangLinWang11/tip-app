@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { MapIcon, PlusIcon, MapPinIcon } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { MapIcon, PlusIcon, MapPinIcon, Star } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
 import HamburgerMenu from '../components/HamburgerMenu';
 import FeedPost from '../components/FeedPost';
 import { fetchReviews, convertReviewsToFeedPosts, FirebaseReview } from '../services/reviewService';
 import { getUserProfile, getCurrentUser } from '../lib/firebase';
 
 const Home: React.FC = () => {
+  const navigate = useNavigate();
   const [firebaseReviews, setFirebaseReviews] = useState<FirebaseReview[]>([]);
   const [feedPosts, setFeedPosts] = useState<any[]>([]);
   const [userProfile, setUserProfile] = useState<any>(null);
@@ -166,8 +167,30 @@ const Home: React.FC = () => {
             </div>
           </div>
           <div className="flex items-center">
-            <div className="bg-primary text-white px-3 py-1 rounded-full text-sm font-semibold mr-3">
-              {userStats.pointsEarned} 🪙
+            <div 
+              className="bg-white rounded-2xl shadow-sm border border-gray-100 px-4 py-2 mr-3 cursor-pointer hover:shadow-md transition-shadow flex items-center"
+              onClick={() => navigate('/rewards')}
+            >
+              <span className="font-bold text-sm mr-2" style={{ color: '#FFD700' }}>
+                {userStats.pointsEarned}
+              </span>
+              <div 
+                className="w-5 h-5 rounded-full flex items-center justify-center"
+                style={{ backgroundColor: '#FFD700' }}
+              >
+                <div 
+                  className="w-3.5 h-3.5 rounded-full flex items-center justify-center"
+                  style={{ backgroundColor: '#F59E0B' }}
+                >
+                  <Star 
+                    size={8} 
+                    style={{ 
+                      color: '#FFD700', 
+                      fill: '#FFD700'
+                    }} 
+                  />
+                </div>
+              </div>
             </div>
             <img 
               src={userProfile?.avatar || defaultAvatar} 
@@ -261,56 +284,6 @@ const Home: React.FC = () => {
             </div>
           )}
         </div>
-        
-        {/* Personal Reviews Section */}
-        {userRecentReviews.length > 0 && (
-          <div className="space-y-4 mt-8">
-            <h2 className="text-lg font-bold text-black">Your Recent Reviews</h2>
-            {userRecentReviews.map((post) => (
-              <div 
-                key={post.id}
-                className="bg-white rounded-xl shadow-sm p-4"
-              >
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex-1">
-                    <div className="flex items-center mb-1">
-                      <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center mr-3">
-                        <span className="text-white font-bold text-sm">{post.dish.rating}</span>
-                      </div>
-                      <div>
-                        <h3 className="font-bold text-black">{post.restaurant.name}</h3>
-                        <p className="text-sm text-gray-600 flex items-center">
-                          <MapPinIcon size={14} className="text-red-500 mr-1" />
-                          {post.location} ✓
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="text-right flex flex-col items-end">
-                    <p className="text-sm text-gray-500">{post.review.date}</p>
-                    <div className="bg-primary text-white px-2 py-1 rounded-full text-xs font-semibold mt-1">
-                      +200🪙
-                    </div>
-                  </div>
-                </div>
-                <div className="ml-11">
-                  <h4 className="font-medium text-black mb-1">{post.dish.name}</h4>
-                  <div className="bg-green-100 text-green-800 p-3 rounded-lg text-sm italic">
-                    {post.review.positive}
-                  </div>
-                </div>
-              </div>
-            ))}
-            <div className="text-center">
-              <Link 
-                to="/profile"
-                className="text-primary font-medium hover:underline"
-              >
-                View all your reviews →
-              </Link>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

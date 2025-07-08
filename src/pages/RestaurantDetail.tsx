@@ -3,7 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeftIcon, StarIcon, MapPinIcon, PhoneIcon, ClockIcon, BookmarkIcon, ShareIcon, ChevronRightIcon } from 'lucide-react';
+import { ArrowLeftIcon, StarIcon, MapPinIcon, PhoneIcon, ClockIcon, BookmarkIcon, ShareIcon, ChevronRightIcon, Utensils, Soup, Salad, Coffee, Cake, Fish, Pizza, Sandwich, ChefHat, ChevronDown } from 'lucide-react';
 import BottomNavigation from '../components/BottomNavigation';
 
 interface Restaurant {
@@ -70,6 +70,20 @@ const RestaurantDetail: React.FC = () => {
   // Helper function to get all images from reviews
   const getAllReviewImages = (reviewsArray: Review[]) => {
     return reviewsArray.flatMap(review => review.images || []);
+  };
+
+  // Helper function to get category icon
+  const getCategoryIcon = (category: string) => {
+    const categoryLower = category.toLowerCase();
+    if (categoryLower.includes('soup') || categoryLower.includes('bowl')) return Soup;
+    if (categoryLower.includes('salad') || categoryLower.includes('green') || categoryLower.includes('vegetable')) return Salad;
+    if (categoryLower.includes('coffee') || categoryLower.includes('tea') || categoryLower.includes('drink') || categoryLower.includes('beverage')) return Coffee;
+    if (categoryLower.includes('dessert') || categoryLower.includes('cake') || categoryLower.includes('sweet')) return Cake;
+    if (categoryLower.includes('fish') || categoryLower.includes('seafood')) return Fish;
+    if (categoryLower.includes('pizza')) return Pizza;
+    if (categoryLower.includes('sandwich') || categoryLower.includes('burger')) return Sandwich;
+    if (categoryLower.includes('chef') || categoryLower.includes('special')) return ChefHat;
+    return Utensils; // Default icon
   };
 
   const qualityScore = calculateQualityScore(reviews);
@@ -254,62 +268,59 @@ const RestaurantDetail: React.FC = () => {
           </div>
         </div>
       </div>
-      <div className="bg-white mt-2 p-4 shadow-sm">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="font-semibold text-lg">Menu</h2>
-          <Link to={`/restaurant/${id}/menu`} className="flex items-center text-secondary">
-            <span className="mr-1">View Full Menu</span>
-            <ChevronRightIcon size={16} />
-          </Link>
-        </div>
+      <div className="mt-6 px-4">
+        <h2 className="font-semibold text-2xl mb-6 text-gray-900">Menu</h2>
         {menuItems.length > 0 ? (
-          <div className="space-y-3">
+          <div className="space-y-4">
             {Object.entries(groupedMenu).map(([category, items]) => {
               const isOpen = openSections.has(category);
+              const IconComponent = getCategoryIcon(category);
               return (
-                <div key={category} className="border border-light-gray rounded-lg overflow-hidden">
+                <div key={category} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                   <button
                     onClick={() => toggleSection(category)}
-                    className="w-full flex justify-between items-center p-4 bg-light-gray hover:bg-gray-100 transition-colors"
+                    className="w-full flex items-center justify-between p-6 hover:bg-gray-50 transition-colors"
                   >
-                    <h3 className="font-semibold text-lg text-primary text-left">{category}</h3>
-                    <svg 
-                      className={`w-5 h-5 text-gray-600 transition-transform duration-200 ${isOpen ? 'rotate-180' : 'rotate-0'}`}
-                      fill="none" 
-                      stroke="currentColor" 
-                      viewBox="0 0 24 24"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                    >
-                      <polyline points="6,9 12,15 18,9"></polyline>
-                    </svg>
+                    <div className="flex items-center">
+                      <div className="w-10 h-10 bg-gray-50 rounded-full flex items-center justify-center mr-4">
+                        <IconComponent size={20} className="text-red-500" style={{ color: '#ff3131' }} />
+                      </div>
+                      <h3 className="font-semibold text-lg text-gray-900">{category}</h3>
+                    </div>
+                    <ChevronDown 
+                      size={20} 
+                      className={`text-gray-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : 'rotate-0'}`}
+                    />
                   </button>
                   {isOpen && (
-                    <div className="p-4 space-y-3 bg-white">
+                    <div className="px-6 pb-6 space-y-4">
                       {items.map(item => (
-                        <div key={item.id} className="flex">
+                        <div 
+                          key={item.id} 
+                          className="flex cursor-pointer hover:bg-gray-50 p-4 rounded-xl transition-colors group"
+                          onClick={() => navigate(`/dish/${item.id}`)}
+                        >
                           <img 
                             src="https://source.unsplash.com/100x100/food" 
                             alt={item.name} 
-                            className="w-20 h-20 rounded-lg object-cover" 
+                            className="w-20 h-20 rounded-xl object-cover" 
                           />
-                          <div className="ml-3 flex-1">
+                          <div className="ml-4 flex-1">
                             <div className="flex justify-between items-start">
-                              <h4 className="font-medium flex-1 mr-2">{item.name}</h4>
+                              <h4 className="font-semibold text-gray-900 flex-1 mr-2 group-hover:text-red-500 transition-colors" style={{ color: isOpen ? undefined : '#ff3131' }}>{item.name}</h4>
                               <div className="text-right">
-                                <div className="text-sm text-gray-600 mb-1">
+                                <div className="text-sm text-gray-500 mb-1">
                                   {menuItemRatings[item.id] 
                                     ? `${menuItemRatings[item.id].rating.toFixed(1)}/10` 
                                     : '0/10 (no reviews yet)'
                                   }
                                 </div>
                                 {item.price && (
-                                  <span className="font-medium text-primary">${item.price}</span>
+                                  <span className="font-semibold text-gray-900">${item.price}</span>
                                 )}
                               </div>
                             </div>
-                            <p className="text-dark-gray text-sm line-clamp-2">
+                            <p className="text-gray-600 text-sm line-clamp-2 mt-1">
                               {item.description || 'Delicious dish'}
                             </p>
                           </div>
@@ -322,11 +333,15 @@ const RestaurantDetail: React.FC = () => {
             })}
           </div>
         ) : (
-          <div className="text-center py-8">
-            <p className="text-dark-gray mb-4">No menu items yet. Be the first to review a dish from this restaurant!</p>
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 text-center py-12">
+            <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Utensils size={24} className="text-gray-400" />
+            </div>
+            <p className="text-gray-600 mb-6">No menu items yet. Be the first to review a dish from this restaurant!</p>
             <button 
               onClick={() => navigate('/create', { state: { selectedRestaurant: restaurant } })}
-              className="bg-secondary text-white px-6 py-2 rounded-full font-medium hover:bg-secondary/90 transition-colors"
+              className="bg-red-500 text-white px-8 py-3 rounded-full font-medium hover:bg-red-600 transition-colors"
+              style={{ backgroundColor: '#ff3131' }}
             >
               Add New Dish
             </button>

@@ -6,6 +6,7 @@ import Discover from './pages/Discover';
 import Create from './pages/Create';
 import Notifications from './pages/Notifications';
 import Profile from './pages/Profile';
+import Rewards from './pages/Rewards';
 // import Onboarding from './pages/Onboarding';
 import RestaurantDetail from './pages/RestaurantDetail';
 import MenuDetail from './pages/MenuDetail';
@@ -106,6 +107,7 @@ export function App() {
               } 
             />
             <Route path="profile" element={<Profile />} />
+            <Route path="rewards" element={<Rewards />} />
             <Route path="/food-map" element={<FoodMap />} />
             <Route path="/list-view" element={<FoodMap />} />
           </Route>
