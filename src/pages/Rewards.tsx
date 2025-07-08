@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeftIcon, Gift, Star, Camera, MessageCircle, MapPin, Trophy, Clock, Coins } from 'lucide-react';
+import { ArrowLeftIcon, Gift, Star, Camera, MessageCircle, MapPin, Trophy, Clock, Coins, Video, ChefHat, Target } from 'lucide-react';
 import BottomNavigation from '../components/BottomNavigation';
 
 interface PointsActivity {
@@ -13,54 +13,47 @@ interface PointsActivity {
 }
 
 const Rewards: React.FC = () => {
-  const [totalPoints, setTotalPoints] = useState(1250);
+  const [totalPoints, setTotalPoints] = useState(1700);
   const [pointsHistory, setPointsHistory] = useState<PointsActivity[]>([
     {
       id: '1',
-      type: 'review',
-      points: 200,
-      description: 'Reviewed Margherita Pizza',
-      date: '2024-01-15',
-      restaurantName: 'Tony\'s Italian Kitchen'
+      type: 'bonus',
+      points: 500,
+      description: 'First restaurant review',
+      date: '2025-07-06',
+      restaurantName: 'Anna Maria Oyster Bar'
     },
     {
       id: '2',
-      type: 'photo',
-      points: 50,
-      description: 'Added photo to review',
-      date: '2024-01-15',
-      restaurantName: 'Tony\'s Italian Kitchen'
+      type: 'review',
+      points: 300,
+      description: 'P.E.I. Mussels Provencal with photo',
+      date: '2025-07-06',
+      restaurantName: 'Anna Maria Oyster Bar'
     },
     {
       id: '3',
-      type: 'check_in',
-      points: 100,
-      description: 'Checked in at restaurant',
-      date: '2024-01-14',
-      restaurantName: 'Sushi Zen'
+      type: 'bonus',
+      points: 500,
+      description: 'First restaurant review',
+      date: '2025-07-06',
+      restaurantName: 'Florence and the Spice Boys'
     },
     {
       id: '4',
       type: 'review',
-      points: 200,
-      description: 'Reviewed Salmon Teriyaki',
-      date: '2024-01-14',
-      restaurantName: 'Sushi Zen'
+      points: 300,
+      description: 'Harissa Mushroom with photo',
+      date: '2025-07-06',
+      restaurantName: 'Florence and the Spice Boys'
     },
     {
       id: '5',
-      type: 'bonus',
-      points: 500,
-      description: 'Weekly streak bonus',
-      date: '2024-01-13',
-    },
-    {
-      id: '6',
-      type: 'review',
-      points: 200,
-      description: 'Reviewed Chicken Tacos',
-      date: '2024-01-12',
-      restaurantName: 'El Mariachi'
+      type: 'photo',
+      points: 100,
+      description: 'Added second photo to review',
+      date: '2025-07-06',
+      restaurantName: 'Florence and the Spice Boys'
     }
   ]);
 
@@ -125,8 +118,22 @@ const Rewards: React.FC = () => {
               <p className="text-red-100 text-sm mt-1">Keep earning to unlock rewards!</p>
             </div>
             <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center">
-              <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center">
-                <span className="text-2xl font-bold text-red-500" style={{ color: '#ff3131' }}>T</span>
+              <div 
+                className="w-10 h-10 rounded-full flex items-center justify-center"
+                style={{ backgroundColor: '#FFD700' }}
+              >
+                <div 
+                  className="w-7 h-7 rounded-full flex items-center justify-center"
+                  style={{ backgroundColor: '#F59E0B' }}
+                >
+                  <Star 
+                    size={16} 
+                    style={{ 
+                      color: '#FFD700', 
+                      fill: '#FFD700'
+                    }} 
+                  />
+                </div>
               </div>
             </div>
           </div>
@@ -176,10 +183,24 @@ const Rewards: React.FC = () => {
                       )}
                     </div>
                     <div className="text-right">
-                      <p className="font-semibold text-red-500 flex items-center" style={{ color: '#ff3131' }}>
+                      <p className="font-semibold flex items-center" style={{ color: '#FFD700' }}>
                         +{activity.points}
-                        <div className="w-3 h-3 bg-red-500 rounded-full flex items-center justify-center ml-1" style={{ backgroundColor: '#ff3131' }}>
-                          <span className="text-xs font-bold text-white" style={{ fontSize: '8px' }}>T</span>
+                        <div 
+                          className="w-3 h-3 rounded-full flex items-center justify-center ml-1"
+                          style={{ backgroundColor: '#FFD700' }}
+                        >
+                          <div 
+                            className="w-2 h-2 rounded-full flex items-center justify-center"
+                            style={{ backgroundColor: '#F59E0B' }}
+                          >
+                            <Star 
+                              size={6} 
+                              style={{ 
+                                color: '#FFD700', 
+                                fill: '#FFD700'
+                              }} 
+                            />
+                          </div>
                         </div>
                       </p>
                       <p className="text-xs text-gray-500 mt-1 flex items-center">
@@ -206,7 +227,7 @@ const Rewards: React.FC = () => {
               </div>
               <div>
                 <p className="font-medium text-gray-900">Write Reviews</p>
-                <p className="text-sm text-gray-600">200 points per review</p>
+                <p className="text-sm text-gray-600">100 points per review</p>
               </div>
             </div>
             <div className="flex items-center">
@@ -215,16 +236,25 @@ const Rewards: React.FC = () => {
               </div>
               <div>
                 <p className="font-medium text-gray-900">Add Photos</p>
-                <p className="text-sm text-gray-600">50 points per photo</p>
+                <p className="text-sm text-gray-600">+100 bonus points</p>
+              </div>
+            </div>
+            <div className="flex items-center">
+              <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center mr-3">
+                <Video size={16} className="text-purple-500" />
+              </div>
+              <div>
+                <p className="font-medium text-gray-900">Add Videos</p>
+                <p className="text-sm text-gray-600">+200 bonus points</p>
               </div>
             </div>
             <div className="flex items-center">
               <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center mr-3">
-                <MapPin size={16} className="text-green-500" />
+                <ChefHat size={16} className="text-green-500" />
               </div>
               <div>
-                <p className="font-medium text-gray-900">Check In</p>
-                <p className="text-sm text-gray-600">100 points per visit</p>
+                <p className="font-medium text-gray-900">Try New Dishes</p>
+                <p className="text-sm text-gray-600">+150 bonus points</p>
               </div>
             </div>
             <div className="flex items-center">
@@ -232,8 +262,17 @@ const Rewards: React.FC = () => {
                 <Trophy size={16} className="text-yellow-500" />
               </div>
               <div>
-                <p className="font-medium text-gray-900">Weekly Streaks</p>
-                <p className="text-sm text-gray-600">Bonus points for consistency</p>
+                <p className="font-medium text-gray-900">First Restaurant Review</p>
+                <p className="text-sm text-gray-600">500 points</p>
+              </div>
+            </div>
+            <div className="flex items-center">
+              <div className="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center mr-3">
+                <Target size={16} className="text-indigo-500" />
+              </div>
+              <div>
+                <p className="font-medium text-gray-900">Complete Menu Categories</p>
+                <p className="text-sm text-gray-600">+300 bonus points</p>
               </div>
             </div>
           </div>

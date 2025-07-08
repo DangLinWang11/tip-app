@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { EditIcon, GridIcon, BookmarkIcon, SearchIcon, PlusIcon } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { EditIcon, GridIcon, BookmarkIcon, SearchIcon, PlusIcon, Star } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
 import FeedPost from '../components/FeedPost';
 import HamburgerMenu from '../components/HamburgerMenu';
 import { useFeature } from '../utils/features';
@@ -8,6 +8,7 @@ import { fetchReviews, convertReviewsToFeedPosts, FirebaseReview } from '../serv
 import { getUserProfile, UserProfile, getCurrentUser } from '../lib/firebase';
 
 const Profile: React.FC = () => {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'activity' | 'saved'>('activity');
   const [searchTerm, setSearchTerm] = useState('');
   const [firebaseReviews, setFirebaseReviews] = useState<FirebaseReview[]>([]);
@@ -127,7 +128,34 @@ const Profile: React.FC = () => {
       <header className="bg-white p-4 sticky top-0 z-10 shadow-sm">
         <div className="flex justify-between items-center">
           <h1 className="text-xl font-semibold">My Profile</h1>
-          <HamburgerMenu />
+          <div className="flex items-center">
+            <div 
+              className="bg-white rounded-2xl shadow-sm border border-gray-100 px-4 py-2 mr-3 cursor-pointer hover:shadow-md transition-shadow flex items-center"
+              onClick={() => navigate('/rewards')}
+            >
+              <span className="font-bold text-sm mr-2" style={{ color: '#FFD700' }}>
+                {personalStats.pointsEarned}
+              </span>
+              <div 
+                className="w-5 h-5 rounded-full flex items-center justify-center"
+                style={{ backgroundColor: '#FFD700' }}
+              >
+                <div 
+                  className="w-3.5 h-3.5 rounded-full flex items-center justify-center"
+                  style={{ backgroundColor: '#F59E0B' }}
+                >
+                  <Star 
+                    size={8} 
+                    style={{ 
+                      color: '#FFD700', 
+                      fill: '#FFD700'
+                    }} 
+                  />
+                </div>
+              </div>
+            </div>
+            <HamburgerMenu />
+          </div>
         </div>
       </header>
 
