@@ -162,13 +162,12 @@ const Home: React.FC = () => {
           <div className="flex items-center">
             <MapIcon size={28} className="text-secondary mr-3" />
             <div>
-              <h1 className="text-2xl font-bold text-black">My Food Map</h1>
-              <p className="text-gray-600"></p>
+              <h1 className="text-2xl font-bold text-primary">My Food Map</h1>
             </div>
           </div>
           <div className="flex items-center">
             <div 
-              className="bg-white rounded-2xl shadow-sm border border-gray-100 px-4 py-2 mr-3 cursor-pointer hover:shadow-md transition-shadow flex items-center"
+              className="bg-white rounded-2xl shadow-sm border border-gray-100 px-4 py-2 cursor-pointer hover:shadow-md transition-shadow flex items-center"
               onClick={() => navigate('/rewards')}
             >
               <span className="font-bold text-sm mr-2" style={{ color: '#FFD700' }}>
@@ -192,11 +191,6 @@ const Home: React.FC = () => {
                 </div>
               </div>
             </div>
-            <img 
-              src={userProfile?.avatar || defaultAvatar} 
-              alt="Profile" 
-              className="w-12 h-12 rounded-full border-2 border-gray-200"
-            />
           </div>
         </div>
       </div>
@@ -216,7 +210,10 @@ const Home: React.FC = () => {
             <p className="text-2xl font-bold text-primary">{userStats.totalDishes}</p>
             <p className="text-xs text-gray-500 font-medium">Dishes</p>
           </div>
-          <div className="bg-white rounded-xl p-3 shadow-sm text-center">
+          <div 
+            className="bg-white rounded-xl p-3 shadow-sm text-center cursor-pointer hover:shadow-md transition-shadow"
+            onClick={() => navigate('/rewards')}
+          >
             <p className="text-2xl font-bold text-primary">{userStats.pointsEarned}</p>
             <p className="text-xs text-gray-500 font-medium">Points Earned</p>
           </div>
@@ -235,12 +232,13 @@ const Home: React.FC = () => {
 
           {/* List View Button */}
           <div className="text-center">
-            <Link 
-              to="/list-view"
-              className="inline-block bg-gray-100 text-red-500 px-6 py-2 rounded-lg font-medium hover:bg-gray-200 transition-colors"
+            <div 
+              className="inline-flex items-center bg-white rounded-2xl shadow-sm border border-gray-100 px-6 py-3 cursor-pointer hover:shadow-md transition-shadow"
+              onClick={() => navigate('/list-view')}
             >
-              List View
-            </Link>
+              <MapPinIcon size={20} className="text-secondary mr-3" />
+              <span className="text-primary font-medium">Recent Visits</span>
+            </div>
           </div>
         </div>
 

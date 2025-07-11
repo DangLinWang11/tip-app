@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { MapIcon, TrendingUpIcon, StarIcon, ClockIcon, MessageCircleIcon, PlusIcon, MapPinIcon } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { MapIcon, TrendingUpIcon, StarIcon, ClockIcon, MessageCircleIcon, PlusIcon, MapPinIcon, ArrowLeft, Star } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
 import { fetchReviews, convertReviewsToFeedPosts, FirebaseReview } from '../services/reviewService';
 import { getUserProfile, getCurrentUser } from '../lib/firebase';
 
 const FoodMap: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'recent' | 'journey'>('recent');
+  const navigate = useNavigate();
   const [userReviews, setUserReviews] = useState<any[]>([]);
   const [userProfile, setUserProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -107,26 +107,48 @@ const FoodMap: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-white">
       {/* Header */}
       <div className="bg-white px-4 py-6 shadow-sm">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center">
-            <MapIcon size={28} className="text-secondary mr-3" />
+            <button 
+              onClick={() => navigate('/')}
+              className="mr-3 p-2 hover:bg-gray-100 rounded-full transition-colors"
+            >
+              <ArrowLeft size={24} className="text-gray-600" />
+            </button>
+            <MapPinIcon size={28} className="text-secondary mr-3" />
             <div>
-              <h1 className="text-2xl font-bold text-black">My Food Map</h1>
-              <p className="text-gray-600">Your personal dining journey</p>
+              <h1 className="text-2xl font-bold text-primary">Recent Visits</h1>
             </div>
           </div>
           <div className="flex items-center">
-            <div className="bg-primary text-white px-3 py-1 rounded-full text-sm font-semibold mr-3">
-              {userStats.pointsEarned} 🪙
+            <div 
+              className="bg-white rounded-2xl shadow-sm border border-gray-100 px-4 py-2 cursor-pointer hover:shadow-md transition-shadow flex items-center"
+              onClick={() => navigate('/rewards')}
+            >
+              <span className="font-bold text-sm mr-2" style={{ color: '#FFD700' }}>
+                {userStats.pointsEarned}
+              </span>
+              <div 
+                className="w-5 h-5 rounded-full flex items-center justify-center"
+                style={{ backgroundColor: '#FFD700' }}
+              >
+                <div 
+                  className="w-3.5 h-3.5 rounded-full flex items-center justify-center"
+                  style={{ backgroundColor: '#F59E0B' }}
+                >
+                  <Star 
+                    size={8} 
+                    style={{ 
+                      color: '#FFD700', 
+                      fill: '#FFD700'
+                    }} 
+                  />
+                </div>
+              </div>
             </div>
-            <img 
-              src={userProfile?.avatar || defaultAvatar} 
-              alt="Profile" 
-              className="w-12 h-12 rounded-full border-2 border-gray-200"
-            />
           </div>
         </div>
       </div>
@@ -157,34 +179,7 @@ const FoodMap: React.FC = () => {
           <EmptyState />
         ) : (
           <>
-            {/* Toggle Slider */}
-            <div className="bg-white rounded-xl shadow-sm mb-6">
-              <div className="flex">
-                <button
-                  onClick={() => setActiveTab('recent')}
-                  className={`flex-1 py-3 text-center font-semibold ${
-                    activeTab === 'recent'
-                      ? 'text-black border-b-2 border-primary'
-                      : 'text-gray-500'
-                  }`}
-                >
-                  Recent Visits
-                </button>
-                <button
-                  onClick={() => setActiveTab('journey')}
-                  className={`flex-1 py-3 text-center font-semibold ${
-                    activeTab === 'journey'
-                      ? 'text-black border-b-2 border-primary'
-                      : 'text-gray-500'
-                  }`}
-                >
-                  My Food Journey
-                </button>
-              </div>
-            </div>
-
-            {/* Content based on active tab */}
-            {activeTab === 'recent' ? (
+            {/* Recent Visits Content */}
               <div className="space-y-4">
                 {/* Search Bar */}
                 <div className="relative">
@@ -275,19 +270,6 @@ const FoodMap: React.FC = () => {
                   </div>
                 ))}
               </div>
-            ) : (
-              /* My Food Journey - Map View */
-              <div className="bg-white rounded-xl shadow-sm p-6">
-                <h2 className="text-lg font-bold text-black mb-4">Your Food Journey</h2>
-                <div className="h-64 bg-gray-100 rounded-lg flex items-center justify-center">
-                  <div className="text-center">
-                    <MapIcon size={48} className="text-gray-400 mx-auto mb-2" />
-                    <p className="text-gray-600 font-medium">Interactive map coming soon!</p>
-                    <p className="text-sm text-gray-500">See all your visited restaurants on a map</p>
-                  </div>
-                </div>
-              </div>
-            )}
           </>
         )}
       </div>
