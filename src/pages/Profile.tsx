@@ -4,8 +4,9 @@ import { Link, useNavigate } from 'react-router-dom';
 import FeedPost from '../components/FeedPost';
 import HamburgerMenu from '../components/HamburgerMenu';
 import { useFeature } from '../utils/features';
-import { fetchReviews, convertReviewsToFeedPosts, FirebaseReview } from '../services/reviewService';
+import { fetchUserReviews, convertUserReviewsToFeedPosts, FirebaseReview } from '../services/reviewService';
 import { getUserProfile, UserProfile, getCurrentUser } from '../lib/firebase';
+import { getInitials } from '../utils/avatarUtils';
 
 const Profile: React.FC = () => {
   const navigate = useNavigate();
@@ -51,26 +52,36 @@ const Profile: React.FC = () => {
     loadUserProfile();
   }, []);
   
-  // Fetch reviews from Firebase on component mount
+  // Fetch current user's reviews from Firebase on component mount
   useEffect(() => {
-    const loadReviews = async () => {
+    const loadUserReviews = async () => {
       try {
         setLoading(true);
-        const reviews = await fetchReviews(50);
+        const currentUser = getCurrentUser();
+        
+        if (!currentUser) {
+          console.log('No authenticated user found for reviews');
+          setFirebaseReviews([]);
+          setFeedPosts([]);
+          return;
+        }
+
+        const reviews = await fetchUserReviews(50);
         setFirebaseReviews(reviews);
         
-        // Convert Firebase reviews to feed post format with real user data
-        const posts = await convertReviewsToFeedPosts(reviews);
+        // Convert current user's reviews to feed post format
+        const posts = await convertUserReviewsToFeedPosts(reviews);
         setFeedPosts(posts);
       } catch (err) {
-        console.error('Failed to load reviews:', err);
+        console.error('Failed to load user reviews:', err);
+        setFirebaseReviews([]);
         setFeedPosts([]);
       } finally {
         setLoading(false);
       }
     };
     
-    loadReviews();
+    loadUserReviews();
   }, []);
 
   // Filter posts based on search term
@@ -90,8 +101,33 @@ const Profile: React.FC = () => {
     pointsEarned: userProfile?.stats?.pointsEarned || 0
   };
 
-  // Default avatar if none provided
-  const defaultAvatar = "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face";
+  // Avatar component with initials fallback
+  const UserAvatar: React.FC<{ size?: 'sm' | 'md' | 'lg' }> = ({ size = 'lg' }) => {
+    const sizeClasses = {
+      sm: 'w-8 h-8 text-sm',
+      md: 'w-12 h-12 text-base',
+      lg: 'w-20 h-20 text-xl'
+    };
+
+
+    if (userProfile?.avatar) {
+      return (
+        <img 
+          src={userProfile.avatar} 
+          alt={userProfile.displayName || userProfile.username} 
+          className={`${sizeClasses[size]} rounded-full object-cover border-2 border-primary`}
+        />
+      );
+    }
+
+    return (
+      <div className={`${sizeClasses[size]} rounded-full bg-primary flex items-center justify-center border-2 border-primary`}>
+        <span className="text-white font-semibold">
+          {getInitials(userProfile.username, userProfile.displayName)}
+        </span>
+      </div>
+    );
+  };
 
   // Loading state
   if (profileLoading) {
@@ -162,11 +198,7 @@ const Profile: React.FC = () => {
       <div className="bg-white shadow-sm">
         <div className="p-4">
           <div className="flex items-center">
-            <img 
-              src={userProfile.avatar || defaultAvatar} 
-              alt={userProfile.displayName || userProfile.username} 
-              className="w-20 h-20 rounded-full object-cover border-2 border-primary" 
-            />
+            <UserAvatar size="lg" />
             <div className="ml-4 flex-1">
               <div className="flex items-center">
                 <h2 className="font-semibold text-lg">@{userProfile.username}</h2>
@@ -262,7 +294,12 @@ const Profile: React.FC = () => {
           </div>
 
           {/* Personal Reviews */}
-          {filteredPosts.length === 0 ? (
+          {loading ? (
+            <div className="text-center py-8">
+              <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+              <p className="text-gray-600">Loading reviews...</p>
+            </div>
+          ) : filteredPosts.length === 0 ? (
             <div className="text-center py-12">
               <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <GridIcon size={24} className="text-gray-400" />
@@ -288,26 +325,9 @@ const Profile: React.FC = () => {
             </div>
           ) : (
             <div className="space-y-3">
-              {loading ? (
-                <div className="text-center py-8">
-                  <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-                  <p className="text-gray-600">Loading reviews...</p>
-                </div>
-              ) : filteredPosts.length > 0 ? (
-                filteredPosts.map(post => (
-                  <FeedPost key={post.id} {...post} />
-                ))
-              ) : (
-                <div className="text-center py-8">
-                  <p className="text-gray-600">No reviews found</p>
-                  <Link 
-                    to="/create" 
-                    className="mt-4 inline-block bg-primary text-white py-2 px-6 rounded-full font-medium hover:bg-red-600 transition-colors"
-                  >
-                    Create Your First Review
-                  </Link>
-                </div>
-              )}
+              {filteredPosts.map(post => (
+                <FeedPost key={post.id} {...post} />
+              ))}
             </div>
           )}
         </div>

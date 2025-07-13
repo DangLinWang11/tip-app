@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { MapIcon, TrendingUpIcon, StarIcon, ClockIcon, MessageCircleIcon, PlusIcon, MapPinIcon, ArrowLeft, Star } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
-import { fetchReviews, convertReviewsToFeedPosts, FirebaseReview } from '../services/reviewService';
+import { fetchUserReviews, convertUserReviewsToFeedPosts, FirebaseReview } from '../services/reviewService';
 import { getUserProfile, getCurrentUser } from '../lib/firebase';
 
 const FoodMap: React.FC = () => {
@@ -9,6 +9,7 @@ const FoodMap: React.FC = () => {
   const [userReviews, setUserReviews] = useState<any[]>([]);
   const [userProfile, setUserProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
   
   // Load user data on component mount
   useEffect(() => {
@@ -17,21 +18,26 @@ const FoodMap: React.FC = () => {
         setLoading(true);
         const currentUser = getCurrentUser();
         
-        if (currentUser) {
-          // Get user profile
-          const profileResult = await getUserProfile();
-          if (profileResult.success && profileResult.profile) {
-            setUserProfile(profileResult.profile);
-          }
-          
-          // Get all reviews and filter for current user
-          const allReviews = await fetchReviews(100);
-          const posts = await convertReviewsToFeedPosts(allReviews);
-          const userPosts = posts.filter(post => post.userId === currentUser.uid);
-          setUserReviews(userPosts);
+        if (!currentUser) {
+          console.log('No authenticated user found');
+          setUserReviews([]);
+          setUserProfile(null);
+          return;
         }
+
+        // Get user profile
+        const profileResult = await getUserProfile();
+        if (profileResult.success && profileResult.profile) {
+          setUserProfile(profileResult.profile);
+        }
+        
+        // Get current user's reviews only
+        const userReviewsData = await fetchUserReviews(50);
+        const userPosts = await convertUserReviewsToFeedPosts(userReviewsData);
+        setUserReviews(userPosts);
       } catch (err) {
         console.error('Failed to load user data:', err);
+        setUserReviews([]);
       } finally {
         setLoading(false);
       }
@@ -40,20 +46,27 @@ const FoodMap: React.FC = () => {
     loadUserData();
   }, []);
   
-  // Default profile picture and stats calculation
-  const defaultAvatar = "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face";
+  // Stats calculation from actual user data
   
-  const userStats = userProfile?.stats ? {
-    averageRating: userProfile.stats.averageRating.toFixed(1),
-    totalRestaurants: userProfile.stats.totalRestaurants,
+  // Calculate stats from actual user reviews and profile
+  const userStats = {
+    averageRating: userProfile?.stats?.averageRating 
+      ? userProfile.stats.averageRating.toFixed(1) 
+      : userReviews.length > 0 
+        ? (userReviews.reduce((sum, review) => sum + (review.dish?.rating || 0), 0) / userReviews.length).toFixed(1)
+        : "0.0",
+    totalRestaurants: userProfile?.stats?.totalRestaurants || new Set(userReviews.map(r => r.restaurant?.name).filter(Boolean)).size,
     totalDishes: userReviews.length,
-    pointsEarned: userProfile.stats.pointsEarned
-  } : {
-    averageRating: "0.0",
-    totalRestaurants: 0,
-    totalDishes: 0,
-    pointsEarned: 0
+    pointsEarned: userProfile?.stats?.pointsEarned || 0
   };
+
+  // Filter reviews based on search term
+  const filteredReviews = userReviews.filter(review => 
+    searchTerm === '' || 
+    review.dish?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    review.restaurant?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    review.location?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   const handleVisitClick = (visitId: number) => {
     console.log(`Navigate to post ${visitId}`);
@@ -68,11 +81,11 @@ const FoodMap: React.FC = () => {
     <div className="text-center py-12 px-4">
       <div className="mb-6">
         <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-          <PlusIcon size={32} className="text-gray-400" />
+          <MapPinIcon size={32} className="text-gray-400" />
         </div>
-        <h3 className="text-xl font-semibold text-gray-900 mb-2">You haven't posted anything yet</h3>
+        <h3 className="text-xl font-semibold text-gray-900 mb-2">No visits yet</h3>
         <p className="text-gray-600 mb-6 max-w-sm mx-auto">
-          Start your food journey by creating your first review!
+          Start exploring restaurants and create your first review to see your food journey map!
         </p>
       </div>
       
@@ -101,6 +114,25 @@ const FoodMap: React.FC = () => {
         <div className="text-center">
           <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-gray-600">Loading your food journey...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Check if user is authenticated
+  const currentUser = getCurrentUser();
+  if (!currentUser) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center p-4">
+          <h2 className="text-xl font-bold text-gray-900 mb-2">Authentication Required</h2>
+          <p className="text-gray-600 mb-4">Please sign in to view your recent visits</p>
+          <button 
+            onClick={() => navigate('/')} 
+            className="bg-primary text-white px-6 py-2 rounded-lg hover:bg-red-600 transition-colors"
+          >
+            Go Home
+          </button>
         </div>
       </div>
     );
@@ -186,6 +218,8 @@ const FoodMap: React.FC = () => {
                   <input
                     type="text"
                     placeholder="Search places or items..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
                     className="w-full bg-gray-100 rounded-full py-3 px-4 pl-10 text-gray-700"
                   />
                   <div className="absolute left-3 top-1/2 transform -translate-y-1/2">
@@ -196,7 +230,22 @@ const FoodMap: React.FC = () => {
                 </div>
 
                 {/* Recent Visits List */}
-                {userReviews.map((visit, index) => (
+                {filteredReviews.length === 0 && searchTerm ? (
+                  <div className="text-center py-12">
+                    <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <MapPinIcon size={24} className="text-gray-400" />
+                    </div>
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">No matching visits</h3>
+                    <p className="text-gray-600 mb-6">Try searching for different places or dishes</p>
+                    <button 
+                      onClick={() => setSearchTerm('')}
+                      className="bg-primary text-white px-6 py-2 rounded-full font-medium hover:bg-red-600 transition-colors"
+                    >
+                      Clear Search
+                    </button>
+                  </div>
+                ) : (
+                  filteredReviews.map((visit, index) => (
                   <div 
                     key={visit.id || index}
                     onClick={() => handleVisitClick(index)}
@@ -268,7 +317,8 @@ const FoodMap: React.FC = () => {
                       )}
                     </div>
                   </div>
-                ))}
+                  ))
+                )}
               </div>
           </>
         )}
