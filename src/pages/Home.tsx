@@ -148,54 +148,8 @@ const Home: React.FC = () => {
       </div>
     );
   }
-  
-  // If no user reviews, show empty state for new users
-  if (userReviews.length === 0 && !loading) {
-    return (
-      <div className="min-h-screen bg-light-gray">
-        <header className="bg-white sticky top-0 z-10 shadow-sm">
-          <div className="flex justify-between items-center px-4 py-1">
-            <img 
-              src="/images/tip-logo.png" 
-              alt="Tip Logo" 
-              className="h-[80px] w-auto object-contain"
-            />      
-            <div className="flex items-center">
-              <div 
-                className="bg-white rounded-2xl shadow-sm border border-gray-100 px-4 py-2 mr-3 cursor-pointer hover:shadow-md transition-shadow flex items-center"
-                onClick={() => navigate('/rewards')}
-              >
-                <span className="font-bold text-sm mr-2" style={{ color: '#FFD700' }}>
-                  {userStats.pointsEarned}
-                </span>
-                <div 
-                  className="w-5 h-5 rounded-full flex items-center justify-center"
-                  style={{ backgroundColor: '#FFD700' }}
-                >
-                  <div 
-                    className="w-3.5 h-3.5 rounded-full flex items-center justify-center"
-                    style={{ backgroundColor: '#F59E0B' }}
-                  >
-                    <Star 
-                      size={8} 
-                      style={{ 
-                        color: '#FFD700', 
-                        fill: '#FFD700'
-                      }} 
-                    />
-                  </div>
-                </div>
-              </div>
-              <HamburgerMenu />
-            </div>
-          </div>
-        </header>
-        <EmptyState />
-      </div>
-    );
-  }
 
-  // Food Map content for users with reviews
+  // Always show the full Home dashboard (stats, map, community feed)
   return (
     <div className="min-h-screen bg-gray-50 pb-16">
       {/* Header */}
