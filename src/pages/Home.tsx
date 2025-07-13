@@ -276,7 +276,7 @@ const Home: React.FC = () => {
               >
                 Create First Review
               </Link>
-            </div>
+            </div>s
           )}
         </div>
       </div>

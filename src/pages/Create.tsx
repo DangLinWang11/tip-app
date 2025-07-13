@@ -191,7 +191,7 @@ const Create: React.FC = () => {
                   <span>Saving...</span>
                 </div>
               ) : (
-                'Save Review'
+                'Upload Review'
               )}
             </button>
           </header>
