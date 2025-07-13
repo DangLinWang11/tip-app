@@ -103,23 +103,35 @@ const Profile: React.FC = () => {
 
   // Avatar component with initials fallback
   const UserAvatar: React.FC<{ size?: 'sm' | 'md' | 'lg' }> = ({ size = 'lg' }) => {
+    const [imageError, setImageError] = useState(false);
+    
     const sizeClasses = {
       sm: 'w-8 h-8 text-sm',
       md: 'w-12 h-12 text-base',
       lg: 'w-20 h-20 text-xl'
     };
 
+    // Reset image error when userProfile.avatar changes
+    React.useEffect(() => {
+      setImageError(false);
+    }, [userProfile?.avatar]);
 
-    if (userProfile?.avatar) {
+    // Show real profile photo if it exists, is not empty, and hasn't failed to load
+    if (userProfile?.avatar && userProfile.avatar.trim() !== '' && !imageError) {
       return (
         <img 
           src={userProfile.avatar} 
           alt={userProfile.displayName || userProfile.username} 
           className={`${sizeClasses[size]} rounded-full object-cover border-2 border-primary`}
+          onError={() => {
+            // If image fails to load, show initials fallback
+            setImageError(true);
+          }}
         />
       );
     }
 
+    // Fallback to initials for users without profile photos or failed image loads
     return (
       <div className={`${sizeClasses[size]} rounded-full bg-primary flex items-center justify-center border-2 border-primary`}>
         <span className="text-white font-semibold">

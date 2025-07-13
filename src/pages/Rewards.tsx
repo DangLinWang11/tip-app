@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeftIcon, Gift, Star, Camera, MessageCircle, MapPin, Trophy, Clock, Coins, Video, ChefHat, Target } from 'lucide-react';
+import { ArrowLeftIcon, Gift, Star, Camera, MessageCircle, MapPin, Trophy, Clock, Coins, Video, ChefHat, Target, PlusIcon } from 'lucide-react';
 import BottomNavigation from '../components/BottomNavigation';
+import { fetchUserReviews, FirebaseReview } from '../services/reviewService';
+import { getUserProfile, getCurrentUser } from '../lib/firebase';
 
 interface PointsActivity {
   id: string;
@@ -13,49 +15,95 @@ interface PointsActivity {
 }
 
 const Rewards: React.FC = () => {
-  const [totalPoints, setTotalPoints] = useState(1700);
-  const [pointsHistory, setPointsHistory] = useState<PointsActivity[]>([
-    {
-      id: '1',
-      type: 'bonus',
-      points: 500,
-      description: 'First restaurant review',
-      date: '2025-07-06',
-      restaurantName: 'Anna Maria Oyster Bar'
-    },
-    {
-      id: '2',
-      type: 'review',
-      points: 300,
-      description: 'P.E.I. Mussels Provencal with photo',
-      date: '2025-07-06',
-      restaurantName: 'Anna Maria Oyster Bar'
-    },
-    {
-      id: '3',
-      type: 'bonus',
-      points: 500,
-      description: 'First restaurant review',
-      date: '2025-07-06',
-      restaurantName: 'Florence and the Spice Boys'
-    },
-    {
-      id: '4',
-      type: 'review',
-      points: 300,
-      description: 'Harissa Mushroom with photo',
-      date: '2025-07-06',
-      restaurantName: 'Florence and the Spice Boys'
-    },
-    {
-      id: '5',
-      type: 'photo',
-      points: 100,
-      description: 'Added second photo to review',
-      date: '2025-07-06',
-      restaurantName: 'Florence and the Spice Boys'
-    }
-  ]);
+  const [totalPoints, setTotalPoints] = useState(0);
+  const [pointsHistory, setPointsHistory] = useState<PointsActivity[]>([]);
+  const [userProfile, setUserProfile] = useState<any>(null);
+  const [userReviews, setUserReviews] = useState<FirebaseReview[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Load user data on component mount
+  useEffect(() => {
+    const loadUserData = async () => {
+      try {
+        setLoading(true);
+        const currentUser = getCurrentUser();
+        
+        if (!currentUser) {
+          setError('Please sign in to view your rewards');
+          return;
+        }
+
+        // Get user profile for points data
+        const profileResult = await getUserProfile();
+        if (profileResult.success && profileResult.profile) {
+          setUserProfile(profileResult.profile);
+          setTotalPoints(profileResult.profile.stats?.pointsEarned || 0);
+        }
+        
+        // Get user's reviews to generate activity history
+        const reviews = await fetchUserReviews(20);
+        setUserReviews(reviews);
+        
+        // Convert reviews to points activity
+        const activity = generatePointsActivity(reviews);
+        setPointsHistory(activity);
+        
+        setError(null);
+      } catch (err) {
+        console.error('Failed to load user data:', err);
+        setError('Failed to load rewards data');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadUserData();
+  }, []);
+
+  // Generate points activity from user reviews
+  const generatePointsActivity = (reviews: FirebaseReview[]): PointsActivity[] => {
+    const activities: PointsActivity[] = [];
+    
+    reviews.forEach((review) => {
+      // Add points for the review itself
+      activities.push({
+        id: `review-${review.id}`,
+        type: 'review',
+        points: review.pointsEarned || 200,
+        description: `Reviewed ${review.dish}`,
+        date: review.createdAt,
+        restaurantName: review.restaurant
+      });
+      
+      // Add bonus points if this was marked as a first review
+      if (review.rewardReason === 'First review bonus') {
+        activities.push({
+          id: `bonus-${review.id}`,
+          type: 'bonus',
+          points: 200,
+          description: 'First review bonus',
+          date: review.createdAt,
+          restaurantName: review.restaurant
+        });
+      }
+      
+      // Add photo bonus if review has images
+      if (review.images && review.images.length > 0) {
+        activities.push({
+          id: `photo-${review.id}`,
+          type: 'photo',
+          points: 100,
+          description: `Added ${review.images.length} photo${review.images.length > 1 ? 's' : ''}`,
+          date: review.createdAt,
+          restaurantName: review.restaurant
+        });
+      }
+    });
+    
+    // Sort by date (most recent first)
+    return activities.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  };
 
   const getActivityIcon = (type: string) => {
     switch (type) {
@@ -94,6 +142,36 @@ const Rewards: React.FC = () => {
       day: 'numeric'
     });
   };
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading your rewards...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center p-4">
+          <h2 className="text-xl font-bold text-gray-900 mb-2">Unable to Load Rewards</h2>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="bg-primary text-white px-6 py-2 rounded-lg hover:bg-red-600 transition-colors"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
@@ -167,8 +245,27 @@ const Rewards: React.FC = () => {
       {/* Points History */}
       <div className="px-4">
         <h2 className="text-xl font-semibold text-gray-900 mb-4">Recent Activity</h2>
-        <div className="space-y-3">
-          {pointsHistory.map((activity) => (
+        {pointsHistory.length === 0 ? (
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+            <div className="text-center">
+              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <PlusIcon size={24} className="text-gray-400" />
+              </div>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">No activity yet</h3>
+              <p className="text-gray-600 mb-6">
+                Start reviewing restaurants to earn points and see your activity here!
+              </p>
+              <Link 
+                to="/create" 
+                className="inline-block bg-primary text-white py-2 px-6 rounded-full font-medium hover:bg-red-600 transition-colors"
+              >
+                Write Your First Review
+              </Link>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {pointsHistory.map((activity) => (
             <div key={activity.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
               <div className="flex items-center">
                 <div className={`w-10 h-10 rounded-full flex items-center justify-center mr-4 ${getActivityColor(activity.type)}`}>
@@ -212,8 +309,9 @@ const Rewards: React.FC = () => {
                 </div>
               </div>
             </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* How to Earn More Points */}

@@ -3,12 +3,13 @@ import { MapIcon, PlusIcon, MapPinIcon, Star } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import HamburgerMenu from '../components/HamburgerMenu';
 import FeedPost from '../components/FeedPost';
-import { fetchReviews, convertReviewsToFeedPosts, FirebaseReview } from '../services/reviewService';
+import { fetchReviews, convertReviewsToFeedPosts, fetchUserReviews, FirebaseReview } from '../services/reviewService';
 import { getUserProfile, getCurrentUser } from '../lib/firebase';
 
 const Home: React.FC = () => {
   const navigate = useNavigate();
   const [firebaseReviews, setFirebaseReviews] = useState<FirebaseReview[]>([]);
+  const [userReviews, setUserReviews] = useState<FirebaseReview[]>([]);
   const [feedPosts, setFeedPosts] = useState<any[]>([]);
   const [userProfile, setUserProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -43,8 +44,19 @@ const Home: React.FC = () => {
     const loadReviews = async () => {
       try {
         setLoading(true);
+        const currentUser = getCurrentUser();
+        
+        // Load global reviews for community feed
         const reviews = await fetchReviews(20);
         setFirebaseReviews(reviews);
+        
+        // Load user-specific reviews for stats calculation
+        if (currentUser) {
+          const userReviewsData = await fetchUserReviews(50);
+          setUserReviews(userReviewsData);
+        } else {
+          setUserReviews([]);
+        }
         
         // Convert Firebase reviews to feed post format with real user data
         const posts = await convertReviewsToFeedPosts(reviews);
@@ -55,6 +67,7 @@ const Home: React.FC = () => {
         console.error('Failed to load reviews:', err);
         setError('Failed to load reviews');
         setFeedPosts([]); // Fallback to empty array
+        setUserReviews([]); // Fallback to empty array
       } finally {
         setLoading(false);
       }
@@ -63,25 +76,27 @@ const Home: React.FC = () => {
     loadReviews();
   }, []);
 
-  // Default profile picture and stats calculation
-  const defaultAvatar = "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face";
-  
-  const userStats = userProfile?.stats ? {
-    averageRating: userProfile.stats.averageRating.toFixed(1),
-    totalRestaurants: userProfile.stats.totalRestaurants,
-    totalDishes: firebaseReviews.length, // Use actual review count for dishes
-    pointsEarned: userProfile.stats.pointsEarned
+  // Calculate user stats from their own reviews and profile data
+  const currentUser = getCurrentUser();
+  const userStats = currentUser ? {
+    averageRating: userProfile?.stats?.averageRating 
+      ? userProfile.stats.averageRating.toFixed(1) 
+      : userReviews.length > 0 
+        ? (userReviews.reduce((sum, review) => sum + review.rating, 0) / userReviews.length).toFixed(1)
+        : "0.0",
+    totalRestaurants: userProfile?.stats?.totalRestaurants || new Set(userReviews.map(r => r.restaurant).filter(Boolean)).size,
+    totalDishes: userReviews.length, // Use user's actual review count for dishes
+    pointsEarned: userProfile?.stats?.pointsEarned || 0
   } : {
+    // Default stats for unauthenticated users
     averageRating: "0.0",
     totalRestaurants: 0,
     totalDishes: 0,
     pointsEarned: 0
   };
 
-  // Get user's recent reviews for personal section
-  const userRecentReviews = feedPosts
-    .filter(post => post.userId === getCurrentUser()?.uid)
-    .slice(0, 3);
+  // Get user's recent reviews for personal section (use actual user reviews)
+  const userRecentReviews = userReviews.slice(0, 3);
 
   const handleVisitClick = (visitId: number) => {
     console.log(`Navigate to post ${visitId}`);
@@ -134,8 +149,8 @@ const Home: React.FC = () => {
     );
   }
   
-  // If no Firebase reviews and no user reviews, show empty state
-  if (firebaseReviews.length === 0 && userRecentReviews.length === 0 && !loading) {
+  // If no user reviews, show empty state for new users
+  if (userReviews.length === 0 && !loading) {
     return (
       <div className="min-h-screen bg-light-gray">
         <header className="bg-white sticky top-0 z-10 shadow-sm">

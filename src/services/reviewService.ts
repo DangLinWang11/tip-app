@@ -153,7 +153,8 @@ export const fetchUserReviews = async (limitCount = 50): Promise<FirebaseReview[
   try {
     const currentUser = getCurrentUser();
     if (!currentUser) {
-      throw new Error('User must be authenticated to fetch reviews');
+      console.log('No authenticated user found, returning empty reviews array');
+      return [];
     }
 
     const reviewsRef = collection(db, 'reviews');
@@ -175,11 +176,53 @@ export const fetchUserReviews = async (limitCount = 50): Promise<FirebaseReview[
       } as FirebaseReview);
     });
     
-    console.log(`Fetched ${reviews.length} user reviews from Firestore`);
+    if (reviews.length === 0) {
+      console.log('No reviews found for current user - this is normal for new users');
+    } else {
+      console.log(`Successfully fetched ${reviews.length} user reviews from Firestore`);
+    }
     return reviews;
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error fetching user reviews:', error);
-    throw new Error('Failed to fetch user reviews');
+    
+    // Handle specific Firebase error types
+    if (error?.code === 'permission-denied') {
+      console.warn('Permission denied when fetching user reviews. User may not have proper access.');
+      return [];
+    }
+    
+    if (error?.code === 'unavailable') {
+      console.warn('Firestore service unavailable. Returning empty array.');
+      return [];
+    }
+    
+    if (error?.code === 'failed-precondition') {
+      console.warn('Firestore query failed precondition (may need index). Returning empty array.');
+      return [];
+    }
+    
+    // Handle network and connection errors
+    if (error?.message?.includes('network') || error?.message?.includes('offline')) {
+      console.warn('Network/offline error when fetching reviews. Returning empty array.');
+      return [];
+    }
+    
+    // Handle quota exceeded errors
+    if (error?.code === 'resource-exhausted') {
+      console.warn('Firestore quota exceeded. Returning empty array.');
+      return [];
+    }
+    
+    // Handle invalid user authentication
+    if (error?.code === 'unauthenticated') {
+      console.warn('User authentication invalid. Returning empty array.');
+      return [];
+    }
+    
+    // For any other errors, log and return empty array instead of throwing
+    // This ensures new users or users with no reviews don't break the app
+    console.warn('Unknown error fetching user reviews, returning empty array:', error?.message || error);
+    return [];
   }
 };
 
