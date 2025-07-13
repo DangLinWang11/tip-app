@@ -173,7 +173,7 @@ const Discover: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-light-gray pb-16">
-      <header className="bg-white sticky top-0 z-10 p-4 shadow-sm">
+      <header className="bg-white sticky top-0 z-10 px-4 py-3 shadow-sm">
         <div className="flex items-center mb-4">
           <div className="relative flex-1">
             <SearchIcon size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-dark-gray" />
@@ -191,9 +191,9 @@ const Discover: React.FC = () => {
         </div>
         
         {/* Restaurant Map | Dish Map Toggle */}
-        <div className="flex mb-3">
+        <div className="flex mx-4 mb-2">
           <button
-            className={`flex-1 py-2 text-center rounded-l-full ${
+            className={`flex-1 py-1.5 text-sm text-center rounded-l-full ${
               mapType === 'restaurant' ? 'bg-primary text-white' : 'bg-light-gray'
             }`}
             onClick={() => setMapType('restaurant')}
@@ -201,7 +201,7 @@ const Discover: React.FC = () => {
             Restaurant Map
           </button>
           <button
-            className={`flex-1 py-2 text-center rounded-r-full ${
+            className={`flex-1 py-1.5 text-sm text-center rounded-r-full ${
               mapType === 'dish' ? 'bg-primary text-white' : 'bg-light-gray'
             }`}
             onClick={() => setMapType('dish')}
@@ -214,14 +214,14 @@ const Discover: React.FC = () => {
       {/* Map Section */}
       <div className="relative">
         {loading ? (
-          <div className="h-[calc(100vh-220px)] flex items-center justify-center bg-gray-100">
+          <div className="h-[calc(100vh-280px)] flex items-center justify-center bg-gray-100">
             <div className="text-center">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
               <p className="text-gray-600">Loading restaurants...</p>
             </div>
           </div>
         ) : error ? (
-          <div className="h-[calc(100vh-220px)] flex items-center justify-center bg-red-50">
+          <div className="h-[calc(100vh-280px)] flex items-center justify-center bg-red-50">
             <div className="text-center">
               <p className="text-red-600 font-medium">Error loading restaurants</p>
               <p className="text-red-500 text-sm">{error}</p>
@@ -234,7 +234,7 @@ const Discover: React.FC = () => {
             </div>
           </div>
         ) : (
-          <div className="h-[calc(100vh-220px)]">
+          <div className="h-[calc(100vh-280px)]">
             <RestaurantMap mapType={mapType} restaurants={filteredRestaurants} dishes={dishes} onRestaurantClick={(id) => navigate(`/restaurant/${id}`)} />
           </div>
         )}
@@ -288,13 +288,13 @@ const Discover: React.FC = () => {
                 // Restaurant Cards
                 <>
                   {!isListView ? (
-                    <div className="p-4 overflow-x-auto flex space-x-3 pb-6">
+                    <div className="px-6 overflow-x-auto flex space-x-4 pb-6">
                       {filteredRestaurants.length > 0 ? filteredRestaurants.map(restaurant => (
-                    <div key={restaurant.id} className="bg-white rounded-xl shadow-sm p-3 min-w-[200px] border cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate(`/restaurant/${restaurant.id}`)}>
+                    <div key={restaurant.id} className="bg-white rounded-xl shadow-sm p-3 min-w-[180px] border cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate(`/restaurant/${restaurant.id}`)}>
                       <img
                         src={restaurant.coverImage}
                         alt={restaurant.name}
-                        className="w-full h-24 object-cover rounded-lg mb-2"
+                        className="w-full h-20 object-cover rounded-lg mb-2"
                         onError={(e) => {
                           (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80';
                         }}
@@ -321,8 +321,8 @@ const Discover: React.FC = () => {
                   )}
                     </div>
                   ) : (
-                    <div className="p-4">
-                      <div className="space-y-3">
+                    <div className="px-6">
+                      <div className="space-y-4">
                         {filteredRestaurants.length > 0 ? filteredRestaurants.map(restaurant => (
                       <div key={restaurant.id} className="bg-white rounded-xl shadow-sm flex overflow-hidden border cursor-pointer hover:bg-gray-50 transition-colors" onClick={() => navigate(`/restaurant/${restaurant.id}`)}>
                         <img
@@ -366,13 +366,13 @@ const Discover: React.FC = () => {
                 // Dish Cards
                 <>
                   {!isListView ? (
-                    <div className="p-4 overflow-x-auto flex space-x-3 pb-6">
+                    <div className="px-6 overflow-x-auto flex space-x-4 pb-6">
                       {filteredItems.length > 0 ? filteredItems.map(dish => (
-                        <div key={dish.id} className="bg-white rounded-xl shadow-sm p-3 min-w-[200px] border cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate(`/dish/${dish.id}`)}>
+                        <div key={dish.id} className="bg-white rounded-xl shadow-sm p-3 min-w-[180px] border cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate(`/dish/${dish.id}`)}>
                           <img
                             src={dish.coverImage}
                             alt={dish.name}
-                            className="w-full h-24 object-cover rounded-lg mb-2"
+                            className="w-full h-20 object-cover rounded-lg mb-2"
                             onError={(e) => {
                               (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1546833999-b9f581a1996d?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80';
                             }}
@@ -402,8 +402,8 @@ const Discover: React.FC = () => {
                       )}
                     </div>
                   ) : (
-                    <div className="p-4">
-                      <div className="space-y-3">
+                    <div className="px-6">
+                      <div className="space-y-4">
                         {filteredItems.length > 0 ? filteredItems.map(dish => (
                           <div key={dish.id} className="bg-white rounded-xl shadow-sm flex overflow-hidden border cursor-pointer hover:bg-gray-50 transition-colors" onClick={() => navigate(`/dish/${dish.id}`)}>
                             <img
