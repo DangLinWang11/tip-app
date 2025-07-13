@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Layout from './components/Layout';
 import Home from './pages/Home';
@@ -7,7 +7,7 @@ import Create from './pages/Create';
 import Notifications from './pages/Notifications';
 import Profile from './pages/Profile';
 import Rewards from './pages/Rewards';
-// import Onboarding from './pages/Onboarding';
+import Onboarding from './pages/Onboarding';
 import RestaurantDetail from './pages/RestaurantDetail';
 import MenuDetail from './pages/MenuDetail';
 import FoodMap from './pages/FoodMap';
@@ -58,37 +58,36 @@ const checkUserSession = () => {
 };
 
 export function App() {
-  // TEMPORARILY DISABLED: Authentication check bypass for Firebase connectivity fixes
-  // const [isOnboarded, setIsOnboarded] = useState(false);
-  // const [needsPhoneOnly, setNeedsPhoneOnly] = useState(false);
-  // const [isLoading, setIsLoading] = useState(true);
+  const [isOnboarded, setIsOnboarded] = useState(false);
+  const [needsPhoneOnly, setNeedsPhoneOnly] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   
-  // useEffect(() => {
-  //   const sessionCheck = checkUserSession();
-  //   setIsOnboarded(sessionCheck.isValid);
-  //   setNeedsPhoneOnly(sessionCheck.needsPhoneOnly);
-  //   setIsLoading(false);
-  // }, []);
+  useEffect(() => {
+    const sessionCheck = checkUserSession();
+    setIsOnboarded(sessionCheck.isValid);
+    setNeedsPhoneOnly(sessionCheck.needsPhoneOnly);
+    setIsLoading(false);
+  }, []);
   
-  // if (isLoading) {
-  //   return (
-  //     <div className="min-h-screen bg-white flex items-center justify-center">
-  //       <div className="text-center">
-  //         <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-  //         <p className="text-gray-600">Loading...</p>
-  //       </div>
-  //     </div>
-  //   );
-  // }
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
   
-  // if (!isOnboarded) {
-  //   return (
-  //     <Onboarding 
-  //       onComplete={() => setIsOnboarded(true)} 
-  //       needsPhoneOnly={needsPhoneOnly}
-  //     />
-  //   );
-  // }
+  if (!isOnboarded) {
+    return (
+      <Onboarding 
+        onComplete={() => setIsOnboarded(true)} 
+        needsPhoneOnly={needsPhoneOnly}
+      />
+    );
+  }
 
   return (
     <LocationProvider>
