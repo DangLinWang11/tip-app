@@ -181,6 +181,7 @@ const Discover: React.FC = () => {
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
+    e.preventDefault();
     e.stopPropagation();
     setCurrentY(e.touches[0].clientY);
   };
@@ -188,7 +189,7 @@ const Discover: React.FC = () => {
   const handleTouchEnd = (e: React.TouchEvent) => {
     e.stopPropagation();
     const deltaY = startY - currentY;
-    if (Math.abs(deltaY) > 50) { // 50px threshold
+    if (Math.abs(deltaY) > 30) { // 30px threshold
       if (deltaY > 0) {
         setIsMenuOpen(true); // Swipe up to open
       } else {
@@ -240,7 +241,7 @@ const Discover: React.FC = () => {
       </header>
 
       {/* Map Section */}
-      <div className="relative">
+      <div className="relative z-10">
         {loading ? (
           <div className={`${isMenuOpen ? 'h-[calc(100vh-400px)]' : 'h-[calc(100vh-140px)]'} ${isMenuOpen ? 'pointer-events-none' : ''} flex items-center justify-center bg-gray-100`}>
             <div className="text-center">
@@ -287,19 +288,19 @@ const Discover: React.FC = () => {
 
         {/* Sliding Bottom Sheet */}
         <div 
-          className={`fixed bottom-0 left-0 right-0 z-40 rounded-t-xl shadow-xl transition-transform duration-300 pointer-events-auto ${isMenuOpen ? 'translate-y-0' : 'translate-y-[calc(100%-120px)]'}`}
+          className={`fixed bottom-0 left-0 right-0 w-full z-50 rounded-t-xl shadow-xl transform-gpu transition-transform duration-300 pointer-events-auto bg-black/10 backdrop-blur-sm ${isMenuOpen ? 'translate-y-0' : 'translate-y-[calc(100%-120px)]'}`}
           style={{touchAction: 'pan-y'}}
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
         >
           {/* Handle bar with pancake icon */}
-          <div className="flex justify-center py-4 border-b bg-white rounded-t-xl" onClick={() => setIsMenuOpen(!isMenuOpen)}>
-            <div className="w-10 h-1 bg-gray-400 rounded-full"></div>
+          <div className="w-full h-12 flex items-center justify-center py-6 border-b border-white/20 bg-white/90 backdrop-blur-sm rounded-t-xl" onClick={() => setIsMenuOpen(!isMenuOpen)}>
+            <div className="w-10 h-1.5 bg-gray-400 rounded-full"></div>
           </div>
           
           {/* Card/List View toggle */}
-          <div className="flex justify-center py-2 bg-white">
+          <div className="flex justify-center py-2 bg-white/90 backdrop-blur-sm">
             <div className="flex bg-light-gray rounded-full">
               <button
                 className={`px-4 py-1 text-sm rounded-full ${
@@ -321,7 +322,7 @@ const Discover: React.FC = () => {
           </div>
 
           {/* Restaurant/Dish Cards (only visible when open) */}
-          <div className={`bg-white ${isMenuOpen ? 'block' : 'hidden'}`}>
+          <div className={`bg-white/95 backdrop-blur-sm ${isMenuOpen ? 'block' : 'hidden'}`}>
             {!loading && !error && (
               <>
                 {mapType === 'restaurant' ? (
