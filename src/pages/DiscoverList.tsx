@@ -37,7 +37,7 @@ const categories = [
   { id: 'bbq', name: 'BBQ', icon: '🥩' },
   { id: 'mediterranean', name: 'Mediterranean', icon: '🫒' },
   { id: 'seafood', name: 'Seafood', icon: '🦐' },
-  { id: 'casual', name: 'Casual Dining', icon: '🍽️' },
+  { id: 'casual', name: 'Casual', icon: '🍽️' },
   { id: 'italian', name: 'Italian', icon: '🍝' },
   { id: 'asian', name: 'Asian', icon: '🥢' },
   { id: 'mexican', name: 'Mexican', icon: '🌮' },
@@ -126,19 +126,19 @@ const DiscoverList: React.FC = () => {
 
       {/* Category Carousel */}
       <div className="bg-white px-4 py-3 border-b">
-        <div className="flex overflow-x-auto space-x-3 scrollbar-hide">
+        <div className="flex overflow-x-auto space-x-2 scrollbar-hide">
           {categories.map(category => (
             <button
               key={category.id}
               onClick={() => setSelectedCategory(category.id)}
-              className={`flex-shrink-0 flex flex-col items-center justify-center w-16 h-16 rounded-xl border-2 ${
+              className={`flex-shrink-0 flex flex-col items-center justify-center w-18 h-16 rounded-xl border-2 px-1 ${
                 selectedCategory === category.id 
                   ? 'border-primary bg-primary/10' 
                   : 'border-gray-200 bg-white'
               }`}
             >
               {category.icon && <span className="text-xl mb-1">{category.icon}</span>}
-              <span className="text-xs font-medium text-center">{category.name}</span>
+              <span className="text-xs font-medium text-center truncate">{category.name}</span>
             </button>
           ))}
         </div>
@@ -181,7 +181,7 @@ const DiscoverList: React.FC = () => {
                   }}
                 />
                 <div className="p-3 flex-1">
-                  <h3 className="font-medium">{restaurant.name}</h3>
+                  <h3 className="font-medium truncate">{restaurant.name}</h3>
                   <div className="flex items-center text-sm text-dark-gray">
                     <span>{restaurant.cuisine}</span>
                     <span className="mx-1">•</span>
