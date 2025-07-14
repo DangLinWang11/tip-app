@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { SearchIcon, FilterIcon, MapPinIcon, StarIcon } from 'lucide-react';
+import { SearchIcon, FilterIcon, MapPinIcon, StarIcon, Menu } from 'lucide-react';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import RestaurantMap from '../components/RestaurantMap';
@@ -35,6 +35,7 @@ const Discover: React.FC = () => {
   const navigate = useNavigate();
   const [mapType, setMapType] = useState<'restaurant' | 'dish'>('restaurant');
   const [isListView, setIsListView] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [restaurants, setRestaurants] = useState<RestaurantWithExtras[]>([]);
   const [dishes, setDishes] = useState<any[]>([]);
@@ -239,29 +240,36 @@ const Discover: React.FC = () => {
           </div>
         )}
         
-        {/* Restaurant cards at bottom with List View toggle */}
-        <div className="absolute bottom-0 left-0 right-0">
-          {/* Location Button - positioned above Card View toggle */}
-          <div className="absolute -top-12 right-4 z-20">
-            <button
-              onClick={handleLocationRequest}
-              className="bg-white rounded-full p-3 shadow-lg border border-gray-200 hover:shadow-xl transition-shadow duration-200"
-              title="Show my location"
+        {/* Location Button - positioned above sliding sheet */}
+        <div className="absolute bottom-24 right-4 z-30">
+          <button
+            onClick={handleLocationRequest}
+            className="bg-white rounded-full p-3 shadow-lg border border-gray-200 hover:shadow-xl transition-shadow duration-200"
+            title="Show my location"
+          >
+            <svg 
+              width="20" 
+              height="20" 
+              viewBox="0 0 24 24" 
+              fill="#00aeef"
             >
-              <svg 
-                width="20" 
-                height="20" 
-                viewBox="0 0 24 24" 
-                fill="#00aeef"
-              >
-                <path d="M12 2L22 22L12 18L2 22L12 2Z"/>
-              </svg>
+              <path d="M12 2L22 22L12 18L2 22L12 2Z"/>
+            </svg>
+          </button>
+        </div>
+
+        {/* Sliding Bottom Sheet */}
+        <div className={`fixed bottom-0 left-0 right-0 z-20 bg-white rounded-t-xl shadow-xl transition-transform duration-300 ${isMenuOpen ? 'translate-y-0' : 'translate-y-[calc(100%-120px)]'}`}>
+          {/* Handle bar with pancake icon */}
+          <div className="flex justify-center py-3 border-b">
+            <button onClick={() => setIsMenuOpen(!isMenuOpen)}>
+              <Menu size={24} className="text-gray-400" />
             </button>
           </div>
-
-          {/* List View Toggle */}
+          
+          {/* Card/List View toggle */}
           <div className="flex justify-center py-2">
-            <div className="flex bg-white/80 backdrop-blur-sm rounded-full">
+            <div className="flex bg-light-gray rounded-full">
               <button
                 className={`px-4 py-1 text-sm rounded-full ${
                   !isListView ? 'bg-primary text-white' : 'text-gray-600'
@@ -281,74 +289,36 @@ const Discover: React.FC = () => {
             </div>
           </div>
 
-          {/* Restaurant/Dish Cards */}
-          {!loading && !error && (
-            <>
-              {mapType === 'restaurant' ? (
-                // Restaurant Cards
-                <>
-                  {!isListView ? (
-                    <div className="px-6 overflow-x-auto flex space-x-4 pb-6">
-                      {filteredRestaurants.length > 0 ? filteredRestaurants.map(restaurant => (
-                    <div key={restaurant.id} className="bg-white rounded-xl shadow-sm p-3 min-w-[180px] border cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate(`/restaurant/${restaurant.id}`)}>
-                      <img
-                        src={restaurant.coverImage}
-                        alt={restaurant.name}
-                        className="w-full h-20 object-cover rounded-lg mb-2"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80';
-                        }}
-                      />
-                      <h3 className="font-medium">{restaurant.name}</h3>
-                      <div className="flex items-center text-sm text-dark-gray">
-                        <span>{restaurant.cuisine}</span>
-                        <span className="mx-1">•</span>
-                        <span>{restaurant.distance}</span>
-                      </div>
-                      <div className="flex items-center mt-1">
-                        <StarIcon size={16} className="text-accent mr-1" />
-                        <span className="font-medium text-sm">{restaurant.rating.toFixed(1)}</span>
-                        <div className="ml-2 px-2 py-0.5 bg-light-gray rounded-full">
-                          <span className="text-xs">{restaurant.qualityPercentage}%</span>
-                        </div>
-                      </div>
-                    </div>
-                  )) : (
-                    <div className="text-center py-8 text-gray-500">
-                      <p>No restaurants found</p>
-                      {searchQuery && <p className="text-sm">Try adjusting your search</p>}
-                    </div>
-                  )}
-                    </div>
-                  ) : (
-                    <div className="px-6">
-                      <div className="space-y-4">
+          {/* Restaurant/Dish Cards (only visible when open) */}
+          <div className={`${isMenuOpen ? 'block' : 'hidden'}`}>
+            {!loading && !error && (
+              <>
+                {mapType === 'restaurant' ? (
+                  // Restaurant Cards
+                  <>
+                    {!isListView ? (
+                      <div className="px-6 overflow-x-auto flex space-x-4 pb-6">
                         {filteredRestaurants.length > 0 ? filteredRestaurants.map(restaurant => (
-                      <div key={restaurant.id} className="bg-white rounded-xl shadow-sm flex overflow-hidden border cursor-pointer hover:bg-gray-50 transition-colors" onClick={() => navigate(`/restaurant/${restaurant.id}`)}>
+                      <div key={restaurant.id} className="bg-white rounded-xl shadow-sm p-3 min-w-[180px] border cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate(`/restaurant/${restaurant.id}`)}>
                         <img
                           src={restaurant.coverImage}
                           alt={restaurant.name}
-                          className="w-20 h-20 object-cover"
+                          className="w-full h-20 object-cover rounded-lg mb-2"
                           onError={(e) => {
                             (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80';
                           }}
                         />
-                        <div className="p-3 flex-1">
-                          <h3 className="font-medium">{restaurant.name}</h3>
-                          <div className="flex items-center text-sm text-dark-gray">
-                            <span>{restaurant.cuisine}</span>
-                            <span className="mx-1">•</span>
-                            <span>{restaurant.priceRange}</span>
-                          </div>
-                          <div className="flex items-center mt-1 justify-between">
-                            <div className="flex items-center">
-                              <StarIcon size={16} className="text-accent mr-1" />
-                              <span className="font-medium text-sm">{restaurant.rating.toFixed(1)}</span>
-                            </div>
-                            <div className="flex items-center">
-                              <MapPinIcon size={14} className="text-dark-gray mr-1" />
-                              <span className="text-xs text-dark-gray">{restaurant.distance}</span>
-                            </div>
+                        <h3 className="font-medium">{restaurant.name}</h3>
+                        <div className="flex items-center text-sm text-dark-gray">
+                          <span>{restaurant.cuisine}</span>
+                          <span className="mx-1">•</span>
+                          <span>{restaurant.distance}</span>
+                        </div>
+                        <div className="flex items-center mt-1">
+                          <StarIcon size={16} className="text-accent mr-1" />
+                          <span className="font-medium text-sm">{restaurant.rating.toFixed(1)}</span>
+                          <div className="ml-2 px-2 py-0.5 bg-light-gray rounded-full">
+                            <span className="text-xs">{restaurant.qualityPercentage}%</span>
                           </div>
                         </div>
                       </div>
@@ -359,78 +329,78 @@ const Discover: React.FC = () => {
                       </div>
                     )}
                       </div>
-                    </div>
-                  )}
-                </>
-              ) : (
-                // Dish Cards
-                <>
-                  {!isListView ? (
-                    <div className="px-6 overflow-x-auto flex space-x-4 pb-6">
-                      {filteredItems.length > 0 ? filteredItems.map(dish => (
-                        <div key={dish.id} className="bg-white rounded-xl shadow-sm p-3 min-w-[180px] border cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate(`/dish/${dish.id}`)}>
+                    ) : (
+                      <div className="px-6">
+                        <div className="space-y-4">
+                          {filteredRestaurants.length > 0 ? filteredRestaurants.map(restaurant => (
+                        <div key={restaurant.id} className="bg-white rounded-xl shadow-sm flex overflow-hidden border cursor-pointer hover:bg-gray-50 transition-colors" onClick={() => navigate(`/restaurant/${restaurant.id}`)}>
                           <img
-                            src={dish.coverImage}
-                            alt={dish.name}
-                            className="w-full h-20 object-cover rounded-lg mb-2"
+                            src={restaurant.coverImage}
+                            alt={restaurant.name}
+                            className="w-20 h-20 object-cover"
                             onError={(e) => {
-                              (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1546833999-b9f581a1996d?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80';
+                              (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80';
                             }}
                           />
-                          <h3 className="font-medium">{dish.name}</h3>
-                          <div className="flex items-center text-sm text-dark-gray">
-                            <span>{dish.restaurantName}</span>
-                            {dish.category && <><span className="mx-1">•</span><span>{dish.category}</span></>}
-                          </div>
-                          <div className="flex items-center mt-1 justify-between">
-                            <div className="flex items-center">
-                              <StarIcon size={16} className="text-accent mr-1" />
-                              <span className="font-medium text-sm">{dish.rating.toFixed(1)}</span>
+                          <div className="p-3 flex-1">
+                            <h3 className="font-medium">{restaurant.name}</h3>
+                            <div className="flex items-center text-sm text-dark-gray">
+                              <span>{restaurant.cuisine}</span>
+                              <span className="mx-1">•</span>
+                              <span>{restaurant.priceRange}</span>
                             </div>
-                            {dish.price && (
-                              <div className="text-sm font-medium text-primary">
-                                ${dish.price}
+                            <div className="flex items-center mt-1 justify-between">
+                              <div className="flex items-center">
+                                <StarIcon size={16} className="text-accent mr-1" />
+                                <span className="font-medium text-sm">{restaurant.rating.toFixed(1)}</span>
                               </div>
-                            )}
+                              <div className="flex items-center">
+                                <MapPinIcon size={14} className="text-dark-gray mr-1" />
+                                <span className="text-xs text-dark-gray">{restaurant.distance}</span>
+                              </div>
+                            </div>
                           </div>
                         </div>
                       )) : (
                         <div className="text-center py-8 text-gray-500">
-                          <p>No dishes found</p>
+                          <p>No restaurants found</p>
                           {searchQuery && <p className="text-sm">Try adjusting your search</p>}
                         </div>
                       )}
-                    </div>
-                  ) : (
-                    <div className="px-6">
-                      <div className="space-y-4">
+                        </div>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  // Dish Cards
+                  <>
+                    {!isListView ? (
+                      <div className="px-6 overflow-x-auto flex space-x-4 pb-6">
                         {filteredItems.length > 0 ? filteredItems.map(dish => (
-                          <div key={dish.id} className="bg-white rounded-xl shadow-sm flex overflow-hidden border cursor-pointer hover:bg-gray-50 transition-colors" onClick={() => navigate(`/dish/${dish.id}`)}>
+                          <div key={dish.id} className="bg-white rounded-xl shadow-sm p-3 min-w-[180px] border cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate(`/dish/${dish.id}`)}>
                             <img
                               src={dish.coverImage}
                               alt={dish.name}
-                              className="w-20 h-20 object-cover"
+                              className="w-full h-20 object-cover rounded-lg mb-2"
                               onError={(e) => {
                                 (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1546833999-b9f581a1996d?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80';
                               }}
                             />
-                            <div className="p-3 flex-1">
-                              <h3 className="font-medium">{dish.name}</h3>
-                              <div className="flex items-center text-sm text-dark-gray">
-                                <span>{dish.restaurantName}</span>
-                                {dish.category && <><span className="mx-1">•</span><span>{dish.category}</span></>}
+                            <h3 className="font-medium">{dish.name}</h3>
+                            <div className="flex items-center text-sm text-dark-gray">
+                              <span>{dish.restaurantName}</span>
+                              {dish.category && <><span className="mx-1">•</span><span>{dish.category}</span></>}
+                            </div>
+                            <div className="flex items-center mt-1 justify-between">
+                              <div className="flex items-center">
+                                <StarIcon size={16} className="text-accent mr-1" />
+                                <span className="font-medium text-sm">{dish.rating.toFixed(1)}</span>
                               </div>
-                              <div className="flex items-center mt-1 justify-between">
-                                <div className="flex items-center">
-                                  <StarIcon size={16} className="text-accent mr-1" />
-                                  <span className="font-medium text-sm">{dish.rating.toFixed(1)}</span>
+                              {dish.price && (
+                                <div className="text-sm font-medium text-primary">
+                                  ${dish.price}
                                 </div>
-                                {dish.price && (
-                                  <div className="text-sm font-medium text-primary">
-                                    ${dish.price}
-                                  </div>
-                                )}
-                              </div>
+                              )}
                             </div>
                           </div>
                         )) : (
@@ -440,12 +410,52 @@ const Discover: React.FC = () => {
                           </div>
                         )}
                       </div>
-                    </div>
-                  )}
-                </>
-              )}
-            </>
-          )}
+                    ) : (
+                      <div className="px-6">
+                        <div className="space-y-4">
+                          {filteredItems.length > 0 ? filteredItems.map(dish => (
+                            <div key={dish.id} className="bg-white rounded-xl shadow-sm flex overflow-hidden border cursor-pointer hover:bg-gray-50 transition-colors" onClick={() => navigate(`/dish/${dish.id}`)}>
+                              <img
+                                src={dish.coverImage}
+                                alt={dish.name}
+                                className="w-20 h-20 object-cover"
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1546833999-b9f581a1996d?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80';
+                                }}
+                              />
+                              <div className="p-3 flex-1">
+                                <h3 className="font-medium">{dish.name}</h3>
+                                <div className="flex items-center text-sm text-dark-gray">
+                                  <span>{dish.restaurantName}</span>
+                                  {dish.category && <><span className="mx-1">•</span><span>{dish.category}</span></>}
+                                </div>
+                                <div className="flex items-center mt-1 justify-between">
+                                  <div className="flex items-center">
+                                    <StarIcon size={16} className="text-accent mr-1" />
+                                    <span className="font-medium text-sm">{dish.rating.toFixed(1)}</span>
+                                  </div>
+                                  {dish.price && (
+                                    <div className="text-sm font-medium text-primary">
+                                      ${dish.price}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          )) : (
+                            <div className="text-center py-8 text-gray-500">
+                              <p>No dishes found</p>
+                              {searchQuery && <p className="text-sm">Try adjusting your search</p>}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
+              </>
+            )}
+          </div>
         </div>
       </div>
     </div>
