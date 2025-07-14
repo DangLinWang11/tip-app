@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Layout from './components/Layout';
 import Home from './pages/Home';
 import Discover from './pages/Discover';
+import DiscoverList from './pages/DiscoverList';
 import Create from './pages/Create';
 import Notifications from './pages/Notifications';
 import Profile from './pages/Profile';
@@ -96,6 +97,7 @@ export function App() {
           <Route path="/" element={<Layout />}>
             <Route index element={<Home />} />
             <Route path="discover" element={<Discover />} />
+            <Route path="discover/list" element={<DiscoverList />} />
             <Route path="create" element={<Create />} />
             <Route 
               path="notifications" 
