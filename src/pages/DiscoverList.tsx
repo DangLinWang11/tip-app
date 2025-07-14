@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Search, MapPin, Star } from 'lucide-react';
+import { ArrowLeft, Search, MapPin } from 'lucide-react';
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 
@@ -29,6 +29,15 @@ interface RestaurantWithExtras extends FirebaseRestaurant {
     lng: number;
   };
 }
+
+const getQualityColor = (percentage: number): string => {
+  if (percentage >= 90) return '#10B981'; // Green for high ratings (90%+)
+  if (percentage >= 80) return '#34D399'; // Light green (80-89%)
+  if (percentage >= 70) return '#FCD34D'; // Yellow (70-79%)
+  if (percentage >= 60) return '#FBBF24'; // Orange-yellow (60-69%)
+  if (percentage >= 50) return '#FB923C'; // Orange (50-59%)
+  return '#EF4444'; // Red for low ratings (<50%)
+};
 
 const categories = [
   { id: 'all', name: 'All', icon: null },
@@ -189,8 +198,12 @@ const DiscoverList: React.FC = () => {
                   </div>
                   <div className="flex items-center mt-1 justify-between">
                     <div className="flex items-center">
-                      <Star size={16} className="text-accent mr-1" />
-                      <span className="font-medium text-sm">{restaurant.rating.toFixed(1)}</span>
+                      <div 
+                        className="px-2 py-0.5 rounded-full"
+                        style={{ backgroundColor: getQualityColor(restaurant.qualityPercentage) }}
+                      >
+                        <span className="text-xs font-medium text-white">{restaurant.qualityPercentage}%</span>
+                      </div>
                     </div>
                     <div className="flex items-center">
                       <MapPin size={14} className="text-dark-gray mr-1" />

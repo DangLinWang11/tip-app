@@ -243,7 +243,7 @@ const Discover: React.FC = () => {
         )}
         
         {/* Location Button */}
-        <div className="absolute bottom-4 right-4 z-30">
+        <div className="absolute bottom-20 right-4 z-30">
           <button
             onClick={handleLocationRequest}
             className="bg-white rounded-full p-3 shadow-lg border border-gray-200 hover:shadow-xl transition-shadow duration-200"
