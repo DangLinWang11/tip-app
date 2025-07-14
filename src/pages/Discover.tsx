@@ -176,14 +176,17 @@ const Discover: React.FC = () => {
 
   // Swipe gesture handlers
   const handleTouchStart = (e: React.TouchEvent) => {
+    e.stopPropagation();
     setStartY(e.touches[0].clientY);
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
+    e.stopPropagation();
     setCurrentY(e.touches[0].clientY);
   };
 
-  const handleTouchEnd = () => {
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    e.stopPropagation();
     const deltaY = startY - currentY;
     if (Math.abs(deltaY) > 50) { // 50px threshold
       if (deltaY > 0) {
@@ -239,14 +242,14 @@ const Discover: React.FC = () => {
       {/* Map Section */}
       <div className="relative">
         {loading ? (
-          <div className="h-[calc(100vh-280px)] flex items-center justify-center bg-gray-100">
+          <div className={`${isMenuOpen ? 'h-[calc(100vh-400px)]' : 'h-[calc(100vh-140px)]'} ${isMenuOpen ? 'pointer-events-none' : ''} flex items-center justify-center bg-gray-100`}>
             <div className="text-center">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
               <p className="text-gray-600">Loading restaurants...</p>
             </div>
           </div>
         ) : error ? (
-          <div className="h-[calc(100vh-280px)] flex items-center justify-center bg-red-50">
+          <div className={`${isMenuOpen ? 'h-[calc(100vh-400px)]' : 'h-[calc(100vh-140px)]'} ${isMenuOpen ? 'pointer-events-none' : ''} flex items-center justify-center bg-red-50`}>
             <div className="text-center">
               <p className="text-red-600 font-medium">Error loading restaurants</p>
               <p className="text-red-500 text-sm">{error}</p>
@@ -259,7 +262,7 @@ const Discover: React.FC = () => {
             </div>
           </div>
         ) : (
-          <div className="h-[calc(100vh-280px)]">
+          <div className={`${isMenuOpen ? 'h-[calc(100vh-400px)]' : 'h-[calc(100vh-140px)]'} ${isMenuOpen ? 'pointer-events-none' : ''}`}>
             <RestaurantMap mapType={mapType} restaurants={filteredRestaurants} dishes={dishes} onRestaurantClick={(id) => navigate(`/restaurant/${id}`)} />
           </div>
         )}
@@ -284,7 +287,8 @@ const Discover: React.FC = () => {
 
         {/* Sliding Bottom Sheet */}
         <div 
-          className={`fixed bottom-0 left-0 right-0 z-20 rounded-t-xl shadow-xl transition-transform duration-300 ${isMenuOpen ? 'translate-y-0' : 'translate-y-[calc(100%-120px)]'}`}
+          className={`fixed bottom-0 left-0 right-0 z-40 rounded-t-xl shadow-xl transition-transform duration-300 pointer-events-auto ${isMenuOpen ? 'translate-y-0' : 'translate-y-[calc(100%-120px)]'}`}
+          style={{touchAction: 'pan-y'}}
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
