@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { SearchIcon, FilterIcon, MapPinIcon, StarIcon, Menu } from 'lucide-react';
+import { SearchIcon, FilterIcon, MapPinIcon, StarIcon } from 'lucide-react';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import RestaurantMap from '../components/RestaurantMap';
@@ -36,6 +36,8 @@ const Discover: React.FC = () => {
   const [mapType, setMapType] = useState<'restaurant' | 'dish'>('restaurant');
   const [isListView, setIsListView] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [startY, setStartY] = useState(0);
+  const [currentY, setCurrentY] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
   const [restaurants, setRestaurants] = useState<RestaurantWithExtras[]>([]);
   const [dishes, setDishes] = useState<any[]>([]);
@@ -172,6 +174,28 @@ const Discover: React.FC = () => {
     );
   };
 
+  // Swipe gesture handlers
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setStartY(e.touches[0].clientY);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    setCurrentY(e.touches[0].clientY);
+  };
+
+  const handleTouchEnd = () => {
+    const deltaY = startY - currentY;
+    if (Math.abs(deltaY) > 50) { // 50px threshold
+      if (deltaY > 0) {
+        setIsMenuOpen(true); // Swipe up to open
+      } else {
+        setIsMenuOpen(false); // Swipe down to close
+      }
+    }
+    setStartY(0);
+    setCurrentY(0);
+  };
+
   return (
     <div className="min-h-screen bg-light-gray pb-16">
       <header className="bg-white sticky top-0 z-10 px-4 py-3 shadow-sm">
@@ -259,16 +283,19 @@ const Discover: React.FC = () => {
         </div>
 
         {/* Sliding Bottom Sheet */}
-        <div className={`fixed bottom-0 left-0 right-0 z-20 bg-white rounded-t-xl shadow-xl transition-transform duration-300 ${isMenuOpen ? 'translate-y-0' : 'translate-y-[calc(100%-120px)]'}`}>
+        <div 
+          className={`fixed bottom-0 left-0 right-0 z-20 rounded-t-xl shadow-xl transition-transform duration-300 ${isMenuOpen ? 'translate-y-0' : 'translate-y-[calc(100%-120px)]'}`}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+        >
           {/* Handle bar with pancake icon */}
-          <div className="flex justify-center py-3 border-b">
-            <button onClick={() => setIsMenuOpen(!isMenuOpen)}>
-              <Menu size={24} className="text-gray-400" />
-            </button>
+          <div className="flex justify-center py-4 border-b bg-white rounded-t-xl" onClick={() => setIsMenuOpen(!isMenuOpen)}>
+            <div className="w-10 h-1 bg-gray-400 rounded-full"></div>
           </div>
           
           {/* Card/List View toggle */}
-          <div className="flex justify-center py-2">
+          <div className="flex justify-center py-2 bg-white">
             <div className="flex bg-light-gray rounded-full">
               <button
                 className={`px-4 py-1 text-sm rounded-full ${
@@ -290,7 +317,7 @@ const Discover: React.FC = () => {
           </div>
 
           {/* Restaurant/Dish Cards (only visible when open) */}
-          <div className={`${isMenuOpen ? 'block' : 'hidden'}`}>
+          <div className={`bg-white ${isMenuOpen ? 'block' : 'hidden'}`}>
             {!loading && !error && (
               <>
                 {mapType === 'restaurant' ? (
