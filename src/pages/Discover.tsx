@@ -193,7 +193,7 @@ const Discover: React.FC = () => {
         {/* Restaurant Map | Dish Map Toggle */}
         <div className="flex mx-4 mb-2">
           <button
-            className={`flex-1 py-1.5 text-sm text-center rounded-l-full ${
+            className={`flex-1 py-1 text-sm text-center rounded-l-full ${
               mapType === 'restaurant' ? 'bg-primary text-white' : 'bg-light-gray'
             }`}
             onClick={() => setMapType('restaurant')}
@@ -201,7 +201,7 @@ const Discover: React.FC = () => {
             Restaurant Map
           </button>
           <button
-            className={`flex-1 py-1.5 text-sm text-center rounded-r-full ${
+            className={`flex-1 py-1 text-sm text-center rounded-r-full ${
               mapType === 'dish' ? 'bg-primary text-white' : 'bg-light-gray'
             }`}
             onClick={() => setMapType('dish')}
@@ -240,7 +240,7 @@ const Discover: React.FC = () => {
         )}
         
         {/* Restaurant cards at bottom with List View toggle */}
-        <div className="absolute bottom-0 left-0 right-0 bg-white border-t">
+        <div className="absolute bottom-0 left-0 right-0">
           {/* Location Button - positioned above Card View toggle */}
           <div className="absolute -top-12 right-4 z-20">
             <button
@@ -260,8 +260,8 @@ const Discover: React.FC = () => {
           </div>
 
           {/* List View Toggle */}
-          <div className="flex justify-center py-2 border-b">
-            <div className="flex bg-light-gray rounded-full">
+          <div className="flex justify-center py-2">
+            <div className="flex bg-white/80 backdrop-blur-sm rounded-full">
               <button
                 className={`px-4 py-1 text-sm rounded-full ${
                   !isListView ? 'bg-primary text-white' : 'text-gray-600'

@@ -62,6 +62,9 @@ const Map: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishes, o
       const newMap = new window.google.maps.Map(ref.current, {
         center,
         zoom,
+        mapTypeControl: false,
+        streetViewControl: false,
+        fullscreenControl: false,
         styles: [
           {
             featureType: 'poi',
