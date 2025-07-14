@@ -65,6 +65,9 @@ const Map: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishes, o
         mapTypeControl: false,
         streetViewControl: false,
         fullscreenControl: false,
+        gestureHandling: 'greedy',
+        scrollwheel: true,
+        disableDoubleClickZoom: false,
         styles: [
           {
             featureType: 'poi',
