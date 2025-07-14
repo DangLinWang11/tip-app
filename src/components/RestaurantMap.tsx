@@ -32,6 +32,7 @@ interface MapProps {
   mapType: 'restaurant' | 'dish';
   restaurants: Restaurant[];
   dishes: Dish[];
+  userLocation?: {lat: number, lng: number} | null;
   onItemClick?: (item: Restaurant | Dish) => void;
 }
 
@@ -50,10 +51,9 @@ const getRatingColor = (rating: number): string => {
   return getQualityColor(percentage);
 };
 
-const Map: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishes, onItemClick }) => {
+const Map: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishes, userLocation, onItemClick }) => {
   const ref = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<google.maps.Map>();
-  const [userLocation, setUserLocation] = useState<{lat: number, lng: number} | null>(null);
   const [locationError, setLocationError] = useState<string>('');
   const [userLocationMarker, setUserLocationMarker] = useState<google.maps.Marker | null>(null);
 
@@ -83,61 +83,18 @@ const Map: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishes, o
     }
   }, [ref, map, center, zoom]);
 
-  // Handle location request
-  const handleLocationRequest = () => {
-    if (!navigator.geolocation) {
-      setLocationError('Geolocation is not supported by this browser.');
-      return;
-    }
 
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const { latitude, longitude } = position.coords;
-        const newLocation = { lat: latitude, lng: longitude };
-        
-        setUserLocation(newLocation);
-        setLocationError('');
-        
-        // Center map on user location
-        if (map) {
-          map.panTo(newLocation);
-          map.setZoom(15); // Zoom in to show local area
-        }
-      },
-      (error) => {
-        switch (error.code) {
-          case error.PERMISSION_DENIED:
-            setLocationError('Location access needed to show your position on the map.');
-            break;
-          case error.POSITION_UNAVAILABLE:
-            setLocationError('Location information is unavailable.');
-            break;
-          case error.TIMEOUT:
-            setLocationError('Location request timed out.');
-            break;
-          default:
-            setLocationError('An unknown error occurred.');
-            break;
-        }
-        
-        // Auto-hide error after 5 seconds
-        setTimeout(() => setLocationError(''), 5000);
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 300000 // 5 minutes
-      }
-    );
-  };
-
-  // Update user location marker
+  // Update user location marker and center map
   useEffect(() => {
     if (map && userLocation) {
       // Remove existing user location marker
       if (userLocationMarker) {
         userLocationMarker.setMap(null);
       }
+
+      // Center map on user location
+      map.panTo(userLocation);
+      map.setZoom(15); // Zoom in to show local area
 
       // Create new user location marker with blue dot and direction arrow
       const marker = new window.google.maps.Marker({
@@ -398,6 +355,7 @@ interface RestaurantMapProps {
   className?: string;
   mapType: 'restaurant' | 'dish';
   restaurants?: Restaurant[];
+  userLocation?: {lat: number, lng: number} | null;
   onItemClick?: (item: Restaurant | Dish) => void;
 }
 
@@ -434,6 +392,7 @@ const RestaurantMap: React.FC<RestaurantMapProps> = ({
   className = '',
   mapType,
   restaurants = [],
+  userLocation,
   onItemClick 
 }) => {
   const sarasotaCenter = {
@@ -457,6 +416,7 @@ const RestaurantMap: React.FC<RestaurantMapProps> = ({
             mapType={mapType}
             restaurants={restaurants}
             dishes={topDishes}
+            userLocation={userLocation}
             onItemClick={onItemClick}
           />
         );
