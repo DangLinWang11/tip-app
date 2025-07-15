@@ -54,13 +54,13 @@ const FeedPost: React.FC<FeedPostProps> = ({
 
   // Function to get quality circle color based on percentage
   const getQualityColor = (score: number): string => {
-    if (score >= 95) return 'bg-green-500'; // Green
-    if (score >= 85) return 'bg-lime-400';   // Yellow-Green
-    if (score >= 75) return 'bg-green-400';  // Green
-    if (score >= 60) return 'bg-yellow-500'; // Yellow
-    if (score >= 45) return 'bg-orange-400'; // Orange
-    if (score >= 30) return 'bg-red-400';    // Orange-Red
-    return 'bg-red-600';                     // Red
+    if (score >= 95) return '#10B981'; // Green
+    if (score >= 85) return '#34D399'; // Light green
+    if (score >= 75) return '#10B981'; // Green
+    if (score >= 60) return '#FCD34D'; // Yellow
+    if (score >= 45) return '#FB923C'; // Orange
+    if (score >= 30) return '#EF4444'; // Red-orange
+    return '#EF4444'; // Red
   };
 
   return (
@@ -78,19 +78,18 @@ const FeedPost: React.FC<FeedPostProps> = ({
               <MapPinIcon size={14} className="text-red-500 mr-1" />
               <span 
                 onClick={() => restaurantId && navigate(`/restaurant/${restaurantId}`)}
-                className={restaurantId ? "hover:text-primary cursor-pointer" : ""}
+                className={`truncate ${restaurantId ? "hover:text-primary cursor-pointer" : ""}`}
               >
                 {restaurant.name}
               </span>
               {restaurant.isVerified && <CheckCircleIcon size={14} className="ml-1 text-secondary" />}
               {restaurant.qualityScore && (
-                <>
-                  <span className="ml-2">{restaurant.qualityScore}%</span>
-                  <div 
-                    className={`w-3 h-3 rounded-full ml-1 ${getQualityColor(restaurant.qualityScore)}`}
-                    title={`Restaurant Quality: ${restaurant.qualityScore}%`}
-                  />
-                </>
+                <div 
+                  className="px-2 py-0.5 rounded-full ml-2"
+                  style={{ backgroundColor: getQualityColor(restaurant.qualityScore) }}
+                >
+                  <span className="text-xs font-medium text-white">{restaurant.qualityScore}%</span>
+                </div>
               )}
             </div>
           )}
