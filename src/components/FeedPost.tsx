@@ -66,26 +66,26 @@ const FeedPost: React.FC<FeedPostProps> = ({
   return (
     <div className="bg-white rounded-2xl overflow-hidden shadow-sm mb-4">
       {/* Header */}
-      <div className="p-4 flex items-center">
+      <div className="p-4 flex items-center gap-4">
         <img src={author.image} alt={author.name} className="w-10 h-10 rounded-full object-cover" />
-        <div className="ml-3 flex-1">
-          <div className="flex items-center">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1.5">
             <span className="font-medium">{author.name}</span>
-            {author.isVerified && <CheckCircleIcon size={16} className="ml-1 text-secondary" />}
+            {author.isVerified && <CheckCircleIcon size={16} className="text-secondary" />}
           </div>
           {restaurant && (
-            <div className="text-sm text-dark-gray flex items-center">
-              <MapPinIcon size={14} className="text-red-500 mr-1" />
+            <div className="text-sm text-dark-gray flex items-center gap-1.5 mt-0.5">
+              <MapPinIcon size={14} className="text-red-500" />
               <span 
                 onClick={() => restaurantId && navigate(`/restaurant/${restaurantId}`)}
-                className={`truncate ${restaurantId ? "hover:text-primary cursor-pointer" : ""}`}
+                className={`max-w-32 truncate ${restaurantId ? "hover:text-primary cursor-pointer" : ""}`}
               >
                 {restaurant.name}
               </span>
-              {restaurant.isVerified && <CheckCircleIcon size={14} className="ml-1 text-secondary" />}
+              {restaurant.isVerified && <CheckCircleIcon size={14} className="text-secondary" />}
               {restaurant.qualityScore && (
                 <div 
-                  className="px-2 py-0.5 rounded-full ml-2"
+                  className="w-8 h-5 flex items-center justify-center rounded-full"
                   style={{ backgroundColor: getQualityColor(restaurant.qualityScore) }}
                 >
                   <span className="text-xs font-medium text-white">{restaurant.qualityScore}%</span>
@@ -94,7 +94,9 @@ const FeedPost: React.FC<FeedPostProps> = ({
             </div>
           )}
         </div>
-        <RatingBadge rating={dish.rating} size="md" />
+        <div className="flex-shrink-0">
+          <RatingBadge rating={dish.rating} size="md" />
+        </div>
       </div>
       
       {/* Image */}
