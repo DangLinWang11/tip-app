@@ -195,20 +195,20 @@ const Home: React.FC = () => {
       {/* Stats Cards */}
       <div className="px-4 py-6">
         <div className="grid grid-cols-4 gap-3 mb-6">
-          <div className="bg-white rounded-xl p-3 shadow-sm text-center">
+          <div className="bg-white rounded-xl p-3 shadow-sm flex flex-col items-center justify-center">
             <p className="text-2xl font-bold text-primary">{userStats.averageRating}</p>
             <p className="text-xs text-gray-500 font-medium">Average Rating</p>
           </div>
-          <div className="bg-white rounded-xl p-3 shadow-sm text-center">
+          <div className="bg-white rounded-xl p-3 shadow-sm flex flex-col items-center justify-center">
             <p className="text-2xl font-bold text-primary">{userStats.totalRestaurants}</p>
             <p className="text-xs text-gray-500 font-medium">Restaurants</p>
           </div>
-          <div className="bg-white rounded-xl p-3 shadow-sm text-center">
+          <div className="bg-white rounded-xl p-3 shadow-sm flex flex-col items-center justify-center">
             <p className="text-2xl font-bold text-primary">{userStats.totalDishes}</p>
             <p className="text-xs text-gray-500 font-medium">Dishes</p>
           </div>
           <div 
-            className="bg-white rounded-xl p-3 shadow-sm text-center cursor-pointer hover:shadow-md transition-shadow"
+            className="bg-white rounded-xl p-3 shadow-sm flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow"
             onClick={() => navigate('/rewards')}
           >
             <p className="text-2xl font-bold text-primary">{userStats.pointsEarned}</p>
