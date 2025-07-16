@@ -2,11 +2,9 @@
   "permissions": {
     "allow": [
       "Bash(cd:*)",
-      "Bash(cd:*)",
-      "Bash(cd:*)",
       "Bash(node:*)",
       "Bash(rm:*)",
-      "Bash(cd:*)"
+      "Bash(ls:*)"
     ],
     "deny": []
   }
