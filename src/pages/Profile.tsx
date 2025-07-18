@@ -84,12 +84,39 @@ const Profile: React.FC = () => {
     loadUserReviews();
   }, []);
 
-  // Filter posts based on search term
-  const filteredPosts = feedPosts.filter(post => 
-    searchTerm === '' || 
-    post.dish.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    post.restaurant?.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Filter posts based on search term - now searches across carousel items
+  const filteredPosts = feedPosts.filter(post => {
+    if (searchTerm === '') return true;
+    
+    const searchLower = searchTerm.toLowerCase();
+    
+    // Search restaurant name
+    if (post.restaurant?.name.toLowerCase().includes(searchLower)) {
+      return true;
+    }
+    
+    // Search main dish name
+    if (post.dish.name.toLowerCase().includes(searchLower)) {
+      return true;
+    }
+    
+    // Search carousel items (for multi-dish posts)
+    if (post.isCarousel && post.carouselItems) {
+      return post.carouselItems.some(item => 
+        item.dish.name.toLowerCase().includes(searchLower) ||
+        item.review.positive.toLowerCase().includes(searchLower) ||
+        item.review.negative.toLowerCase().includes(searchLower)
+      );
+    }
+    
+    // Search single post reviews
+    if (post.review.positive.toLowerCase().includes(searchLower) ||
+        post.review.negative.toLowerCase().includes(searchLower)) {
+      return true;
+    }
+    
+    return false;
+  });
 
   // Calculate personal stats from Firebase reviews and user profile
   const personalStats = {
