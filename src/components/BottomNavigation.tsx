@@ -5,7 +5,7 @@ import { HomeIcon, SearchIcon, PlusSquareIcon, UserIcon } from 'lucide-react';
 const BottomNavigation: React.FC = () => {
   return (
     <nav className="bottom-nav pb-safe">
-      <div className="max-w-md mx-auto px-4 py-2 flex justify-between items-center">
+      <div className="max-w-md mx-auto px-4 py-2 pb-8 flex justify-between items-center">
         <NavLink 
           to="/" 
           className={({ isActive }) => 
