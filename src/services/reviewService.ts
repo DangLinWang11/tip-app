@@ -43,6 +43,7 @@ export const uploadMultiplePhotos = async (files: File[]): Promise<string[]> => 
 // Review data interface
 export interface ReviewData {
   restaurantId?: string | null; // Firebase restaurant ID for linking
+  visitId?: string; // NEW: Shared ID for multi-dish visits
   menuItemId?: string | null; // Firebase menu item ID for linking
   restaurant: string;
   location: string;
@@ -101,6 +102,7 @@ export const processAndUploadImages = async (imageFiles: File[]): Promise<string
 // Firebase review interface (what comes from Firestore)
 export interface FirebaseReview {
   id: string;
+  visitId?: string; // NEW: Shared visit ID
   userId?: string; // Author's user ID
   restaurantId?: string | null; // Firebase restaurant ID for linking
   menuItemId?: string | null; // Firebase menu item ID for linking
