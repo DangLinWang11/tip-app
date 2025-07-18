@@ -239,7 +239,121 @@ interface FeedPostAuthor {
 // Cache for user profiles to avoid redundant fetches
 const userProfileCache = new Map<string, FeedPostAuthor>();
 
-// Convert Firebase review to feed post format with real user data
+// Group reviews by visitId or individual reviews
+const groupReviewsByVisit = (reviews: FirebaseReview[]) => {
+  const visitGroups = new Map<string, FirebaseReview[]>();
+  const individualReviews: FirebaseReview[] = [];
+
+  reviews.forEach(review => {
+    if (review.visitId) {
+      if (!visitGroups.has(review.visitId)) {
+        visitGroups.set(review.visitId, []);
+      }
+      visitGroups.get(review.visitId)!.push(review);
+    } else {
+      individualReviews.push(review);
+    }
+  });
+
+  return { visitGroups, individualReviews };
+};
+
+// Convert a group of reviews (visit) to a carousel feed post
+export const convertVisitToCarouselFeedPost = async (reviews: FirebaseReview[]) => {
+  if (reviews.length === 0) return null;
+
+  // Sort reviews by rating (highest first) for main image selection
+  const sortedReviews = [...reviews].sort((a, b) => b.rating - a.rating);
+  const mainReview = sortedReviews[0]; // Highest rated dish as main
+  
+  // Get author info from main review
+  let author: FeedPostAuthor = {
+    name: "Anonymous User",
+    username: "anonymous",
+    image: getAvatarUrl({ username: "anonymous" }),
+    isVerified: false
+  };
+
+  if (mainReview.userId) {
+    try {
+      if (userProfileCache.has(mainReview.userId)) {
+        author = userProfileCache.get(mainReview.userId)!;
+      } else {
+        const userProfileResult = await getUserProfile(mainReview.userId);
+        if (userProfileResult.success && userProfileResult.profile) {
+          const profile = userProfileResult.profile;
+          author = {
+            name: profile.displayName || profile.username,
+            username: profile.username,
+            image: getAvatarUrl(profile),
+            isVerified: profile.isVerified || false
+          };
+          userProfileCache.set(mainReview.userId, author);
+        }
+      }
+    } catch (error) {
+      console.warn('Failed to fetch user profile for visit:', mainReview.visitId, error);
+    }
+  }
+
+  // Calculate average rating for the visit
+  const averageRating = reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length;
+
+  // Create carousel data for all dishes in the visit
+  const carouselItems = sortedReviews.map(review => ({
+    id: review.id,
+    dishId: review.menuItemId,
+    dish: {
+      name: review.dish,
+      image: review.images.length > 0 ? review.images[0] : `https://source.unsplash.com/500x500/?food,${encodeURIComponent(review.dish)}`,
+      rating: review.rating,
+      visitCount: review.visitedTimes
+    },
+    review: {
+      positive: review.personalNote,
+      negative: review.negativeNote,
+      date: new Date(review.createdAt).toLocaleDateString()
+    },
+    tags: review.tags,
+    price: review.price
+  }));
+
+  return {
+    id: mainReview.visitId || mainReview.id,
+    visitId: mainReview.visitId,
+    userId: mainReview.userId,
+    restaurantId: mainReview.restaurantId,
+    dishId: mainReview.menuItemId,
+    isCarousel: true, // Flag to indicate this is a carousel post
+    carouselItems, // Array of all dishes in the visit
+    author,
+    restaurant: {
+      name: mainReview.restaurant,
+      isVerified: Math.random() > 0.7,
+      qualityScore: Math.floor(Math.random() * 40) + 60
+    },
+    dish: {
+      name: reviews.length > 1 ? `${reviews.length} dishes` : mainReview.dish,
+      image: mainReview.images.length > 0 ? mainReview.images[0] : `https://source.unsplash.com/500x500/?food,${encodeURIComponent(mainReview.dish)}`,
+      rating: parseFloat(averageRating.toFixed(1)),
+      visitCount: mainReview.visitedTimes
+    },
+    review: {
+      positive: mainReview.personalNote,
+      negative: mainReview.negativeNote,
+      date: new Date(mainReview.createdAt).toLocaleDateString()
+    },
+    engagement: {
+      likes: Math.floor(Math.random() * 100) + 10,
+      comments: Math.floor(Math.random() * 30) + 1
+    },
+    location: mainReview.location,
+    tags: mainReview.tags,
+    price: mainReview.price
+  };
+};
+
+// Convert single review to feed post (for non-visit reviews)
 export const convertReviewToFeedPost = async (review: FirebaseReview) => {
   let author: FeedPostAuthor = {
     name: "Anonymous User",
@@ -248,14 +362,11 @@ export const convertReviewToFeedPost = async (review: FirebaseReview) => {
     isVerified: false
   };
 
-  // Fetch real user profile if userId exists
   if (review.userId) {
     try {
-      // Check cache first
       if (userProfileCache.has(review.userId)) {
         author = userProfileCache.get(review.userId)!;
       } else {
-        // Fetch user profile from Firebase
         const userProfileResult = await getUserProfile(review.userId);
         if (userProfileResult.success && userProfileResult.profile) {
           const profile = userProfileResult.profile;
@@ -265,27 +376,26 @@ export const convertReviewToFeedPost = async (review: FirebaseReview) => {
             image: getAvatarUrl(profile),
             isVerified: profile.isVerified || false
           };
-          
-          // Cache the result
           userProfileCache.set(review.userId, author);
         }
       }
     } catch (error) {
       console.warn('Failed to fetch user profile for review:', review.id, error);
-      // Keep default anonymous author
     }
   }
   
   return {
     id: review.id,
+    visitId: review.visitId,
     userId: review.userId,
     restaurantId: review.restaurantId,
     dishId: review.menuItemId,
+    isCarousel: false, // Single dish post
     author,
     restaurant: {
       name: review.restaurant,
-      isVerified: Math.random() > 0.7, // Some restaurants are verified
-      qualityScore: Math.floor(Math.random() * 40) + 60 // 60-100
+      isVerified: Math.random() > 0.7,
+      qualityScore: Math.floor(Math.random() * 40) + 60
     },
     dish: {
       name: review.dish,
@@ -310,8 +420,6 @@ export const convertReviewToFeedPost = async (review: FirebaseReview) => {
 
 // Convert current user's review to feed post format (optimized for profile page)
 export const convertUserReviewToFeedPost = async (review: FirebaseReview) => {
-  // For current user's reviews, we already have their profile data
-  const currentUser = getCurrentUser();
   const userProfileResult = await getUserProfile();
   
   let author: FeedPostAuthor = {
@@ -333,14 +441,16 @@ export const convertUserReviewToFeedPost = async (review: FirebaseReview) => {
   
   return {
     id: review.id,
+    visitId: review.visitId,
     userId: review.userId,
     restaurantId: review.restaurantId,
     dishId: review.menuItemId,
+    isCarousel: false, // Profile page shows individual reviews
     author,
     restaurant: {
       name: review.restaurant,
-      isVerified: false, // Could be determined by restaurant data
-      qualityScore: 85 // Default good score for user's own reviews
+      isVerified: false,
+      qualityScore: 85
     },
     dish: {
       name: review.dish,
@@ -354,8 +464,8 @@ export const convertUserReviewToFeedPost = async (review: FirebaseReview) => {
       date: new Date(review.createdAt).toLocaleDateString()
     },
     engagement: {
-      likes: 0, // Start with 0 for user's own reviews
-      comments: 0 // Start with 0 for user's own reviews
+      likes: 0,
+      comments: 0
     },
     location: review.location,
     tags: review.tags,
@@ -363,38 +473,89 @@ export const convertUserReviewToFeedPost = async (review: FirebaseReview) => {
   };
 };
 
-// Batch convert user reviews to feed posts (for profile page)
-export const convertUserReviewsToFeedPosts = async (reviews: FirebaseReview[]) => {
+// Convert user's visits to carousel feed posts (for profile page)
+export const convertUserVisitsToCarouselFeedPosts = async (reviews: FirebaseReview[]) => {
   try {
-    console.log(`Converting ${reviews.length} user reviews to feed posts...`);
-    const feedPosts = await Promise.all(
-      reviews.map(review => convertUserReviewToFeedPost(review))
-    );
-    console.log(`✅ Converted ${feedPosts.length} user reviews to feed posts`);
+    console.log(`Converting ${reviews.length} user reviews to carousel feed posts...`);
+    
+    const { visitGroups, individualReviews } = groupReviewsByVisit(reviews);
+    const feedPosts = [];
+
+    // Convert visit groups to carousel posts
+    for (const [visitId, visitReviews] of visitGroups) {
+      const carouselPost = await convertVisitToCarouselFeedPost(visitReviews);
+      if (carouselPost) {
+        // For user's own posts, set engagement to 0 and update author
+        carouselPost.engagement = { likes: 0, comments: 0 };
+        carouselPost.author = {
+          name: "You",
+          username: "you",
+          image: carouselPost.author.image,
+          isVerified: false
+        };
+        feedPosts.push(carouselPost);
+      }
+    }
+
+    // Convert individual reviews to single posts
+    for (const review of individualReviews) {
+      const singlePost = await convertUserReviewToFeedPost(review);
+      feedPosts.push(singlePost);
+    }
+
+    // Sort by creation date (newest first)
+    feedPosts.sort((a, b) => new Date(b.review.date).getTime() - new Date(a.review.date).getTime());
+
+    console.log(`✅ Converted to ${feedPosts.length} feed posts (${visitGroups.size} visits + ${individualReviews.length} individual)`);
     return feedPosts;
   } catch (error) {
-    console.error('Error converting user reviews to feed posts:', error);
+    console.error('Error converting user reviews to carousel feed posts:', error);
     throw error;
   }
 };
 
-// Batch convert reviews to feed posts with user data (for general feed)
+// Batch convert user reviews to feed posts (for profile page)
+export const convertUserReviewsToFeedPosts = async (reviews: FirebaseReview[]) => {
+  return await convertUserVisitsToCarouselFeedPosts(reviews);
+};
+
+// Convert all reviews to carousel feed posts (for general feed)
 export const convertReviewsToFeedPosts = async (reviews: FirebaseReview[]) => {
   try {
-    console.log(`Converting ${reviews.length} reviews to feed posts...`);
-    const feedPosts = await Promise.all(
-      reviews.map(review => convertReviewToFeedPost(review))
-    );
-    console.log(`✅ Converted ${feedPosts.length} reviews to feed posts`);
+    console.log(`Converting ${reviews.length} reviews to carousel feed posts...`);
+    
+    const { visitGroups, individualReviews } = groupReviewsByVisit(reviews);
+    const feedPosts = [];
+
+    // Convert visit groups to carousel posts
+    for (const [visitId, visitReviews] of visitGroups) {
+      const carouselPost = await convertVisitToCarouselFeedPost(visitReviews);
+      if (carouselPost) {
+        feedPosts.push(carouselPost);
+      }
+    }
+
+    // Convert individual reviews to single posts
+    for (const review of individualReviews) {
+      const singlePost = await convertReviewToFeedPost(review);
+      feedPosts.push(singlePost);
+    }
+
+    // Sort by creation date (newest first)
+    feedPosts.sort((a, b) => new Date(b.review.date).getTime() - new Date(a.review.date).getTime());
+
+    console.log(`✅ Converted to ${feedPosts.length} feed posts (${visitGroups.size} visits + ${individualReviews.length} individual)`);
     return feedPosts;
   } catch (error) {
-    console.error('Error converting reviews to feed posts:', error);
-    // Fallback to synchronous conversion without user data
+    console.error('Error converting reviews to carousel feed posts:', error);
+    // Fallback to individual posts
     return reviews.map(review => ({
       id: review.id,
+      visitId: review.visitId,
       userId: review.userId,
       restaurantId: review.restaurantId,
       dishId: review.menuItemId,
+      isCarousel: false,
       author: {
         name: "Anonymous User",
         username: "anonymous",
