@@ -127,9 +127,6 @@ const DiscoverList: React.FC = () => {
             <ArrowLeft size={24} />
           </button>
           <h1 className="text-lg font-semibold">Discover List</h1>
-          <button className="p-1">
-            <Search size={20} />
-          </button>
         </div>
       </header>
 
