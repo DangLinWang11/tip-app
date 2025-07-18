@@ -1,6 +1,29 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Wrapper, Status } from '@googlemaps/react-wrapper';
 
+const getCuisineIcon = (cuisine: string): string => {
+  const cuisineMap: { [key: string]: string } = {
+    'mediterranean': '🫒',
+    'middle eastern': '🫒',
+    'american': '🍽️',
+    'bistro': '🍽️',
+    'seafood': '🦐',
+    'italian': '🍝',
+    'asian': '🥢',
+    'mexican': '🌮',
+    'pizza': '🍕',
+    'steakhouse': '🥩',
+    'bbq': '🥩',
+    'sushi': '🍣',
+    'coffee': '☕',
+    'breakfast': '🥐',
+    'brunch': '🥐',
+    'fast food': '🍔',
+    'casual': '🍽️'
+  };
+  return cuisineMap[cuisine.toLowerCase()] || '🍽️';
+};
+
 interface Restaurant {
   id: number;
   name: string;
@@ -154,11 +177,11 @@ const Map: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishes, u
                     <span style="background: ${qualityColor}; color: white; padding: 2px 8px; border-radius: 12px; font-size: 12px; font-weight: bold;">
                       ${restaurant.qualityPercentage}%
                     </span>
-                    <span style="color: #666; font-size: 14px;">${restaurant.cuisine}</span>
+                    <span style="color: #666; font-size: 14px;">${restaurant.cuisine} ${getCuisineIcon(restaurant.cuisine)}</span>
                   </div>
                   <div style="display: flex; align-items: center; gap: 8px; color: #666; font-size: 14px;">
                     <span style="display: flex; align-items: center; gap: 4px;">
-                      <span style='color: #FFD700; font-size: 16px; text-shadow: 1px 1px 2px rgba(0,0,0,0.3);'>★</span>
+                      <span style='color: #FFD700; font-size: 16px;'>✦</span>
                       ${(restaurant.averageMenuRating || restaurant.rating).toFixed(1)}
                     </span>
                     <span>${restaurant.priceRange}</span>
