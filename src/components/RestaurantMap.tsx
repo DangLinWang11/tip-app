@@ -146,17 +146,23 @@ const Map: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishes, u
 
           const infoWindow = new window.google.maps.InfoWindow({
             content: `
-              <div style="padding: 8px; min-width: 200px;">
-                <h3 style="margin: 0 0 8px 0; font-size: 16px; font-weight: 600;">${restaurant.name}</h3>
-                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
-                  <span style="background: ${qualityColor}; color: white; padding: 2px 8px; border-radius: 12px; font-size: 12px; font-weight: bold;">
-                    ${restaurant.qualityPercentage}%
-                  </span>
-                  <span style="color: #666; font-size: 14px;">${restaurant.cuisine}</span>
-                </div>
-                <div style="display: flex; align-items: center; gap: 8px; color: #666; font-size: 14px;">
-                  <span>⭐ ${restaurant.rating}</span>
-                  <span>${restaurant.priceRange}</span>
+              <div style="padding: 0; min-width: 200px; border-radius: 8px; overflow: hidden;">
+                ${restaurant.headerImage ? `<img src="${restaurant.headerImage}" style="width: 100%; height: 80px; object-fit: cover;" onerror="this.style.display='none'">` : ''}
+                <div style="padding: 8px;">
+                  <h3 style="margin: 0 0 8px 0; font-size: 16px; font-weight: 600;">${restaurant.name}</h3>
+                  <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                    <span style="background: ${qualityColor}; color: white; padding: 2px 8px; border-radius: 12px; font-size: 12px; font-weight: bold;">
+                      ${restaurant.qualityPercentage}%
+                    </span>
+                    <span style="color: #666; font-size: 14px;">${restaurant.cuisine}</span>
+                  </div>
+                  <div style="display: flex; align-items: center; gap: 8px; color: #666; font-size: 14px;">
+                    <span style="display: flex; align-items: center; gap: 4px;">
+                      <span style='color: #FFD700; font-size: 16px; text-shadow: 1px 1px 2px rgba(0,0,0,0.3); filter: drop-shadow(0 0 2px #F59E0B);'>★</span>
+                      ${restaurant.averageMenuRating || restaurant.rating}
+                    </span>
+                    <span>${restaurant.priceRange}</span>
+                  </div>
                 </div>
               </div>
             `
