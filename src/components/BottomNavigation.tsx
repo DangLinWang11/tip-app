@@ -13,7 +13,7 @@ const BottomNavigation: React.FC = () => {
           }
         >
           <HomeIcon size={18} />
-          <span className="text-xs mt-1">My Food Map</span>
+          <span className="text-xs mt-2">My Food Map</span>
         </NavLink>
 
         <NavLink 
@@ -23,7 +23,7 @@ const BottomNavigation: React.FC = () => {
           }
         >
           <SearchIcon size={18} />
-          <span className="text-xs mt-1">Discover</span>
+          <span className="text-xs mt-2">Discover</span>
         </NavLink>
 
         <NavLink to="/create" className="flex flex-col items-center justify-center">
@@ -40,7 +40,7 @@ const BottomNavigation: React.FC = () => {
           }
         >
           <UserIcon size={18} />
-          <span className="text-xs mt-1">Profile</span>
+          <span className="text-xs mt-2">Profile</span>
         </NavLink>
       </div>
     </nav>
