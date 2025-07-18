@@ -1,13 +1,34 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { HeartIcon, MessageCircleIcon, BookmarkIcon, ShareIcon, CheckCircleIcon, MapPinIcon } from 'lucide-react';
 import RatingBadge from './RatingBadge';
 import { useFeature } from '../utils/features';
 
+interface CarouselItem {
+  id: string;
+  dishId?: string;
+  dish: {
+    name: string;
+    image: string;
+    rating: number;
+    visitCount?: number;
+  };
+  review: {
+    positive: string;
+    negative: string;
+    date: string;
+  };
+  tags: string[];
+  price?: string;
+}
+
 interface FeedPostProps {
   id: string;
+  visitId?: string;
   restaurantId?: string;
   dishId?: string;
+  isCarousel?: boolean;
+  carouselItems?: CarouselItem[];
   author: {
     name: string;
     image: string;
@@ -37,8 +58,11 @@ interface FeedPostProps {
 }
 
 const FeedPost: React.FC<FeedPostProps> = ({
+  visitId,
   restaurantId,
   dishId,
+  isCarousel = false,
+  carouselItems = [],
   author,
   restaurant,
   dish,
@@ -47,10 +71,26 @@ const FeedPost: React.FC<FeedPostProps> = ({
 }) => {
   const navigate = useNavigate();
   const [saved, setSaved] = useState(false);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [touchStart, setTouchStart] = useState(0);
+  const [touchEnd, setTouchEnd] = useState(0);
+  const imageRef = useRef<HTMLDivElement>(null);
   
   // Feature flags
   const showLikesComments = useFeature('LIKES_COMMENTS');
   const showSocialSharing = useFeature('SOCIAL_SHARING');
+
+  // Get current item to display (carousel or single)
+  const currentItem = isCarousel && carouselItems.length > 0 
+    ? carouselItems[currentIndex] 
+    : { 
+        id: dishId || '',
+        dishId, 
+        dish, 
+        review, 
+        tags: [], 
+        price: undefined 
+      };
 
   // Function to get quality circle color based on percentage
   const getQualityColor = (score: number): string => {
@@ -61,6 +101,47 @@ const FeedPost: React.FC<FeedPostProps> = ({
     if (score >= 45) return '#FB923C'; // Orange
     if (score >= 30) return '#EF4444'; // Red-orange
     return '#EF4444'; // Red
+  };
+
+  // Handle touch events for swipe
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (!isCarousel || carouselItems.length <= 1) return;
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isCarousel || carouselItems.length <= 1) return;
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+
+  const handleTouchEnd = () => {
+    if (!isCarousel || carouselItems.length <= 1) return;
+    if (!touchStart || !touchEnd) return;
+    
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > 50;
+    const isRightSwipe = distance < -50;
+
+    if (isLeftSwipe && currentIndex < carouselItems.length - 1) {
+      setCurrentIndex(currentIndex + 1);
+    }
+    if (isRightSwipe && currentIndex > 0) {
+      setCurrentIndex(currentIndex - 1);
+    }
+  };
+
+  // Handle dot click
+  const handleDotClick = (index: number) => {
+    setCurrentIndex(index);
+  };
+
+  // Handle dish navigation
+  const handleDishClick = () => {
+    if (currentItem.dishId) {
+      navigate(`/dish/${currentItem.dishId}`);
+    } else if (restaurantId) {
+      navigate(`/restaurant/${restaurantId}`);
+    }
   };
 
   return (
@@ -95,16 +176,45 @@ const FeedPost: React.FC<FeedPostProps> = ({
           )}
         </div>
         <div className="flex-shrink-0">
-          <RatingBadge rating={dish.rating} size="md" />
+          <RatingBadge rating={currentItem.dish.rating} size="md" />
         </div>
       </div>
       
-      {/* Image */}
+      {/* Image with Carousel Support */}
       <div className="relative">
-        <img src={dish.image} alt={dish.name} className="w-full aspect-square object-cover" />
-        {dish.visitCount && (
-          <div className="absolute top-4 right-4 bg-black bg-opacity-50 text-white px-3 py-1 rounded-full text-sm">
-            Visited {dish.visitCount}x
+        <div
+          ref={imageRef}
+          className="relative overflow-hidden"
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+        >
+          <img 
+            src={currentItem.dish.image} 
+            alt={currentItem.dish.name} 
+            className="w-full aspect-square object-cover transition-transform duration-300 ease-in-out" 
+          />
+          {currentItem.dish.visitCount && (
+            <div className="absolute top-4 right-4 bg-black bg-opacity-50 text-white px-3 py-1 rounded-full text-sm">
+              Visited {currentItem.dish.visitCount}x
+            </div>
+          )}
+        </div>
+        
+        {/* Carousel Dots */}
+        {isCarousel && carouselItems.length > 1 && (
+          <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2">
+            {carouselItems.map((_, index) => (
+              <button
+                key={index}
+                onClick={() => handleDotClick(index)}
+                className={`w-2 h-2 rounded-full transition-all duration-200 ${
+                  index === currentIndex 
+                    ? 'bg-white shadow-lg' 
+                    : 'bg-white bg-opacity-50'
+                }`}
+              />
+            ))}
           </div>
         )}
       </div>
@@ -113,38 +223,59 @@ const FeedPost: React.FC<FeedPostProps> = ({
       <div className="p-4">
         <h3 className="font-medium text-lg mb-2">
           <span 
-            onClick={() => {
-              if (dishId) {
-                navigate(`/dish/${dishId}`);
-              } else if (restaurantId) {
-                navigate(`/restaurant/${restaurantId}`);
-              }
-            }}
-            className={(dishId || restaurantId) ? "hover:text-primary cursor-pointer" : ""}
+            onClick={handleDishClick}
+            className={(currentItem.dishId || restaurantId) ? "hover:text-primary cursor-pointer" : ""}
           >
-            {dish.name}
+            {isCarousel && carouselItems.length > 1 
+              ? `${currentItem.dish.name} (${currentIndex + 1}/${carouselItems.length})`
+              : currentItem.dish.name
+            }
           </span>
         </h3>
         
-        {/* Dual Review System */}
+        {/* Dual Review System - Show current item's review */}
         <div className="space-y-2 mb-4">
           <div className="flex items-start">
             <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center mr-2 flex-shrink-0">
               <span className="text-green-600">+</span>
             </div>
-            <p className="text-sm flex-1 leading-6">{review.positive}</p>
+            <p className="text-sm flex-1 leading-6">{currentItem.review.positive}</p>
           </div>
           <div className="flex items-start">
             <div className="w-6 h-6 rounded-full bg-red-100 flex items-center justify-center mr-2 flex-shrink-0">
               <span className="text-red-600">-</span>
             </div>
-            <p className="text-sm flex-1 leading-6">{review.negative}</p>
+            <p className="text-sm flex-1 leading-6">{currentItem.review.negative}</p>
           </div>
         </div>
 
+        {/* Carousel Summary - Show all dish names for multi-dish posts */}
+        {isCarousel && carouselItems.length > 1 && (
+          <div className="mb-4 p-3 bg-gray-50 rounded-lg">
+            <p className="text-sm font-medium text-gray-700 mb-2">
+              This visit included {carouselItems.length} dishes:
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {carouselItems.map((item, index) => (
+                <button
+                  key={item.id}
+                  onClick={() => setCurrentIndex(index)}
+                  className={`text-xs px-2 py-1 rounded-full transition-colors ${
+                    index === currentIndex
+                      ? 'bg-red-500 text-white'
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  }`}
+                >
+                  {item.dish.name} ({item.dish.rating})
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Review Date */}
         <div className="text-xs text-gray-500 mb-4">
-          Reviewed on {review.date}
+          Reviewed on {currentItem.review.date}
         </div>
         
         {/* Engagement - Conditional based on features */}
@@ -176,7 +307,12 @@ const FeedPost: React.FC<FeedPostProps> = ({
             /* MVP: Show only save functionality */
             <div className="flex justify-between items-center w-full">
               <div className="text-sm text-gray-600">
-                Rating: <span className="font-medium text-primary">{dish.rating}/10</span>
+                Rating: <span className="font-medium text-primary">{currentItem.dish.rating}/10</span>
+                {isCarousel && carouselItems.length > 1 && (
+                  <span className="ml-2 text-gray-500">
+                    (Avg: {dish.rating}/10)
+                  </span>
+                )}
               </div>
               <button onClick={() => setSaved(!saved)} className="flex items-center text-sm text-gray-600 hover:text-primary">
                 <BookmarkIcon size={18} className={saved ? 'text-primary fill-primary mr-1' : 'text-gray-600 mr-1'} />
