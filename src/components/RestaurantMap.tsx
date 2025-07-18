@@ -158,8 +158,8 @@ const Map: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishes, u
                   </div>
                   <div style="display: flex; align-items: center; gap: 8px; color: #666; font-size: 14px;">
                     <span style="display: flex; align-items: center; gap: 4px;">
-                      <span style='color: #FFD700; font-size: 16px; text-shadow: 1px 1px 2px rgba(0,0,0,0.3); filter: drop-shadow(0 0 2px #F59E0B);'>★</span>
-                      ${restaurant.averageMenuRating || restaurant.rating}
+                      <span style='color: #FFD700; font-size: 16px; text-shadow: 1px 1px 2px rgba(0,0,0,0.3);'>★</span>
+                      ${(restaurant.averageMenuRating || restaurant.rating).toFixed(1)}
                     </span>
                     <span>${restaurant.priceRange}</span>
                   </div>
