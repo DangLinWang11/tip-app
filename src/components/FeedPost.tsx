@@ -297,28 +297,43 @@ const FeedPost: React.FC<FeedPostProps> = ({
               </div>
             </>
           ) : (
-            /* MVP: Show simple engagement */
-            <div className="flex justify-between items-center w-full">
-              <div className="flex items-center space-x-4">
-                <button 
-                  onClick={() => {
-                    setLiked(!liked);
-                    setLikeCount(prev => liked ? prev - 1 : prev + 1);
-                  }}
-                  className="flex items-center text-gray-600 hover:text-red-500 transition-colors"
-                >
-                  <HeartIcon 
-                    size={20} 
-                    className={`mr-1 ${liked ? 'fill-red-500 text-red-500' : ''}`} 
-                  />
-                  <span className="text-sm">{likeCount}</span>
-                </button>
+            <div className="flex items-center justify-between w-full">
+                <div className="flex items-center space-x-4">
+                  <button 
+                    onClick={() => {
+                      setLiked(!liked);
+                      setLikeCount(prev => liked ? prev - 1 : prev + 1);
+                    }}
+                    className="flex items-center text-gray-600 hover:text-red-500 transition-colors"
+                  >
+                    <HeartIcon 
+                      size={20} 
+                      className={`mr-1 ${liked ? 'fill-red-500 text-red-500' : ''}`} 
+                    />
+                    <span className="text-sm">{likeCount}</span>
+                  </button>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <button className="flex items-center text-sm text-gray-600 hover:text-primary">
+                    <BookmarkIcon size={18} className={saved ? 'text-primary fill-primary mr-1' : 'text-gray-600 mr-1'} />
+                    {saved ? 'Saved' : 'Save'}
+                  </button>
+                  <button 
+                    onClick={() => {
+                      if (navigator.share) {
+                        navigator.share({
+                          title: `${currentItem.dish.name} at ${restaurant?.name}`,
+                          text: `Check out this ${currentItem.dish.rating}/10 rated dish!`,
+                          url: window.location.href
+                        });
+                      }
+                    }}
+                    className="text-gray-600 hover:text-blue-500 transition-colors"
+                  >
+                    <ShareIcon size={18} />
+                  </button>
+                </div>
               </div>
-              <button onClick={() => setSaved(!saved)} className="flex items-center text-sm text-gray-600 hover:text-primary">
-                <BookmarkIcon size={18} className={saved ? 'text-primary fill-primary mr-1' : 'text-gray-600 mr-1'} />
-                {saved ? 'Saved' : 'Save'}
-              </button>
-            </div>
           )}
         </div>
       </div>

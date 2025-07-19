@@ -344,8 +344,8 @@ export const convertVisitToCarouselFeedPost = async (reviews: FirebaseReview[]) 
       date: new Date(mainReview.createdAt).toLocaleDateString()
     },
     engagement: {
-      likes: Math.floor(Math.random() * 100) + 10,
-      comments: Math.floor(Math.random() * 30) + 1
+      likes: 0,
+      comments: 0
     },
     location: mainReview.location,
     tags: mainReview.tags,
@@ -409,8 +409,8 @@ export const convertReviewToFeedPost = async (review: FirebaseReview) => {
       date: new Date(review.createdAt).toLocaleDateString()
     },
     engagement: {
-      likes: Math.floor(Math.random() * 100) + 10,
-      comments: Math.floor(Math.random() * 30) + 1
+      likes: 0,
+      comments: 0
     },
     location: review.location,
     tags: review.tags,
