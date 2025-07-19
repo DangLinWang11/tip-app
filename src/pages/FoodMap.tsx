@@ -276,8 +276,24 @@ const FoodMap: React.FC = () => {
                       </div>
                       <div className="text-right flex flex-col items-end">
                         <p className="text-sm text-gray-500">{visit.review?.date || 'Recently'}</p>
-                        <div className="bg-primary text-white px-2 py-1 rounded-full text-xs font-semibold mt-1">
-                          +200🪙
+                        <div className="bg-primary text-white px-2 py-1 rounded-full text-xs font-semibold mt-1 flex items-center">
+                          +200<div 
+  className="inline-flex w-5 h-5 rounded-full ml-1 items-center justify-center"
+  style={{ backgroundColor: '#FFD700' }}
+>
+  <div 
+    className="w-3.5 h-3.5 rounded-full flex items-center justify-center"
+    style={{ backgroundColor: '#F59E0B' }}
+  >
+    <Star 
+      size={8} 
+      style={{ 
+        color: '#FFD700', 
+        fill: '#FFD700'
+      }} 
+    />
+  </div>
+</div>
                         </div>
                         <p className="text-xs text-gray-400 mt-1">Review bonus</p>
                       </div>
