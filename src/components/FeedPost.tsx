@@ -71,6 +71,8 @@ const FeedPost: React.FC<FeedPostProps> = ({
 }) => {
   const navigate = useNavigate();
   const [saved, setSaved] = useState(false);
+  const [liked, setLiked] = useState(false);
+  const [likeCount, setLikeCount] = useState(engagement.likes || 0);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [touchStart, setTouchStart] = useState(0);
   const [touchEnd, setTouchEnd] = useState(0);
@@ -298,13 +300,18 @@ const FeedPost: React.FC<FeedPostProps> = ({
             /* MVP: Show simple engagement */
             <div className="flex justify-between items-center w-full">
               <div className="flex items-center space-x-4">
-                <button className="flex items-center text-gray-600 hover:text-red-500 transition-colors">
-                  <HeartIcon size={20} className="mr-1" />
-                  <span className="text-sm">{engagement.likes}</span>
-                </button>
-                <button className="flex items-center text-gray-600 hover:text-blue-500 transition-colors">
-                  <MessageCircleIcon size={20} className="mr-1" />
-                  <span className="text-sm">{engagement.comments}</span>
+                <button 
+                  onClick={() => {
+                    setLiked(!liked);
+                    setLikeCount(prev => liked ? prev - 1 : prev + 1);
+                  }}
+                  className="flex items-center text-gray-600 hover:text-red-500 transition-colors"
+                >
+                  <HeartIcon 
+                    size={20} 
+                    className={`mr-1 ${liked ? 'fill-red-500 text-red-500' : ''}`} 
+                  />
+                  <span className="text-sm">{likeCount}</span>
                 </button>
               </div>
               <button onClick={() => setSaved(!saved)} className="flex items-center text-sm text-gray-600 hover:text-primary">
