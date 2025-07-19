@@ -175,10 +175,6 @@ const Map: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishes, u
                     <span style="color: #666; font-size: 14px;">${restaurant.cuisine} ${getCuisineIcon(restaurant.cuisine)}</span>
                   </div>
                   <div style="display: flex; align-items: center; gap: 8px; color: #666; font-size: 14px;">
-                    <span style="display: flex; align-items: center; gap: 4px;">
-                      <span style='color: #FFD700; font-size: 16px;'>✦</span>
-                      ${(restaurant.averageMenuRating || restaurant.rating).toFixed(1)}
-                    </span>
                     <span>${restaurant.priceRange}</span>
                   </div>
                 </div>
@@ -317,7 +313,7 @@ const Map: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishes, u
 
       (map as any).markers = markers;
     }
-  }, [map, mapType, restaurants, dishes, onItemClick]);
+  }, [map, mapType, restaurants, dishes, onItemClick, onDishClick]);
 
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%' }}>

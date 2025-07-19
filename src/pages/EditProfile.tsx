@@ -7,7 +7,6 @@ import { getInitials } from '../utils/avatarUtils';
 
 interface EditProfileForm {
   username: string;
-  displayName: string;
   bio: string;
   avatar: string;
 }
@@ -27,7 +26,6 @@ const EditProfile: React.FC = () => {
   const [originalProfile, setOriginalProfile] = useState<any>(null);
   const [formData, setFormData] = useState<EditProfileForm>({
     username: '',
-    displayName: '',
     bio: '',
     avatar: ''
   });
@@ -62,7 +60,6 @@ const EditProfile: React.FC = () => {
           setOriginalProfile(profile);
           setFormData({
             username: profile.username || '',
-            displayName: profile.displayName || '',
             bio: profile.bio || '',
             avatar: profile.avatar || ''
           });
@@ -282,7 +279,6 @@ const EditProfile: React.FC = () => {
       // Update profile
       const updateData = {
         username: formData.username.trim(),
-        displayName: formData.displayName.trim(),
         bio: formData.bio.trim(),
         avatar: avatarUrl
       };
@@ -313,7 +309,6 @@ const EditProfile: React.FC = () => {
     
     return (
       formData.username !== (originalProfile.username || '') ||
-      formData.displayName !== (originalProfile.displayName || '') ||
       formData.bio !== (originalProfile.bio || '') ||
       selectedImage !== null
     );
@@ -339,7 +334,7 @@ const EditProfile: React.FC = () => {
     return (
       <div className={`${size} rounded-full bg-primary flex items-center justify-center border-4 border-gray-200`}>
         <span className="text-white font-semibold text-lg">
-          {getInitials(formData.username, formData.displayName)}
+          {getInitials(formData.username)}
         </span>
       </div>
     );
@@ -437,7 +432,7 @@ const EditProfile: React.FC = () => {
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Username *
             </label>
-            <div className="flex space-x-2">
+            <div className="flex items-center space-x-2">
               <input
                 type="text"
                 value={formData.username}
@@ -458,21 +453,7 @@ const EditProfile: React.FC = () => {
             </p>
           </div>
 
-          {/* Display Name */}
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Display Name
-            </label>
-            <input
-              type="text"
-              value={formData.displayName}
-              onChange={(e) => handleInputChange('displayName', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-              placeholder="Enter display name"
-            />
-          </div>
-
-          {/* Bio */}
+          {/* Bio */
           <div className="mb-4">
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Bio
