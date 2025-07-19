@@ -18,6 +18,7 @@ const Profile: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [profileLoading, setProfileLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
   
   // Feature flags
   const showTierRankings = useFeature('TIER_RANKINGS');
@@ -50,7 +51,7 @@ const Profile: React.FC = () => {
     };
 
     loadUserProfile();
-  }, []);
+  }, [refreshTrigger]);
   
   // Fetch current user's reviews from Firebase on component mount
   useEffect(() => {
@@ -82,6 +83,20 @@ const Profile: React.FC = () => {
     };
     
     loadUserReviews();
+  }, [refreshTrigger]);
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        setRefreshTrigger(prev => prev + 1);
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, []);
 
   // Filter posts based on search term - now searches across carousel items
