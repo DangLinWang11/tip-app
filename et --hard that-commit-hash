@@ -1,0 +1,57 @@
+[33m73973d2[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m Restaurant map dish icons
+[33ma17dff3[m updated the edit profile thing in profile
+[33m093c302[m points rewards
+[33ma9e618e[m update coin token for recent visits
+[33m526e58c[m more feed post update
+[33m370bc63[m feed post last change for now
+[33m814e321[m changes to feed post and added like and comment buttons
+[33m40f4bcb[m profile refresh automatically now
+[33m1180dac[m more change to multple feed Ui change
+[33mc79f126[m Cleaner multiple feed UI changes
+[33m84f6236[m pt.4 of multiple reviews, profile search bar now
+[33m1a173c2[m pt.3 of multiple reviews, feedpost.tsx file
+[33m0704436[m pt2. of multiple reviews
+[33m0f0f98f[m major change adding in the multiple ratings per review pt.1
+[33medcf424[m spacing of the bottom nav buttons
+[33mf2cb254[m bottom nav update
+[33mbd53e99[m padding the bottom nav bar
+[33m3d83a8d[m more UI updating for the discover page popup map
+[33m0019b9c[m UI change again for location pin cards
+[33m74cadd7[m UI update for the location pin cards in the discover map
+[33m5e0de22[m removing search icon from discover list
+[33m4ee259a[m small index.css change for padding on bottom nav
+[33meaa87ff[m spacing for bottom nav
+[33m7d5c342[m final change hopefully
+[33m6a3c9b7[m major fix with centering and the web app logo
+[33m4fff7eb[m restaurants stats centering home page
+[33m16175e0[m changed the quality percentage badge color and location
+[33mf596d88[m again updated discover
+[33m1bb3f3d[m more updating
+[33m845e3d0[m more updated of the discover page
+[33m577ae85[m discover page carousel truncating
+[33maaed00e[m discover page editing one finger
+[33m252969c[m new discover page revamp pt.3
+[33m6268330[m new discover page revamp pt.2
+[33m6da9e36[m new discover page revamp pt.1
+[33m555bd2c[m more editing of the discover page
+[33m60c7dad[m more discover page editing
+[33m002d1e1[m more discover page editing
+[33m051d1bd[m more discover page editing
+[33me6ad07b[m updating the discover page
+[33m2e957e9[m uncramping the discover page
+[33m5f2b88e[m updated the error
+[33m6f24ab6[m updated slider feature in create page
+[33m327ed21[m fixing UX experience of home page
+[33md9f67d4[m added teh rewards button back to the home page
+[33maeb8411[m updated the rewards error
+[33ma7637ce[m fremoving mock data fro mprofile and recent visit pages
+[33m57f4cf0[m app.tsx update for onboarding
+[33mc4efcb9[m REcent visit UX change
+[33m9e32042[m Rewards system update
+[33ma9fd1ff[m UI and UX update 7/7/25
+[33ma25f9f9[m another update with the restaurant pages and menu item pages
+[33m0af9027[m updated with three restaurants
+[33m2800c43[m Fixed App.tsx - back to working state with Firebase backend
+[33m64c295a[m Updated map
+[33m3860320[m Map is working now
+[33m705ae35[m Initial commit - Tip app UI foundation complete

@@ -4,6 +4,7 @@ import { SearchIcon, FilterIcon, MapPinIcon, StarIcon } from 'lucide-react';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import RestaurantMap from '../components/RestaurantMap';
+import DishDetailModal from '../components/DishDetailModal';
 
 interface FirebaseRestaurant {
   id: string;
@@ -40,6 +41,8 @@ const Discover: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [userLocation, setUserLocation] = useState<{lat: number, lng: number} | null>(null);
+  const [selectedDish, setSelectedDish] = useState<any>(null);
+  const [dishModalOpen, setDishModalOpen] = useState(false);
 
   // Fetch restaurants from Firebase
   useEffect(() => {
@@ -103,7 +106,19 @@ const Discover: React.FC = () => {
               };
             });
             
-            setDishes(dishList);
+            // Filter to only show the highest-rated dish per restaurant
+            const topDishPerRestaurant = restaurantList.reduce((acc, restaurant) => {
+              const restaurantDishes = dishList.filter(dish => dish.restaurantId === restaurant.id);
+              if (restaurantDishes.length > 0) {
+                const topDish = restaurantDishes.reduce((prev, current) => 
+                  (prev.rating > current.rating) ? prev : current
+                );
+                acc.push(topDish);
+              }
+              return acc;
+            }, [] as typeof dishList);
+
+            setDishes(topDishPerRestaurant);
           } catch (error) {
             console.error('Error fetching dishes:', error);
           }
@@ -171,6 +186,11 @@ const Discover: React.FC = () => {
     );
   };
 
+  // Handle dish pin clicks
+  const handleDishClick = (dish: any) => {
+    setSelectedDish(dish);
+    setDishModalOpen(true);
+  };
 
   return (
     <div className="min-h-screen bg-light-gray pb-16 pt-[160px]">
@@ -239,7 +259,16 @@ const Discover: React.FC = () => {
           </div>
         ) : (
           <div className="h-[calc(100vh-200px)]">
-            <RestaurantMap mapType={mapType} restaurants={filteredRestaurants} dishes={dishes} userLocation={userLocation} onRestaurantClick={(id) => navigate(`/restaurant/${id}`)} />
+            <RestaurantMap 
+              mapType={mapType} 
+              restaurants={filteredRestaurants} 
+              dishes={dishes}
+              userLocation={userLocation} 
+              onItemClick={mapType === 'restaurant' ? 
+                (restaurant) => navigate(`/restaurant/${restaurant.id}`) : 
+                handleDishClick
+              } 
+            />
           </div>
         )}
         
@@ -260,8 +289,14 @@ const Discover: React.FC = () => {
             </svg>
           </button>
         </div>
-
       </div>
+
+      {/* Dish Detail Modal */}
+      <DishDetailModal 
+        isOpen={dishModalOpen}
+        onClose={() => setDishModalOpen(false)}
+        dish={selectedDish}
+      />
     </div>
   );
 };
