@@ -287,7 +287,10 @@ const Profile: React.FC = () => {
                 )}
               </div>
               
-              <button className="mt-2 px-4 py-1 border border-medium-gray rounded-full text-sm flex items-center">
+              <button 
+                onClick={() => navigate('/profile/edit')}
+                className="mt-2 px-4 py-1 border border-medium-gray rounded-full text-sm flex items-center"
+              >
                 <EditIcon size={16} className="mr-1" />
                 Edit Profile
               </button>

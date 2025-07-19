@@ -1,7 +1,7 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, User } from 'firebase/auth';
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, User, updatePassword, reauthenticateWithCredential, EmailAuthProvider } from 'firebase/auth';
 import { getFirestore, doc, setDoc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
-import { getStorage } from 'firebase/storage';
+import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { getAnalytics } from 'firebase/analytics';
 
 const firebaseConfig = {
@@ -566,6 +566,183 @@ export const checkUsernameAvailability = async (
   } catch (error: any) {
     console.error('❌ Failed to check username availability:', error);
     return { success: false, error: error.message };
+  }
+};
+
+// Upload profile image to Firebase Storage
+export const uploadProfileImage = async (
+  blob: Blob
+): Promise<{ success: boolean; url?: string; error?: string }> => {
+  if (!storage) {
+    const error = 'Firebase Storage not initialized';
+    console.error('❌', error);
+    return { success: false, error };
+  }
+
+  const currentUser = getCurrentUser();
+  if (!currentUser) {
+    const error = 'No authenticated user';
+    console.error('❌', error);
+    return { success: false, error };
+  }
+
+  try {
+    console.log('📤 Uploading profile image for user:', currentUser.uid);
+
+    // Create unique filename
+    const timestamp = Date.now();
+    const fileName = `profile-images/${currentUser.uid}_${timestamp}.jpg`;
+    
+    // Create storage reference
+    const storageRef = ref(storage, fileName);
+    
+    // Upload file
+    const snapshot = await uploadBytes(storageRef, blob);
+    
+    // Get download URL
+    const downloadURL = await getDownloadURL(snapshot.ref);
+    
+    console.log('✅ Profile image uploaded successfully');
+    return { success: true, url: downloadURL };
+  } catch (error: any) {
+    console.error('❌ Failed to upload profile image:', error);
+    
+    let errorMessage = 'Failed to upload profile image';
+    
+    switch (error.code) {
+      case 'storage/unauthorized':
+        errorMessage = 'Permission denied. Please check Storage security rules';
+        break;
+      case 'storage/canceled':
+        errorMessage = 'Upload was canceled';
+        break;
+      case 'storage/unknown':
+        errorMessage = 'Unknown storage error occurred';
+        break;
+      case 'storage/invalid-format':
+        errorMessage = 'Invalid file format';
+        break;
+      case 'storage/invalid-checksum':
+        errorMessage = 'File upload failed. Please try again';
+        break;
+      default:
+        errorMessage = error.message || 'Unknown error occurred during upload';
+    }
+    
+    return { success: false, error: errorMessage };
+  }
+};
+
+// Update user password
+export const updateUserPassword = async (
+  newPassword: string
+): Promise<{ success: boolean; error?: string }> => {
+  if (!auth) {
+    const error = 'Firebase Auth not initialized';
+    console.error('❌', error);
+    return { success: false, error };
+  }
+
+  const currentUser = getCurrentUser();
+  if (!currentUser) {
+    const error = 'No authenticated user';
+    console.error('❌', error);
+    return { success: false, error };
+  }
+
+  if (!newPassword || newPassword.length < 6) {
+    const error = 'Password must be at least 6 characters long';
+    console.error('❌', error);
+    return { success: false, error };
+  }
+
+  try {
+    console.log('🔐 Updating password for user:', currentUser.uid);
+    
+    await updatePassword(currentUser, newPassword);
+    
+    console.log('✅ Password updated successfully');
+    return { success: true };
+  } catch (error: any) {
+    console.error('❌ Failed to update password:', error);
+    
+    let errorMessage = 'Failed to update password';
+    
+    switch (error.code) {
+      case 'auth/weak-password':
+        errorMessage = 'Password is too weak. Please choose a stronger password';
+        break;
+      case 'auth/requires-recent-login':
+        errorMessage = 'For security reasons, please sign out and sign back in before changing your password';
+        break;
+      case 'auth/network-request-failed':
+        errorMessage = 'Network error. Please check your internet connection';
+        break;
+      default:
+        errorMessage = error.message || 'Unknown error occurred';
+    }
+    
+    return { success: false, error: errorMessage };
+  }
+};
+
+// Verify current password
+export const verifyCurrentPassword = async (
+  password: string
+): Promise<{ success: boolean; error?: string }> => {
+  if (!auth) {
+    const error = 'Firebase Auth not initialized';
+    console.error('❌', error);
+    return { success: false, error };
+  }
+
+  const currentUser = getCurrentUser();
+  if (!currentUser || !currentUser.email) {
+    const error = 'No authenticated user or email found';
+    console.error('❌', error);
+    return { success: false, error };
+  }
+
+  if (!password) {
+    const error = 'Password is required';
+    console.error('❌', error);
+    return { success: false, error };
+  }
+
+  try {
+    console.log('🔐 Verifying current password for user:', currentUser.uid);
+    
+    // Create credential with current email and password
+    const credential = EmailAuthProvider.credential(currentUser.email, password);
+    
+    // Attempt to re-authenticate
+    await reauthenticateWithCredential(currentUser, credential);
+    
+    console.log('✅ Password verification successful');
+    return { success: true };
+  } catch (error: any) {
+    console.error('❌ Password verification failed:', error);
+    
+    let errorMessage = 'Password verification failed';
+    
+    switch (error.code) {
+      case 'auth/wrong-password':
+        errorMessage = 'Current password is incorrect';
+        break;
+      case 'auth/too-many-requests':
+        errorMessage = 'Too many failed attempts. Please try again later';
+        break;
+      case 'auth/network-request-failed':
+        errorMessage = 'Network error. Please check your internet connection';
+        break;
+      case 'auth/user-mismatch':
+        errorMessage = 'User mismatch error. Please sign out and try again';
+        break;
+      default:
+        errorMessage = error.message || 'Unknown error occurred';
+    }
+    
+    return { success: false, error: errorMessage };
   }
 };
 

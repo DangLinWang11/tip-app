@@ -7,6 +7,8 @@ import DiscoverList from './pages/DiscoverList';
 import Create from './pages/Create';
 import Notifications from './pages/Notifications';
 import Profile from './pages/Profile';
+import EditProfile from './pages/EditProfile';
+import ChangePassword from './pages/ChangePassword';
 import Rewards from './pages/Rewards';
 import Onboarding from './pages/Onboarding';
 import RestaurantDetail from './pages/RestaurantDetail';
@@ -112,6 +114,8 @@ export function App() {
             <Route path="/food-map" element={<FoodMap />} />
             <Route path="/list-view" element={<FoodMap />} />
           </Route>
+          <Route path="/profile/edit" element={<EditProfile />} />
+          <Route path="/profile/change-password" element={<ChangePassword />} />
           <Route path="/restaurant/:id" element={<RestaurantDetail />} />
           <Route path="/restaurant/:id/menu" element={<MenuDetail />} />
           <Route path="/dish/:id" element={<MenuDetail />} />
