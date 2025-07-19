@@ -1,6 +1,6 @@
 import { collection, addDoc, serverTimestamp, getDocs, query, orderBy, limit, where } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { db, storage, getUserProfile, getCurrentUser } from '../lib/firebase';
+import { db, storage, getUserProfile, getCurrentUser, updateUserStats } from '../lib/firebase';
 import { getAvatarUrl } from '../utils/avatarUtils';
 
 // Photo upload service
@@ -79,6 +79,25 @@ export const saveReview = async (reviewData: ReviewData): Promise<string> => {
     });
     
     console.log('Review saved with ID:', docRef.id);
+    
+    // Update user stats after saving review
+    try {
+      const currentStats = await getUserProfile();
+      if (currentStats.success && currentStats.profile) {
+        const newTotalPoints = (currentStats.profile.stats?.pointsEarned || 0) + 200;
+        const newTotalReviews = (currentStats.profile.stats?.totalReviews || 0) + 1;
+        
+        await updateUserStats({
+          pointsEarned: newTotalPoints,
+          totalReviews: newTotalReviews
+        });
+        
+        console.log('User stats updated:', { pointsEarned: newTotalPoints, totalReviews: newTotalReviews });
+      }
+    } catch (error) {
+      console.warn('Failed to update user stats:', error);
+    }
+    
     return docRef.id;
   } catch (error) {
     console.error('Error saving review:', error);
