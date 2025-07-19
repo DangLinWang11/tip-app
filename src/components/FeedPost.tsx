@@ -189,11 +189,24 @@ const FeedPost: React.FC<FeedPostProps> = ({
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
         >
-          <img 
-            src={currentItem.dish.image} 
-            alt={currentItem.dish.name} 
-            className="w-full aspect-square object-cover transition-transform duration-300 ease-in-out" 
-          />
+          <div className="flex transition-transform duration-300 ease-out" style={{ transform: `translateX(-${currentIndex * 100}%)` }}>
+            {isCarousel && carouselItems.length > 1 ? (
+              carouselItems.map((item, index) => (
+                <img 
+                  key={item.id}
+                  src={item.dish.image} 
+                  alt={item.dish.name} 
+                  className="w-full aspect-square object-cover flex-shrink-0" 
+                />
+              ))
+            ) : (
+              <img 
+                src={currentItem.dish.image} 
+                alt={currentItem.dish.name} 
+                className="w-full aspect-square object-cover flex-shrink-0" 
+              />
+            )}
+          </div>
           {currentItem.dish.visitCount && (
             <div className="absolute top-4 right-4 bg-black bg-opacity-50 text-white px-3 py-1 rounded-full text-sm">
               Visited {currentItem.dish.visitCount}x
@@ -249,29 +262,6 @@ const FeedPost: React.FC<FeedPostProps> = ({
           </div>
         </div>
 
-        {/* Carousel Summary - Show all dish names for multi-dish posts */}
-        {isCarousel && carouselItems.length > 1 && (
-          <div className="mb-4 p-3 bg-gray-50 rounded-lg">
-            <p className="text-sm font-medium text-gray-700 mb-2">
-              This visit included {carouselItems.length} dishes:
-            </p>
-            <div className="flex flex-wrap gap-2">
-              {carouselItems.map((item, index) => (
-                <button
-                  key={item.id}
-                  onClick={() => setCurrentIndex(index)}
-                  className={`text-xs px-2 py-1 rounded-full transition-colors ${
-                    index === currentIndex
-                      ? 'bg-red-500 text-white'
-                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                  }`}
-                >
-                  {item.dish.name} ({item.dish.rating})
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
 
         {/* Review Date */}
         <div className="text-xs text-gray-500 mb-4">
@@ -308,11 +298,6 @@ const FeedPost: React.FC<FeedPostProps> = ({
             <div className="flex justify-between items-center w-full">
               <div className="text-sm text-gray-600">
                 Rating: <span className="font-medium text-primary">{currentItem.dish.rating}/10</span>
-                {isCarousel && carouselItems.length > 1 && (
-                  <span className="ml-2 text-gray-500">
-                    (Avg: {dish.rating}/10)
-                  </span>
-                )}
               </div>
               <button onClick={() => setSaved(!saved)} className="flex items-center text-sm text-gray-600 hover:text-primary">
                 <BookmarkIcon size={18} className={saved ? 'text-primary fill-primary mr-1' : 'text-gray-600 mr-1'} />
