@@ -154,26 +154,6 @@ const FeedPost: React.FC<FeedPostProps> = ({
             <span className="font-medium">{author.name}</span>
             {author.isVerified && <CheckCircleIcon size={16} className="text-secondary" />}
           </div>
-          {restaurant && (
-            <div className="text-sm text-dark-gray flex items-center gap-1.5 mt-0.5">
-              <MapPinIcon size={14} className="text-red-500" />
-              <span 
-                onClick={() => restaurantId && navigate(`/restaurant/${restaurantId}`)}
-                className={`max-w-32 truncate ${restaurantId ? "hover:text-primary cursor-pointer" : ""}`}
-              >
-                {restaurant.name}
-              </span>
-              {restaurant.isVerified && <CheckCircleIcon size={14} className="text-secondary" />}
-              {restaurant.qualityScore && (
-                <div 
-                  className="w-8 h-5 flex items-center justify-center rounded-full"
-                  style={{ backgroundColor: getQualityColor(restaurant.qualityScore) }}
-                >
-                  <span className="text-xs font-medium text-white">{restaurant.qualityScore}%</span>
-                </div>
-              )}
-            </div>
-          )}
         </div>
         <div className="flex-shrink-0">
           <RatingBadge rating={currentItem.dish.rating} size="md" />
@@ -214,23 +194,24 @@ const FeedPost: React.FC<FeedPostProps> = ({
           )}
         </div>
         
-        {/* Carousel Dots */}
-        {isCarousel && carouselItems.length > 1 && (
-          <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2">
-            {carouselItems.map((_, index) => (
-              <button
-                key={index}
-                onClick={() => handleDotClick(index)}
-                className={`w-2 h-2 rounded-full transition-all duration-200 ${
-                  index === currentIndex 
-                    ? 'bg-white shadow-lg' 
-                    : 'bg-white bg-opacity-50'
-                }`}
-              />
-            ))}
-          </div>
-        )}
       </div>
+      
+      {/* Carousel Dots */}
+      {isCarousel && carouselItems.length > 1 && (
+        <div className="flex justify-center space-x-1 mt-3 mb-2">
+          {carouselItems.map((_, index) => (
+            <button
+              key={index}
+              onClick={() => handleDotClick(index)}
+              className={`rounded-full transition-all duration-200 ${
+                index === currentIndex 
+                  ? 'w-3 h-3 bg-red-500' 
+                  : 'w-2 h-2 bg-red-300'
+              }`}
+            />
+          ))}
+        </div>
+      )}
       
       {/* Content */}
       <div className="p-4">
@@ -296,8 +277,22 @@ const FeedPost: React.FC<FeedPostProps> = ({
           ) : (
             /* MVP: Show only save functionality */
             <div className="flex justify-between items-center w-full">
-              <div className="text-sm text-gray-600">
-                Rating: <span className="font-medium text-primary">{currentItem.dish.rating}/10</span>
+              <div className="flex items-center text-sm text-gray-600">
+                <MapPinIcon size={16} className="text-red-500 mr-2" />
+                <span 
+                  onClick={() => restaurantId && navigate(`/restaurant/${restaurantId}`)}
+                  className={`font-medium ${restaurantId ? "hover:text-primary cursor-pointer" : ""} mr-2`}
+                >
+                  {restaurant?.name || 'Unknown Restaurant'}
+                </span>
+                {restaurant?.qualityScore && (
+                  <div 
+                    className="w-8 h-5 flex items-center justify-center rounded-full"
+                    style={{ backgroundColor: getQualityColor(restaurant.qualityScore) }}
+                  >
+                    <span className="text-xs font-medium text-white">{restaurant.qualityScore}%</span>
+                  </div>
+                )}
               </div>
               <button onClick={() => setSaved(!saved)} className="flex items-center text-sm text-gray-600 hover:text-primary">
                 <BookmarkIcon size={18} className={saved ? 'text-primary fill-primary mr-1' : 'text-gray-600 mr-1'} />
