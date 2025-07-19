@@ -4,6 +4,7 @@ import { SearchIcon, FilterIcon, MapPinIcon, StarIcon } from 'lucide-react';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import RestaurantMap from '../components/RestaurantMap';
+import DishCard from '../components/DishCard';
 
 interface FirebaseRestaurant {
   id: string;
@@ -40,6 +41,8 @@ const Discover: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [userLocation, setUserLocation] = useState<{lat: number, lng: number} | null>(null);
+  const [selectedDish, setSelectedDish] = useState<any>(null);
+  const [showDishModal, setShowDishModal] = useState(false);
 
   // Fetch restaurants from Firebase
   useEffect(() => {
@@ -127,6 +130,18 @@ const Discover: React.FC = () => {
     restaurant.cuisine.toLowerCase().includes(searchQuery.toLowerCase())
   );
   
+  // Handle dish click from map
+  const handleDishClick = (dish: any) => {
+    setSelectedDish(dish);
+    setShowDishModal(true);
+  };
+
+  // Close dish modal
+  const closeDishModal = () => {
+    setShowDishModal(false);
+    setSelectedDish(null);
+  };
+
   // Filter data based on map type
   const filteredItems = mapType === 'restaurant' ? filteredRestaurants : dishes.filter(dish => 
     dish.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -239,7 +254,14 @@ const Discover: React.FC = () => {
           </div>
         ) : (
           <div className="h-[calc(100vh-200px)]">
-            <RestaurantMap mapType={mapType} restaurants={filteredRestaurants} dishes={dishes} userLocation={userLocation} onRestaurantClick={(id) => navigate(`/restaurant/${id}`)} />
+            <RestaurantMap 
+              mapType={mapType} 
+              restaurants={filteredRestaurants} 
+              dishes={dishes} 
+              userLocation={userLocation} 
+              onRestaurantClick={(id) => navigate(`/restaurant/${id}`)}
+              onDishClick={handleDishClick}
+            />
           </div>
         )}
         
@@ -262,6 +284,14 @@ const Discover: React.FC = () => {
         </div>
 
       </div>
+
+      {/* Dish Modal */}
+      {showDishModal && selectedDish && (
+        <DishCard
+          dish={selectedDish}
+          onClose={closeDishModal}
+        />
+      )}
     </div>
   );
 };
