@@ -392,7 +392,7 @@ const RestaurantDetail: React.FC = () => {
             <div key={review.id} className="border-b border-light-gray pb-4 last:border-0">
               <div className="flex items-start">
                 <img 
-                  src={`https://randomuser.me/api/portraits/${index % 2 === 0 ? 'women' : 'men'}/${30 + index}.jpg`} 
+                  src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${review.userId || 'anonymous'}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf`} 
                   alt="User" 
                   className="w-10 h-10 rounded-full" 
                 />

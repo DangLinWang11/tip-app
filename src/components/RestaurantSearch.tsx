@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { SearchIcon, MapPinIcon, StarIcon } from 'lucide-react';
+import { SearchIcon, MapPinIcon, StarIcon, PlusIcon } from 'lucide-react';
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 
@@ -132,7 +132,43 @@ const RestaurantSearch: React.FC<RestaurantSearchProps> = ({
                 </div>
               </button>
             ))
-          ) : (
+          ) : null}
+          {query.trim() && (
+            <button 
+              className="w-full p-3 flex items-center hover:bg-blue-50 transition-colors border-t border-gray-100 bg-gray-50"
+              onClick={() => {
+                const manualRestaurant = {
+                  name: query,
+                  cuisine: 'User Added',
+                  id: `manual_${Date.now()}`,
+                  address: 'User Added',
+                  phone: '',
+                  coordinates: { latitude: 0, longitude: 0 },
+                  createdAt: null,
+                  updatedAt: null,
+                  rating: 0,
+                  distance: '0 mi',
+                  coverImage: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80'
+                };
+                onSelect(manualRestaurant);
+                setQuery(query);
+                setIsOpen(false);
+              }}
+            >
+              <div className="w-12 h-12 rounded-lg bg-blue-100 flex items-center justify-center">
+                <PlusIcon size={20} className="text-blue-600" />
+              </div>
+              <div className="ml-3 flex-1 text-left">
+                <div className="font-medium text-blue-600">
+                  + Add '{query}' as new restaurant
+                </div>
+                <div className="text-sm text-gray-500 mt-1">
+                  Create a custom restaurant entry
+                </div>
+              </div>
+            </button>
+          )}
+          {filteredRestaurants.length === 0 && !loading && !error && (
             <div className="p-4 text-center text-gray-500">
               <p className="text-sm">No restaurants found</p>
               <p className="text-xs mt-1">Try a different search term</p>

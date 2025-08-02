@@ -195,7 +195,8 @@ const Create: React.FC = () => {
           isPublic: isPublic
         };
 
-        const reviewId = await saveReview(reviewData);
+        const reviewId = await saveReview(reviewData, selectedRestaurant, reviewSummary.selectedMenuItem);
+
         reviewIds.push(reviewId);
       }
 

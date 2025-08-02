@@ -1,4 +1,4 @@
-import { collection, addDoc, serverTimestamp, getDocs, query, orderBy, limit, where } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, getDocs, query, orderBy, limit, where, doc, getDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage, getUserProfile, getCurrentUser, updateUserStats } from '../lib/firebase';
 import { getAvatarUrl } from '../utils/avatarUtils';
@@ -58,18 +58,95 @@ export interface ReviewData {
   isPublic: boolean;
 }
 
-// Save review to Firestore
-export const saveReview = async (reviewData: ReviewData): Promise<string> => {
+// Create restaurant if it doesn't exist in Firebase
+const createRestaurantIfNeeded = async (restaurant: any): Promise<string> => {
+  // If it's already a Firebase restaurant, return its ID
+  if (restaurant.id && !restaurant.id.startsWith('manual_')) {
+    console.log('Using existing restaurant ID:', restaurant.id);
+    return restaurant.id;
+  }
+  
+  // Create new restaurant document
+  try {
+    console.log('Creating new restaurant:', restaurant.name);
+    const newRestaurant = {
+      name: restaurant.name,
+      cuisine: restaurant.cuisine || 'User Added',
+      address: restaurant.address || 'Address not provided', 
+      phone: restaurant.phone || '',
+      coordinates: restaurant.coordinates || { latitude: 0, longitude: 0 },
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    };
+    
+    const docRef = await addDoc(collection(db, 'restaurants'), newRestaurant);
+    console.log('✅ Created new restaurant with ID:', docRef.id);
+    return docRef.id;
+  } catch (error) {
+    console.error('❌ Error creating restaurant:', error);
+    throw new Error('Failed to create restaurant');
+  }
+};
+
+// Create menu item if it doesn't exist in Firebase
+const createMenuItemIfNeeded = async (dishName: string, restaurantId: string, selectedMenuItem: any): Promise<string> => {
+  // If it's already a Firebase menu item, return its ID
+  if (selectedMenuItem?.id && !selectedMenuItem.id.startsWith('manual_')) {
+    console.log('Using existing menu item ID:', selectedMenuItem.id);
+    return selectedMenuItem.id;
+  }
+  
+  // Create new menu item document
+  try {
+    console.log('Creating new menu item:', dishName, 'for restaurant:', restaurantId);
+    const newMenuItem = {
+      name: dishName,
+      category: selectedMenuItem?.category || 'Custom',
+      price: selectedMenuItem?.price || null,
+      description: selectedMenuItem?.description || '',
+      restaurantId: restaurantId,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    };
+    
+    const docRef = await addDoc(collection(db, 'menuItems'), newMenuItem);  
+    console.log('✅ Created new menu item with ID:', docRef.id);
+    return docRef.id;
+  } catch (error) {
+    console.error('❌ Error creating menu item:', error);
+    throw new Error('Failed to create menu item');
+  }
+};
+
+// Save review to Firestore with automatic restaurant/dish creation
+export const saveReview = async (
+  reviewData: ReviewData, 
+  selectedRestaurant: any, 
+  selectedMenuItem: any
+): Promise<string> => {
   try {
     const currentUser = getCurrentUser();
     if (!currentUser) {
       throw new Error('User must be authenticated to save reviews');
     }
 
-    // Create review document with auto-generated ID and timestamp
+    console.log('🔄 Starting review save process...');
+    console.log('Restaurant data:', selectedRestaurant);
+    console.log('Menu item data:', selectedMenuItem);
+
+    // Step 1: Create restaurant if it doesn't exist
+    const restaurantId = await createRestaurantIfNeeded(selectedRestaurant);
+    
+    // Step 2: Create menu item if it doesn't exist  
+    const menuItemId = await createMenuItemIfNeeded(reviewData.dish, restaurantId, selectedMenuItem);
+
+    // Step 3: Create review document with proper linking
+    console.log('🔄 Saving review with links - restaurantId:', restaurantId, 'menuItemId:', menuItemId);
     const docRef = await addDoc(collection(db, 'reviews'), {
       ...reviewData,
-      userId: currentUser.uid, // Link review to authenticated user
+      restaurantId: restaurantId, // Link to actual restaurant document
+      menuItemId: menuItemId,     // Link to actual menu item document
+      userId: currentUser.uid,
       timestamp: serverTimestamp(),
       createdAt: new Date().toISOString(),
       triedTimes: 1,
@@ -78,9 +155,10 @@ export const saveReview = async (reviewData: ReviewData): Promise<string> => {
       pointsEarned: 200
     });
     
-    console.log('Review saved with ID:', docRef.id);
+    console.log('✅ Review saved successfully with ID:', docRef.id);
+    console.log('✅ Linked to restaurant:', restaurantId, 'and menu item:', menuItemId);
     
-    // Update user stats after saving review
+    // Step 4: Update user stats after saving review
     try {
       const currentStats = await getUserProfile();
       if (currentStats.success && currentStats.profile) {
@@ -92,16 +170,16 @@ export const saveReview = async (reviewData: ReviewData): Promise<string> => {
           totalReviews: newTotalReviews
         });
         
-        console.log('User stats updated:', { pointsEarned: newTotalPoints, totalReviews: newTotalReviews });
+        console.log('✅ User stats updated:', { pointsEarned: newTotalPoints, totalReviews: newTotalReviews });
       }
     } catch (error) {
-      console.warn('Failed to update user stats:', error);
+      console.warn('⚠️ Failed to update user stats (non-critical):', error);
     }
     
     return docRef.id;
   } catch (error) {
-    console.error('Error saving review:', error);
-    throw new Error('Failed to save review');
+    console.error('❌ Error saving review:', error);
+    throw error;
   }
 };
 

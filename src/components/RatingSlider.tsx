@@ -19,7 +19,7 @@ const RatingSlider: React.FC<RatingSliderProps> = ({
     
     const rect = sliderRef.current.getBoundingClientRect();
     const percentage = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
-    const newValue = Math.round(percentage * 100) / 10; // Round to 1 decimal place (0.0 to 10.0)
+    const newValue = Math.round(percentage * 20) / 2; // Round to 0.5 increments (0.0 to 10.0)
     onChange(newValue);
   }, [onChange]);
 
@@ -102,7 +102,7 @@ const RatingSlider: React.FC<RatingSliderProps> = ({
           type="range" 
           min="0" 
           max="10" 
-          step="0.1" 
+          step="0.5" 
           value={value} 
           onChange={e => onChange(parseFloat(e.target.value))} 
           className="absolute w-full h-full opacity-0 cursor-pointer"
