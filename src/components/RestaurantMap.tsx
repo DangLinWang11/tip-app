@@ -1,5 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Wrapper, Status } from '@googlemaps/react-wrapper';
+import { collection, getDocs, query, where } from 'firebase/firestore';
+import { db } from '../lib/firebase';
 
 const getCuisineIcon = (cuisine: string): string => {
   const cuisineMap: { [key: string]: string } = {
@@ -81,6 +83,18 @@ const createPinIcon = (text: string, backgroundColor: string): string => {
             fill="${backgroundColor}"/>
       <text x="20" y="22" font-family="Arial, sans-serif" font-size="12" font-weight="bold" 
             text-anchor="middle" fill="white">${text}</text>
+    </svg>
+  `;
+  return 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg);
+};
+
+const createDishPinIcon = (rating: string, backgroundColor: string): string => {
+  const svg = `
+    <svg width="40" height="50" viewBox="0 0 40 50" xmlns="http://www.w3.org/2000/svg">
+      <path d="M20 2C11.16 2 4 9.16 4 18c0 13.5 16 28 16 28s16-14.5 16-28c0-8.84-7.16-16-16-16z" 
+            fill="${backgroundColor}"/>
+      <text x="20" y="22" font-family="Arial, sans-serif" font-size="12" font-weight="bold" 
+            text-anchor="middle" fill="white">${rating}</text>
     </svg>
   `;
   return 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg);
@@ -219,7 +233,7 @@ const Map: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishes, u
             position: dish.location,
             map,
             icon: {
-              url: createPinIcon(dish.rating.toFixed(1), ratingColor),
+              url: createDishPinIcon(dish.rating.toFixed(1), ratingColor),
               scaledSize: new window.google.maps.Size(40, 50),
               anchor: new window.google.maps.Point(20, 50)
             },
@@ -316,31 +330,56 @@ interface RestaurantMapProps {
   onItemClick?: (item: Restaurant | Dish) => void;
 }
 
-// Extract top dishes from restaurants data
-const getTopDishes = (restaurants: Restaurant[]): Dish[] => {
+// Fetch top dish from each restaurant from Firebase menuItems collection
+const getTopDishes = async (restaurants: Restaurant[]): Promise<Dish[]> => {
   const dishes: Dish[] = [];
   
-  restaurants.forEach(restaurant => {
-    // Get top 2 dishes from each restaurant
-    const restaurantPosts = (restaurant as any).posts || [];
-    const topDishes = restaurantPosts
-      .sort((a: any, b: any) => b.rating - a.rating)
-      .slice(0, 2);
+  try {
+    // Get all menu items from Firebase
+    const menuItemsRef = collection(db, 'menuItems');
+    const menuItemsSnapshot = await getDocs(menuItemsRef);
+    const allMenuItems = menuItemsSnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
     
-    topDishes.forEach((post: any, index: number) => {
+    // Group menu items by restaurant and get highest rated dish per restaurant
+    restaurants.forEach(restaurant => {
+      const restaurantMenuItems = allMenuItems.filter(
+        (item: any) => item.restaurantId === restaurant.id.toString() || 
+                      item.restaurantName === restaurant.name
+      );
+      
+      if (restaurantMenuItems.length > 0) {
+        // Get the highest rated dish for this restaurant
+        const topDish = restaurantMenuItems.reduce((prev: any, current: any) => 
+          (current.rating || 0) > (prev.rating || 0) ? current : prev
+        );
+        
+        dishes.push({
+          id: topDish.id,
+          name: topDish.name || topDish.dish || 'Special Dish',
+          rating: topDish.rating || 8.5,
+          restaurantName: restaurant.name,
+          location: restaurant.location,
+          price: topDish.price || undefined
+        });
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching menu items:', error);
+    // Fallback to mock data if Firebase fails
+    restaurants.forEach(restaurant => {
       dishes.push({
-        id: `${restaurant.id}-${post.id || index}`,
-        name: post.dish || post.title || 'Special Dish',
-        rating: post.rating || 8.5,
+        id: `${restaurant.id}-fallback`,
+        name: 'Signature Dish',
+        rating: 8.5,
         restaurantName: restaurant.name,
-        location: {
-          lat: restaurant.location.lat + (Math.random() - 0.5) * 0.001, // Slight offset
-          lng: restaurant.location.lng + (Math.random() - 0.5) * 0.001
-        },
-        price: post.price || undefined
+        location: restaurant.location,
+        price: '$25'
       });
     });
-  });
+  }
   
   return dishes;
 };
@@ -352,12 +391,17 @@ const RestaurantMap: React.FC<RestaurantMapProps> = ({
   userLocation,
   onItemClick 
 }) => {
+  const [topDishes, setTopDishes] = useState<Dish[]>([]);
   const sarasotaCenter = {
     lat: 27.3364,
     lng: -82.5307
   };
 
-  const topDishes = getTopDishes(restaurants);
+  useEffect(() => {
+    if (mapType === 'dish' && restaurants.length > 0) {
+      getTopDishes(restaurants).then(setTopDishes);
+    }
+  }, [mapType, restaurants]);
 
   const render = (status: Status) => {
     switch (status) {
