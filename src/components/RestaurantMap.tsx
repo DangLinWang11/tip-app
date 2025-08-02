@@ -74,6 +74,18 @@ const getRatingColor = (rating: number): string => {
   return getQualityColor(percentage);
 };
 
+const createPinIcon = (text: string, backgroundColor: string): string => {
+  const svg = `
+    <svg width="40" height="50" viewBox="0 0 40 50" xmlns="http://www.w3.org/2000/svg">
+      <path d="M20 2C11.16 2 4 9.16 4 18c0 13.5 16 28 16 28s16-14.5 16-28c0-8.84-7.16-16-16-16z" 
+            fill="${backgroundColor}"/>
+      <text x="20" y="22" font-family="Arial, sans-serif" font-size="12" font-weight="bold" 
+            text-anchor="middle" fill="white">${text}</text>
+    </svg>
+  `;
+  return 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg);
+};
+
 const Map: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishes, userLocation, onItemClick }) => {
   const ref = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<google.maps.Map>();
@@ -156,12 +168,9 @@ const Map: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishes, u
             position: restaurant.location,
             map,
             icon: {
-              path: window.google.maps.SymbolPath.CIRCLE,
-              scale: 20,
-              fillColor: qualityColor,
-              fillOpacity: 0.9,
-              strokeColor: '#FFFFFF',
-              strokeWeight: 3,
+              url: createPinIcon(`${restaurant.qualityPercentage}%`, qualityColor),
+              scaledSize: new window.google.maps.Size(40, 50),
+              anchor: new window.google.maps.Point(20, 50)
             },
             title: restaurant.name,
             zIndex: restaurant.qualityPercentage
@@ -198,46 +207,7 @@ const Map: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishes, u
             }
           });
 
-          // Add percentage overlay
-          const overlayDiv = document.createElement('div');
-          overlayDiv.style.position = 'absolute';
-          overlayDiv.style.background = 'white';
-          overlayDiv.style.padding = '2px 6px';
-          overlayDiv.style.borderRadius = '8px';
-          overlayDiv.style.fontSize = '11px';
-          overlayDiv.style.fontWeight = 'bold';
-          overlayDiv.style.color = qualityColor;
-          overlayDiv.style.border = `2px solid ${qualityColor}`;
-          overlayDiv.style.pointerEvents = 'none';
-          overlayDiv.style.transform = 'translate(-50%, -50%)';
-          overlayDiv.textContent = `${restaurant.qualityPercentage}%`;
-
-          const overlay = new window.google.maps.OverlayView();
-          overlay.onAdd = function() {
-            const panes = this.getPanes();
-            if (panes) {
-              panes.overlayMouseTarget.appendChild(overlayDiv);
-            }
-          };
-
-          overlay.draw = function() {
-            const projection = this.getProjection();
-            if (projection) {
-              const position = projection.fromLatLngToDivPixel(restaurant.location);
-              if (position) {
-                overlayDiv.style.left = position.x + 'px';
-                overlayDiv.style.top = (position.y - 35) + 'px';
-              }
-            }
-          };
-
-          overlay.onRemove = function() {
-            if (overlayDiv.parentNode) {
-              overlayDiv.parentNode.removeChild(overlayDiv);
-            }
-          };
-
-          overlay.setMap(map);
+          // Percentage text is now embedded in the pin icon
           markers.push(marker);
         });
       } else {
@@ -249,12 +219,9 @@ const Map: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishes, u
             position: dish.location,
             map,
             icon: {
-              path: window.google.maps.SymbolPath.CIRCLE,
-              scale: 18,
-              fillColor: ratingColor,
-              fillOpacity: 0.9,
-              strokeColor: '#FFFFFF',
-              strokeWeight: 3,
+              url: createPinIcon(dish.rating.toFixed(1), ratingColor),
+              scaledSize: new window.google.maps.Size(40, 50),
+              anchor: new window.google.maps.Point(20, 50)
             },
             title: dish.name,
             zIndex: dish.rating * 10
@@ -282,46 +249,7 @@ const Map: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishes, u
             }
           });
 
-          // Add rating overlay
-          const overlayDiv = document.createElement('div');
-          overlayDiv.style.position = 'absolute';
-          overlayDiv.style.background = 'white';
-          overlayDiv.style.padding = '2px 6px';
-          overlayDiv.style.borderRadius = '8px';
-          overlayDiv.style.fontSize = '11px';
-          overlayDiv.style.fontWeight = 'bold';
-          overlayDiv.style.color = ratingColor;
-          overlayDiv.style.border = `2px solid ${ratingColor}`;
-          overlayDiv.style.pointerEvents = 'none';
-          overlayDiv.style.transform = 'translate(-50%, -50%)';
-          overlayDiv.textContent = dish.rating.toFixed(1);
-
-          const overlay = new window.google.maps.OverlayView();
-          overlay.onAdd = function() {
-            const panes = this.getPanes();
-            if (panes) {
-              panes.overlayMouseTarget.appendChild(overlayDiv);
-            }
-          };
-
-          overlay.draw = function() {
-            const projection = this.getProjection();
-            if (projection) {
-              const position = projection.fromLatLngToDivPixel(dish.location);
-              if (position) {
-                overlayDiv.style.left = position.x + 'px';
-                overlayDiv.style.top = (position.y - 35) + 'px';
-              }
-            }
-          };
-
-          overlay.onRemove = function() {
-            if (overlayDiv.parentNode) {
-              overlayDiv.parentNode.removeChild(overlayDiv);
-            }
-          };
-
-          overlay.setMap(map);
+          // Rating text is now embedded in the pin icon
           markers.push(marker);
         });
       }
