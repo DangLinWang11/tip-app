@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { HeartIcon, MessageCircleIcon, BookmarkIcon, ShareIcon, CheckCircleIcon, MapPinIcon } from 'lucide-react';
 import RatingBadge from './RatingBadge';
 import { useFeature } from '../utils/features';
+import SaveToListModal from './SaveToListModal';
+
 
 interface CarouselItem {
   id: string;
@@ -77,6 +79,8 @@ const FeedPost: React.FC<FeedPostProps> = ({
   const [touchStart, setTouchStart] = useState(0);
   const [touchEnd, setTouchEnd] = useState(0);
   const imageRef = useRef<HTMLDivElement>(null);
+  const [showSaveModal, setShowSaveModal] = useState(false);
+
   
   // Feature flags
   const showLikesComments = useFeature('LIKES_COMMENTS');
@@ -314,10 +318,13 @@ const FeedPost: React.FC<FeedPostProps> = ({
                   </button>
                 </div>
                 <div className="flex items-center space-x-3">
-                  <button className="flex items-center text-sm text-gray-600 hover:text-primary">
-                    <BookmarkIcon size={18} className={saved ? 'text-primary fill-primary mr-1' : 'text-gray-600 mr-1'} />
-                    {saved ? 'Saved' : 'Save'}
-                  </button>
+                  <button 
+                  onClick={() => setShowSaveModal(true)}
+                  className="flex items-center text-sm text-gray-600 hover:text-primary"
+                >
+                  <BookmarkIcon size={18} className={saved ? 'text-primary fill-primary mr-1' : 'text-gray-600 mr-1'} />
+                  {saved ? 'Saved' : 'Save'}
+                </button>
                   <button 
                     onClick={() => {
                       if (navigator.share) {
@@ -337,6 +344,28 @@ const FeedPost: React.FC<FeedPostProps> = ({
           )}
         </div>
       </div>
+    {showSaveModal && (
+      <>
+        {console.log('🔍 SaveToListModal Debug Data:', {
+          restaurantId: restaurantId,
+          restaurantName: restaurant?.name,
+          dishId: currentItem.dishId,
+          dishName: currentItem.dish.name,
+          postId: isCarousel ? visitId : id,
+          currentItem: currentItem,
+          isCarousel: isCarousel
+        })}
+        <SaveToListModal
+          isOpen={showSaveModal}
+          onClose={() => setShowSaveModal(false)}
+          restaurantId={restaurantId}
+          restaurantName={restaurant?.name}
+          dishId={currentItem.dishId}
+          dishName={currentItem.dish.name}
+          postId={isCarousel ? visitId : id}
+        />
+      </>
+    )}
     </div>
   );
 };

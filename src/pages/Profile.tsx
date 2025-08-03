@@ -7,6 +7,162 @@ import { useFeature } from '../utils/features';
 import { fetchUserReviews, convertUserReviewsToFeedPosts, FirebaseReview } from '../services/reviewService';
 import { getUserProfile, UserProfile, getCurrentUser } from '../lib/firebase';
 import { getInitials } from '../utils/avatarUtils';
+import ListCard from '../components/ListCard';
+import { 
+  getUserSavedLists, 
+  createDefaultTemplates, 
+  deleteSavedList, 
+  makeListPublic,
+  SavedList 
+} from '../services/savedListsService';
+
+const SavedListsTab: React.FC = () => {
+  const navigate = useNavigate();
+  const [lists, setLists] = useState<SavedList[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    loadLists();
+  }, []);
+
+  const loadLists = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Ensure user has default templates
+      await createDefaultTemplates();
+      
+      // Load all lists
+      const result = await getUserSavedLists();
+      if (result.success && result.lists) {
+        setLists(result.lists);
+      } else {
+        setError(result.error || 'Failed to load lists');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to load lists');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteList = async (listId: string, listName: string) => {
+    if (!confirm(`Delete "${listName}"? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      const result = await deleteSavedList(listId);
+      if (result.success) {
+        await loadLists(); // Refresh the list
+      } else {
+        setError(result.error || 'Failed to delete list');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to delete list');
+    }
+  };
+
+  const handleShareList = async (listId: string) => {
+    try {
+      const result = await makeListPublic(listId);
+      if (result.success && result.shareCode) {
+        const shareUrl = `${window.location.origin}/list/${result.shareCode}`;
+        
+        if (navigator.share) {
+          await navigator.share({
+            title: 'Check out my food list!',
+            url: shareUrl
+          });
+        } else {
+          // Fallback: copy to clipboard
+          await navigator.clipboard.writeText(shareUrl);
+          alert('Share link copied to clipboard!');
+        }
+      } else {
+        setError(result.error || 'Failed to share list');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to share list');
+    }
+  };
+
+  const handleListClick = (listId: string) => {
+    navigate(`/list/${listId}`);
+  };
+
+  if (loading) {
+    return (
+      <div className="p-4">
+        <div className="text-center py-8">
+          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading your lists...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-4">
+        <div className="text-center py-8">
+          <p className="text-red-600 mb-4">{error}</p>
+          <button 
+            onClick={loadLists}
+            className="bg-primary text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-colors"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-4">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="font-semibold">Saved Lists</h3>
+        <span className="text-sm text-gray-500">{lists.length} lists</span>
+      </div>
+
+      {lists.length === 0 ? (
+        /* Empty State */
+        <div className="text-center py-12">
+          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <PlusIcon size={24} className="text-gray-400" />
+          </div>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">No lists yet</h3>
+          <p className="text-gray-600 mb-6">
+            Start saving restaurants and dishes to create your first list
+          </p>
+          <button 
+            onClick={() => navigate('/discover')}
+            className="bg-primary text-white px-6 py-3 rounded-full font-medium hover:bg-red-600 transition-colors"
+          >
+            Discover Restaurants
+          </button>
+        </div>
+      ) : (
+        /* Lists Grid */
+        <div className="grid grid-cols-2 gap-3">
+          {lists.map((list) => (
+            <ListCard
+              key={list.id}
+              list={list}
+              onDelete={handleDeleteList}
+              onShare={handleShareList}
+              onClick={handleListClick}
+              previewImages={[]}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
 
 const Profile: React.FC = () => {
   const navigate = useNavigate();
@@ -389,29 +545,8 @@ const Profile: React.FC = () => {
           )}
         </div>
       ) : (
-        <div className="p-4">
-          <h3 className="font-semibold mb-3">Saved Reviews</h3>
-          <div className="text-center py-12">
-            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <BookmarkIcon size={24} className="text-gray-400" />
-            </div>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">Saved Lists Coming Soon!</h3>
-            <p className="text-gray-600 mb-6">
-              Save your favorite restaurants and dishes to custom lists
-            </p>
-            <div className="grid grid-cols-2 gap-3 max-w-xs mx-auto">
-              <button className="py-4 border border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center">
-                <PlusIcon size={20} className="mb-1 text-gray-400" />
-                <span className="text-sm text-gray-500">Restaurant List</span>
-              </button>
-              <button className="py-4 border border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center">
-                <PlusIcon size={20} className="mb-1 text-gray-400" />
-                <span className="text-sm text-gray-500">Menu Items</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+  <SavedListsTab />
+)}
     </div>
   );
 };

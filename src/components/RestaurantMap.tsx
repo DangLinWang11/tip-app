@@ -58,7 +58,8 @@ interface MapProps {
   restaurants: Restaurant[];
   dishes: Dish[];
   userLocation?: {lat: number, lng: number} | null;
-  onItemClick?: (item: Restaurant | Dish) => void;
+  onRestaurantClick?: (id: string) => void;
+  onDishClick?: (id: string) => void;
 }
 
 const getQualityColor = (percentage: number): string => {
@@ -100,11 +101,12 @@ const createDishPinIcon = (rating: string, backgroundColor: string): string => {
   return 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg);
 };
 
-const Map: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishes, userLocation, onItemClick }) => {
+const Map: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishes, userLocation, onRestaurantClick, onDishClick }) => {
   const ref = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<google.maps.Map>();
   const [locationError, setLocationError] = useState<string>('');
   const [userLocationMarker, setUserLocationMarker] = useState<google.maps.Marker | null>(null);
+
 
   useEffect(() => {
     if (ref.current && !map) {
@@ -173,6 +175,10 @@ const Map: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishes, u
 
       const markers: google.maps.Marker[] = [];
 
+      // Make onRestaurantClick and onDishClick available globally for info window clicks
+      (window as any).onRestaurantClick = onRestaurantClick;
+      (window as any).onDishClick = onDishClick;
+
       if (mapType === 'restaurant') {
         // Show restaurant pins
         restaurants.forEach((restaurant) => {
@@ -195,7 +201,7 @@ const Map: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishes, u
               <div style="padding: 0; min-width: 200px; border-radius: 8px; overflow: hidden;">
                 ${restaurant.headerImage ? `<img src="${restaurant.headerImage}" style="width: 100%; height: 80px; object-fit: cover;" onerror="this.style.display='none'">` : ''}
                 <div style="padding: 8px;">
-                  <h3 style="margin: 0 0 8px 0; font-size: 16px; font-weight: 600;">${restaurant.name}</h3>
+                  <h3 style="margin: 0 0 8px 0; font-size: 16px; font-weight: 600; cursor: pointer; color: #0066cc;" onclick="window.onRestaurantClick('${restaurant.id}')">${restaurant.name}</h3>
                   <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
                     <span style="background: ${qualityColor}; color: white; padding: 2px 8px; border-radius: 12px; font-size: 12px; font-weight: bold;">
                       ${restaurant.qualityPercentage}%
@@ -216,9 +222,6 @@ const Map: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishes, u
 
           marker.addListener('click', () => {
             infoWindow.open(map, marker);
-            if (onItemClick) {
-              onItemClick(restaurant);
-            }
           });
 
           // Percentage text is now embedded in the pin icon
@@ -244,12 +247,12 @@ const Map: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishes, u
           const infoWindow = new window.google.maps.InfoWindow({
             content: `
               <div style="padding: 8px; min-width: 200px;">
-                <h3 style="margin: 0 0 8px 0; font-size: 16px; font-weight: 600;">${dish.name}</h3>
+                <h3 style="margin: 0 0 8px 0; font-size: 16px; font-weight: 600; cursor: pointer; color: #0066cc;" onclick="window.onDishClick('${dish.id}')">${dish.name}</h3>
                 <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
                   <span style="background: ${ratingColor}; color: white; padding: 2px 8px; border-radius: 12px; font-size: 12px; font-weight: bold;">
                     ${dish.rating.toFixed(1)}
                   </span>
-                  <span style="color: #666; font-size: 14px;">${dish.restaurantName}</span>
+                  <span style="color: #0066cc; font-size: 14px; cursor: pointer;" onclick="window.onRestaurantClick('${dish.restaurantId}')">${dish.restaurantName}</span>
                 </div>
                 ${dish.price ? `<div style="color: #666; font-size: 14px;">${dish.price}</div>` : ''}
               </div>
@@ -258,9 +261,6 @@ const Map: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishes, u
 
           marker.addListener('click', () => {
             infoWindow.open(map, marker);
-            if (onItemClick) {
-              onItemClick(dish);
-            }
           });
 
           // Rating text is now embedded in the pin icon
@@ -271,7 +271,7 @@ const Map: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishes, u
       // Store markers on map for cleanup
       (map as any).markers = markers;
     }
-  }, [map, mapType, restaurants, dishes, onItemClick]);
+  }, [map, mapType, restaurants, dishes, onRestaurantClick]);
 
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%' }}>
@@ -327,14 +327,18 @@ interface RestaurantMapProps {
   mapType: 'restaurant' | 'dish';
   restaurants?: Restaurant[];
   userLocation?: {lat: number, lng: number} | null;
-  onItemClick?: (item: Restaurant | Dish) => void;
+  onRestaurantClick?: (id: string) => void;
+  onDishClick?: (id: string) => void;
 }
 
 // Fetch top dish from each restaurant from Firebase menuItems collection
 const getTopDishes = async (restaurants: Restaurant[]): Promise<Dish[]> => {
   const dishes: Dish[] = [];
   
+  console.log(`🔍 getTopDishes: Starting to fetch dishes for ${restaurants.length} restaurants`);
+  
   try {
+    console.log('📡 getTopDishes: Fetching menuItems from Firebase...');
     // Get all menu items from Firebase
     const menuItemsRef = collection(db, 'menuItems');
     const menuItemsSnapshot = await getDocs(menuItemsRef);
@@ -343,12 +347,23 @@ const getTopDishes = async (restaurants: Restaurant[]): Promise<Dish[]> => {
       ...doc.data()
     }));
     
+    console.log(`📊 getTopDishes: Found ${allMenuItems.length} total menu items in Firebase`);
+    console.log('📋 getTopDishes: Sample menu items:', allMenuItems.slice(0, 3));
+    
     // Group menu items by restaurant and get highest rated dish per restaurant
+    
     restaurants.forEach(restaurant => {
+      console.log(`🏪 getTopDishes: Processing restaurant "${restaurant.name}" (ID: ${restaurant.id})`);
+      
       const restaurantMenuItems = allMenuItems.filter(
-        (item: any) => item.restaurantId === restaurant.id.toString() || 
-                      item.restaurantName === restaurant.name
+        (item: any) => {
+          const matchesId = item.restaurantId === restaurant.id.toString();
+          const matchesName = item.restaurantName === restaurant.name;
+          return matchesId || matchesName;
+        }
       );
+      
+      console.log(`🍽️ getTopDishes: Found ${restaurantMenuItems.length} menu items for "${restaurant.name}"`);
       
       if (restaurantMenuItems.length > 0) {
         // Get the highest rated dish for this restaurant
@@ -356,31 +371,54 @@ const getTopDishes = async (restaurants: Restaurant[]): Promise<Dish[]> => {
           (current.rating || 0) > (prev.rating || 0) ? current : prev
         );
         
+        console.log(`⭐ getTopDishes: Top dish for "${restaurant.name}": "${topDish.name || topDish.dish}" (rating: ${topDish.rating})`);
+        
         dishes.push({
           id: topDish.id,
           name: topDish.name || topDish.dish || 'Special Dish',
           rating: topDish.rating || 8.5,
           restaurantName: restaurant.name,
+          restaurantId: restaurant.id.toString(),
           location: restaurant.location,
           price: topDish.price || undefined
         });
       }
     });
+    
+    console.log(`✅ getTopDishes: Successfully processed ${dishes.length} dishes`);
+    
   } catch (error) {
-    console.error('Error fetching menu items:', error);
-    // Fallback to mock data if Firebase fails
-    restaurants.forEach(restaurant => {
-      dishes.push({
-        id: `${restaurant.id}-fallback`,
-        name: 'Signature Dish',
-        rating: 8.5,
+    console.error('❌ getTopDishes: Error fetching menu items from Firebase:', error);
+    console.log('🔄 getTopDishes: Creating fallback dishes for all restaurants due to Firebase error');
+    
+    // Fallback to mock data if Firebase fails completely
+    restaurants.forEach((restaurant, index) => {
+      // Create varied fallback dishes with random ratings between 8.0-9.5
+      const fallbackRating = 8.0 + Math.random() * 1.5;
+      const dishNames = [
+        'Signature Dish', 'Chef\'s Special', 'House Favorite', 
+        'Recommended Dish', 'Popular Choice', 'Featured Item'
+      ];
+      const dishName = dishNames[index % dishNames.length];
+      
+      const fallbackDish = {
+        id: `error-fallback-${restaurant.id}`,
+        name: dishName,
+        rating: Number(fallbackRating.toFixed(1)),
         restaurantName: restaurant.name,
+        restaurantId: restaurant.id.toString(),
         location: restaurant.location,
         price: '$25'
-      });
+      };
+      
+      dishes.push(fallbackDish);
+      console.log(`🆘 getTopDishes: Created error fallback dish for "${restaurant.name}":`, fallbackDish);
     });
+    
+    console.log(`🔄 getTopDishes: Created ${dishes.length} fallback dishes due to Firebase error`);
   }
   
+  console.log(`🎯 getTopDishes: Returning ${dishes.length} total dishes for dish map`);
   return dishes;
 };
 
@@ -389,7 +427,8 @@ const RestaurantMap: React.FC<RestaurantMapProps> = ({
   mapType,
   restaurants = [],
   userLocation,
-  onItemClick 
+  onRestaurantClick,
+  onDishClick 
 }) => {
   const [topDishes, setTopDishes] = useState<Dish[]>([]);
   const sarasotaCenter = {
@@ -418,7 +457,8 @@ const RestaurantMap: React.FC<RestaurantMapProps> = ({
             restaurants={restaurants}
             dishes={topDishes}
             userLocation={userLocation}
-            onItemClick={onItemClick}
+            onRestaurantClick={onRestaurantClick}
+            onDishClick={onDishClick}
           />
         );
     }

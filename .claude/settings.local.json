@@ -4,7 +4,9 @@
       "Bash(cd:*)",
       "Bash(node:*)",
       "Bash(rm:*)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npm run lint:*)"
     ],
     "deny": []
   }

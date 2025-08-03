@@ -239,7 +239,7 @@ const Discover: React.FC = () => {
           </div>
         ) : (
           <div className="h-[calc(100vh-200px)]">
-            <RestaurantMap mapType={mapType} restaurants={filteredRestaurants} dishes={dishes} userLocation={userLocation} onRestaurantClick={(id) => navigate(`/restaurant/${id}`)} />
+            <RestaurantMap mapType={mapType} restaurants={filteredRestaurants} dishes={dishes} userLocation={userLocation} onRestaurantClick={(id) => navigate(`/restaurant/${id}`)} onDishClick={(id) => navigate(`/dish/${id}`)} />
           </div>
         )}
         

@@ -301,36 +301,17 @@ const FoodMap: React.FC = () => {
 
                     {/* Personal Note */}
                     <div className="ml-11">
-                      {visit.review?.positive ? (
-                        <div className="space-y-2">
-                          <p className="text-xs text-gray-500">Personal Comment:</p>
-                          <div className="bg-green-100 text-green-800 p-3 rounded-lg text-sm italic">
-                            {visit.review.positive}
-                          </div>
-                          <div className="flex items-center bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
-                            <input
-                              type="text"
-                              placeholder="Add another personal note..."
-                              className="flex-1 bg-transparent text-sm text-gray-600 placeholder-gray-400 border-none outline-none"
-                            />
-                            <PlusIcon size={16} className="text-gray-400" />
-                          </div>
+                      <div className="space-y-2">
+                        <p className="text-xs text-gray-500">Personal Comment:</p>
+                        <div className="flex items-center bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
+                          <input
+                            type="text"
+                            placeholder="Add personal note..."
+                            className="flex-1 bg-transparent text-sm text-gray-600 placeholder-gray-400 border-none outline-none"
+                          />
+                          <PlusIcon size={16} className="text-gray-400" />
                         </div>
-                      ) : (
-                        <div className="space-y-2">
-                          <p className="text-xs text-gray-500">Personal Comment:</p>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleAddNote(index);
-                            }}
-                            className="flex items-center bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 w-full text-left hover:bg-gray-100"
-                          >
-                            <span className="text-sm text-gray-500 mr-2">Add personal note...</span>
-                            <PlusIcon size={16} className="text-gray-400" />
-                          </button>
-                        </div>
-                      )}
+                      </div>
                     </div>
                   </div>
                   ))
