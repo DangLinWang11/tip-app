@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { EditIcon, GridIcon, BookmarkIcon, SearchIcon, PlusIcon, Star, Users, TrendingUp, Award, Share } from 'lucide-react';
+import { EditIcon, GridIcon, BookmarkIcon, SearchIcon, PlusIcon, Star, Users, TrendingUp, Award, Share, User } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import FeedPost from '../components/FeedPost';
 import HamburgerMenu from '../components/HamburgerMenu';
@@ -450,32 +450,34 @@ const Profile: React.FC = () => {
             <UserAvatar size="lg" />
             <div className="ml-4 flex-1 min-w-0">
               <div className="flex items-center">
+                <User size={18} className="text-primary mr-2" />
                 <h2 className="font-semibold text-lg">@{userProfile.username}</h2>
                 {userProfile.isVerified && (
                   <span className="ml-2 text-blue-500" title="Verified user">✓</span>
                 )}
               </div>
               {userProfile.displayName && userProfile.displayName !== userProfile.username && (
-                <p className="text-sm text-gray-600">{userProfile.displayName}</p>
+                <p className="text-sm text-gray-600 ml-7">{userProfile.displayName}</p>
               )}
               {userProfile.bio && (
-                <p className="text-sm text-gray-600 mt-1">{userProfile.bio}</p>
-              )}
-              
-              {/* Join Date */}
-              {userProfile.createdAt && (
-                <p className="text-xs text-gray-500 mt-2">
-                  Joined {new Date(userProfile.createdAt.seconds * 1000).toLocaleDateString('en-US', { 
-                    month: 'long', 
-                    year: 'numeric' 
-                  })}
-                </p>
+                <p className="text-sm text-gray-600 mt-1 ml-7">{userProfile.bio}</p>
               )}
             </div>
           </div>
 
-          {/* Action Buttons - Positioned above stats */}
-          <div className="flex justify-end mb-4">
+          {/* Action Buttons with Join Date - Positioned above stats */}
+          <div className="flex justify-between items-center mb-4">
+            {/* Join Date */}
+            {userProfile.createdAt && (
+              <p className="text-xs text-gray-500">
+                Joined {new Date(userProfile.createdAt.seconds * 1000).toLocaleDateString('en-US', { 
+                  month: 'long', 
+                  year: 'numeric' 
+                })}
+              </p>
+            )}
+            
+            {/* Action Buttons */}
             <div className="flex space-x-2">
               <button 
                 onClick={() => navigate('/profile/edit')}

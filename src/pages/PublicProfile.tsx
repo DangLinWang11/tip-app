@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeftIcon, MapPinIcon, SearchIcon, PlusIcon, CheckIcon, EditIcon, Share } from 'lucide-react';
+import { ArrowLeftIcon, MapPinIcon, SearchIcon, PlusIcon, CheckIcon, EditIcon, Share, User } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import FeedPost from '../components/FeedPost';
 import { fetchUserReviews, convertReviewsToFeedPosts, FirebaseReview } from '../services/reviewService';
@@ -255,25 +255,25 @@ const PublicProfile: React.FC = () => {
       <div className="px-4 py-6">
         {/* Profile Info */}
         <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-4">
-              <img 
-                src={userProfile?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${username}`}
-                alt={username} 
-                className="w-20 h-20 rounded-full object-cover"
-              />
-              <div className="flex-1">
-                <h2 className="text-xl font-bold text-black mb-1">@{username}</h2>
-                <p className="text-gray-600 text-sm">
-                  {userProfile?.bio || "Food enthusiast exploring local cuisine"}
-                </p>
+          <div className="flex items-start mb-6">
+            <img 
+              src={userProfile?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${username}`}
+              alt={username} 
+              className="w-20 h-20 rounded-full object-cover"
+            />
+            <div className="ml-4 flex-1 min-w-0">
+              <div className="flex items-center">
+                <User size={18} className="text-primary mr-2" />
+                <h2 className="text-xl font-bold text-black">@{username}</h2>
               </div>
+              <p className="text-gray-600 text-sm mt-1 ml-7">
+                {userProfile?.bio || "Food enthusiast exploring local cuisine"}
+              </p>
             </div>
-            
           </div>
           
           {/* Action Buttons - Positioned above stats */}
-          <div className="flex justify-end mb-4">
+          <div className="flex justify-end items-center mb-4">
             <div className="flex space-x-2">
               {isOwnProfile ? (
                 <>
