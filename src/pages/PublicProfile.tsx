@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeftIcon, MapPinIcon, SearchIcon, PlusIcon, CheckIcon } from 'lucide-react';
+import { ArrowLeftIcon, MapPinIcon, SearchIcon, PlusIcon, CheckIcon, EditIcon, Share } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import FeedPost from '../components/FeedPost';
 import { fetchUserReviews, convertReviewsToFeedPosts, FirebaseReview } from '../services/reviewService';
@@ -99,6 +99,35 @@ const PublicProfile: React.FC = () => {
       console.error('Error toggling follow:', error);
     } finally {
       setFollowLoading(false);
+    }
+  };
+
+  const handleShareProfile = async () => {
+    try {
+      const shareUrl = `${window.location.origin}/profile/${username}`;
+      const shareData = {
+        title: `Check out @${username} on Tip!`,
+        text: `Check out @${username}'s food reviews and recommendations on Tip!`,
+        url: shareUrl
+      };
+
+      if (navigator.share) {
+        await navigator.share(shareData);
+      } else {
+        // Fallback: copy to clipboard
+        await navigator.clipboard.writeText(shareUrl);
+        alert('Profile link copied to clipboard!');
+      }
+    } catch (err) {
+      console.error('Failed to share profile:', err);
+      // Fallback for clipboard failures
+      try {
+        const shareUrl = `${window.location.origin}/profile/${username}`;
+        await navigator.clipboard.writeText(shareUrl);
+        alert('Profile link copied to clipboard!');
+      } catch {
+        alert('Unable to share profile. Please try again.');
+      }
     }
   };
 
@@ -241,23 +270,39 @@ const PublicProfile: React.FC = () => {
               </div>
             </div>
             
-            {/* Edit/Share buttons for own profile */}
-            {isOwnProfile && (
-              <div className="flex gap-2">
-                <button
-                  onClick={() => navigate('/profile/edit')}
-                  className="px-4 py-2 border border-gray-300 rounded-lg font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+          </div>
+          
+          {/* Action Buttons - Positioned above stats */}
+          <div className="flex justify-end mb-4">
+            <div className="flex space-x-2">
+              {isOwnProfile ? (
+                <>
+                  <button 
+                    onClick={() => navigate('/profile/edit')}
+                    className="px-3 py-1.5 border border-gray-200 rounded-full text-xs flex items-center hover:bg-gray-50 transition-colors"
+                  >
+                    <EditIcon size={12} className="mr-1" />
+                    Edit
+                  </button>
+                  
+                  <button 
+                    onClick={handleShareProfile}
+                    className="px-3 py-1.5 border border-gray-200 rounded-full text-xs flex items-center hover:bg-gray-50 transition-colors"
+                  >
+                    <Share size={12} className="mr-1" />
+                    Share
+                  </button>
+                </>
+              ) : (
+                <button 
+                  onClick={handleShareProfile}
+                  className="px-3 py-1.5 border border-gray-200 rounded-full text-xs flex items-center hover:bg-gray-50 transition-colors"
                 >
-                  Edit
-                </button>
-                <button
-                  onClick={() => {/* Share functionality */}}
-                  className="px-4 py-2 border border-gray-300 rounded-lg font-medium text-gray-700 hover:bg-gray-50 transition-colors"
-                >
+                  <Share size={12} className="mr-1" />
                   Share
                 </button>
-              </div>
-            )}
+              )}
+            </div>
           </div>
           
           {/* Stats */}

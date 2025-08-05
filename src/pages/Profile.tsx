@@ -459,7 +459,7 @@ const Profile: React.FC = () => {
                 <p className="text-sm text-gray-600">{userProfile.displayName}</p>
               )}
               {userProfile.bio && (
-                <p className="text-sm text-gray-600 mt-1 pr-4">{userProfile.bio}</p>
+                <p className="text-sm text-gray-600 mt-1">{userProfile.bio}</p>
               )}
               
               {/* Join Date */}
@@ -472,23 +472,25 @@ const Profile: React.FC = () => {
                 </p>
               )}
             </div>
-            
-            {/* Buttons Column */}
-            <div className="flex flex-col space-y-2 ml-4 flex-shrink-0">
+          </div>
+
+          {/* Action Buttons - Positioned above stats */}
+          <div className="flex justify-end mb-4">
+            <div className="flex space-x-2">
               <button 
                 onClick={() => navigate('/profile/edit')}
-                className="px-4 py-2 border border-gray-200 rounded-full text-sm flex items-center hover:bg-gray-50 transition-colors"
+                className="px-3 py-1.5 border border-gray-200 rounded-full text-xs flex items-center hover:bg-gray-50 transition-colors"
               >
-                <EditIcon size={16} className="mr-1" />
-                Edit Profile
+                <EditIcon size={12} className="mr-1" />
+                Edit
               </button>
               
               <button 
                 onClick={handleShareProfile}
-                className="px-4 py-2 border border-gray-200 rounded-full text-sm flex items-center hover:bg-gray-50 transition-colors"
+                className="px-3 py-1.5 border border-gray-200 rounded-full text-xs flex items-center hover:bg-gray-50 transition-colors"
               >
-                <Share size={16} className="mr-1" />
-                Share Profile
+                <Share size={12} className="mr-1" />
+                Share
               </button>
             </div>
           </div>
