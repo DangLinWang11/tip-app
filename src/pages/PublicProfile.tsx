@@ -187,16 +187,16 @@ const PublicProfile: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50 pb-16">
       {/* Header */}
-      <div className="bg-white px-4 py-6 shadow-sm">
+      <div className="bg-white px-4 py-4 shadow-sm">
         <div className="flex items-center justify-between">
           <div className="flex items-center">
             <button 
               onClick={() => navigate(-1)}
-              className="mr-4 p-2 hover:bg-gray-100 rounded-full transition-colors"
+              className="mr-2 p-2 hover:bg-gray-100 rounded-full transition-colors"
             >
               <ArrowLeftIcon size={20} className="text-gray-600" />
             </button>
-            <h1 className="text-xl font-bold text-black">{username}</h1>
+            <h1 className="text-lg font-semibold text-black">Profile</h1>
           </div>
           
           {/* Follow Button */}
@@ -226,38 +226,58 @@ const PublicProfile: React.FC = () => {
       <div className="px-4 py-6">
         {/* Profile Info */}
         <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
-          <div className="flex items-start gap-4">
-            <img 
-              src={userProfile?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${username}`}
-              alt={username} 
-              className="w-20 h-20 rounded-full object-cover"
-            />
-            <div className="flex-1">
-              <h2 className="text-xl font-bold text-black mb-1">{userProfile?.displayName || username}</h2>
-              <p className="text-gray-600 text-sm mb-3">
-                {userProfile?.bio || "Food enthusiast exploring local cuisine"}
-              </p>
-              
-              {/* Stats */}
-              <div className="flex gap-6">
-                <div className="text-center">
-                  <div className="text-lg font-bold text-black">{userReviews.length}</div>
-                  <div className="text-xs text-gray-500">Reviews</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-lg font-bold text-black">{followerCount}</div>
-                  <div className="text-xs text-gray-500">Followers</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-lg font-bold text-black">
-                    {userReviews.length > 0 
-                      ? (userReviews.reduce((sum, review) => sum + review.rating, 0) / userReviews.length).toFixed(1)
-                      : "0.0"
-                    }
-                  </div>
-                  <div className="text-xs text-gray-500">Avg Rating</div>
-                </div>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-4">
+              <img 
+                src={userProfile?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${username}`}
+                alt={username} 
+                className="w-20 h-20 rounded-full object-cover"
+              />
+              <div className="flex-1">
+                <h2 className="text-xl font-bold text-black mb-1">@{username}</h2>
+                <p className="text-gray-600 text-sm">
+                  {userProfile?.bio || "Food enthusiast exploring local cuisine"}
+                </p>
               </div>
+            </div>
+            
+            {/* Edit/Share buttons for own profile */}
+            {isOwnProfile && (
+              <div className="flex gap-2">
+                <button
+                  onClick={() => navigate('/profile/edit')}
+                  className="px-4 py-2 border border-gray-300 rounded-lg font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                >
+                  Edit
+                </button>
+                <button
+                  onClick={() => {/* Share functionality */}}
+                  className="px-4 py-2 border border-gray-300 rounded-lg font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                >
+                  Share
+                </button>
+              </div>
+            )}
+          </div>
+          
+          {/* Stats */}
+          <div className="flex gap-6 pt-4 border-t border-gray-100">
+            <div className="text-center">
+              <div className="text-lg font-bold text-black">{userReviews.length}</div>
+              <div className="text-xs text-gray-500">Reviews</div>
+            </div>
+            <div className="text-center">
+              <div className="text-lg font-bold text-black">{followerCount}</div>
+              <div className="text-xs text-gray-500">Followers</div>
+            </div>
+            <div className="text-center">
+              <div className="text-lg font-bold text-black">
+                {userReviews.length > 0 
+                  ? (userReviews.reduce((sum, review) => sum + review.rating, 0) / userReviews.length).toFixed(1)
+                  : "0.0"
+                }
+              </div>
+              <div className="text-xs text-gray-500">Avg Rating</div>
             </div>
           </div>
         </div>
