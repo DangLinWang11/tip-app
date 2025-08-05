@@ -7,6 +7,8 @@ import DiscoverList from './pages/DiscoverList';
 import Create from './pages/Create';
 import Notifications from './pages/Notifications';
 import Profile from './pages/Profile';
+import PublicProfile from './pages/PublicProfile';
+import RecentActivity from './pages/RecentActivity';
 import EditProfile from './pages/EditProfile';
 import ChangePassword from './pages/ChangePassword';
 import Rewards from './pages/Rewards';
@@ -109,7 +111,9 @@ export function App() {
                 <ComingSoon feature="Notifications" />
               } 
             />
+            <Route path="recent-activity" element={<RecentActivity />} />
             <Route path="profile" element={<Profile />} />
+            <Route path="user/:username" element={<PublicProfile />} />
             <Route path="rewards" element={<Rewards />} />
             <Route path="/food-map" element={<FoodMap />} />
             <Route path="/list-view" element={<FoodMap />} />

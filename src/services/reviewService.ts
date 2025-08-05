@@ -325,8 +325,9 @@ export const fetchUserReviews = async (limitCount = 50): Promise<FirebaseReview[
   }
 };
 
-// Feed post author interface
+// Feed post author interface - UPDATED with id field for follow system
 interface FeedPostAuthor {
+  id: string; // NEW: User ID for follow functionality
   name: string;
   username: string;
   image: string;
@@ -363,8 +364,9 @@ export const convertVisitToCarouselFeedPost = async (reviews: FirebaseReview[]) 
   const sortedReviews = [...reviews].sort((a, b) => b.rating - a.rating);
   const mainReview = sortedReviews[0]; // Highest rated dish as main
   
-  // Get author info from main review
+  // Get author info from main review - UPDATED with id field
   let author: FeedPostAuthor = {
+    id: "anonymous", // NEW: Default anonymous ID
     name: "Anonymous User",
     username: "anonymous",
     image: getAvatarUrl({ username: "anonymous" }),
@@ -380,6 +382,7 @@ export const convertVisitToCarouselFeedPost = async (reviews: FirebaseReview[]) 
         if (userProfileResult.success && userProfileResult.profile) {
           const profile = userProfileResult.profile;
           author = {
+            id: mainReview.userId, // NEW: Include actual userId
             name: profile.displayName || profile.username,
             username: profile.username,
             image: getAvatarUrl(profile),
@@ -423,7 +426,7 @@ export const convertVisitToCarouselFeedPost = async (reviews: FirebaseReview[]) 
     dishId: mainReview.menuItemId,
     isCarousel: true, // Flag to indicate this is a carousel post
     carouselItems, // Array of all dishes in the visit
-    author,
+    author, // NOW includes author.id for follow functionality
     restaurant: {
       name: mainReview.restaurant,
       isVerified: Math.random() > 0.7,
@@ -450,9 +453,10 @@ export const convertVisitToCarouselFeedPost = async (reviews: FirebaseReview[]) 
   };
 };
 
-// Convert single review to feed post (for non-visit reviews)
+// Convert single review to feed post (for non-visit reviews) - UPDATED with author.id
 export const convertReviewToFeedPost = async (review: FirebaseReview) => {
   let author: FeedPostAuthor = {
+    id: "anonymous", // NEW: Default anonymous ID
     name: "Anonymous User",
     username: "anonymous",
     image: getAvatarUrl({ username: "anonymous" }),
@@ -468,6 +472,7 @@ export const convertReviewToFeedPost = async (review: FirebaseReview) => {
         if (userProfileResult.success && userProfileResult.profile) {
           const profile = userProfileResult.profile;
           author = {
+            id: review.userId, // NEW: Include actual userId
             name: profile.displayName || profile.username,
             username: profile.username,
             image: getAvatarUrl(profile),
@@ -488,7 +493,7 @@ export const convertReviewToFeedPost = async (review: FirebaseReview) => {
     restaurantId: review.restaurantId,
     dishId: review.menuItemId,
     isCarousel: false, // Single dish post
-    author,
+    author, // NOW includes author.id for follow functionality
     restaurant: {
       name: review.restaurant,
       isVerified: Math.random() > 0.7,
@@ -515,11 +520,12 @@ export const convertReviewToFeedPost = async (review: FirebaseReview) => {
   };
 };
 
-// Convert current user's review to feed post format (optimized for profile page)
+// Convert current user's review to feed post format (optimized for profile page) - UPDATED with author.id
 export const convertUserReviewToFeedPost = async (review: FirebaseReview) => {
   const userProfileResult = await getUserProfile();
   
   let author: FeedPostAuthor = {
+    id: review.userId || "you", // NEW: Use actual userId or fallback
     name: "You",
     username: "you",
     image: getAvatarUrl({ username: "you" }),
@@ -529,6 +535,7 @@ export const convertUserReviewToFeedPost = async (review: FirebaseReview) => {
   if (userProfileResult.success && userProfileResult.profile) {
     const profile = userProfileResult.profile;
     author = {
+      id: review.userId || getCurrentUser()?.uid || "you", // NEW: Include userId
       name: profile.displayName || profile.username,
       username: profile.username,
       image: getAvatarUrl(profile),
@@ -543,7 +550,7 @@ export const convertUserReviewToFeedPost = async (review: FirebaseReview) => {
     restaurantId: review.restaurantId,
     dishId: review.menuItemId,
     isCarousel: false, // Profile page shows individual reviews
-    author,
+    author, // NOW includes author.id for follow functionality
     restaurant: {
       name: review.restaurant,
       isVerified: false,
@@ -584,7 +591,9 @@ export const convertUserVisitsToCarouselFeedPosts = async (reviews: FirebaseRevi
       if (carouselPost) {
         // For user's own posts, set engagement to 0 and update author
         carouselPost.engagement = { likes: 0, comments: 0 };
+        const currentUser = getCurrentUser();
         carouselPost.author = {
+          id: currentUser?.uid || "you", // NEW: Include actual user ID
           name: "You",
           username: "you",
           image: carouselPost.author.image,
@@ -654,6 +663,7 @@ export const convertReviewsToFeedPosts = async (reviews: FirebaseReview[]) => {
       dishId: review.menuItemId,
       isCarousel: false,
       author: {
+        id: review.userId || "anonymous", // NEW: Include userId in fallback
         name: "Anonymous User",
         username: "anonymous",
         image: getAvatarUrl({ username: "anonymous" }),

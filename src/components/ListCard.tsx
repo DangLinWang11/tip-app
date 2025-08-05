@@ -52,118 +52,78 @@ const ListCard: React.FC<ListCardProps> = ({
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow">
-      
-      {/* Preview Images */}
-      <div 
-        className="h-32 bg-gray-100 relative cursor-pointer"
-        onClick={() => onClick(list.id)}
-      >
-        {previewImages.length > 0 ? (
-          <div className="grid grid-cols-2 h-full">
-            {previewImages.slice(0, 4).map((image, index) => (
-              <img
-                key={index}
-                src={image}
-                alt=""
-                className="w-full h-full object-cover"
-              />
-            ))}
-            {previewImages.length > 4 && (
-              <div className="absolute bottom-2 right-2 bg-black bg-opacity-60 text-white px-2 py-1 rounded-full text-xs">
-                +{previewImages.length - 4}
-              </div>
-            )}
+    <div 
+      className="bg-white rounded-lg shadow-sm border border-gray-100 p-3 hover:shadow-md transition-shadow cursor-pointer"
+      onClick={() => onClick(list.id)}
+    >
+      {/* Header Row */}
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center flex-1 min-w-0">
+          {/* Icon and Name */}
+          <div className="text-lg mr-2 flex-shrink-0">
+            {list.type === 'template' ? getTemplateIcon() : '📝'}
           </div>
-        ) : (
-          <div className="h-full flex items-center justify-center">
-            <div className="text-center">
-              <div className="text-4xl mb-2">
-                {list.type === 'template' ? getTemplateIcon() : '📝'}
-              </div>
-              <p className="text-gray-500 text-sm">
-                {totalItems === 0 ? 'Empty list' : `${totalItems} items`}
-              </p>
-            </div>
+          <div className="flex-1 min-w-0">
+            <h3 className="font-medium text-gray-900 truncate text-sm">{list.name}</h3>
           </div>
-        )}
+        </div>
+        
+        {/* Actions */}
+        <div className="flex items-center space-x-1 ml-2 flex-shrink-0">
+          {/* Share Button - Just Icon */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onShare(list.id);
+            }}
+            className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+            title="Share list"
+          >
+            <Share2 size={12} className="text-gray-500" />
+          </button>
+          
+          {/* Delete Button */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete(list.id, list.name);
+            }}
+            className="p-1 hover:bg-red-50 rounded-full transition-colors"
+            title="Delete list"
+          >
+            <Trash2 size={12} className="text-red-500" />
+          </button>
+        </div>
       </div>
 
-      {/* Content */}
-      <div className="p-4">
-        
-        {/* Header */}
-        <div className="flex items-start justify-between mb-2">
-          <div 
-            className="flex-1 cursor-pointer"
-            onClick={() => onClick(list.id)}
-          >
-            <h3 className="font-semibold text-gray-900 truncate">{list.name}</h3>
-            <p className="text-xs text-gray-500 mt-1">
-              {list.type === 'template' ? getTemplateDescription() : 'Custom list'}
-            </p>
-          </div>
-          
-          {/* Actions */}
-          <div className="flex items-center space-x-1 ml-2">
-            {/* Share Button */}
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onShare(list.id);
-              }}
-              className="p-1.5 hover:bg-gray-100 rounded-full transition-colors"
-              title="Share list"
-            >
-              <Share2 size={14} className="text-gray-500" />
-            </button>
-            
-            {/* Delete Button */}
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onDelete(list.id, list.name);
-              }}
-              className="p-1.5 hover:bg-red-50 rounded-full transition-colors"
-              title="Delete list"
-            >
-              <Trash2 size={14} className="text-red-500" />
-            </button>
-          </div>
-        </div>
-
-        {/* Stats */}
-        <div className="flex items-center justify-between text-xs text-gray-600">
-          <div className="flex items-center space-x-3">
-            {list.savedItems.restaurants.length > 0 && (
-              <div className="flex items-center">
-                <Store size={12} className="mr-1" />
-                <span>{list.savedItems.restaurants.length}</span>
-              </div>
-            )}
-            {list.savedItems.dishes.length > 0 && (
-              <div className="flex items-center">
-                <UtensilsCrossed size={12} className="mr-1" />
-                <span>{list.savedItems.dishes.length}</span>
-              </div>
-            )}
-          </div>
-          
-          {/* Template Badge */}
-          {list.type === 'template' && (
-            <span className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full text-xs">
-              Template
-            </span>
-          )}
-          
-          {/* Public Badge */}
-          {list.isPublic && (
+      {/* Content Row */}
+      <div className="flex items-center justify-between text-xs text-gray-600">
+        {/* Left side - Item counts with icons and labels */}
+        <div className="flex items-center space-x-3">
+          {list.savedItems.restaurants.length > 0 && (
             <div className="flex items-center">
-              <Users size={12} className="mr-1" />
-              <span>Public</span>
+              <Store size={11} className="mr-1" />
+              <span>{list.savedItems.restaurants.length} Restaurant{list.savedItems.restaurants.length !== 1 ? 's' : ''}</span>
             </div>
           )}
+          {list.savedItems.dishes.length > 0 && (
+            <div className="flex items-center">
+              <UtensilsCrossed size={11} className="mr-1" />
+              <span>{list.savedItems.dishes.length} Dish{list.savedItems.dishes.length !== 1 ? 'es' : ''}</span>
+            </div>
+          )}
+          {totalItems === 0 && (
+            <span className="text-gray-400">Empty list</span>
+          )}
         </div>
+        
+        {/* Right side - Public indicator only */}
+        {list.isPublic && (
+          <div className="flex items-center">
+            <Users size={11} className="mr-1" />
+            <span>Public</span>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -12,8 +12,10 @@ const RatingBadge: React.FC<RatingBadgeProps> = ({
     md: 'w-12 h-12 text-base',
     lg: 'w-16 h-16 text-lg'
   };
-  return <div className={`${sizeClasses[size]} rounded-full bg-primary text-white flex items-center justify-center font-semibold`}>
+  return (
+    <span className="text-primary font-bold text-lg">
       {rating.toFixed(1)}
-    </div>;
+    </span>
+  );
 };
 export default RatingBadge;

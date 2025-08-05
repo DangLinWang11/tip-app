@@ -192,29 +192,7 @@ const Home: React.FC = () => {
         </div>
       </div>
 
-      {/* Stats Cards */}
       <div className="px-4 py-6">
-        <div className="grid grid-cols-4 gap-3 mb-6">
-          <div className="bg-white rounded-xl p-3 shadow-sm flex flex-col items-center justify-center">
-            <p className="text-2xl font-bold text-primary">{userStats.averageRating}</p>
-            <p className="text-xs text-gray-500 font-medium text-center">Average Rating</p>
-          </div>
-          <div className="bg-white rounded-xl p-3 shadow-sm flex flex-col items-center justify-center">
-            <p className="text-2xl font-bold text-primary">{userStats.totalRestaurants}</p>
-            <p className="text-xs text-gray-500 font-medium text-center">Restaurants</p>
-          </div>
-          <div className="bg-white rounded-xl p-3 shadow-sm flex flex-col items-center justify-center">
-            <p className="text-2xl font-bold text-primary">{userStats.totalDishes}</p>
-            <p className="text-xs text-gray-500 font-medium text-center">Dishes</p>
-          </div>
-          <div 
-            className="bg-white rounded-xl p-3 shadow-sm flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow"
-            onClick={() => navigate('/rewards')}
-          >
-            <p className="text-2xl font-bold text-primary">{userStats.pointsEarned}</p>
-            <p className="text-xs text-gray-500 font-medium text-center">Points Earned</p>
-          </div>
-        </div>
 
         {/* Your Food Journey Section */}
         <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
@@ -236,6 +214,16 @@ const Home: React.FC = () => {
               <MapPinIcon size={20} className="text-secondary mr-3" />
               <span className="text-primary font-medium">Recent Visits</span>
             </div>
+          </div>
+        </div>
+
+        {/* Recent Activity from Friends Button */}
+        <div 
+          className="bg-white rounded-xl shadow-sm p-4 mb-6 cursor-pointer hover:shadow-md transition-shadow flex items-center justify-between"
+          onClick={() => navigate('/recent-activity')}
+        >
+          <div className="flex items-center">
+            <div className="text-lg font-bold text-black">Recent Activity from Friends</div>
           </div>
         </div>
 

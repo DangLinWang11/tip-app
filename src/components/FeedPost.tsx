@@ -1,10 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { HeartIcon, MessageCircleIcon, BookmarkIcon, ShareIcon, CheckCircleIcon, MapPinIcon } from 'lucide-react';
+import { HeartIcon, MessageCircleIcon, BookmarkIcon, ShareIcon, CheckCircleIcon, MapPinIcon, PlusIcon } from 'lucide-react';
 import RatingBadge from './RatingBadge';
 import { useFeature } from '../utils/features';
 import SaveToListModal from './SaveToListModal';
-
+import { isFollowing, followUser, unfollowUser } from '../services/followService';
+import { getCurrentUser } from '../lib/firebase';
 
 interface CarouselItem {
   id: string;
@@ -32,6 +33,7 @@ interface FeedPostProps {
   isCarousel?: boolean;
   carouselItems?: CarouselItem[];
   author: {
+    id: string; // NEW: Added authorId
     name: string;
     image: string;
     isVerified?: boolean;
@@ -80,11 +82,57 @@ const FeedPost: React.FC<FeedPostProps> = ({
   const [touchEnd, setTouchEnd] = useState(0);
   const imageRef = useRef<HTMLDivElement>(null);
   const [showSaveModal, setShowSaveModal] = useState(false);
-
   
+  // NEW: Follow state management
+  const [isFollowingUser, setIsFollowingUser] = useState(false);
+  const [followLoading, setFollowLoading] = useState(false);
+  const currentUser = getCurrentUser();
+  const isOwnPost = currentUser?.uid === author.id;
+
   // Feature flags
   const showLikesComments = useFeature('LIKES_COMMENTS');
   const showSocialSharing = useFeature('SOCIAL_SHARING');
+
+  // NEW: Check follow status on component mount
+  useEffect(() => {
+    const checkFollowStatus = async () => {
+      if (!isOwnPost && author.id) {
+        const following = await isFollowing(author.id);
+        setIsFollowingUser(following);
+      }
+    };
+    checkFollowStatus();
+  }, [author.id, isOwnPost]);
+
+  // NEW: Handle follow/unfollow
+  const handleFollowToggle = async (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent navigation to profile
+    if (followLoading || isOwnPost) return;
+
+    setFollowLoading(true);
+    try {
+      if (isFollowingUser) {
+        const success = await unfollowUser(author.id);
+        if (success) setIsFollowingUser(false);
+      } else {
+        const success = await followUser(author.id, author.name);
+        if (success) setIsFollowingUser(true);
+      }
+    } catch (error) {
+      console.error('Error toggling follow:', error);
+    } finally {
+      setFollowLoading(false);
+    }
+  };
+
+  // NEW: Handle username click to navigate to profile
+  const handleUsernameClick = () => {
+    if (isOwnPost) {
+      navigate('/profile');
+    } else {
+      navigate(`/user/${author.name}`);
+    }
+  };
 
   // Get current item to display (carousel or single)
   const currentItem = isCarousel && carouselItems.length > 0 
@@ -100,13 +148,13 @@ const FeedPost: React.FC<FeedPostProps> = ({
 
   // Function to get quality circle color based on percentage
   const getQualityColor = (score: number): string => {
-    if (score >= 95) return '#10B981'; // Green
-    if (score >= 85) return '#34D399'; // Light green
-    if (score >= 75) return '#10B981'; // Green
-    if (score >= 60) return '#FCD34D'; // Yellow
-    if (score >= 45) return '#FB923C'; // Orange
-    if (score >= 30) return '#EF4444'; // Red-orange
-    return '#EF4444'; // Red
+    if (score >= 95) return '#10B981';
+    if (score >= 85) return '#34D399';
+    if (score >= 75) return '#10B981';
+    if (score >= 60) return '#FCD34D';
+    if (score >= 45) return '#FB923C';
+    if (score >= 30) return '#EF4444';
+    return '#EF4444';
   };
 
   // Handle touch events for swipe
@@ -136,12 +184,10 @@ const FeedPost: React.FC<FeedPostProps> = ({
     }
   };
 
-  // Handle dot click
   const handleDotClick = (index: number) => {
     setCurrentIndex(index);
   };
 
-  // Handle dish navigation
   const handleDishClick = () => {
     if (currentItem.dishId) {
       navigate(`/dish/${currentItem.dishId}`);
@@ -157,8 +203,34 @@ const FeedPost: React.FC<FeedPostProps> = ({
         <img src={author.image} alt={author.name} className="w-10 h-10 rounded-full object-cover" />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5">
-            <span className="font-medium">{author.name}</span>
-            {author.isVerified && <CheckCircleIcon size={16} className="text-secondary" />}
+            {/* NEW: Username area with follow button */}
+            <div className="relative flex items-center">
+              <span 
+                onClick={handleUsernameClick}
+                className="font-medium cursor-pointer hover:text-primary"
+              >
+                {author.name}
+              </span>
+              {/* NEW: Follow button (+ icon in top-right of username area) */}
+              {!isOwnPost && (
+                <button
+                  onClick={handleFollowToggle}
+                  disabled={followLoading}
+                  className="ml-1 -mt-1 w-4 h-4 flex items-center justify-center text-gray-500 hover:text-primary transition-colors"
+                >
+                  {!isFollowingUser && (
+                    <PlusIcon size={12} className={followLoading ? 'opacity-50' : ''} />
+                  )}
+                </button>
+              )}
+            </div>
+            {/* NEW: Checkmark that changes color based on follow status */}
+            {author.isVerified && (
+              <CheckCircleIcon 
+                size={16} 
+                className={isFollowingUser ? 'text-green-500' : 'text-gray-400'} 
+              />
+            )}
           </div>
           {restaurant && (
             <div className="text-sm text-dark-gray flex items-center gap-1.5 mt-0.5">
@@ -186,6 +258,7 @@ const FeedPost: React.FC<FeedPostProps> = ({
         </div>
       </div>
       
+      {/* Rest of component remains the same... */}
       {/* Image with Carousel Support */}
       <div className="relative">
         <div
@@ -219,25 +292,24 @@ const FeedPost: React.FC<FeedPostProps> = ({
             </div>
           )}
         </div>
-        
       </div>
       
-        {/* Carousel Dots */}
-        {isCarousel && carouselItems.length > 1 && (
-          <div className="flex justify-center items-center space-x-1 py-2">
-            {carouselItems.map((_, index) => (
-              <button
-                key={index}
-                onClick={() => handleDotClick(index)}
-                className={`rounded-full transition-all duration-200 ${
-                  index === currentIndex 
-                    ? 'w-3 h-3 bg-red-500' 
-                    : 'w-2 h-2 bg-red-300'
-                }`}
-              />
-            ))}
-          </div>
-        )}
+      {/* Carousel Dots */}
+      {isCarousel && carouselItems.length > 1 && (
+        <div className="flex justify-center items-center space-x-1 py-2">
+          {carouselItems.map((_, index) => (
+            <button
+              key={index}
+              onClick={() => handleDotClick(index)}
+              className={`rounded-full transition-all duration-200 ${
+                index === currentIndex 
+                  ? 'w-3 h-3 bg-red-500' 
+                  : 'w-2 h-2 bg-red-300'
+              }`}
+            />
+          ))}
+        </div>
+      )}
       
       {/* Content */}
       <div className="p-4">
@@ -253,7 +325,7 @@ const FeedPost: React.FC<FeedPostProps> = ({
           </span>
         </h3>
         
-        {/* Dual Review System - Show current item's review */}
+        {/* Dual Review System */}
         <div className="space-y-2 mb-4">
           <div className="flex items-start">
             <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center mr-2 flex-shrink-0">
@@ -269,13 +341,12 @@ const FeedPost: React.FC<FeedPostProps> = ({
           </div>
         </div>
 
-
         {/* Review Date */}
         <div className="text-xs text-gray-500 mb-4">
           Reviewed on {currentItem.review.date}
         </div>
         
-        {/* Engagement - Conditional based on features */}
+        {/* Engagement */}
         <div className="flex justify-between items-center pt-3 border-t border-light-gray">
           {showLikesComments ? (
             <>
@@ -302,59 +373,50 @@ const FeedPost: React.FC<FeedPostProps> = ({
             </>
           ) : (
             <div className="flex items-center justify-between w-full">
-                <div className="flex items-center space-x-4">
-                  <button 
-                    onClick={() => {
-                      setLiked(!liked);
-                      setLikeCount(prev => liked ? prev - 1 : prev + 1);
-                    }}
-                    className="flex items-center text-gray-600 hover:text-red-500 transition-colors"
-                  >
-                    <HeartIcon 
-                      size={20} 
-                      className={`mr-1 ${liked ? 'fill-red-500 text-red-500' : ''}`} 
-                    />
-                    <span className="text-sm">{likeCount}</span>
-                  </button>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <button 
+              <div className="flex items-center space-x-4">
+                <button 
+                  onClick={() => {
+                    setLiked(!liked);
+                    setLikeCount(prev => liked ? prev - 1 : prev + 1);
+                  }}
+                  className="flex items-center text-gray-600 hover:text-red-500 transition-colors"
+                >
+                  <HeartIcon 
+                    size={20} 
+                    className={`mr-1 ${liked ? 'fill-red-500 text-red-500' : ''}`} 
+                  />
+                  <span className="text-sm">{likeCount}</span>
+                </button>
+              </div>
+              <div className="flex items-center space-x-3">
+                <button 
                   onClick={() => setShowSaveModal(true)}
                   className="flex items-center text-sm text-gray-600 hover:text-primary"
                 >
                   <BookmarkIcon size={18} className={saved ? 'text-primary fill-primary mr-1' : 'text-gray-600 mr-1'} />
                   {saved ? 'Saved' : 'Save'}
                 </button>
-                  <button 
-                    onClick={() => {
-                      if (navigator.share) {
-                        navigator.share({
-                          title: `${currentItem.dish.name} at ${restaurant?.name}`,
-                          text: `Check out this ${currentItem.dish.rating}/10 rated dish!`,
-                          url: window.location.href
-                        });
-                      }
-                    }}
-                    className="text-gray-600 hover:text-blue-500 transition-colors"
-                  >
-                    <ShareIcon size={18} />
-                  </button>
-                </div>
+                <button 
+                  onClick={() => {
+                    if (navigator.share) {
+                      navigator.share({
+                        title: `${currentItem.dish.name} at ${restaurant?.name}`,
+                        text: `Check out this ${currentItem.dish.rating}/10 rated dish!`,
+                        url: window.location.href
+                      });
+                    }
+                  }}
+                  className="text-gray-600 hover:text-blue-500 transition-colors"
+                >
+                  <ShareIcon size={18} />
+                </button>
               </div>
+            </div>
           )}
         </div>
       </div>
-    {showSaveModal && (
-      <>
-        {console.log('🔍 SaveToListModal Debug Data:', {
-          restaurantId: restaurantId,
-          restaurantName: restaurant?.name,
-          dishId: currentItem.dishId,
-          dishName: currentItem.dish.name,
-          postId: isCarousel ? visitId : id,
-          currentItem: currentItem,
-          isCarousel: isCarousel
-        })}
+
+      {showSaveModal && (
         <SaveToListModal
           isOpen={showSaveModal}
           onClose={() => setShowSaveModal(false)}
@@ -364,8 +426,7 @@ const FeedPost: React.FC<FeedPostProps> = ({
           dishName={currentItem.dish.name}
           postId={isCarousel ? visitId : id}
         />
-      </>
-    )}
+      )}
     </div>
   );
 };

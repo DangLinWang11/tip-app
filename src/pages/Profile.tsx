@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { EditIcon, GridIcon, BookmarkIcon, SearchIcon, PlusIcon, Star } from 'lucide-react';
+import { EditIcon, GridIcon, BookmarkIcon, SearchIcon, PlusIcon, Star, Users, TrendingUp, Award, Share } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import FeedPost from '../components/FeedPost';
 import HamburgerMenu from '../components/HamburgerMenu';
@@ -15,6 +15,7 @@ import {
   makeListPublic,
   SavedList 
 } from '../services/savedListsService';
+import { getFollowCounts } from '../services/followService';
 
 const SavedListsTab: React.FC = () => {
   const navigate = useNavigate();
@@ -175,6 +176,7 @@ const Profile: React.FC = () => {
   const [profileLoading, setProfileLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [followerCount, setFollowerCount] = useState(0);
   
   // Feature flags
   const showTierRankings = useFeature('TIER_RANKINGS');
@@ -195,6 +197,12 @@ const Profile: React.FC = () => {
         const result = await getUserProfile();
         if (result.success && result.profile) {
           setUserProfile(result.profile);
+          
+          // Get follow counts
+          if (currentUser) {
+            const counts = await getFollowCounts(currentUser.uid);
+            setFollowerCount(counts.followers);
+          }
         } else {
           setError(result.error || 'Failed to load user profile');
         }
@@ -254,6 +262,36 @@ const Profile: React.FC = () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, []);
+
+  // Share profile handler
+  const handleShareProfile = async () => {
+    try {
+      const shareUrl = `${window.location.origin}/profile/${userProfile.username}`;
+      const shareData = {
+        title: `Check out @${userProfile.username} on Tip!`,
+        text: `Check out @${userProfile.username}'s food reviews and recommendations on Tip!`,
+        url: shareUrl
+      };
+
+      if (navigator.share) {
+        await navigator.share(shareData);
+      } else {
+        // Fallback: copy to clipboard
+        await navigator.clipboard.writeText(shareUrl);
+        alert('Profile link copied to clipboard!');
+      }
+    } catch (err) {
+      console.error('Failed to share profile:', err);
+      // Fallback for clipboard failures
+      try {
+        const shareUrl = `${window.location.origin}/profile/${userProfile.username}`;
+        await navigator.clipboard.writeText(shareUrl);
+        alert('Profile link copied to clipboard!');
+      } catch {
+        alert('Unable to share profile. Please try again.');
+      }
+    }
+  };
 
   // Filter posts based on search term - now searches across carousel items
   const filteredPosts = feedPosts.filter(post => {
@@ -320,7 +358,7 @@ const Profile: React.FC = () => {
         <img 
           src={userProfile.avatar} 
           alt={userProfile.displayName || userProfile.username} 
-          className={`${sizeClasses[size]} rounded-full object-cover border-2 border-primary`}
+          className={`${sizeClasses[size]} rounded-full object-cover border-2 border-gray-200`}
           onError={() => {
             // If image fails to load, show initials fallback
             setImageError(true);
@@ -331,7 +369,7 @@ const Profile: React.FC = () => {
 
     // Fallback to initials for users without profile photos or failed image loads
     return (
-      <div className={`${sizeClasses[size]} rounded-full bg-primary flex items-center justify-center border-2 border-primary`}>
+      <div className={`${sizeClasses[size]} rounded-full bg-primary flex items-center justify-center border-2 border-gray-200`}>
         <span className="text-white font-semibold">
           {getInitials(userProfile.username, userProfile.displayName)}
         </span>
@@ -406,10 +444,11 @@ const Profile: React.FC = () => {
       </header>
 
       <div className="bg-white shadow-sm">
-        <div className="p-4">
-          <div className="flex items-center">
+        {/* Profile Header */}
+        <div className="p-6">
+          <div className="flex items-start mb-6">
             <UserAvatar size="lg" />
-            <div className="ml-4 flex-1">
+            <div className="ml-4 flex-1 min-w-0">
               <div className="flex items-center">
                 <h2 className="font-semibold text-lg">@{userProfile.username}</h2>
                 {userProfile.isVerified && (
@@ -420,36 +459,92 @@ const Profile: React.FC = () => {
                 <p className="text-sm text-gray-600">{userProfile.displayName}</p>
               )}
               {userProfile.bio && (
-                <p className="text-sm text-gray-600 mt-1">{userProfile.bio}</p>
+                <p className="text-sm text-gray-600 mt-1 pr-4">{userProfile.bio}</p>
               )}
               
               {/* Join Date */}
               {userProfile.createdAt && (
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-gray-500 mt-2">
                   Joined {new Date(userProfile.createdAt.seconds * 1000).toLocaleDateString('en-US', { 
                     month: 'long', 
                     year: 'numeric' 
                   })}
                 </p>
               )}
-
-              {/* MVP Stats - Personal Only */}
-              <div className="flex text-sm text-dark-gray mt-2">
-                <span className="mr-4">{personalStats.totalReviews} Reviews</span>
-                <span className="mr-4">{personalStats.restaurantsTried} Restaurants</span>
-                <span className="mr-4">{personalStats.averageRating.toFixed(1)} Avg Rating</span>
-                {personalStats.pointsEarned > 0 && (
-                  <span>{personalStats.pointsEarned} Points</span>
-                )}
-              </div>
-              
+            </div>
+            
+            {/* Buttons Column */}
+            <div className="flex flex-col space-y-2 ml-4 flex-shrink-0">
               <button 
                 onClick={() => navigate('/profile/edit')}
-                className="mt-2 px-4 py-1 border border-medium-gray rounded-full text-sm flex items-center"
+                className="px-4 py-2 border border-gray-200 rounded-full text-sm flex items-center hover:bg-gray-50 transition-colors"
               >
                 <EditIcon size={16} className="mr-1" />
                 Edit Profile
               </button>
+              
+              <button 
+                onClick={handleShareProfile}
+                className="px-4 py-2 border border-gray-200 rounded-full text-sm flex items-center hover:bg-gray-50 transition-colors"
+              >
+                <Share size={16} className="mr-1" />
+                Share Profile
+              </button>
+            </div>
+          </div>
+
+          {/* Stats Cards - 2x2 Grid */}
+          <div className="grid grid-cols-2 gap-3">
+            {/* Reviews Card */}
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+              <div className="flex items-center">
+                <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center mr-3">
+                  <Star size={20} className="text-red-500" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-primary">{personalStats.totalReviews}</p>
+                  <p className="text-sm text-gray-500">Reviews</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Restaurants Card */}
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+              <div className="flex items-center">
+                <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mr-3">
+                  <Users size={20} className="text-blue-500" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-primary">{personalStats.restaurantsTried}</p>
+                  <p className="text-sm text-gray-500">Restaurants</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Average Rating Card */}
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+              <div className="flex items-center">
+                <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center mr-3">
+                  <TrendingUp size={20} className="text-green-500" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-primary">{personalStats.averageRating.toFixed(1)}</p>
+                  <p className="text-sm text-gray-500">Avg Rating</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Followers Card */}
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+              <div className="flex items-center">
+                <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center mr-3">
+                  <Users size={20} className="text-purple-500" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-primary">{followerCount}</p>
+                  <p className="text-sm text-gray-500">Followers</p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
