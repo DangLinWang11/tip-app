@@ -326,28 +326,28 @@ const FeedPost: React.FC<FeedPostProps> = ({
         </h3>
         
         {/* Dual Review System */}
-        <div className="space-y-2 mb-4">
+        <div className="space-y-1 mb-2">
           <div className="flex items-start">
-            <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center mr-2 flex-shrink-0">
-              <span className="text-green-600">+</span>
+            <div className="w-5 h-5 rounded-full bg-green-100 flex items-center justify-center mr-2 flex-shrink-0">
+              <span className="text-green-600 text-xs">+</span>
             </div>
-            <p className="text-sm flex-1 leading-6">{currentItem.review.positive}</p>
+            <p className="text-xs flex-1 leading-5">{currentItem.review.positive}</p>
           </div>
           <div className="flex items-start">
-            <div className="w-6 h-6 rounded-full bg-red-100 flex items-center justify-center mr-2 flex-shrink-0">
-              <span className="text-red-600">-</span>
+            <div className="w-5 h-5 rounded-full bg-red-100 flex items-center justify-center mr-2 flex-shrink-0">
+              <span className="text-red-600 text-xs">-</span>
             </div>
-            <p className="text-sm flex-1 leading-6">{currentItem.review.negative}</p>
+            <p className="text-xs flex-1 leading-5">{currentItem.review.negative}</p>
           </div>
         </div>
 
         {/* Review Date */}
-        <div className="text-xs text-gray-500 mb-4">
+        <div className="text-xs text-gray-500 mb-3">
           Reviewed on {currentItem.review.date}
         </div>
         
         {/* Engagement */}
-        <div className="flex justify-between items-center pt-3 border-t border-light-gray">
+        <div className="flex justify-between items-center pt-2 border-t border-light-gray">
           {showLikesComments ? (
             <>
               <div className="flex items-center space-x-4">
