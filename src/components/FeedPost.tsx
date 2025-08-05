@@ -157,6 +157,27 @@ const FeedPost: React.FC<FeedPostProps> = ({
     return '#EF4444';
   };
 
+  // Function to format timestamp Instagram-style
+  const formatInstagramTimestamp = (dateString: string): string => {
+    const reviewDate = new Date(dateString);
+    const now = new Date();
+    const diffMs = now.getTime() - reviewDate.getTime();
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+    if (diffHours < 24) {
+      return `${diffHours}h`;
+    } else if (diffDays <= 30) {
+      return `${diffDays}d`;
+    } else {
+      // Format as M/D/YY
+      const month = reviewDate.getMonth() + 1;
+      const day = reviewDate.getDate();
+      const year = reviewDate.getFullYear().toString().slice(-2);
+      return `${month}/${day}/${year}`;
+    }
+  };
+
   // Handle touch events for swipe
   const handleTouchStart = (e: React.TouchEvent) => {
     if (!isCarousel || carouselItems.length <= 1) return;
@@ -313,17 +334,22 @@ const FeedPost: React.FC<FeedPostProps> = ({
       
       {/* Content */}
       <div className="p-4">
-        <h3 className="font-medium text-lg mb-2">
-          <span 
-            onClick={handleDishClick}
-            className={(currentItem.dishId || restaurantId) ? "hover:text-primary cursor-pointer" : ""}
-          >
-            {isCarousel && carouselItems.length > 1 
-              ? `${currentItem.dish.name} (${currentIndex + 1}/${carouselItems.length})`
-              : currentItem.dish.name
-            }
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="font-medium text-lg">
+            <span 
+              onClick={handleDishClick}
+              className={(currentItem.dishId || restaurantId) ? "hover:text-primary cursor-pointer" : ""}
+            >
+              {isCarousel && carouselItems.length > 1 
+                ? `${currentItem.dish.name} (${currentIndex + 1}/${carouselItems.length})`
+                : currentItem.dish.name
+              }
+            </span>
+          </h3>
+          <span className="text-xs text-gray-400 ml-2 flex-shrink-0">
+            {formatInstagramTimestamp(currentItem.review.date)}
           </span>
-        </h3>
+        </div>
         
         {/* Dual Review System */}
         <div className="space-y-1 mb-2">
@@ -339,11 +365,6 @@ const FeedPost: React.FC<FeedPostProps> = ({
             </div>
             <p className="text-xs flex-1 leading-5">{currentItem.review.negative}</p>
           </div>
-        </div>
-
-        {/* Review Date */}
-        <div className="text-xs text-gray-500 mb-3">
-          Reviewed on {currentItem.review.date}
         </div>
         
         {/* Engagement */}
