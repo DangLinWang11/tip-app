@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Trash2, ShareIcon, Users, Store, UtensilsCrossed } from 'lucide-react';
 import { SavedList } from '../services/savedListsService';
 
@@ -6,7 +7,6 @@ interface ListCardProps {
   list: SavedList;
   onDelete: (listId: string, listName: string) => void;
   onShare: (listId: string) => void;
-  onClick: (listId: string) => void;
   previewImages?: string[]; // Optional preview images from saved items
 }
 
@@ -14,9 +14,9 @@ const ListCard: React.FC<ListCardProps> = ({
   list,
   onDelete,
   onShare,
-  onClick,
   previewImages = []
 }) => {
+  const navigate = useNavigate();
   const totalItems = list.savedItems.restaurants.length + list.savedItems.dishes.length;
   
   // Get appropriate icon based on template type
@@ -54,7 +54,7 @@ const ListCard: React.FC<ListCardProps> = ({
   return (
     <div 
       className="bg-white rounded-lg shadow-sm border border-gray-100 p-4 hover:shadow-md transition-shadow cursor-pointer w-full"
-      onClick={() => onClick(list.id)}
+      onClick={() => navigate(`/list/${list.id}`)}
     >
       {/* Single Row Layout */}
       <div className="flex items-center justify-between">

@@ -13,6 +13,7 @@ import {
   createDefaultTemplates, 
   deleteSavedList, 
   makeListPublic,
+  createCustomList,
   SavedList 
 } from '../services/savedListsService';
 import { getFollowCounts } from '../services/followService';
@@ -22,6 +23,9 @@ const SavedListsTab: React.FC = () => {
   const [lists, setLists] = useState<SavedList[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [newListName, setNewListName] = useState('');
+  const [creating, setCreating] = useState(false);
 
   useEffect(() => {
     loadLists();
@@ -90,8 +94,30 @@ const SavedListsTab: React.FC = () => {
     }
   };
 
-  const handleListClick = (listId: string) => {
-    navigate(`/list/${listId}`);
+  const handleCreateList = async () => {
+    if (!newListName.trim()) {
+      setError('List name is required');
+      return;
+    }
+
+    setCreating(true);
+    setError(null);
+
+    try {
+      const result = await createCustomList(newListName.trim());
+      if (result.success && result.listId) {
+        // Refresh lists
+        await loadLists();
+        setShowCreateForm(false);
+        setNewListName('');
+      } else {
+        setError(result.error || 'Failed to create list');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to create list');
+    } finally {
+      setCreating(false);
+    }
   };
 
   if (loading) {
@@ -155,10 +181,57 @@ const SavedListsTab: React.FC = () => {
               list={list}
               onDelete={handleDeleteList}
               onShare={handleShareList}
-              onClick={handleListClick}
               previewImages={[]}
             />
           ))}
+          
+          {/* Create New List */}
+          {!showCreateForm ? (
+            <button
+              onClick={() => setShowCreateForm(true)}
+              className="w-full p-4 border-2 border-dashed border-gray-300 rounded-xl hover:border-primary hover:bg-red-50 transition-colors flex items-center justify-center text-gray-600 hover:text-primary"
+            >
+              <PlusIcon size={20} className="mr-2" />
+              Create New List
+            </button>
+          ) : (
+            <div className="border border-gray-200 rounded-xl p-4">
+              <input
+                type="text"
+                placeholder="Enter list name..."
+                value={newListName}
+                onChange={(e) => setNewListName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handleCreateList();
+                  } else if (e.key === 'Escape') {
+                    setShowCreateForm(false);
+                    setNewListName('');
+                  }
+                }}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-primary mb-3"
+                autoFocus
+              />
+              <div className="flex space-x-2">
+                <button
+                  onClick={handleCreateList}
+                  disabled={creating || !newListName.trim()}
+                  className="flex-1 bg-primary text-white py-2 px-4 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-red-600 transition-colors"
+                >
+                  {creating ? 'Creating...' : 'Create List'}
+                </button>
+                <button
+                  onClick={() => {
+                    setShowCreateForm(false);
+                    setNewListName('');
+                  }}
+                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
