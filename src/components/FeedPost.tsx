@@ -74,6 +74,18 @@ const FeedPost: React.FC<FeedPostProps> = ({
   review,
   engagement
 }) => {
+  // Log all IDs received by FeedPost component
+  console.log('📝 [FeedPost] Component initialized with IDs:', {
+    id: id,
+    visitId: visitId,
+    restaurantId: restaurantId,
+    dishId: dishId,
+    isCarousel: isCarousel,
+    carouselItemsCount: carouselItems.length,
+    dishName: dish.name,
+    restaurantName: restaurant?.name
+  });
+
   const navigate = useNavigate();
   const [saved, setSaved] = useState(false);
   const [liked, setLiked] = useState(false);
@@ -412,7 +424,20 @@ const FeedPost: React.FC<FeedPostProps> = ({
               </div>
               <div className="flex items-center space-x-3">
                 <button 
-                  onClick={() => setShowSaveModal(true)}
+                  onClick={() => {
+                    console.log('💾 [FeedPost] Opening SaveToListModal with IDs:', {
+                      id: id,
+                      dishId: dishId,
+                      currentItemDishId: currentItem.dishId,
+                      visitId: visitId,
+                      restaurantId: restaurantId,
+                      restaurantName: restaurant?.name,
+                      dishName: currentItem.dish.name,
+                      isCarousel: isCarousel,
+                      currentIndex: currentIndex
+                    });
+                    setShowSaveModal(true);
+                  }}
                   className="flex items-center text-sm text-gray-600 hover:text-primary"
                 >
                   <BookmarkIcon size={18} className={saved ? 'text-primary fill-primary mr-1' : 'text-gray-600 mr-1'} />
@@ -438,17 +463,28 @@ const FeedPost: React.FC<FeedPostProps> = ({
         </div>
       </div>
 
-      {showSaveModal && (
-        <SaveToListModal
-          isOpen={showSaveModal}
-          onClose={() => setShowSaveModal(false)}
-          restaurantId={restaurantId}
-          restaurantName={restaurant?.name}
-          dishId={currentItem.dishId}
-          dishName={currentItem.dish.name}
-          postId={id} // Always use the review document ID
-        />
-      )}
+      {showSaveModal && (() => {
+        const modalProps = {
+          isOpen: showSaveModal,
+          restaurantId: restaurantId,
+          restaurantName: restaurant?.name,
+          dishId: currentItem.dishId,
+          dishName: currentItem.dish.name,
+          postId: id
+        };
+        
+        console.log('💾 [FeedPost] Rendering SaveToListModal with props:', modalProps);
+        
+        return (
+          <SaveToListModal
+            {...modalProps}
+            onClose={() => {
+              console.log('💾 [FeedPost] Closing SaveToListModal');
+              setShowSaveModal(false);
+            }}
+          />
+        );
+      })()}
     </div>
   );
 };

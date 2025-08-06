@@ -350,7 +350,7 @@ const ListDetail: React.FC = () => {
             >
               <ArrowLeftIcon size={20} className="text-gray-600" />
             </button>
-            <h1 className="text-lg font-semibold text-black truncate">{list.name}</h1>
+            <h1 className="text-lg font-semibold text-black truncate max-w-xs">{list.name}</h1>
           </div>
           
           {/* Action Buttons */}
@@ -402,18 +402,18 @@ const ListDetail: React.FC = () => {
                   className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:border-gray-300 hover:shadow-sm transition-all cursor-pointer"
                 >
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-medium text-gray-900 truncate">{restaurant.name}</h3>
-                    <div className="flex items-center space-x-3 text-xs text-gray-600 mt-1">
-                      <span>{restaurant.cuisine}</span>
+                    <h3 className="font-medium text-gray-900 truncate max-w-xs">{restaurant.name}</h3>
+                    <div className="flex items-center space-x-3 text-xs text-gray-600 mt-1 min-w-0">
+                      <span className="flex-shrink-0">{restaurant.cuisine}</span>
                       {restaurant.qualityScore && (
-                        <div className="flex items-center">
+                        <div className="flex items-center flex-shrink-0">
                           <Star size={10} className="text-yellow-500 mr-1" />
                           <span>{restaurant.qualityScore}</span>
                         </div>
                       )}
                       {restaurant.address && (
-                        <div className="flex items-center">
-                          <MapPinIcon size={10} className="text-gray-400 mr-1" />
+                        <div className="flex items-center min-w-0 flex-1">
+                          <MapPinIcon size={10} className="text-gray-400 mr-1 flex-shrink-0" />
                           <span className="truncate">{restaurant.address}</span>
                         </div>
                       )}
@@ -468,17 +468,17 @@ const ListDetail: React.FC = () => {
                   className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:border-gray-300 hover:shadow-sm transition-all cursor-pointer"
                 >
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-medium text-gray-900 truncate">{dish.name}</h3>
-                    <div className="flex items-center space-x-3 text-xs text-gray-600 mt-1">
-                      <span className="truncate">from {dish.restaurantName}</span>
+                    <h3 className="font-medium text-gray-900 truncate max-w-xs">{dish.name}</h3>
+                    <div className="flex items-center space-x-3 text-xs text-gray-600 mt-1 min-w-0">
+                      <span className="truncate flex-1 min-w-0">from {dish.restaurantName}</span>
                       {dish.averageRating && dish.averageRating > 0 && (
-                        <div className="flex items-center">
+                        <div className="flex items-center flex-shrink-0">
                           <Star size={10} className="text-yellow-500 mr-1" />
                           <span>{dish.averageRating.toFixed(1)}</span>
                         </div>
                       )}
                       {dish.category && (
-                        <span>{dish.category}</span>
+                        <span className="flex-shrink-0">{dish.category}</span>
                       )}
                     </div>
                   </div>
