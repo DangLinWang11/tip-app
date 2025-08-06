@@ -165,11 +165,33 @@ const ListDetail: React.FC = () => {
             const menuItemData = menuItemDoc.data();
             console.log(`✅ [ListDetail] Found dish ${dishId} in menuItems collection:`, menuItemData);
             
+            // Fetch restaurant data if restaurantId is available
+            let restaurantName = menuItemData.restaurantName || menuItemData.restaurant || 'Unknown Restaurant';
+            
+            if (menuItemData.restaurantId) {
+              try {
+                console.log(`🏪 [ListDetail] Fetching restaurant data for dish ${dishId} with restaurantId: ${menuItemData.restaurantId}`);
+                const restaurantDoc = await getDoc(doc(db, 'restaurants', menuItemData.restaurantId));
+                
+                if (restaurantDoc.exists()) {
+                  const restaurantData = restaurantDoc.data();
+                  restaurantName = restaurantData.name || restaurantName;
+                  console.log(`✅ [ListDetail] Found restaurant for dish ${dishId}: ${restaurantName}`);
+                } else {
+                  console.warn(`⚠️ [ListDetail] Restaurant ${menuItemData.restaurantId} not found for dish ${dishId}`);
+                }
+              } catch (restaurantErr) {
+                console.error(`❌ [ListDetail] Error fetching restaurant ${menuItemData.restaurantId} for dish ${dishId}:`, restaurantErr);
+              }
+            } else {
+              console.warn(`⚠️ [ListDetail] No restaurantId found for dish ${dishId} in menuItems`);
+            }
+            
             return {
               id: menuItemDoc.id,
               name: menuItemData.name || menuItemData.dish || 'Unknown Dish',
               restaurantId: menuItemData.restaurantId || '',
-              restaurantName: menuItemData.restaurantName || menuItemData.restaurant || 'Unknown Restaurant',
+              restaurantName: restaurantName,
               category: menuItemData.category || 'Main Course',
               rating: menuItemData.rating || 0,
               averageRating: menuItemData.rating || menuItemData.averageRating || 0,
