@@ -38,6 +38,7 @@ interface SavedRestaurant extends Restaurant {
 interface SavedDish extends Dish {
   // Additional fields for saved dishes display
   averageRating?: number;
+  source?: string; // Track which collection the dish was found in
 }
 
 const ListDetail: React.FC = () => {
@@ -131,34 +132,55 @@ const ListDetail: React.FC = () => {
         }
       });
 
-      // Fetch dish data (from reviews/posts)
+      // Fetch dish data (from reviews/posts and menuItems collections)
       const dishPromises = listResult.list.savedItems.dishes.map(async (dishId) => {
+        console.log('🔍 [ListDetail] Fetching dish with ID:', dishId);
+        
         try {
-          console.log('🔍 [ListDetail] Fetching dish with ID:', dishId);
-          const dishDoc = await getDoc(doc(db, 'reviews', dishId));
+          // First try reviews collection
+          console.log(`🔍 [ListDetail] Trying reviews collection for dish ${dishId}`);
+          const reviewDoc = await getDoc(doc(db, 'reviews', dishId));
           
-          console.log(`📄 [ListDetail] Dish ${dishId} query result:`, {
-            exists: dishDoc.exists(),
-            id: dishDoc.id
-          });
-          
-          if (dishDoc.exists()) {
-            const dishData = dishDoc.data();
-            console.log(`✅ [ListDetail] Dish ${dishId} data:`, dishData);
+          if (reviewDoc.exists()) {
+            const reviewData = reviewDoc.data();
+            console.log(`✅ [ListDetail] Found dish ${dishId} in reviews collection:`, reviewData);
             
             return {
-              id: dishDoc.id,
-              name: dishData.dish || 'Unknown Dish',
-              restaurantId: dishData.restaurantId || '',
-              restaurantName: dishData.restaurant || 'Unknown Restaurant',
-              category: dishData.category || 'Main Course',
-              rating: dishData.rating || 0,
-              averageRating: dishData.rating || 0
-            } as SavedDish;
-          } else {
-            console.warn(`⚠️ [ListDetail] Dish ${dishId} not found in reviews collection`);
+              id: reviewDoc.id,
+              name: reviewData.dish || 'Unknown Dish',
+              restaurantId: reviewData.restaurantId || '',
+              restaurantName: reviewData.restaurant || 'Unknown Restaurant',
+              category: reviewData.category || 'Main Course',
+              rating: reviewData.rating || 0,
+              averageRating: reviewData.rating || 0,
+              source: 'reviews'
+            } as SavedDish & { source: string };
           }
+          
+          // If not found in reviews, try menuItems collection
+          console.log(`🔍 [ListDetail] Dish ${dishId} not found in reviews, trying menuItems collection`);
+          const menuItemDoc = await getDoc(doc(db, 'menuItems', dishId));
+          
+          if (menuItemDoc.exists()) {
+            const menuItemData = menuItemDoc.data();
+            console.log(`✅ [ListDetail] Found dish ${dishId} in menuItems collection:`, menuItemData);
+            
+            return {
+              id: menuItemDoc.id,
+              name: menuItemData.name || menuItemData.dish || 'Unknown Dish',
+              restaurantId: menuItemData.restaurantId || '',
+              restaurantName: menuItemData.restaurantName || menuItemData.restaurant || 'Unknown Restaurant',
+              category: menuItemData.category || 'Main Course',
+              rating: menuItemData.rating || 0,
+              averageRating: menuItemData.rating || menuItemData.averageRating || 0,
+              source: 'menuItems'
+            } as SavedDish & { source: string };
+          }
+          
+          // Not found in either collection
+          console.warn(`⚠️ [ListDetail] Dish ${dishId} not found in either reviews or menuItems collections`);
           return null;
+          
         } catch (err) {
           console.error(`❌ [ListDetail] Error fetching dish ${dishId}:`, err);
           return null;
@@ -178,7 +200,11 @@ const ListDetail: React.FC = () => {
         restaurantCount: restaurantResults.length,
         dishCount: dishResults.length,
         restaurantSuccessCount: restaurantResults.filter(r => r !== null).length,
-        dishSuccessCount: dishResults.filter(d => d !== null).length
+        dishSuccessCount: dishResults.filter(d => d !== null).length,
+        dishSources: dishResults.filter(d => d !== null).reduce((acc: any, dish: any) => {
+          acc[dish.source] = (acc[dish.source] || 0) + 1;
+          return acc;
+        }, {})
       });
 
       // Filter out null results
@@ -479,6 +505,11 @@ const ListDetail: React.FC = () => {
                       )}
                       {dish.category && (
                         <span className="flex-shrink-0">{dish.category}</span>
+                      )}
+                      {dish.source && (
+                        <span className="flex-shrink-0 text-xs px-1 rounded bg-gray-100 text-gray-500">
+                          {dish.source}
+                        </span>
                       )}
                     </div>
                   </div>
