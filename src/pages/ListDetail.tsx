@@ -41,6 +41,8 @@ interface SavedDish extends Dish {
 }
 
 const ListDetail: React.FC = () => {
+  console.log("ListDetail component loaded");
+  
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   
