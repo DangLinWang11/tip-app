@@ -54,8 +54,11 @@ const ListDetail: React.FC = () => {
 
   // Load list data on component mount
   useEffect(() => {
+    console.log('🚀 [ListDetail] Component mounted, ID from params:', id);
     if (id) {
       loadListData();
+    } else {
+      console.warn('⚠️ [ListDetail] No ID found in URL params');
     }
   }, [id]);
 
@@ -67,28 +70,61 @@ const ListDetail: React.FC = () => {
       setError(null);
 
       // Fetch list data
+      console.log('🔍 [ListDetail] Fetching list with ID:', id);
       const listResult = await getSavedListById(id);
+      
+      console.log('📄 [ListDetail] List fetch result:', {
+        success: listResult.success,
+        error: listResult.error,
+        listExists: !!listResult.list
+      });
+      
       if (!listResult.success || !listResult.list) {
+        console.error('❌ [ListDetail] Failed to fetch list:', listResult.error);
         setError(listResult.error || 'Failed to load list');
         return;
       }
+
+      console.log('📋 [ListDetail] Fetched list data:', {
+        id: listResult.list.id,
+        name: listResult.list.name,
+        type: listResult.list.type,
+        savedItems: listResult.list.savedItems,
+        restaurantCount: listResult.list.savedItems.restaurants.length,
+        dishCount: listResult.list.savedItems.dishes.length
+      });
+
+      console.log('🏪 [ListDetail] Restaurant IDs to fetch:', listResult.list.savedItems.restaurants);
+      console.log('🍽️ [ListDetail] Dish IDs to fetch:', listResult.list.savedItems.dishes);
 
       setList(listResult.list);
 
       // Fetch restaurant data
       const restaurantPromises = listResult.list.savedItems.restaurants.map(async (restaurantId) => {
         try {
+          console.log('🔍 [ListDetail] Fetching restaurant with ID:', restaurantId);
           const restaurantDoc = await getDoc(doc(db, 'restaurants', restaurantId));
+          
+          console.log(`📄 [ListDetail] Restaurant ${restaurantId} query result:`, {
+            exists: restaurantDoc.exists(),
+            id: restaurantDoc.id
+          });
+          
           if (restaurantDoc.exists()) {
+            const restaurantData = restaurantDoc.data();
+            console.log(`✅ [ListDetail] Restaurant ${restaurantId} data:`, restaurantData);
+            
             return {
               id: restaurantDoc.id,
-              ...restaurantDoc.data(),
+              ...restaurantData,
               qualityScore: Math.round((Math.random() * 2 + 3) * 10) / 10 // Mock quality score
             } as SavedRestaurant;
+          } else {
+            console.warn(`⚠️ [ListDetail] Restaurant ${restaurantId} not found in database`);
           }
           return null;
         } catch (err) {
-          console.error('Error fetching restaurant:', restaurantId, err);
+          console.error(`❌ [ListDetail] Error fetching restaurant ${restaurantId}:`, err);
           return null;
         }
       });
@@ -96,9 +132,18 @@ const ListDetail: React.FC = () => {
       // Fetch dish data (from reviews/posts)
       const dishPromises = listResult.list.savedItems.dishes.map(async (dishId) => {
         try {
+          console.log('🔍 [ListDetail] Fetching dish with ID:', dishId);
           const dishDoc = await getDoc(doc(db, 'reviews', dishId));
+          
+          console.log(`📄 [ListDetail] Dish ${dishId} query result:`, {
+            exists: dishDoc.exists(),
+            id: dishDoc.id
+          });
+          
           if (dishDoc.exists()) {
             const dishData = dishDoc.data();
+            console.log(`✅ [ListDetail] Dish ${dishId} data:`, dishData);
+            
             return {
               id: dishDoc.id,
               name: dishData.dish || 'Unknown Dish',
@@ -108,28 +153,55 @@ const ListDetail: React.FC = () => {
               rating: dishData.rating || 0,
               averageRating: dishData.rating || 0
             } as SavedDish;
+          } else {
+            console.warn(`⚠️ [ListDetail] Dish ${dishId} not found in reviews collection`);
           }
           return null;
         } catch (err) {
-          console.error('Error fetching dish:', dishId, err);
+          console.error(`❌ [ListDetail] Error fetching dish ${dishId}:`, err);
           return null;
         }
       });
 
       // Wait for all data to load
+      console.log('⏳ [ListDetail] Waiting for all Firebase queries to complete...');
       const [restaurantResults, dishResults] = await Promise.all([
         Promise.all(restaurantPromises),
         Promise.all(dishPromises)
       ]);
 
+      console.log('📊 [ListDetail] Raw query results:', {
+        restaurantResults: restaurantResults,
+        dishResults: dishResults,
+        restaurantCount: restaurantResults.length,
+        dishCount: dishResults.length,
+        restaurantSuccessCount: restaurantResults.filter(r => r !== null).length,
+        dishSuccessCount: dishResults.filter(d => d !== null).length
+      });
+
       // Filter out null results
-      setRestaurants(restaurantResults.filter((r): r is SavedRestaurant => r !== null));
-      setDishes(dishResults.filter((d): d is SavedDish => d !== null));
+      const filteredRestaurants = restaurantResults.filter((r): r is SavedRestaurant => r !== null);
+      const filteredDishes = dishResults.filter((d): d is SavedDish => d !== null);
+
+      console.log('📈 [ListDetail] Filtered results:', {
+        filteredRestaurants: filteredRestaurants,
+        filteredDishes: filteredDishes,
+        finalRestaurantCount: filteredRestaurants.length,
+        finalDishCount: filteredDishes.length
+      });
+
+      setRestaurants(filteredRestaurants);
+      setDishes(filteredDishes);
 
     } catch (err) {
-      console.error('Error loading list data:', err);
+      console.error('❌ [ListDetail] Critical error loading list data:', err);
+      console.error('❌ [ListDetail] Error details:', {
+        message: err instanceof Error ? err.message : 'Unknown error',
+        stack: err instanceof Error ? err.stack : undefined
+      });
       setError('Failed to load list data');
     } finally {
+      console.log('✅ [ListDetail] Loading complete, setting loading to false');
       setLoading(false);
     }
   };
