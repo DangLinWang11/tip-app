@@ -101,9 +101,19 @@ const SaveToListModal: React.FC<SaveToListModalProps> = ({
       } else if (saveType === 'dish' && (dishId || postId)) {
         // Use dishId if available, otherwise use postId for specific review/post
         const idToSave = dishId || postId;
+        console.log('💾 [SaveToListModal] Saving dish to list:', {
+          listId,
+          dishId,
+          postId,
+          idToSave,
+          dishName
+        });
+        
         if (idToSave) {
           result = await addDishToList(listId, idToSave);
+          console.log('💾 [SaveToListModal] Save result:', result);
         } else {
+          console.error('❌ [SaveToListModal] No dish or post ID available');
           setError('No dish or post ID available');
           return;
         }

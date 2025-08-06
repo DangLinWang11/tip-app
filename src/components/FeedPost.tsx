@@ -26,7 +26,7 @@ interface CarouselItem {
 }
 
 interface FeedPostProps {
-  id: string;
+  id: string; // This should be the review document ID from Firebase
   visitId?: string;
   restaurantId?: string;
   dishId?: string;
@@ -62,6 +62,7 @@ interface FeedPostProps {
 }
 
 const FeedPost: React.FC<FeedPostProps> = ({
+  id, // Review document ID from Firebase
   visitId,
   restaurantId,
   dishId,
@@ -445,7 +446,7 @@ const FeedPost: React.FC<FeedPostProps> = ({
           restaurantName={restaurant?.name}
           dishId={currentItem.dishId}
           dishName={currentItem.dish.name}
-          postId={isCarousel ? visitId : id}
+          postId={id} // Always use the review document ID
         />
       )}
     </div>
