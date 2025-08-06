@@ -148,7 +148,7 @@ const SavedListsTab: React.FC = () => {
         </div>
       ) : (
         /* Lists Grid */
-        <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-3">
           {lists.map((list) => (
             <ListCard
               key={list.id}
