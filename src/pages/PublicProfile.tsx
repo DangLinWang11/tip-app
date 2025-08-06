@@ -266,7 +266,7 @@ const PublicProfile: React.FC = () => {
                 <User size={18} className="text-primary mr-2" />
                 <h2 className="text-xl font-bold text-black">@{username}</h2>
               </div>
-              <p className="text-gray-600 text-sm mt-1 ml-7">
+              <p className="text-gray-600 text-sm mt-1 ml-7 whitespace-pre-line">
                 {userProfile?.bio || "Food enthusiast exploring local cuisine"}
               </p>
             </div>

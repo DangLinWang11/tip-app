@@ -460,7 +460,7 @@ const Profile: React.FC = () => {
                 <p className="text-sm text-gray-600 ml-7">{userProfile.displayName}</p>
               )}
               {userProfile.bio && (
-                <p className="text-sm text-gray-600 mt-1 ml-7">{userProfile.bio}</p>
+                <p className="text-sm text-gray-600 mt-1 ml-7 whitespace-pre-line">{userProfile.bio}</p>
               )}
             </div>
           </div>
