@@ -156,9 +156,12 @@ const Home: React.FC = () => {
       <div className="bg-white px-4 py-6 shadow-sm">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center">
-            <MapIcon size={28} className="text-secondary mr-3" />
-            <div>
-              <h1 className="text-2xl font-bold text-primary">My Food Map</h1>
+            <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center">
+              <img 
+                src="/images/tip-logo.png" 
+                alt="Tip" 
+                className="w-6 h-6 filter brightness-0 invert"
+              />
             </div>
           </div>
           <div className="flex items-center">
