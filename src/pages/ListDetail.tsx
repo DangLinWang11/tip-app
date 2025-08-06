@@ -7,8 +7,10 @@ import {
   getSavedListById, 
   removeRestaurantFromList, 
   removeDishFromList,
+  updateListName,
   SavedList 
 } from '../services/savedListsService';
+import EditListNameModal from '../components/EditListNameModal';
 
 // Interfaces for restaurant and dish data
 interface Restaurant {
@@ -54,6 +56,7 @@ const ListDetail: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [removing, setRemoving] = useState<string | null>(null);
+  const [editModalOpen, setEditModalOpen] = useState(false);
 
   // Load list data on component mount
   useEffect(() => {
@@ -326,6 +329,15 @@ const ListDetail: React.FC = () => {
     }
   };
 
+  const handleSaveListName = async (listId: string, newName: string) => {
+    const result = await updateListName(listId, newName);
+    if (result.success) {
+      await loadListData(); // Refresh the list data
+    } else {
+      throw new Error(result.error || 'Failed to update list name');
+    }
+  };
+
   // Loading state
   if (loading) {
     return (
@@ -404,9 +416,9 @@ const ListDetail: React.FC = () => {
           {/* Action Buttons */}
           <div className="flex items-center space-x-1 ml-2">
             <button
-              onClick={() => navigate(`/list/${id}/edit`)}
+              onClick={() => setEditModalOpen(true)}
               className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-              title="Edit list"
+              title="Edit list name"
             >
               <EditIcon size={18} className="text-gray-600" />
             </button>
@@ -568,6 +580,17 @@ const ListDetail: React.FC = () => {
               Dismiss
             </button>
           </div>
+        )}
+
+        {/* Edit List Name Modal */}
+        {editModalOpen && list && (
+          <EditListNameModal
+            isOpen={editModalOpen}
+            onClose={() => setEditModalOpen(false)}
+            listId={list.id}
+            currentName={list.name}
+            onSave={handleSaveListName}
+          />
         )}
       </div>
     </div>

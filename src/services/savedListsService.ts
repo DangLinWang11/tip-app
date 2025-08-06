@@ -421,6 +421,50 @@ export const getSavedListById = async (
   }
 };
 
+// Update a saved list name
+export const updateListName = async (
+  listId: string,
+  newName: string
+): Promise<{ success: boolean; error?: string }> => {
+  try {
+    const currentUser = getCurrentUser();
+    if (!currentUser) {
+      return { success: false, error: 'No authenticated user' };
+    }
+
+    if (!newName || !newName.trim()) {
+      return { success: false, error: 'List name is required' };
+    }
+
+    console.log('📝 [SavedListsService] Updating list name:', { listId, newName });
+
+    // Get list to verify ownership
+    const listDoc = await getDoc(doc(db, 'savedLists', listId));
+    if (!listDoc.exists()) {
+      return { success: false, error: 'List not found' };
+    }
+
+    const listData = listDoc.data() as SavedList;
+    
+    // Check if user owns the list
+    if (listData.userId !== currentUser.uid) {
+      return { success: false, error: 'Permission denied' };
+    }
+
+    // Update the list name
+    await updateDoc(doc(db, 'savedLists', listId), {
+      name: newName.trim(),
+      updatedAt: serverTimestamp()
+    });
+
+    console.log('✅ [SavedListsService] List name updated successfully');
+    return { success: true };
+  } catch (error: any) {
+    console.error('❌ [SavedListsService] Failed to update list name:', error);
+    return { success: false, error: error.message };
+  }
+};
+
 // Generate a shareable code for lists
 const generateShareCode = (): string => {
   return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);

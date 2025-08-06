@@ -1,12 +1,13 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Trash2, ShareIcon, Users, Store, UtensilsCrossed } from 'lucide-react';
+import { Trash2, ShareIcon, Users, Store, UtensilsCrossed, EditIcon } from 'lucide-react';
 import { SavedList } from '../services/savedListsService';
 
 interface ListCardProps {
   list: SavedList;
   onDelete: (listId: string, listName: string) => void;
   onShare: (listId: string) => void;
+  onEdit: (listId: string, currentName: string) => void;
   previewImages?: string[]; // Optional preview images from saved items
 }
 
@@ -14,6 +15,7 @@ const ListCard: React.FC<ListCardProps> = ({
   list,
   onDelete,
   onShare,
+  onEdit,
   previewImages = []
 }) => {
   const navigate = useNavigate();
@@ -96,6 +98,18 @@ const ListCard: React.FC<ListCardProps> = ({
         
         {/* Right side - Actions */}
         <div className="flex items-center space-x-1 flex-shrink-0">
+          {/* Edit Button */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onEdit(list.id, list.name);
+            }}
+            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+            title="Edit list name"
+          >
+            <EditIcon size={16} className="text-gray-600" />
+          </button>
+          
           {/* Share Button */}
           <button
             onClick={(e) => {
@@ -105,7 +119,7 @@ const ListCard: React.FC<ListCardProps> = ({
             className="p-2 hover:bg-gray-100 rounded-full transition-colors"
             title="Share list"
           >
-            <ShareIcon size={22} className="text-dark-gray" />
+            <ShareIcon size={16} className="text-gray-600" />
           </button>
           
           {/* Delete Button */}

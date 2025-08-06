@@ -14,8 +14,10 @@ import {
   deleteSavedList, 
   makeListPublic,
   createCustomList,
+  updateListName,
   SavedList 
 } from '../services/savedListsService';
+import EditListNameModal from '../components/EditListNameModal';
 import { getFollowCounts } from '../services/followService';
 
 const SavedListsTab: React.FC = () => {
@@ -26,6 +28,8 @@ const SavedListsTab: React.FC = () => {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newListName, setNewListName] = useState('');
   const [creating, setCreating] = useState(false);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editingList, setEditingList] = useState<{ id: string; name: string } | null>(null);
 
   useEffect(() => {
     loadLists();
@@ -120,6 +124,20 @@ const SavedListsTab: React.FC = () => {
     }
   };
 
+  const handleEditList = (listId: string, currentName: string) => {
+    setEditingList({ id: listId, name: currentName });
+    setEditModalOpen(true);
+  };
+
+  const handleSaveListName = async (listId: string, newName: string) => {
+    const result = await updateListName(listId, newName);
+    if (result.success) {
+      await loadLists(); // Refresh the lists
+    } else {
+      throw new Error(result.error || 'Failed to update list name');
+    }
+  };
+
   if (loading) {
     return (
       <div className="p-4">
@@ -181,6 +199,7 @@ const SavedListsTab: React.FC = () => {
               list={list}
               onDelete={handleDeleteList}
               onShare={handleShareList}
+              onEdit={handleEditList}
               previewImages={[]}
             />
           ))}
@@ -233,6 +252,20 @@ const SavedListsTab: React.FC = () => {
             </div>
           )}
         </div>
+      )}
+
+      {/* Edit List Name Modal */}
+      {editModalOpen && editingList && (
+        <EditListNameModal
+          isOpen={editModalOpen}
+          onClose={() => {
+            setEditModalOpen(false);
+            setEditingList(null);
+          }}
+          listId={editingList.id}
+          currentName={editingList.name}
+          onSave={handleSaveListName}
+        />
       )}
     </div>
   );
