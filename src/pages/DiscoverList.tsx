@@ -137,14 +137,14 @@ const DiscoverList: React.FC = () => {
             <button
               key={category.id}
               onClick={() => setSelectedCategory(category.id)}
-              className={`flex-shrink-0 flex flex-col items-center justify-center w-18 h-16 rounded-xl border-2 px-1 ${
+              className={`flex-shrink-0 flex flex-col items-center justify-center px-3 py-2 ${
                 selectedCategory === category.id 
-                  ? 'border-primary bg-primary/10' 
-                  : 'border-gray-200 bg-white'
+                  ? 'text-primary border-b-2 border-primary' 
+                  : 'text-gray-600'
               }`}
             >
-              {category.icon && <span className="text-xl mb-1">{category.icon}</span>}
-              <span className="text-xs font-medium text-center truncate">{category.name}</span>
+              {category.icon && <span className="text-lg mb-1">{category.icon}</span>}
+              <span className="text-xs font-medium text-center whitespace-nowrap">{category.name}</span>
             </button>
           ))}
         </div>
