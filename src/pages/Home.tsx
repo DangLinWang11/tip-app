@@ -153,16 +153,14 @@ const Home: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50 pb-16">
       {/* Header */}
-      <div className="bg-white px-4 py-6 shadow-sm">
-        <div className="flex items-center justify-between mb-2">
+      <div className="bg-white px-4 py-3 shadow-sm">
+        <div className="flex items-center justify-between">
           <div className="flex items-center">
-            <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center">
-              <img 
-                src="/images/tip-logo.png" 
-                alt="Tip" 
-                className="w-6 h-6 filter brightness-0 invert"
-              />
-            </div>
+            <img 
+              src="/images/tip-logo.png" 
+              alt="Tip" 
+              className="w-32 h-18 object-contain"
+            />
           </div>
           <div className="flex items-center">
             <div 
