@@ -153,7 +153,7 @@ const Home: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50 pb-16">
       {/* Header */}
-      <div className="bg-white px-4 py-3 shadow-sm">
+      <div className="bg-white px-4 py-1 shadow-sm">
         <div className="flex items-center justify-between">
           <div className="flex items-center">
             <img 
