@@ -159,7 +159,7 @@ const Home: React.FC = () => {
             <img 
               src="/images/tip-logo.png" 
               alt="Tip" 
-              className="w-32 h-18 object-contain"
+              className="w-32 h-16 object-contain"
             />
           </div>
           <div className="flex items-center">
