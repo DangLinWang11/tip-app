@@ -152,7 +152,7 @@ export const saveReview = async (
       triedTimes: 1,
       visitedTimes: 1,
       rewardReason: "First review bonus",
-      pointsEarned: 200
+      pointsEarned: 20
     });
     
     console.log('✅ Review saved successfully with ID:', docRef.id);
@@ -162,7 +162,7 @@ export const saveReview = async (
     try {
       const currentStats = await getUserProfile();
       if (currentStats.success && currentStats.profile) {
-        const newTotalPoints = (currentStats.profile.stats?.pointsEarned || 0) + 200;
+        const newTotalPoints = (currentStats.profile.stats?.pointsEarned || 0) + 20;
         const newTotalReviews = (currentStats.profile.stats?.totalReviews || 0) + 1;
         
         await updateUserStats({

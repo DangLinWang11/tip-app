@@ -207,6 +207,7 @@ const AdminUpload: React.FC = () => {
     }
   };
 
+
   return (
     <div className="min-h-screen bg-gray-50 p-4">
       <div className="max-w-4xl mx-auto">
@@ -215,6 +216,7 @@ const AdminUpload: React.FC = () => {
             <h1 className="text-3xl font-bold text-gray-900 mb-2">Admin Upload</h1>
             <p className="text-gray-600">Upload restaurant data to Firebase</p>
           </div>
+
 
           {/* Restaurant Preview */}
           <div className="mb-8">

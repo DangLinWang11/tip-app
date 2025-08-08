@@ -1,8 +1,8 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, User, updatePassword, reauthenticateWithCredential, EmailAuthProvider } from 'firebase/auth';
-import { getFirestore, doc, setDoc, getDoc, updateDoc, serverTimestamp, collection, query, where, getDocs } from 'firebase/firestore';
-import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { getFirestore, doc, setDoc, getDoc, updateDoc, deleteDoc, serverTimestamp, collection, query, where, getDocs } from 'firebase/firestore';import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { getAnalytics } from 'firebase/analytics';
+
 
 const firebaseConfig = {
   apiKey: "AIzaSyBEzuZLNQo0SJ-zfq6IsBPbYKFj6NV6sAM",
@@ -859,3 +859,50 @@ export const testFirebaseConnection = async () => {
 };
 
 export default app;
+// Restaurant coordinate management functions
+export const updateRestaurantCoordinates = async (
+  restaurantId: string, 
+  coordinates: { lat: number; lng: number }
+): Promise<{ success: boolean; error?: string }> => {
+  if (!db) {
+    return { success: false, error: 'Firestore not initialized' };
+  }
+
+  try {
+    console.log('📍 Updating restaurant coordinates for:', restaurantId, coordinates);
+    
+    await updateDoc(doc(db, 'restaurants', restaurantId), {
+      coordinates: {
+        latitude: coordinates.lat,
+        longitude: coordinates.lng
+      },
+      updatedAt: serverTimestamp()
+    });
+    
+    console.log('✅ Restaurant coordinates updated successfully');
+    return { success: true };
+  } catch (error: any) {
+    console.error('❌ Failed to update restaurant coordinates:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+export const deleteRestaurant = async (
+  restaurantId: string
+): Promise<{ success: boolean; error?: string }> => {
+  if (!db) {
+    return { success: false, error: 'Firestore not initialized' };
+  }
+
+  try {
+    console.log('🗑️ Deleting restaurant:', restaurantId);
+    
+    await deleteDoc(doc(db, 'restaurants', restaurantId));
+    
+    console.log('✅ Restaurant deleted successfully');
+    return { success: true };
+  } catch (error: any) {
+    console.error('❌ Failed to delete restaurant:', error);
+    return { success: false, error: error.message };
+  }
+};

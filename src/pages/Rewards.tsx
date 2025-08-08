@@ -83,7 +83,7 @@ const Rewards: React.FC = () => {
      activities.push({
        id: `review-${review.id}`,
        type: 'review',
-       points: review.pointsEarned || 200,
+       points: review.pointsEarned || 20,
        description: `Reviewed ${review.dish}`,
        date: review.createdAt,
        restaurantName: review.restaurant
@@ -94,7 +94,7 @@ const Rewards: React.FC = () => {
        activities.push({
          id: `bonus-${review.id}`,
          type: 'bonus',
-         points: 200,
+         points: 20,
          description: 'First review bonus',
          date: review.createdAt,
          restaurantName: review.restaurant
@@ -106,7 +106,7 @@ const Rewards: React.FC = () => {
        activities.push({
          id: `photo-${review.id}`,
          type: 'photo',
-         points: 100,
+         points: 10,
          description: `Added ${review.images.length} photo${review.images.length > 1 ? 's' : ''}`,
          date: review.createdAt,
          restaurantName: review.restaurant
@@ -338,7 +338,7 @@ const Rewards: React.FC = () => {
              </div>
              <div>
                <p className="font-medium text-gray-900">Write Reviews</p>
-               <p className="text-sm text-gray-600">200 points per review</p>
+               <p className="text-sm text-gray-600">20 points per review</p>
              </div>
            </div>
            <div className="flex items-center">
@@ -347,7 +347,7 @@ const Rewards: React.FC = () => {
              </div>
              <div>
                <p className="font-medium text-gray-900">Add Photos</p>
-               <p className="text-sm text-gray-600">+100 bonus points</p>
+               <p className="text-sm text-gray-600">+10 bonus points</p>
              </div>
            </div>
            <div className="flex items-center">
@@ -356,7 +356,7 @@ const Rewards: React.FC = () => {
              </div>
              <div>
                <p className="font-medium text-gray-900">Add Videos</p>
-               <p className="text-sm text-gray-600">+200 bonus points</p>
+               <p className="text-sm text-gray-600">+20 bonus points</p>
              </div>
            </div>
            <div className="flex items-center">
@@ -365,7 +365,7 @@ const Rewards: React.FC = () => {
              </div>
              <div>
                <p className="font-medium text-gray-900">Try New Dishes</p>
-               <p className="text-sm text-gray-600">+150 bonus points</p>
+               <p className="text-sm text-gray-600">+15 bonus points</p>
              </div>
            </div>
            <div className="flex items-center">
@@ -374,7 +374,7 @@ const Rewards: React.FC = () => {
              </div>
              <div>
                <p className="font-medium text-gray-900">First Restaurant Review</p>
-               <p className="text-sm text-gray-600">+200 bonus points</p>
+               <p className="text-sm text-gray-600">+20 bonus points</p>
              </div>
            </div>
            <div className="flex items-center">
@@ -383,7 +383,7 @@ const Rewards: React.FC = () => {
              </div>
              <div>
                <p className="font-medium text-gray-900">Complete Menu Categories</p>
-               <p className="text-sm text-gray-600">+300 bonus points</p>
+               <p className="text-sm text-gray-600">+30 bonus points</p>
              </div>
            </div>
          </div>

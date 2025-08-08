@@ -97,7 +97,7 @@ const DishSearch: React.FC<DishSearchProps> = ({
       setAddingNew(true);
       const newMenuItem = {
         name: searchQuery.trim(),
-        category: 'Custom',
+        category: 'Dish Added',
         price: null,
         description: '',
         restaurantId,

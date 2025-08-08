@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { SearchIcon, MapPinIcon, StarIcon, PlusIcon } from 'lucide-react';
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from '../lib/firebase';
+import LocationPickerModal from './LocationPickerModal';
 
 interface FirebaseRestaurant {
   id: string;
@@ -34,6 +35,9 @@ const RestaurantSearch: React.FC<RestaurantSearchProps> = ({
   const [restaurants, setRestaurants] = useState<RestaurantForSearch[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showLocationModal, setShowLocationModal] = useState(false);
+  console.log('Modal state:', showLocationModal);
+  const [pendingRestaurant, setPendingRestaurant] = useState<RestaurantForSearch | null>(null);
 
   // Fetch restaurants from Firebase
   useEffect(() => {
@@ -78,6 +82,43 @@ const RestaurantSearch: React.FC<RestaurantSearchProps> = ({
   const filteredRestaurants = restaurants.filter(restaurant => 
     restaurant.name.toLowerCase().includes(query.toLowerCase())
   );
+
+  const handleManualRestaurantAdd = () => {
+    const manualRestaurant = {
+      name: query,
+      cuisine: 'Restaurant Added',
+      id: `manual_${Date.now()}`,
+      address: 'Restaurant Added',
+      phone: '',
+      coordinates: { latitude: 0, longitude: 0 },
+      createdAt: null,
+      updatedAt: null,
+      rating: 0,
+      distance: '0 mi',
+      coverImage: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80'
+    };
+    setPendingRestaurant(manualRestaurant);
+    console.log('Setting showLocationModal to true');
+    setShowLocationModal(true);
+  };
+
+  const handleLocationConfirm = (location: { latitude: number; longitude: number }) => {
+    if (pendingRestaurant) {
+      const updatedRestaurant = {
+        ...pendingRestaurant,
+        coordinates: location
+      };
+      onSelect(updatedRestaurant);
+    }
+    setShowLocationModal(false);
+    setPendingRestaurant(null);
+    setIsOpen(false);
+  };
+
+  const handleLocationCancel = () => {
+    setShowLocationModal(false);
+    setPendingRestaurant(null);
+  };
   return <div className="relative">
       <div className="flex items-center border border-medium-gray rounded-xl p-3">
         <SearchIcon size={20} className="text-dark-gray mr-2" />
@@ -136,24 +177,7 @@ const RestaurantSearch: React.FC<RestaurantSearchProps> = ({
           {query.trim() && (
             <button 
               className="w-full p-3 flex items-center hover:bg-blue-50 transition-colors border-t border-gray-100 bg-gray-50"
-              onClick={() => {
-                const manualRestaurant = {
-                  name: query,
-                  cuisine: 'User Added',
-                  id: `manual_${Date.now()}`,
-                  address: 'User Added',
-                  phone: '',
-                  coordinates: { latitude: 0, longitude: 0 },
-                  createdAt: null,
-                  updatedAt: null,
-                  rating: 0,
-                  distance: '0 mi',
-                  coverImage: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80'
-                };
-                onSelect(manualRestaurant);
-                setQuery(query);
-                setIsOpen(false);
-              }}
+              onClick={handleManualRestaurantAdd}
             >
               <div className="w-12 h-12 rounded-lg bg-blue-100 flex items-center justify-center">
                 <PlusIcon size={20} className="text-blue-600" />
@@ -176,6 +200,13 @@ const RestaurantSearch: React.FC<RestaurantSearchProps> = ({
           )}
         </div>
       )}
+      {console.log('Rendering modal with isOpen:', showLocationModal)}
+      <LocationPickerModal
+        isOpen={showLocationModal}
+        restaurantName={pendingRestaurant?.name || ''}
+        onConfirm={handleLocationConfirm}
+        onCancel={handleLocationCancel}
+      />
     </div>;
 };
 export default RestaurantSearch;

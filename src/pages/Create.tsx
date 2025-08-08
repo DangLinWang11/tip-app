@@ -328,24 +328,7 @@ const Create: React.FC = () => {
             <h1 className="font-medium">
               {reviewSummaries.length > 0 ? `${reviewSummaries.length + 1} Reviews` : 'New Review'}
             </h1>
-            <button 
-              className={`px-4 py-2 rounded-full font-medium transition-all ${
-                canSubmit && !isPosting
-                  ? 'bg-red-500 text-white hover:bg-red-600'
-                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-              }`}
-              disabled={!canSubmit || isPosting}
-              onClick={handleSubmitAllReviews}
-            >
-              {isPosting ? (
-                <div className="flex items-center space-x-2">
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  <span>Saving...</span>
-                </div>
-              ) : (
-                `Upload ${reviewSummaries.length > 0 ? 'All' : ''} Review${reviewSummaries.length > 0 ? 's' : ''}`
-              )}
-            </button>
+            <div className="w-6"></div>
           </header>
 
           {/* Main Content */}
@@ -637,6 +620,28 @@ const Create: React.FC = () => {
                     )}
                   </div>
                 )}
+
+                {/* Upload Review Button */}
+                <div className="pt-4">
+                  <button 
+                    className={`w-full py-3 rounded-xl font-medium transition-all flex items-center justify-center space-x-2 ${
+                      canSubmit && !isPosting
+                        ? 'bg-red-500 text-white hover:bg-red-600'
+                        : 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                    }`}
+                    disabled={!canSubmit || isPosting}
+                    onClick={handleSubmitAllReviews}
+                  >
+                    {isPosting ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        <span>Saving...</span>
+                      </>
+                    ) : (
+                      <span>Upload {reviewSummaries.length > 0 ? 'All' : ''} Review{reviewSummaries.length > 0 ? 's' : ''}</span>
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
