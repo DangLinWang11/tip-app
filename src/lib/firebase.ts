@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, User, updatePassword, reauthenticateWithCredential, EmailAuthProvider } from 'firebase/auth';
-import { getFirestore, doc, setDoc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { getFirestore, doc, setDoc, getDoc, updateDoc, serverTimestamp, collection, query, where, getDocs } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { getAnalytics } from 'firebase/analytics';
 
@@ -410,6 +410,69 @@ export const getUserProfile = async (
     return { success: true, profile };
   } catch (error: any) {
     console.error('❌ Failed to fetch user profile:', error);
+    
+    let errorMessage = 'Failed to fetch user profile';
+    
+    switch (error.code) {
+      case 'permission-denied':
+        errorMessage = 'Permission denied. Please check Firestore security rules';
+        break;
+      case 'unavailable':
+        errorMessage = 'Service temporarily unavailable. Please try again';
+        break;
+      default:
+        errorMessage = error.message || 'Unknown error occurred';
+    }
+    
+    return { success: false, error: errorMessage };
+  }
+};
+
+// Get user profile by username
+export const getUserByUsername = async (
+  username: string
+): Promise<{ success: boolean; profile?: UserProfile; error?: string }> => {
+  if (!db) {
+    const error = 'Firestore not initialized';
+    console.error('❌', error);
+    return { success: false, error };
+  }
+
+  if (!username || !username.trim()) {
+    const error = 'Username is required';
+    console.error('❌', error);
+    return { success: false, error };
+  }
+
+  try {
+    console.log('👤 Fetching user profile by username:', username);
+
+    const usersRef = collection(db, 'users');
+    const trimmedUsername = username.trim();
+    
+    // First try exact match
+    let q = query(usersRef, where('username', '==', trimmedUsername));
+    let querySnapshot = await getDocs(q);
+    
+    // If no exact match found, try lowercase match
+    if (querySnapshot.empty) {
+      q = query(usersRef, where('username', '==', trimmedUsername.toLowerCase()));
+      querySnapshot = await getDocs(q);
+    }
+    
+    if (querySnapshot.empty) {
+      const error = 'User not found';
+      console.warn('⚠️', error);
+      return { success: false, error };
+    }
+
+    const userDoc = querySnapshot.docs[0];
+    const profile = userDoc.data() as UserProfile;
+    console.log('✅ User profile fetched successfully by username');
+    
+    return { success: true, profile };
+  } catch (error: any) {
+    console.error('❌ Failed to fetch user profile by username:', error);
     
     let errorMessage = 'Failed to fetch user profile';
     

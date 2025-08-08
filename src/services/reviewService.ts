@@ -366,10 +366,10 @@ export const convertVisitToCarouselFeedPost = async (reviews: FirebaseReview[]) 
   
   // Get author info from main review - UPDATED with id field
   let author: FeedPostAuthor = {
-    id: "anonymous", // NEW: Default anonymous ID
-    name: "Anonymous User",
-    username: "anonymous",
-    image: getAvatarUrl({ username: "anonymous" }),
+    id: mainReview.userId || "anonymous", // NEW: Use actual userId as fallback
+    name: mainReview.userId || "Anonymous User",
+    username: mainReview.userId || "anonymous",
+    image: getAvatarUrl({ username: mainReview.userId || "anonymous" }),
     isVerified: false
   };
 
@@ -456,10 +456,10 @@ export const convertVisitToCarouselFeedPost = async (reviews: FirebaseReview[]) 
 // Convert single review to feed post (for non-visit reviews) - UPDATED with author.id
 export const convertReviewToFeedPost = async (review: FirebaseReview) => {
   let author: FeedPostAuthor = {
-    id: "anonymous", // NEW: Default anonymous ID
-    name: "Anonymous User",
-    username: "anonymous",
-    image: getAvatarUrl({ username: "anonymous" }),
+    id: review.userId || "anonymous", // NEW: Use actual userId as fallback
+    name: review.userId || "Anonymous User",
+    username: review.userId || "anonymous",
+    image: getAvatarUrl({ username: review.userId || "anonymous" }),
     isVerified: false
   };
 
@@ -469,8 +469,13 @@ export const convertReviewToFeedPost = async (review: FirebaseReview) => {
         author = userProfileCache.get(review.userId)!;
       } else {
         const userProfileResult = await getUserProfile(review.userId);
+        console.log('🔍 getUserProfile result:', userProfileResult); // ADD THIS DEBUG
+        console.log('🔍 Profile data:', userProfileResult.profile); // ADD THIS DEBUG
+        
         if (userProfileResult.success && userProfileResult.profile) {
           const profile = userProfileResult.profile;
+          console.log('🔍 Using profile username:', profile.username); // ADD THIS DEBUG
+          
           author = {
             id: review.userId, // NEW: Include actual userId
             name: profile.displayName || profile.username,
@@ -664,9 +669,9 @@ export const convertReviewsToFeedPosts = async (reviews: FirebaseReview[]) => {
       isCarousel: false,
       author: {
         id: review.userId || "anonymous", // NEW: Include userId in fallback
-        name: "Anonymous User",
-        username: "anonymous",
-        image: getAvatarUrl({ username: "anonymous" }),
+        name: review.userId || "Anonymous User",
+        username: review.userId || "anonymous",
+        image: getAvatarUrl({ username: review.userId || "anonymous" }),
         isVerified: false
       },
       restaurant: {

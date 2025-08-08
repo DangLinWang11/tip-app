@@ -69,14 +69,24 @@ export const followUser = async (targetUserId: string, targetUsername: string): 
 
     // Update follower count for target user
     const targetUserRef = doc(db, 'users', targetUserId);
+    const targetUserDoc = await getDoc(targetUserRef);
+    const currentFollowerCount = targetUserDoc.exists() 
+      ? (targetUserDoc.data().stats?.followers || 0) 
+      : 0;
+    
     await updateDoc(targetUserRef, {
-      'stats.followers': increment(1)
+      'stats.followers': Math.max(0, currentFollowerCount + 1)
     });
 
     // Update following count for current user
     const currentUserRef = doc(db, 'users', currentUser.uid);
+    const currentUserDoc = await getDoc(currentUserRef);
+    const currentFollowingCount = currentUserDoc.exists() 
+      ? (currentUserDoc.data().stats?.following || 0) 
+      : 0;
+    
     await updateDoc(currentUserRef, {
-      'stats.following': increment(1)
+      'stats.following': Math.max(0, currentFollowingCount + 1)
     });
 
     return true;
@@ -108,14 +118,24 @@ export const unfollowUser = async (targetUserId: string): Promise<boolean> => {
 
     // Update follower count for target user
     const targetUserRef = doc(db, 'users', targetUserId);
+    const targetUserDoc = await getDoc(targetUserRef);
+    const currentFollowerCount = targetUserDoc.exists() 
+      ? (targetUserDoc.data().stats?.followers || 0) 
+      : 0;
+    
     await updateDoc(targetUserRef, {
-      'stats.followers': increment(-1)
+      'stats.followers': Math.max(0, currentFollowerCount - 1)
     });
 
     // Update following count for current user
     const currentUserRef = doc(db, 'users', currentUser.uid);
+    const currentUserDoc = await getDoc(currentUserRef);
+    const currentFollowingCount = currentUserDoc.exists() 
+      ? (currentUserDoc.data().stats?.following || 0) 
+      : 0;
+    
     await updateDoc(currentUserRef, {
-      'stats.following': increment(-1)
+      'stats.following': Math.max(0, currentFollowingCount - 1)
     });
 
     return true;

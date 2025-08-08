@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeftIcon, MapPinIcon, SearchIcon, PlusIcon, CheckIcon, EditIcon, Share, User } from 'lucide-react';
+import { ArrowLeftIcon, MapPinIcon, SearchIcon, PlusIcon, CheckIcon, EditIcon, Share, User, Star, Users, TrendingUp } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import FeedPost from '../components/FeedPost';
 import { fetchUserReviews, convertReviewsToFeedPosts, FirebaseReview } from '../services/reviewService';
 import { getFollowCounts, isFollowing, followUser, unfollowUser } from '../services/followService';
-import { getUserProfile, getCurrentUser } from '../lib/firebase';
+import { getUserProfile, getCurrentUser, getUserByUsername } from '../lib/firebase';
 
 const PublicProfile: React.FC = () => {
   const navigate = useNavigate();
@@ -35,39 +35,35 @@ const PublicProfile: React.FC = () => {
     try {
       setLoading(true);
       
-      // For now, we'll use a mock approach since we need to implement user search by username
-      // In a full implementation, you'd have a getUserByUsername function
+      if (!username) {
+        setError('Username is required');
+        return;
+      }
       
-      // Get current user's data as example (in real app, fetch by username)
-      const profileResult = await getUserProfile();
+      // Get user profile by username
+      const profileResult = await getUserByUsername(username);
       
       if (profileResult.success && profileResult.profile) {
-        setUserProfile({
-          ...profileResult.profile,
-          username: username,
-          displayName: username
-        });
+        setUserProfile(profileResult.profile);
         
-        // Load user's reviews
-        const reviews = await fetchUserReviews(50);
+        // Load user's reviews using the profile's uid
+        const reviews = await fetchUserReviews(50, profileResult.profile.uid);
         setUserReviews(reviews);
         
         // Convert to feed posts
         const posts = await convertReviewsToFeedPosts(reviews);
         setFeedPosts(posts);
         
-        // Get follow counts and status
-        if (profileResult.profile.id) {
-          const counts = await getFollowCounts(profileResult.profile.id);
-          setFollowerCount(counts.followers);
-          
-          if (!isOwnProfile) {
-            const following = await isFollowing(profileResult.profile.id);
-            setIsFollowingUser(following);
-          }
+        // Get follow counts and status using the profile's uid
+        const counts = await getFollowCounts(profileResult.profile.uid);
+        setFollowerCount(counts.followers);
+        
+        if (!isOwnProfile) {
+          const following = await isFollowing(profileResult.profile.uid);
+          setIsFollowingUser(following);
         }
       } else {
-        setError('User not found');
+        setError(profileResult.error || 'User not found');
       }
     } catch (err) {
       console.error('Failed to load user profile:', err);
@@ -78,18 +74,18 @@ const PublicProfile: React.FC = () => {
   };
 
   const handleFollowToggle = async () => {
-    if (followLoading || isOwnProfile || !userProfile?.id) return;
+    if (followLoading || isOwnProfile || !userProfile?.uid) return;
 
     setFollowLoading(true);
     try {
       if (isFollowingUser) {
-        const success = await unfollowUser(userProfile.id);
+        const success = await unfollowUser(userProfile.uid);
         if (success) {
           setIsFollowingUser(false);
           setFollowerCount(prev => prev - 1);
         }
       } else {
-        const success = await followUser(userProfile.id, userProfile.username || userProfile.displayName);
+        const success = await followUser(userProfile.uid, userProfile.username || userProfile.displayName);
         if (success) {
           setIsFollowingUser(true);
           setFollowerCount(prev => prev + 1);
@@ -217,38 +213,14 @@ const PublicProfile: React.FC = () => {
     <div className="min-h-screen bg-gray-50 pb-16">
       {/* Header */}
       <div className="bg-white px-4 py-4 shadow-sm">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center">
-            <button 
-              onClick={() => navigate(-1)}
-              className="mr-2 p-2 hover:bg-gray-100 rounded-full transition-colors"
-            >
-              <ArrowLeftIcon size={20} className="text-gray-600" />
-            </button>
-            <h1 className="text-lg font-semibold text-black">Profile</h1>
-          </div>
-          
-          {/* Follow Button */}
-          {!isOwnProfile && (
-            <button
-              onClick={handleFollowToggle}
-              disabled={followLoading}
-              className={`px-6 py-2 rounded-full font-medium transition-colors flex items-center ${
-                isFollowingUser 
-                  ? 'bg-green-100 text-green-700 hover:bg-green-200' 
-                  : 'bg-primary text-white hover:bg-red-600'
-              } ${followLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-            >
-              {followLoading ? (
-                <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2" />
-              ) : isFollowingUser ? (
-                <CheckIcon size={16} className="mr-2" />
-              ) : (
-                <PlusIcon size={16} className="mr-2" />
-              )}
-              {isFollowingUser ? 'Following' : 'Follow'}
-            </button>
-          )}
+        <div className="flex items-center">
+          <button 
+            onClick={() => navigate(-1)}
+            className="mr-2 p-2 hover:bg-gray-100 rounded-full transition-colors"
+          >
+            <ArrowLeftIcon size={20} className="text-gray-600" />
+          </button>
+          <h1 className="text-lg font-semibold text-black">Profile</h1>
         </div>
       </div>
 
@@ -294,35 +266,97 @@ const PublicProfile: React.FC = () => {
                   </button>
                 </>
               ) : (
-                <button 
-                  onClick={handleShareProfile}
-                  className="px-3 py-1.5 border border-gray-200 rounded-full text-xs flex items-center hover:bg-gray-50 transition-colors"
-                >
-                  <Share size={12} className="mr-1" />
-                  Share
-                </button>
+                <>
+                  <button
+                    onClick={handleFollowToggle}
+                    disabled={followLoading}
+                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors flex items-center ${
+                      isFollowingUser 
+                        ? 'bg-green-100 text-green-700 hover:bg-green-200 border border-green-200' 
+                        : 'bg-primary text-white hover:bg-red-600'
+                    } ${followLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  >
+                    {followLoading ? (
+                      <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin mr-1" />
+                    ) : isFollowingUser ? (
+                      <CheckIcon size={12} className="mr-1" />
+                    ) : (
+                      <PlusIcon size={12} className="mr-1" />
+                    )}
+                    {isFollowingUser ? 'Following' : 'Follow'}
+                  </button>
+                  
+                  <button 
+                    onClick={handleShareProfile}
+                    className="px-3 py-1.5 border border-gray-200 rounded-full text-xs flex items-center hover:bg-gray-50 transition-colors"
+                  >
+                    <Share size={12} className="mr-1" />
+                    Share
+                  </button>
+                </>
               )}
             </div>
           </div>
           
-          {/* Stats */}
-          <div className="flex gap-6 pt-4 border-t border-gray-100">
-            <div className="text-center">
-              <div className="text-lg font-bold text-black">{userReviews.length}</div>
-              <div className="text-xs text-gray-500">Reviews</div>
-            </div>
-            <div className="text-center">
-              <div className="text-lg font-bold text-black">{followerCount}</div>
-              <div className="text-xs text-gray-500">Followers</div>
-            </div>
-            <div className="text-center">
-              <div className="text-lg font-bold text-black">
-                {userReviews.length > 0 
-                  ? (userReviews.reduce((sum, review) => sum + review.rating, 0) / userReviews.length).toFixed(1)
-                  : "0.0"
-                }
+          {/* Stats Cards - 2x2 Grid */}
+          <div className="grid grid-cols-2 gap-3 pt-4 border-t border-gray-100">
+            {/* Reviews Card */}
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+              <div className="flex items-center">
+                <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center mr-3">
+                  <Star size={20} className="text-red-500" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-primary">{userReviews.length}</p>
+                  <p className="text-sm text-gray-500">Reviews</p>
+                </div>
               </div>
-              <div className="text-xs text-gray-500">Avg Rating</div>
+            </div>
+
+            {/* Followers Card */}
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+              <div className="flex items-center">
+                <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center mr-3">
+                  <Users size={20} className="text-purple-500" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-primary">{followerCount}</p>
+                  <p className="text-sm text-gray-500">Followers</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Average Rating Card */}
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+              <div className="flex items-center">
+                <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center mr-3">
+                  <TrendingUp size={20} className="text-green-500" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-primary">
+                    {userReviews.length > 0 
+                      ? (userReviews.reduce((sum, review) => sum + review.rating, 0) / userReviews.length).toFixed(1)
+                      : "0.0"
+                    }
+                  </p>
+                  <p className="text-sm text-gray-500">Avg Rating</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Restaurants Card */}
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+              <div className="flex items-center">
+                <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mr-3">
+                  <Users size={20} className="text-blue-500" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-primary">
+                    {new Set(userReviews.map(r => r.restaurant).filter(Boolean)).size}
+                  </p>
+                  <p className="text-sm text-gray-500">Restaurants</p>
+                </div>
+              </div>
             </div>
           </div>
         </div>

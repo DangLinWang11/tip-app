@@ -250,10 +250,16 @@ const FeedPost: React.FC<FeedPostProps> = ({
                 <button
                   onClick={handleFollowToggle}
                   disabled={followLoading}
-                  className="ml-1 -mt-1 w-4 h-4 flex items-center justify-center text-gray-500 hover:text-primary transition-colors"
+                  className={`ml-0.5 -mt-1 w-5 h-5 rounded-full border flex items-center justify-center transition-all duration-200 ${
+                    isFollowingUser 
+                      ? 'bg-green-100 border-green-300 text-green-600 hover:bg-green-200' 
+                      : 'border-gray-300 text-gray-500 hover:border-primary hover:text-primary'
+                  } ${followLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                 >
-                  {!isFollowingUser && (
-                    <PlusIcon size={12} className={followLoading ? 'opacity-50' : ''} />
+                  {isFollowingUser ? (
+                    <CheckCircleIcon size={12} className="text-green-600" />
+                  ) : (
+                    <PlusIcon size={12} />
                   )}
                 </button>
               )}
