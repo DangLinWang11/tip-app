@@ -42,7 +42,7 @@ interface FeedPostProps {
   restaurant?: {
     name: string;
     isVerified?: boolean;
-    qualityScore?: number | null;
+    qualityScore?: number;
   };
   dish: {
     name: string;
@@ -160,14 +160,17 @@ const FeedPost: React.FC<FeedPostProps> = ({
       };
 
   // Function to get quality circle color based on percentage
-  const getQualityColor = (score: number): string => {
-    if (score >= 95) return '#10B981';
-    if (score >= 85) return '#34D399';
-    if (score >= 75) return '#10B981';
-    if (score >= 60) return '#FCD34D';
-    if (score >= 45) return '#FB923C';
-    if (score >= 30) return '#EF4444';
-    return '#EF4444';
+  const getQualityColor = (percentage: number): string => {
+    if (percentage >= 95) return '#059669'; // Bright Green (95-100%)
+    if (percentage >= 90) return '#10B981'; // Green (90-94%)
+    if (percentage >= 85) return '#34D399'; // Light Green (85-89%)
+    if (percentage >= 80) return '#6EE7B7'; // Yellow-Green (80-84%)
+    if (percentage >= 75) return '#FDE047'; // Yellow (75-79%)
+    if (percentage >= 70) return '#FACC15'; // Orange-Yellow (70-74%)
+    if (percentage >= 65) return '#F59E0B'; // Orange (65-69%)
+    if (percentage >= 60) return '#F97316'; // Red-Orange (60-64%)
+    if (percentage >= 55) return '#FB7185'; // Light Red (55-59%)
+    return '#EF4444'; // Red (0-54%)
   };
 
   // Function to format timestamp Instagram-style
@@ -285,10 +288,10 @@ const FeedPost: React.FC<FeedPostProps> = ({
               {restaurant.qualityScore !== undefined && (
                 <div 
                   className="w-8 h-5 flex items-center justify-center rounded-full"
-                  style={{ backgroundColor: restaurant.qualityScore === null ? '#6b7280' : getQualityColor(restaurant.qualityScore) }}
+                  style={{ backgroundColor: getQualityColor(restaurant.qualityScore) }}
                 >
                   <span className="text-xs font-medium text-white">
-                    {restaurant.qualityScore === null ? 'New' : `${restaurant.qualityScore}%`}
+                    {restaurant.qualityScore}%
                   </span>
                 </div>
               )}

@@ -39,6 +39,7 @@ const RestaurantSearch: React.FC<RestaurantSearchProps> = ({
   console.log('Modal state:', showLocationModal);
   const [pendingRestaurant, setPendingRestaurant] = useState<RestaurantForSearch | null>(null);
 
+
   // Fetch restaurants from Firebase
   useEffect(() => {
     const fetchRestaurants = async () => {
@@ -120,6 +121,7 @@ const RestaurantSearch: React.FC<RestaurantSearchProps> = ({
     setPendingRestaurant(null);
   };
   return <div className="relative">
+      {/* Restaurant search input */}
       <div className="flex items-center border border-medium-gray rounded-xl p-3">
         <SearchIcon size={20} className="text-dark-gray mr-2" />
         <input type="text" placeholder="Search for a restaurant..." value={query} onChange={e => {

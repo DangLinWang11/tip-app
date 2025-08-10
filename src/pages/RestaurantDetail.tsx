@@ -14,7 +14,7 @@ interface Restaurant {
   phone: string;
   cuisine: string;
   coordinates: { latitude: number; longitude: number };
-  qualityScore?: number | null;
+  qualityScore?: number;
 }
 
 interface MenuItem {
@@ -80,6 +80,19 @@ const RestaurantDetail: React.FC = () => {
     if (categoryLower.includes('sandwich') || categoryLower.includes('burger')) return Sandwich;
     if (categoryLower.includes('chef') || categoryLower.includes('special')) return ChefHat;
     return Utensils; // Default icon
+  };
+
+  const getQualityColor = (percentage: number): string => {
+    if (percentage >= 95) return '#059669'; // Bright Green (95-100%)
+    if (percentage >= 90) return '#10B981'; // Green (90-94%)
+    if (percentage >= 85) return '#34D399'; // Light Green (85-89%)
+    if (percentage >= 80) return '#6EE7B7'; // Yellow-Green (80-84%)
+    if (percentage >= 75) return '#FDE047'; // Yellow (75-79%)
+    if (percentage >= 70) return '#FACC15'; // Orange-Yellow (70-74%)
+    if (percentage >= 65) return '#F59E0B'; // Orange (65-69%)
+    if (percentage >= 60) return '#F97316'; // Red-Orange (60-64%)
+    if (percentage >= 55) return '#FB7185'; // Light Red (55-59%)
+    return '#EF4444'; // Red (0-54%)
   };
 
   const qualityScore = calculateRestaurantQualityScore(reviews.map(review => ({ ...review, category: 'custom' })));
@@ -193,13 +206,9 @@ const RestaurantDetail: React.FC = () => {
         </div>
         <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-4">
           <div className="bg-white px-3 py-1 rounded-full inline-flex items-center">
-            <div className={`w-3 h-3 rounded-full ${
-              qualityScore === null ? 'bg-gray-400' : 
-              qualityScore >= 90 ? 'bg-green-500' : 
-              qualityScore >= 75 ? 'bg-yellow-500' : 'bg-red-500'
-            } mr-2`}></div>
+            <div className="w-3 h-3 rounded-full mr-2" style={{ backgroundColor: qualityScore ? getQualityColor(qualityScore) : '#6b7280' }}></div>
             <span className="font-medium text-sm">
-              {qualityScore === null ? 'Not rated yet' : `${qualityScore}% Quality`}
+              {qualityScore}% Quality
             </span>
           </div>
         </div>
@@ -219,6 +228,7 @@ const RestaurantDetail: React.FC = () => {
           </div>
           <div className="flex items-center">
             <div className="mr-2 flex items-center bg-light-gray px-3 py-1 rounded-full">
+              <span className="font-medium mr-2">Average Dish Rating</span>
               <StarIcon size={16} className="text-accent mr-1" />
               <span className="font-medium">{reviews.length > 0 ? (reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length).toFixed(1) : 'N/A'}</span>
             </div>

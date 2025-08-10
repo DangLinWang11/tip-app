@@ -314,11 +314,6 @@ export interface ReviewWithCategory extends FirebaseReview {
 
 // Calculate restaurant quality score from reviews
 export const calculateRestaurantQualityScore = (reviews: ReviewWithCategory[]): number | null => {
-  // Return null if less than 10 reviews
-  if (reviews.length < 10) {
-    return null;
-  }
-
   // Extract ratings
   const ratings = reviews.map(review => review.rating);
   

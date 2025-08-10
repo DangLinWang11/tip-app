@@ -63,12 +63,16 @@ interface MapProps {
 }
 
 const getQualityColor = (percentage: number): string => {
-  if (percentage >= 90) return '#10B981'; // Green for high ratings (90%+)
-  if (percentage >= 80) return '#34D399'; // Light green (80-89%)
-  if (percentage >= 70) return '#FCD34D'; // Yellow (70-79%)
-  if (percentage >= 60) return '#FBBF24'; // Orange-yellow (60-69%)
-  if (percentage >= 50) return '#FB923C'; // Orange (50-59%)
-  return '#EF4444'; // Red for low ratings (<50%)
+  if (percentage >= 95) return '#059669'; // Bright Green (95-100%)
+  if (percentage >= 90) return '#10B981'; // Green (90-94%)
+  if (percentage >= 85) return '#34D399'; // Light Green (85-89%)
+  if (percentage >= 80) return '#6EE7B7'; // Yellow-Green (80-84%)
+  if (percentage >= 75) return '#FDE047'; // Yellow (75-79%)
+  if (percentage >= 70) return '#FACC15'; // Orange-Yellow (70-74%)
+  if (percentage >= 65) return '#F59E0B'; // Orange (65-69%)
+  if (percentage >= 60) return '#F97316'; // Red-Orange (60-64%)
+  if (percentage >= 55) return '#FB7185'; // Light Red (55-59%)
+  return '#EF4444'; // Red (0-54%)
 };
 
 const getRatingColor = (rating: number): string => {
@@ -210,7 +214,9 @@ const Map: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishes, u
                   </div>
                   <div style="display: flex; align-items: center; gap: 8px; color: #666; font-size: 14px;">
                     <span style="display: flex; align-items: center; gap: 4px;">
-                      <span style='color: #FFD700; font-size: 16px;'>✦</span>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="#FFD700" style="margin-right: 4px;">
+                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                      </svg>
                       ${(restaurant.averageMenuRating || restaurant.rating).toFixed(1)}
                     </span>
                     <span>${restaurant.priceRange}</span>
