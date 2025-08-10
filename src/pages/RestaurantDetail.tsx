@@ -5,6 +5,7 @@ import { db } from '../lib/firebase';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeftIcon, StarIcon, MapPinIcon, PhoneIcon, ClockIcon, BookmarkIcon, ShareIcon, ChevronRightIcon, Utensils, Soup, Salad, Coffee, Cake, Fish, Pizza, Sandwich, ChefHat, ChevronDown } from 'lucide-react';
 import BottomNavigation from '../components/BottomNavigation';
+import { calculateRestaurantQualityScore } from '../services/reviewService';
 
 interface Restaurant {
   id: string;
@@ -13,6 +14,7 @@ interface Restaurant {
   phone: string;
   cuisine: string;
   coordinates: { latitude: number; longitude: number };
+  qualityScore?: number | null;
 }
 
 interface MenuItem {
@@ -60,12 +62,6 @@ const RestaurantDetail: React.FC = () => {
     }, {} as Record<string, MenuItem[]>);
   };
 
-  // Helper function to calculate quality score from reviews
-  const calculateQualityScore = (reviewsArray: Review[]) => {
-    if (reviewsArray.length === 0) return null;
-    const avgRating = reviewsArray.reduce((sum, review) => sum + review.rating, 0) / reviewsArray.length;
-    return Math.round((avgRating / 10) * 100);
-  };
 
   // Helper function to get all images from reviews
   const getAllReviewImages = (reviewsArray: Review[]) => {
@@ -86,7 +82,7 @@ const RestaurantDetail: React.FC = () => {
     return Utensils; // Default icon
   };
 
-  const qualityScore = calculateQualityScore(reviews);
+  const qualityScore = calculateRestaurantQualityScore(reviews.map(review => ({ ...review, category: 'custom' })));
   const reviewImages = getAllReviewImages(reviews);
   const groupedMenu = groupMenuByCategory(menuItems);
   

@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Search, MapPin } from 'lucide-react';
-import { collection, getDocs } from 'firebase/firestore';
+import { ArrowLeft, Search, MapPin, Store } from 'lucide-react';
+import { collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../lib/firebase';
+import { calculateRestaurantQualityScore, ReviewWithCategory, FirebaseReview } from '../services/reviewService';
 
 interface FirebaseRestaurant {
   id: string;
@@ -20,14 +21,16 @@ interface FirebaseRestaurant {
 
 interface RestaurantWithExtras extends FirebaseRestaurant {
   rating: number;
-  qualityPercentage: number;
+  qualityPercentage: number | null;
+  qualityLabel: string;
   distance: string;
   priceRange: string;
-  coverImage: string;
+  coverImage: string | null;
   location: {
     lat: number;
     lng: number;
   };
+  reviewCount: number;
 }
 
 const getQualityColor = (percentage: number): string => {
@@ -64,7 +67,27 @@ const DiscoverList: React.FC = () => {
   const [restaurants, setRestaurants] = useState<RestaurantWithExtras[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
+  // Function to fetch reviews for a restaurant
+  const fetchRestaurantReviews = async (restaurantId: string): Promise<ReviewWithCategory[]> => {
+    try {
+      const reviewsQuery = query(
+        collection(db, 'reviews'), 
+        where('restaurantId', '==', restaurantId)
+      );
+      const reviewsSnapshot = await getDocs(reviewsQuery);
+      const reviews = reviewsSnapshot.docs.map(doc => ({ 
+        id: doc.id, 
+        ...doc.data() 
+      } as FirebaseReview));
+      
+      // Convert to ReviewWithCategory format (using default category for now)
+      return reviews.map(review => ({ ...review, category: 'main' }));
+    } catch (error) {
+      console.error(`Error fetching reviews for restaurant ${restaurantId}:`, error);
+      return [];
+    }
+  };
+
   // Fetch restaurants from Firebase
   useEffect(() => {
     const fetchRestaurants = async () => {
@@ -75,16 +98,37 @@ const DiscoverList: React.FC = () => {
         const restaurantsCollection = collection(db, 'restaurants');
         const restaurantSnapshot = await getDocs(restaurantsCollection);
         
-        const restaurantList: RestaurantWithExtras[] = restaurantSnapshot.docs.map((doc, index) => {
+        // Fetch restaurants with real review data
+        const restaurantPromises = restaurantSnapshot.docs.map(async (doc) => {
           const data = doc.data() as FirebaseRestaurant;
+          const restaurantId = doc.id;
           
-          // Add mock data for fields not in Firebase yet
+          // Fetch reviews for this restaurant
+          const reviews = await fetchRestaurantReviews(restaurantId);
+          
+          // Calculate quality score
+          const qualityScore = calculateRestaurantQualityScore(reviews);
+          
+          // Determine quality label and percentage
+          let qualityPercentage: number | null = null;
+          let qualityLabel: string = 'New';
+          
+          if (qualityScore !== null) {
+            qualityPercentage = Math.round(qualityScore * 20); // Convert 0-5 scale to 0-100%
+            qualityLabel = `${qualityPercentage}%`;
+          }
+          
+          // Mock data that we don't have yet
           const mockExtras = {
-            rating: 4.0 + Math.random() * 1.0, // Random rating between 4.0-5.0
-            qualityPercentage: 80 + Math.floor(Math.random() * 20), // Random between 80-99
-            distance: `${(0.5 + Math.random() * 2).toFixed(1)} mi`, // Random distance
-            priceRange: ['$', '$$', '$$$'][Math.floor(Math.random() * 3)], // Random price range
-            coverImage: `https://images.unsplash.com/photo-${1579684947550 + index}?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80`,
+            rating: reviews.length > 0 
+              ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length 
+              : 0,
+            qualityPercentage,
+            qualityLabel,
+            reviewCount: reviews.length,
+            distance: `${(0.5 + Math.random() * 2).toFixed(1)} mi`, // Still mock for now
+            priceRange: ['$', '$$', '$$$'][Math.floor(Math.random() * 3)], // Still mock
+            coverImage: null, // Back to store icons
             location: {
               lat: data.coordinates.latitude,
               lng: data.coordinates.longitude
@@ -92,11 +136,13 @@ const DiscoverList: React.FC = () => {
           };
           
           return {
-            id: doc.id,
+            id: restaurantId,
             ...data,
             ...mockExtras
-          };
+          } as RestaurantWithExtras;
         });
+        
+        const restaurantList = await Promise.all(restaurantPromises);
         
         setRestaurants(restaurantList);
         console.log(`Loaded ${restaurantList.length} restaurants from Firebase`);
@@ -178,31 +224,35 @@ const DiscoverList: React.FC = () => {
                 className="bg-white rounded-xl shadow-sm flex overflow-hidden border cursor-pointer hover:bg-gray-50 transition-colors" 
                 onClick={() => navigate(`/restaurant/${restaurant.id}`)}
               >
-                <img
-                  src={restaurant.coverImage}
-                  alt={restaurant.name}
-                  className="w-20 h-20 object-cover"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80';
-                  }}
-                />
-                <div className="p-3 flex-1">
-                  <h3 className="font-medium truncate">{restaurant.name}</h3>
-                  <div className="flex items-center text-sm text-dark-gray">
-                    <span>{restaurant.cuisine}</span>
-                    <span className="mx-1">•</span>
-                    <span>{restaurant.priceRange}</span>
-                  </div>
-                  <div className="flex items-center mt-1 justify-between">
-                    <div className="flex items-center">
-                      <div 
-                        className="px-2 py-0.5 rounded-full"
-                        style={{ backgroundColor: getQualityColor(restaurant.qualityPercentage) }}
-                      >
-                        <span className="text-xs font-medium text-white">{restaurant.qualityPercentage}%</span>
-                      </div>
+                <div className="w-20 h-20 bg-gray-100 flex items-center justify-center flex-shrink-0">
+                  {restaurant.coverImage ? (
+                    <img
+                      src={restaurant.coverImage}
+                      alt={restaurant.name}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-12 h-12 bg-gray-300 rounded-lg flex items-center justify-center">
+                      <Store size={56} className="text-gray-500" strokeWidth={2} />
                     </div>
-                    <div className="flex items-center">
+                  )}
+                </div>
+                <div className="p-3 flex-1">
+                  <div className="flex justify-between items-start">
+                    <h3 className="font-medium truncate flex-1">{restaurant.name}</h3>
+                    {restaurant.qualityPercentage === null && (
+                      <div className="px-2 py-0.5 rounded-full bg-gray-400 ml-2">
+                        <span className="text-xs font-medium text-white">New</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center text-sm text-dark-gray">
+                      <span>{restaurant.cuisine}</span>
+                      <span className="mx-1">•</span>
+                      <span>{restaurant.priceRange}</span>
+                    </div>
+                    <div className="flex items-center mt-2">
                       <MapPin size={14} className="text-dark-gray mr-1" />
                       <span className="text-xs text-dark-gray">{restaurant.distance}</span>
                     </div>

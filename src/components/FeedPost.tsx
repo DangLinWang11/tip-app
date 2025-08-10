@@ -42,7 +42,7 @@ interface FeedPostProps {
   restaurant?: {
     name: string;
     isVerified?: boolean;
-    qualityScore?: number;
+    qualityScore?: number | null;
   };
   dish: {
     name: string;
@@ -282,12 +282,14 @@ const FeedPost: React.FC<FeedPostProps> = ({
                 {restaurant.name}
               </span>
               {restaurant.isVerified && <CheckCircleIcon size={14} className="text-secondary" />}
-              {restaurant.qualityScore && (
+              {restaurant.qualityScore !== undefined && (
                 <div 
                   className="w-8 h-5 flex items-center justify-center rounded-full"
-                  style={{ backgroundColor: getQualityColor(restaurant.qualityScore) }}
+                  style={{ backgroundColor: restaurant.qualityScore === null ? '#6b7280' : getQualityColor(restaurant.qualityScore) }}
                 >
-                  <span className="text-xs font-medium text-white">{restaurant.qualityScore}%</span>
+                  <span className="text-xs font-medium text-white">
+                    {restaurant.qualityScore === null ? 'New' : `${restaurant.qualityScore}%`}
+                  </span>
                 </div>
               )}
             </div>

@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, User, updatePassword, reauthenticateWithCredential, EmailAuthProvider } from 'firebase/auth';
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, User, updatePassword, reauthenticateWithCredential, EmailAuthProvider, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
 import { getFirestore, doc, setDoc, getDoc, updateDoc, deleteDoc, serverTimestamp, collection, query, where, getDocs } from 'firebase/firestore';import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { getAnalytics } from 'firebase/analytics';
 
@@ -230,6 +230,53 @@ export const signInWithEmail = async (
       default:
         errorMessage = error.message || 'Unknown error occurred during sign-in';
         console.error('🔍 Unhandled error code:', error.code, error.message);
+    }
+    
+    return { success: false, error: errorMessage };
+  }
+};
+
+// Google Sign-In
+export const signInWithGoogle = async (): Promise<{ success: boolean; user?: User; error?: string }> => {
+  if (!auth) {
+    const error = 'Firebase Auth not initialized';
+    console.error('❌', error);
+    return { success: false, error };
+  }
+
+  try {
+    console.log('🔐 Signing in with Google...');
+    
+    const provider = new GoogleAuthProvider();
+    const userCredential = await signInWithPopup(auth, provider);
+    const user = userCredential.user;
+    
+    console.log('✅ Google sign-in successful', { uid: user.uid, email: user.email });
+    return { success: true, user };
+  } catch (error: any) {
+    console.error('❌ Google sign-in failed:', error);
+    
+    let errorMessage = 'Failed to sign in with Google';
+    
+    switch (error.code) {
+      case 'auth/popup-closed-by-user':
+        errorMessage = 'Sign-in popup was closed';
+        break;
+      case 'auth/popup-blocked':
+        errorMessage = 'Sign-in popup was blocked by browser';
+        break;
+      case 'auth/cancelled-popup-request':
+        errorMessage = 'Sign-in was cancelled';
+        break;
+      case 'auth/network-request-failed':
+        errorMessage = 'Network error. Please check your internet connection';
+        break;
+      case 'auth/invalid-credential':
+        errorMessage = 'Invalid Google credentials';
+        break;
+      default:
+        errorMessage = error.message || 'Unknown error occurred during Google sign-in';
+        console.error('🔍 Unhandled Google auth error code:', error.code, error.message);
     }
     
     return { success: false, error: errorMessage };

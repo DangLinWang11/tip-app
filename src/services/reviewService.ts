@@ -1,7 +1,58 @@
-import { collection, addDoc, serverTimestamp, getDocs, query, orderBy, limit, where, doc, getDoc } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, getDocs, query, orderBy, limit, where, doc, getDoc, updateDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage, getUserProfile, getCurrentUser, updateUserStats } from '../lib/firebase';
 import { getAvatarUrl } from '../utils/avatarUtils';
+
+// Category weights for quality score calculation
+const CATEGORY_WEIGHTS: Record<string, number> = {
+  // Main dishes
+  'entrees': 1.0,
+  'main course': 1.0,
+  'mains': 1.0,
+  'entree': 1.0,
+  'main': 1.0,
+  
+  // Starters
+  'appetizers': 0.7,
+  'starters': 0.7,
+  'small plates': 0.7,
+  'appetizer': 0.7,
+  'starter': 0.7,
+  
+  // Sides and lighter fare
+  'sides': 0.5,
+  'side': 0.5,
+  'salads': 0.6,
+  'salad': 0.6,
+  'soups': 0.6,
+  'soup': 0.6,
+  
+  // Desserts
+  'desserts': 0.4,
+  'dessert': 0.4,
+  'sweets': 0.4,
+  'sweet': 0.4,
+  
+  // Alcoholic beverages
+  'cocktails': 0.6,
+  'cocktail': 0.6,
+  'wine': 0.6,
+  'wines': 0.6,
+  
+  // Non-alcoholic beverages
+  'beer': 0.5,
+  'beers': 0.5,
+  'coffee': 0.5,
+  'tea': 0.4,
+  'beverages': 0.3,
+  'beverage': 0.3,
+  'drinks': 0.3,
+  'drink': 0.3,
+  
+  // Default categories
+  'custom': 0.8,
+  'other': 0.8
+};
 
 // Photo upload service
 export const uploadPhoto = async (file: File): Promise<string> => {
@@ -75,6 +126,7 @@ const createRestaurantIfNeeded = async (restaurant: any): Promise<string> => {
       address: restaurant.address || 'Address not provided', 
       phone: restaurant.phone || '',
       coordinates: restaurant.coordinates || { latitude: 0, longitude: 0 },
+      qualityScore: null,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     };
@@ -176,6 +228,39 @@ export const saveReview = async (
       console.warn('⚠️ Failed to update user stats (non-critical):', error);
     }
     
+    // Step 5: Recalculate and update restaurant quality score
+    try {
+      console.log('🔄 Recalculating restaurant quality score...');
+      
+      // Fetch all reviews for this restaurant
+      const restaurantReviewsQuery = query(
+        collection(db, 'reviews'), 
+        where('restaurantId', '==', restaurantId)
+      );
+      const restaurantReviewsSnapshot = await getDocs(restaurantReviewsQuery);
+      const restaurantReviews = restaurantReviewsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as FirebaseReview));
+
+      // Convert to ReviewWithCategory format (using default category for now)
+      const reviewsWithCategory: ReviewWithCategory[] = restaurantReviews.map(review => ({
+        ...review,
+        category: 'custom' // Default category since we don't have menu item lookup yet
+      }));
+
+      // Calculate the new quality score
+      const newQualityScore = calculateRestaurantQualityScore(reviewsWithCategory);
+      
+      // Update the restaurant document with the new quality score
+      const restaurantDocRef = doc(db, 'restaurants', restaurantId);
+      await updateDoc(restaurantDocRef, {
+        qualityScore: newQualityScore,
+        updatedAt: serverTimestamp()
+      });
+      
+      console.log('✅ Restaurant quality score updated:', newQualityScore);
+    } catch (error) {
+      console.warn('⚠️ Failed to update restaurant quality score (non-critical):', error);
+    }
+    
     return docRef.id;
   } catch (error) {
     console.error('❌ Error saving review:', error);
@@ -221,6 +306,92 @@ export interface FirebaseReview {
   rewardReason: string;
   pointsEarned: number;
 }
+
+// Extended review interface with category for quality scoring
+export interface ReviewWithCategory extends FirebaseReview {
+  category?: string;
+}
+
+// Calculate restaurant quality score from reviews
+export const calculateRestaurantQualityScore = (reviews: ReviewWithCategory[]): number | null => {
+  // Return null if less than 10 reviews
+  if (reviews.length < 10) {
+    return null;
+  }
+
+  // Extract ratings
+  const ratings = reviews.map(review => review.rating);
+  
+  // Calculate mean and standard deviation
+  const mean = ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length;
+  const variance = ratings.reduce((sum, rating) => sum + Math.pow(rating - mean, 2), 0) / ratings.length;
+  const standardDeviation = Math.sqrt(variance);
+  
+  // Filter out outlier reviews (more than 2 standard deviations from mean)
+  const filteredReviews = reviews.filter(review => 
+    Math.abs(review.rating - mean) <= 2 * standardDeviation
+  );
+  
+  // If too many reviews were filtered out, use original set
+  if (filteredReviews.length < Math.min(5, reviews.length * 0.5)) {
+    filteredReviews.splice(0, filteredReviews.length, ...reviews);
+  }
+  
+  // Calculate weighted ratings
+  let totalWeight = 0;
+  let weightedSum = 0;
+  
+  filteredReviews.forEach(review => {
+    // Get category weight (default to 0.8 for unknown categories)
+    const categoryKey = review.category?.toLowerCase() || 'custom';
+    const weight = CATEGORY_WEIGHTS[categoryKey] || 0.8;
+    
+    totalWeight += weight;
+    weightedSum += review.rating * weight;
+  });
+  
+  // Calculate weighted average
+  const weightedAverage = totalWeight > 0 ? weightedSum / totalWeight : mean;
+  
+  // Apply consistency penalty for high variance
+  const consistencyPenalty = Math.min(0.2, variance / 10); // Max 20% penalty
+  const adjustedAverage = weightedAverage * (1 - consistencyPenalty);
+  
+  // Convert to percentage and round to nearest integer
+  const qualityPercentage = Math.round((adjustedAverage / 10) * 100);
+  
+  // Ensure result is between 0 and 100
+  return Math.max(0, Math.min(100, qualityPercentage));
+};
+
+// Helper function to get restaurant quality score for feed posts
+const getRestaurantQualityScore = async (restaurantId: string | null | undefined): Promise<number | null> => {
+  if (!restaurantId) {
+    return null;
+  }
+
+  try {
+    // Fetch all reviews for this restaurant
+    const reviewsQuery = query(
+      collection(db, 'reviews'), 
+      where('restaurantId', '==', restaurantId)
+    );
+    const reviewsSnapshot = await getDocs(reviewsQuery);
+    const restaurantReviews = reviewsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as FirebaseReview));
+
+    // For now, we'll use reviews without category data since we don't have menu item lookup
+    // In the future, you could fetch menu items to get categories
+    const reviewsWithCategory: ReviewWithCategory[] = restaurantReviews.map(review => ({
+      ...review,
+      category: 'custom' // Default category since we don't have menu item lookup yet
+    }));
+
+    return calculateRestaurantQualityScore(reviewsWithCategory);
+  } catch (error) {
+    console.error('Error fetching restaurant reviews for quality score:', error);
+    return null;
+  }
+};
 
 // Fetch reviews from Firestore
 export const fetchReviews = async (limitCount = 20): Promise<FirebaseReview[]> => {
@@ -364,6 +535,9 @@ export const convertVisitToCarouselFeedPost = async (reviews: FirebaseReview[]) 
   const sortedReviews = [...reviews].sort((a, b) => b.rating - a.rating);
   const mainReview = sortedReviews[0]; // Highest rated dish as main
   
+  // Get restaurant quality score
+  const qualityScore = await getRestaurantQualityScore(mainReview.restaurantId);
+  
   // Get author info from main review - UPDATED with id field
   let author: FeedPostAuthor = {
     id: mainReview.userId || "anonymous", // NEW: Use actual userId as fallback
@@ -430,7 +604,7 @@ export const convertVisitToCarouselFeedPost = async (reviews: FirebaseReview[]) 
     restaurant: {
       name: mainReview.restaurant,
       isVerified: Math.random() > 0.7,
-      qualityScore: Math.floor(Math.random() * 40) + 60
+      qualityScore: qualityScore
     },
     dish: {
       name: reviews.length > 1 ? `${reviews.length} dishes` : mainReview.dish,
@@ -455,6 +629,9 @@ export const convertVisitToCarouselFeedPost = async (reviews: FirebaseReview[]) 
 
 // Convert single review to feed post (for non-visit reviews) - UPDATED with author.id
 export const convertReviewToFeedPost = async (review: FirebaseReview) => {
+  // Get restaurant quality score
+  const qualityScore = await getRestaurantQualityScore(review.restaurantId);
+  
   let author: FeedPostAuthor = {
     id: review.userId || "anonymous", // NEW: Use actual userId as fallback
     name: review.userId || "Anonymous User",
@@ -502,7 +679,7 @@ export const convertReviewToFeedPost = async (review: FirebaseReview) => {
     restaurant: {
       name: review.restaurant,
       isVerified: Math.random() > 0.7,
-      qualityScore: Math.floor(Math.random() * 40) + 60
+      qualityScore: qualityScore
     },
     dish: {
       name: review.dish,
