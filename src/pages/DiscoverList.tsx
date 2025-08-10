@@ -247,19 +247,23 @@ const DiscoverList: React.FC = () => {
               />
               
               {/* Icons */}
-              <div className="flex items-center justify-between w-full px-1 relative z-10">
-                <Store 
-                  size={16} 
-                  className={`transition-colors ${
-                    viewMode === 'restaurant' ? 'text-primary' : 'text-gray-500'
-                  }`} 
-                />
-                <Utensils 
-                  size={16} 
-                  className={`transition-colors ${
-                    viewMode === 'dish' ? 'text-primary' : 'text-gray-500'
-                  }`} 
-                />
+              <div className="flex items-center justify-between w-full relative z-10">
+                <div className="w-8 h-8 flex items-center justify-center">
+                  <Store 
+                    size={16} 
+                    className={`transition-colors ${
+                      viewMode === 'restaurant' ? 'text-primary' : 'text-gray-500'
+                    }`} 
+                  />
+                </div>
+                <div className="w-8 h-8 flex items-center justify-center">
+                  <Utensils 
+                    size={16} 
+                    className={`transition-colors ${
+                      viewMode === 'dish' ? 'text-primary' : 'text-gray-500'
+                    }`} 
+                  />
+                </div>
               </div>
             </div>
           </div>
@@ -344,8 +348,8 @@ const DiscoverList: React.FC = () => {
                   </div>
                   <div className="p-3 flex-1">
                     <div className="flex justify-between items-start">
-                      <h3 className="font-medium truncate flex-1">{restaurant.name}</h3>
-                      <div className="px-2 py-0.5 rounded-full ml-2" style={{ backgroundColor: getQualityColor(restaurant.qualityPercentage) }}>
+                      <h3 className="font-medium truncate flex-1 mr-3">{restaurant.name}</h3>
+                      <div className="px-2 py-0.5 rounded-full flex-shrink-0" style={{ backgroundColor: getQualityColor(restaurant.qualityPercentage) }}>
                         <span className="text-xs font-medium text-white">{restaurant.qualityPercentage}%</span>
                       </div>
                     </div>
