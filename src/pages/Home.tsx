@@ -167,22 +167,19 @@ const Home: React.FC = () => {
           </div>
           <div className="flex items-center">
             <div 
-              className="bg-white rounded-2xl shadow-sm border border-gray-100 px-4 py-2 mr-3 cursor-pointer hover:shadow-md transition-shadow flex items-center"
+              className="bg-white rounded-full shadow-sm border border-gray-100 p-2 mr-3 cursor-pointer hover:shadow-md transition-shadow flex items-center justify-center"
               onClick={() => navigate('/rewards')}
             >
-              <span className="font-bold text-sm mr-2" style={{ color: '#FFD700' }}>
-                {userStats.pointsEarned}
-              </span>
               <div 
-                className="w-5 h-5 rounded-full flex items-center justify-center"
+                className="w-6 h-6 rounded-full flex items-center justify-center"
                 style={{ backgroundColor: '#FFD700' }}
               >
                 <div 
-                  className="w-3.5 h-3.5 rounded-full flex items-center justify-center"
+                  className="w-4 h-4 rounded-full flex items-center justify-center"
                   style={{ backgroundColor: '#F59E0B' }}
                 >
                   <Star 
-                    size={8} 
+                    size={10} 
                     style={{ 
                       color: '#FFD700', 
                       fill: '#FFD700'

@@ -68,15 +68,6 @@ const ExpandedMapModal: React.FC<ExpandedMapModalProps> = ({
           <UserJourneyMap className="w-full h-full" />
         </div>
 
-        {/* Map controls overlay */}
-        <div className="absolute bottom-12 left-4 bg-white/90 backdrop-blur-sm rounded-lg p-3 shadow-lg">
-          <div className="flex items-center text-sm text-gray-600">
-            <div className="flex items-center">
-              <div className="w-3 h-3 bg-red-500 rounded-full mr-2"></div>
-              <span>Visited Restaurants</span>
-            </div>
-          </div>
-        </div>
 
         {/* Zoom hint */}
         <div className="absolute bottom-8 right-4 bg-white/90 backdrop-blur-sm rounded-lg p-2 shadow-lg">

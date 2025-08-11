@@ -58,7 +58,7 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({ className = '' }) => {
 
   // Convert UserVisitedRestaurant to format expected by RestaurantMap
   const mapRestaurants = visitedRestaurants.map(restaurant => ({
-    id: parseInt(restaurant.id) || Math.random(), // RestaurantMap expects number
+    id: restaurant.id,
     name: restaurant.name,
     qualityPercentage: 0,
     location: restaurant.location,
@@ -127,7 +127,7 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({ className = '' }) => {
   // Main map display
   return (
     <>
-      <div className={className}>
+      <div className={`${className} relative`}>
         <RestaurantMap
           mapType="restaurant"
           restaurants={mapRestaurants}
@@ -135,6 +135,21 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({ className = '' }) => {
           showQualityPercentages={false}
           className="w-full h-full"
         />
+        
+        {/* Legend Overlay */}
+        <div className="absolute bottom-4 left-4 z-10">
+          <div className="bg-white rounded-lg shadow-lg px-4 py-3 flex items-center space-x-3">
+            {/* Red Pin Icon matching RestaurantMap pins with white circle */}
+            <div className="w-6 h-7 flex items-center justify-center">
+              <svg width="24" height="30" viewBox="0 0 40 50" xmlns="http://www.w3.org/2000/svg">
+                <path d="M20 2C11.16 2 4 9.16 4 18c0 13.5 16 28 16 28s16-14.5 16-28c0-8.84-7.16-16-16-16z" 
+                      fill="#ff3131"/>
+                <circle cx="20" cy="18" r="8" fill="white"/>
+              </svg>
+            </div>
+            <span className="text-gray-800 font-medium text-sm">Visited Restaurants</span>
+          </div>
+        </div>
       </div>
 
       {/* Restaurant Details Modal */}

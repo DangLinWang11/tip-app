@@ -157,22 +157,19 @@ const FoodMap: React.FC = () => {
           </div>
           <div className="flex items-center">
             <div 
-              className="bg-white rounded-2xl shadow-sm border border-gray-100 px-4 py-2 cursor-pointer hover:shadow-md transition-shadow flex items-center"
+              className="bg-white rounded-full shadow-sm border border-gray-100 p-2 cursor-pointer hover:shadow-md transition-shadow flex items-center justify-center"
               onClick={() => navigate('/rewards')}
             >
-              <span className="font-bold text-sm mr-2" style={{ color: '#FFD700' }}>
-                {userStats.pointsEarned}
-              </span>
               <div 
-                className="w-5 h-5 rounded-full flex items-center justify-center"
+                className="w-6 h-6 rounded-full flex items-center justify-center"
                 style={{ backgroundColor: '#FFD700' }}
               >
                 <div 
-                  className="w-3.5 h-3.5 rounded-full flex items-center justify-center"
+                  className="w-4 h-4 rounded-full flex items-center justify-center"
                   style={{ backgroundColor: '#F59E0B' }}
                 >
                   <Star 
-                    size={8} 
+                    size={10} 
                     style={{ 
                       color: '#FFD700', 
                       fill: '#FFD700'
@@ -276,26 +273,6 @@ const FoodMap: React.FC = () => {
                       </div>
                       <div className="text-right flex flex-col items-end">
                         <p className="text-sm text-gray-500">{visit.review?.date || 'Recently'}</p>
-                        <div className="bg-primary text-white px-2 py-1 rounded-full text-xs font-semibold mt-1 flex items-center">
-                          +200<div 
-  className="inline-flex w-5 h-5 rounded-full ml-1 items-center justify-center"
-  style={{ backgroundColor: '#FFD700' }}
->
-  <div 
-    className="w-3.5 h-3.5 rounded-full flex items-center justify-center"
-    style={{ backgroundColor: '#F59E0B' }}
-  >
-    <Star 
-      size={8} 
-      style={{ 
-        color: '#FFD700', 
-        fill: '#FFD700'
-      }} 
-    />
-  </div>
-</div>
-                        </div>
-                        <p className="text-xs text-gray-400 mt-1">Review bonus</p>
                       </div>
                     </div>
 

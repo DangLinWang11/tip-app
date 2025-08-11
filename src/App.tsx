@@ -12,7 +12,7 @@ import RecentActivity from './pages/RecentActivity';
 import EditProfile from './pages/EditProfile';
 import ListDetail from './pages/ListDetail';
 import ChangePassword from './pages/ChangePassword';
-import Rewards from './pages/Rewards';
+import RewardsComingSoon from './pages/RewardsComingSoon';
 import Onboarding from './pages/Onboarding';
 import RestaurantDetail from './pages/RestaurantDetail';
 import MenuDetail from './pages/MenuDetail';
@@ -115,7 +115,7 @@ export function App() {
             <Route path="recent-activity" element={<RecentActivity />} />
             <Route path="profile" element={<Profile />} />
             <Route path="user/:username" element={<PublicProfile />} />
-            <Route path="rewards" element={<Rewards />} />
+            <Route path="rewards" element={<RewardsComingSoon />} />
             <Route path="list/:id" element={<ListDetail />} />
             <Route path="/food-map" element={<FoodMap />} />
             <Route path="/list-view" element={<FoodMap />} />
