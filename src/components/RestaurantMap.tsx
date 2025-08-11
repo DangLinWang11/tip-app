@@ -60,6 +60,7 @@ interface MapProps {
   userLocation?: {lat: number, lng: number} | null;
   onRestaurantClick?: (id: string) => void;
   onDishClick?: (id: string) => void;
+  showQualityPercentages?: boolean;
 }
 
 const getQualityColor = (percentage: number): string => {
@@ -105,7 +106,7 @@ const createDishPinIcon = (rating: string, backgroundColor: string): string => {
   return 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg);
 };
 
-const Map: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishes, userLocation, onRestaurantClick, onDishClick }) => {
+const Map: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishes, userLocation, onRestaurantClick, onDishClick, showQualityPercentages = true }) => {
   const ref = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<google.maps.Map>();
   const [locationError, setLocationError] = useState<string>('');
@@ -192,7 +193,9 @@ const Map: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishes, u
             position: restaurant.location,
             map,
             icon: {
-              url: createPinIcon(`${restaurant.qualityPercentage}%`, qualityColor),
+              url: showQualityPercentages === false 
+                ? createPinIcon('', '#ff3131')
+                : createPinIcon(`${restaurant.qualityPercentage}%`, qualityColor),
               scaledSize: new window.google.maps.Size(40, 50),
               anchor: new window.google.maps.Point(20, 50)
             },
@@ -207,9 +210,9 @@ const Map: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishes, u
                 <div style="padding: 8px;">
                   <h3 style="margin: 0 0 8px 0; font-size: 16px; font-weight: 600; cursor: pointer; color: #0066cc;" onclick="window.onRestaurantClick('${restaurant.id}')">${restaurant.name}</h3>
                   <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
-                    <span style="background: ${qualityColor}; color: white; padding: 2px 8px; border-radius: 12px; font-size: 12px; font-weight: bold;">
+                    ${showQualityPercentages !== false ? `<span style="background: ${qualityColor}; color: white; padding: 2px 8px; border-radius: 12px; font-size: 12px; font-weight: bold;">
                       ${restaurant.qualityPercentage}%
-                    </span>
+                    </span>` : ''}
                     <span style="color: #666; font-size: 14px;">${restaurant.cuisine} ${getCuisineIcon(restaurant.cuisine)}</span>
                   </div>
                   <div style="display: flex; align-items: center; gap: 8px; color: #666; font-size: 14px;">
@@ -335,6 +338,7 @@ interface RestaurantMapProps {
   userLocation?: {lat: number, lng: number} | null;
   onRestaurantClick?: (id: string) => void;
   onDishClick?: (id: string) => void;
+  showQualityPercentages?: boolean;
 }
 
 // Fetch top dish from each restaurant from Firebase menuItems collection
@@ -434,7 +438,8 @@ const RestaurantMap: React.FC<RestaurantMapProps> = ({
   restaurants = [],
   userLocation,
   onRestaurantClick,
-  onDishClick 
+  onDishClick,
+  showQualityPercentages = true
 }) => {
   const [topDishes, setTopDishes] = useState<Dish[]>([]);
   const sarasotaCenter = {
@@ -465,6 +470,7 @@ const RestaurantMap: React.FC<RestaurantMapProps> = ({
             userLocation={userLocation}
             onRestaurantClick={onRestaurantClick}
             onDishClick={onDishClick}
+            showQualityPercentages={showQualityPercentages}
           />
         );
     }

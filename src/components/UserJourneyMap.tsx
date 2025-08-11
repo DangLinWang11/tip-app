@@ -60,7 +60,7 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({ className = '' }) => {
   const mapRestaurants = visitedRestaurants.map(restaurant => ({
     id: parseInt(restaurant.id) || Math.random(), // RestaurantMap expects number
     name: restaurant.name,
-    qualityPercentage: Math.round((restaurant.averageRating / 10) * 100), // Convert 0-10 to percentage
+    qualityPercentage: 0,
     location: restaurant.location,
     cuisine: restaurant.cuisine,
     rating: restaurant.averageRating,
@@ -132,6 +132,7 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({ className = '' }) => {
           mapType="restaurant"
           restaurants={mapRestaurants}
           onRestaurantClick={handleRestaurantClick}
+          showQualityPercentages={false}
           className="w-full h-full"
         />
       </div>
