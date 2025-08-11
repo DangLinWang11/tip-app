@@ -69,7 +69,7 @@ const ExpandedMapModal: React.FC<ExpandedMapModalProps> = ({
         </div>
 
         {/* Map controls overlay */}
-        <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-sm rounded-lg p-3 shadow-lg">
+        <div className="absolute bottom-12 left-4 bg-white/90 backdrop-blur-sm rounded-lg p-3 shadow-lg">
           <div className="flex items-center space-x-3 text-sm text-gray-600">
             <div className="flex items-center">
               <div className="w-3 h-3 bg-red-500 rounded-full mr-2"></div>
@@ -81,7 +81,7 @@ const ExpandedMapModal: React.FC<ExpandedMapModalProps> = ({
         </div>
 
         {/* Zoom hint */}
-        <div className="absolute bottom-4 right-4 bg-white/90 backdrop-blur-sm rounded-lg p-2 shadow-lg">
+        <div className="absolute bottom-8 right-4 bg-white/90 backdrop-blur-sm rounded-lg p-2 shadow-lg">
           <p className="text-xs text-gray-500">Use scroll wheel to zoom</p>
         </div>
       </div>
