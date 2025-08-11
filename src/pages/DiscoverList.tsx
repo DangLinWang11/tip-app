@@ -348,7 +348,7 @@ const DiscoverList: React.FC = () => {
                   </div>
                   <div className="p-3 flex-1">
                     <div className="flex justify-between items-start">
-                      <h3 className="font-medium truncate flex-1 mr-3">{restaurant.name}</h3>
+                      <h3 className="font-medium truncate max-w-[140px] mr-4">{restaurant.name}</h3>
                       <div className="px-2 py-0.5 rounded-full flex-shrink-0" style={{ backgroundColor: getQualityColor(restaurant.qualityPercentage) }}>
                         <span className="text-xs font-medium text-white">{restaurant.qualityPercentage}%</span>
                       </div>
@@ -388,7 +388,7 @@ const DiscoverList: React.FC = () => {
                   <div className="p-2 flex-1 flex flex-col justify-between">
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
-                        <h3 className="font-medium truncate text-sm">{dish.name}</h3>
+                        <h3 className="font-medium truncate text-sm max-w-[120px]">{dish.name}</h3>
                         <p className="text-xs text-gray-600">{dish.restaurantName}</p>
                       </div>
                       <div className="ml-2 text-right flex flex-col items-end">
