@@ -43,10 +43,10 @@ const ExpandedMapModal: React.FC<ExpandedMapModalProps> = ({
 
   return (
     <div 
-      className="fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center p-2"
       onClick={handleBackdropClick}
     >
-      <div className="bg-white rounded-xl w-full h-full max-w-6xl max-h-[90vh] overflow-hidden shadow-2xl relative">
+      <div className="bg-white rounded-xl w-full h-full max-w-6xl max-h-[85vh] overflow-hidden shadow-2xl relative">
         {/* Header with close button */}
         <div className="absolute top-0 left-0 right-0 z-10 bg-white/95 backdrop-blur-sm border-b border-gray-200 p-4 flex items-center justify-between">
           <div>
