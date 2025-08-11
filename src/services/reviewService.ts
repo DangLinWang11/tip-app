@@ -312,6 +312,167 @@ export interface ReviewWithCategory extends FirebaseReview {
   category?: string;
 }
 
+// NEW: Interface for user's visited restaurants
+export interface UserVisitedRestaurant {
+  id: string;
+  name: string;
+  location: {
+    lat: number;
+    lng: number;
+  };
+  cuisine: string;
+  visitCount: number;
+  lastVisit: string;
+  totalReviews: number;
+  averageRating: number;
+}
+
+// NEW: Get restaurants the user has visited
+export const getUserVisitedRestaurants = async (): Promise<UserVisitedRestaurant[]> => {
+  try {
+    const currentUser = getCurrentUser();
+    if (!currentUser) {
+      console.log('No authenticated user found for visited restaurants');
+      return [];
+    }
+
+    console.log('🗺️ Fetching user visited restaurants...');
+
+    // Get all user's reviews
+    const userReviews = await fetchUserReviews(200); // Get more reviews for complete data
+    
+    if (userReviews.length === 0) {
+      console.log('👤 User has no reviews yet');
+      return [];
+    }
+
+    // Group reviews by restaurant
+    const restaurantGroups = new Map<string, FirebaseReview[]>();
+    
+    userReviews.forEach(review => {
+      const restaurantKey = review.restaurantId || review.restaurant;
+      if (!restaurantGroups.has(restaurantKey)) {
+        restaurantGroups.set(restaurantKey, []);
+      }
+      restaurantGroups.get(restaurantKey)!.push(review);
+    });
+
+    console.log(`🏪 User has visited ${restaurantGroups.size} unique restaurants`);
+
+    // Convert to UserVisitedRestaurant format
+    const visitedRestaurants: UserVisitedRestaurant[] = [];
+
+    for (const [restaurantKey, reviews] of restaurantGroups) {
+      const firstReview = reviews[0];
+      let restaurantData: any = null;
+
+      // Try to get restaurant data from Firebase if we have an ID
+      if (firstReview.restaurantId) {
+        try {
+          const restaurantDoc = await getDoc(doc(db, 'restaurants', firstReview.restaurantId));
+          if (restaurantDoc.exists()) {
+            restaurantData = { id: restaurantDoc.id, ...restaurantDoc.data() };
+          }
+        } catch (error) {
+          console.warn(`⚠️ Could not fetch restaurant data for ID ${firstReview.restaurantId}:`, error);
+        }
+      }
+
+      // Calculate stats from user's reviews at this restaurant
+      const visitCount = reviews.length;
+      const totalRating = reviews.reduce((sum, review) => sum + review.rating, 0);
+      const averageRating = totalRating / visitCount;
+      const lastVisit = reviews.sort((a, b) => 
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      )[0].createdAt;
+
+      // Create visited restaurant object
+      const visitedRestaurant: UserVisitedRestaurant = {
+        id: firstReview.restaurantId || `manual_${restaurantKey}`,
+        name: restaurantData?.name || firstReview.restaurant,
+        location: {
+          lat: restaurantData?.coordinates?.latitude || 27.3364, // Default to Sarasota center
+          lng: restaurantData?.coordinates?.longitude || -82.5307
+        },
+        cuisine: restaurantData?.cuisine || 'Restaurant',
+        visitCount,
+        lastVisit,
+        totalReviews: visitCount,
+        averageRating: Math.round(averageRating * 10) / 10 // Round to 1 decimal
+      };
+
+      visitedRestaurants.push(visitedRestaurant);
+    }
+
+    // Sort by last visit date (most recent first)
+    visitedRestaurants.sort((a, b) => 
+      new Date(b.lastVisit).getTime() - new Date(a.lastVisit).getTime()
+    );
+
+    console.log(`✅ Processed ${visitedRestaurants.length} visited restaurants for user journey map`);
+    return visitedRestaurants;
+
+  } catch (error) {
+    console.error('❌ Error fetching user visited restaurants:', error);
+    return [];
+  }
+};
+
+// NEW: Get user's reviews for a specific restaurant
+export const getUserRestaurantReviews = async (restaurantId: string): Promise<FirebaseReview[]> => {
+  try {
+    const currentUser = getCurrentUser();
+    if (!currentUser) {
+      console.log('No authenticated user found for restaurant reviews');
+      return [];
+    }
+
+    console.log(`🍽️ Fetching user reviews for restaurant: ${restaurantId}`);
+
+    // Query user's reviews for this specific restaurant
+    const reviewsQuery = query(
+      collection(db, 'reviews'),
+      where('userId', '==', currentUser.uid),
+      where('restaurantId', '==', restaurantId),
+      orderBy('timestamp', 'desc')
+    );
+
+    const reviewsSnapshot = await getDocs(reviewsQuery);
+    const reviews: FirebaseReview[] = [];
+
+    reviewsSnapshot.forEach((doc) => {
+      const data = doc.data();
+      reviews.push({
+        id: doc.id,
+        ...data
+      } as FirebaseReview);
+    });
+
+    console.log(`✅ Found ${reviews.length} user reviews for restaurant ${restaurantId}`);
+    return reviews;
+
+  } catch (error) {
+    console.error(`❌ Error fetching user restaurant reviews for ${restaurantId}:`, error);
+    
+    // Fallback: try to get reviews by restaurant name if ID query fails
+    try {
+      console.log('🔄 Trying fallback query by restaurant name...');
+      
+      const userReviews = await fetchUserReviews(100);
+      const restaurantReviews = userReviews.filter(review => 
+        review.restaurantId === restaurantId || review.restaurant.includes(restaurantId)
+      );
+      
+      console.log(`✅ Fallback found ${restaurantReviews.length} reviews`);
+      return restaurantReviews;
+      
+    } catch (fallbackError) {
+      console.error('❌ Fallback query also failed:', fallbackError);
+      return [];
+    }
+  }
+};
+
 // Calculate restaurant quality score from reviews
 export const calculateRestaurantQualityScore = (reviews: ReviewWithCategory[]): number | null => {
   // Extract ratings

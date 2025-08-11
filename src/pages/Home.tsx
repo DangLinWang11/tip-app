@@ -5,6 +5,8 @@ import HamburgerMenu from '../components/HamburgerMenu';
 import FeedPost from '../components/FeedPost';
 import { fetchReviews, convertReviewsToFeedPosts, fetchUserReviews, FirebaseReview } from '../services/reviewService';
 import { getUserProfile, getCurrentUser } from '../lib/firebase';
+import UserJourneyMap from '../components/UserJourneyMap';
+import ExpandedMapModal from '../components/ExpandedMapModal';
 
 const Home: React.FC = () => {
   const navigate = useNavigate();
@@ -15,6 +17,7 @@ const Home: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [profileLoading, setProfileLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showExpandedMap, setShowExpandedMap] = useState(false);
   
   // Fetch user profile on component mount
   useEffect(() => {
@@ -198,16 +201,15 @@ const Home: React.FC = () => {
         {/* Your Food Journey Section */}
         <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
           <h2 className="text-lg font-bold text-black mb-4">Your Food Journey</h2>
-          <div className="h-64 bg-gray-100 rounded-lg flex items-center justify-center mb-4">
-            <div className="text-center">
-              <MapIcon size={48} className="text-gray-400 mx-auto mb-2" />
-              <p className="text-gray-600 font-medium">Interactive map coming soon!</p>
-              <p className="text-sm text-gray-500">See all your visited restaurants on a map</p>
-            </div>
+          <div 
+            className="h-64 rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+            onClick={() => setShowExpandedMap(true)}
+          >
+            <UserJourneyMap className="h-64 rounded-lg pointer-events-none" />
           </div>
 
           {/* List View Button */}
-          <div className="text-center">
+          <div className="text-center mt-4">
             <div 
               className="inline-flex items-center bg-white rounded-2xl shadow-sm border border-gray-100 px-6 py-3 cursor-pointer hover:shadow-md transition-shadow"
               onClick={() => navigate('/list-view')}
@@ -269,6 +271,12 @@ const Home: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* Expanded Map Modal */}
+      <ExpandedMapModal 
+        isOpen={showExpandedMap}
+        onClose={() => setShowExpandedMap(false)}
+      />
     </div>
   );
 };
