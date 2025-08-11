@@ -43,7 +43,7 @@ const ExpandedMapModal: React.FC<ExpandedMapModalProps> = ({
 
   return (
     <div 
-      className="fixed inset-0 bg-black bg-opacity-75 z-50 flex items-start justify-center pt-8 p-2"
+      className="fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center py-12 p-2"
       onClick={handleBackdropClick}
     >
       <div className="bg-white rounded-xl w-full h-full max-w-6xl max-h-[75vh] overflow-hidden shadow-2xl relative">
@@ -70,13 +70,11 @@ const ExpandedMapModal: React.FC<ExpandedMapModalProps> = ({
 
         {/* Map controls overlay */}
         <div className="absolute bottom-12 left-4 bg-white/90 backdrop-blur-sm rounded-lg p-3 shadow-lg">
-          <div className="flex items-center space-x-3 text-sm text-gray-600">
+          <div className="flex items-center text-sm text-gray-600">
             <div className="flex items-center">
               <div className="w-3 h-3 bg-red-500 rounded-full mr-2"></div>
               <span>Visited Restaurants</span>
             </div>
-            <div className="text-gray-400">•</div>
-            <span>Click pins for details</span>
           </div>
         </div>
 
