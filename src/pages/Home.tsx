@@ -197,7 +197,7 @@ const Home: React.FC = () => {
 
         {/* Your Food Journey Section */}
         <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
-          <h2 className="text-lg font-bold text-black mb-4">Your Food Journey</h2>
+          <h2 className="text-lg font-bold text-primary mb-4">Your Food Journey</h2>
           <div 
             className="h-64 rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
             onClick={() => setShowExpandedMap(true)}
@@ -212,7 +212,7 @@ const Home: React.FC = () => {
               onClick={() => navigate('/list-view')}
             >
               <MapPinIcon size={20} className="text-secondary mr-3" />
-              <span className="text-primary font-medium">Recent Visits</span>
+              <span className="text-black font-medium">Recent Visits</span>
             </div>
           </div>
         </div>
@@ -223,7 +223,7 @@ const Home: React.FC = () => {
           onClick={() => navigate('/recent-activity')}
         >
           <div className="flex items-center">
-            <div className="text-lg font-bold text-black">Recent Activity from Friends</div>
+            <div className="text-lg font-bold text-primary">Recent Activity from Friends</div>
           </div>
         </div>
 

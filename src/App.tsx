@@ -18,6 +18,7 @@ import RestaurantDetail from './pages/RestaurantDetail';
 import MenuDetail from './pages/MenuDetail';
 import FoodMap from './pages/FoodMap';
 import AdminUpload from './pages/AdminUpload';
+import PostDetail from './pages/PostDetail';
 import { LocationProvider } from './contexts/LocationContext';
 import { useFeature } from './utils/features';
 
@@ -125,6 +126,7 @@ export function App() {
           <Route path="/restaurant/:id" element={<RestaurantDetail />} />
           <Route path="/restaurant/:id/menu" element={<MenuDetail />} />
           <Route path="/dish/:id" element={<MenuDetail />} />
+          <Route path="/post/:postId" element={<PostDetail />} />
           <Route path="/admin-upload" element={<AdminUpload />} />
         </Routes>
       </Router>

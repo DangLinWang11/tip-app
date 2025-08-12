@@ -172,7 +172,7 @@ const UserRestaurantModal: React.FC<UserRestaurantModalProps> = ({
                               <p className="text-sm text-gray-600 mt-1 line-clamp-2">
                                 {review.personalNote}
                                 {review.rating && (
-                                  <span className="text-red-600"> {review.rating}/10</span>
+                                  <span className="text-primary text-lg font-bold"> {review.rating}</span>
                                 )}
                               </p>
                             )}

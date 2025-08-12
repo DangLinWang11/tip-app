@@ -152,7 +152,7 @@ const FoodMap: React.FC = () => {
             </button>
             <MapPinIcon size={28} className="text-secondary mr-3" />
             <div>
-              <h1 className="text-2xl font-bold text-primary">Recent Visits</h1>
+              <h1 className="text-2xl font-bold text-black">Recent Visits</h1>
             </div>
           </div>
           <div className="flex items-center">
