@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { MapIcon, TrendingUpIcon, StarIcon, ClockIcon, MessageCircleIcon, PlusIcon, MapPinIcon, ArrowLeft, Star } from 'lucide-react';
+import { MapIcon, TrendingUpIcon, StarIcon, ClockIcon, MessageCircleIcon, PlusIcon, MapPinIcon, ArrowLeft, Star, X, Edit2 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
-import { fetchUserReviews, convertUserReviewsToFeedPosts, FirebaseReview } from '../services/reviewService';
+import { fetchUserReviews, convertUserReviewsToFeedPosts, FirebaseReview, PersonalNote, addPersonalNote, updatePersonalNote, deletePersonalNote } from '../services/reviewService';
 import { getUserProfile, getCurrentUser } from '../lib/firebase';
 
 const FoodMap: React.FC = () => {
@@ -10,39 +10,41 @@ const FoodMap: React.FC = () => {
   const [userProfile, setUserProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  
+  const [editingNote, setEditingNote] = useState<{reviewId: string, noteId: string} | null>(null);
+
+  // Load user data function
+  const loadUserData = async () => {
+    try {
+      setLoading(true);
+      const currentUser = getCurrentUser();
+
+      if (!currentUser) {
+        console.log('No authenticated user found');
+        setUserReviews([]);
+        setUserProfile(null);
+        return;
+      }
+
+      // Get user profile
+      const profileResult = await getUserProfile();
+      if (profileResult.success && profileResult.profile) {
+        setUserProfile(profileResult.profile);
+      }
+
+      // Get current user's reviews only
+      const userReviewsData = await fetchUserReviews(50);
+      const userPosts = await convertUserReviewsToFeedPosts(userReviewsData);
+      setUserReviews(userPosts);
+    } catch (err) {
+      console.error('Failed to load user data:', err);
+      setUserReviews([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Load user data on component mount
   useEffect(() => {
-    const loadUserData = async () => {
-      try {
-        setLoading(true);
-        const currentUser = getCurrentUser();
-        
-        if (!currentUser) {
-          console.log('No authenticated user found');
-          setUserReviews([]);
-          setUserProfile(null);
-          return;
-        }
-
-        // Get user profile
-        const profileResult = await getUserProfile();
-        if (profileResult.success && profileResult.profile) {
-          setUserProfile(profileResult.profile);
-        }
-        
-        // Get current user's reviews only
-        const userReviewsData = await fetchUserReviews(50);
-        const userPosts = await convertUserReviewsToFeedPosts(userReviewsData);
-        setUserReviews(userPosts);
-      } catch (err) {
-        console.error('Failed to load user data:', err);
-        setUserReviews([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     loadUserData();
   }, []);
   
@@ -242,7 +244,9 @@ const FoodMap: React.FC = () => {
                     </button>
                   </div>
                 ) : (
-                  filteredReviews.map((visit, index) => (
+                  filteredReviews.map((visit, index) => {
+                  console.log('visit object:', visit);
+                  return (
                   <div 
                     key={visit.id || index}
                     onClick={() => handleVisitClick(index)}
@@ -255,10 +259,10 @@ const FoodMap: React.FC = () => {
                             <span className="text-white font-bold text-sm">{visit.dish?.rating || 0}</span>
                           </div>
                           <div>
-                            <h3 className="font-bold text-black">{visit.restaurant?.name || 'Unknown Restaurant'}</h3>
+                            <h3 className="font-bold text-black">{visit.dish?.name || 'Unknown Dish'}</h3>
                             <p className="text-sm text-gray-600 flex items-center">
                               <MapPinIcon size={14} className="text-red-500 mr-1" />
-                              {visit.location || 'Unknown Location'} ✓
+                              {visit.restaurant?.name || 'Unknown Restaurant'}
                             </p>
                           </div>
                         </div>
@@ -276,22 +280,221 @@ const FoodMap: React.FC = () => {
                       </div>
                     </div>
 
-                    {/* Personal Note */}
+                    {/* Personal Notes */}
                     <div className="ml-11">
-                      <div className="space-y-2">
-                        <p className="text-xs text-gray-500">Personal Comment:</p>
-                        <div className="flex items-center bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
-                          <input
-                            type="text"
-                            placeholder="Add personal note..."
-                            className="flex-1 bg-transparent text-sm text-gray-600 placeholder-gray-400 border-none outline-none"
-                          />
-                          <PlusIcon size={16} className="text-gray-400" />
+                      {visit.isCarousel ? (
+                        // Carousel posts: separate notes section for each dish
+                        <div className="space-y-4">
+                          {visit.carouselItems && visit.carouselItems.map((carouselItem: any, itemIndex: number) => (
+                            <div key={carouselItem.id || itemIndex} className="space-y-2">
+                              {/* Existing Notes for this dish */}
+                              {carouselItem.personalNotes && carouselItem.personalNotes.length > 0 && (
+                                <div className="space-y-2">
+                                  {carouselItem.personalNotes.map((note: PersonalNote) => (
+                                    <div key={note.id} className="flex items-center justify-between bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
+                                      {editingNote?.reviewId === carouselItem.id && editingNote?.noteId === note.id ? (
+                                        <input
+                                          type="text"
+                                          defaultValue={note.text}
+                                          autoFocus
+                                          className="flex-1 bg-transparent text-sm text-gray-600 border-none outline-none"
+                                          onBlur={async (e) => {
+                                            try {
+                                              if (e.target.value.trim() !== note.text) {
+                                                await updatePersonalNote(carouselItem.id, note.id, e.target.value);
+                                                await loadUserData();
+                                              }
+                                            } catch (error) {
+                                              console.error('Failed to update note:', error);
+                                            }
+                                            setEditingNote(null);
+                                          }}
+                                          onKeyDown={(e) => {
+                                            if (e.key === 'Enter') {
+                                              e.currentTarget.blur();
+                                            }
+                                            if (e.key === 'Escape') {
+                                              setEditingNote(null);
+                                            }
+                                          }}
+                                        />
+                                      ) : (
+                                        <>
+                                          <div className="flex-1">
+                                            <span className="text-sm text-gray-600 italic">"{note.text}"</span>
+                                            <span className="text-xs text-gray-400 ml-2">
+                                              - {new Date(note.timestamp instanceof Date ? note.timestamp : note.timestamp.seconds ? note.timestamp.seconds * 1000 : note.timestamp).toLocaleDateString('en-US', {
+                                                month: 'short',
+                                                day: 'numeric',
+                                                year: 'numeric'
+                                              })}
+                                            </span>
+                                          </div>
+                                          <div className="flex items-center space-x-1 ml-2">
+                                            <button
+                                              onClick={() => setEditingNote({ reviewId: carouselItem.id, noteId: note.id })}
+                                              className="text-gray-400 hover:text-gray-600 transition-colors"
+                                            >
+                                              <Edit2 size={14} />
+                                            </button>
+                                            <button
+                                              onClick={async () => {
+                                                try {
+                                                  await deletePersonalNote(carouselItem.id, note.id);
+                                                  await loadUserData();
+                                                } catch (error) {
+                                                  console.error('Failed to delete note:', error);
+                                                }
+                                              }}
+                                              className="text-gray-400 hover:text-red-600 transition-colors"
+                                            >
+                                              <X size={14} />
+                                            </button>
+                                          </div>
+                                        </>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+
+                              {/* Add New Note for this dish */}
+                              <div className="flex items-center bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
+                                <input
+                                  type="text"
+                                  placeholder="Add personal note..."
+                                  className="flex-1 bg-transparent text-sm text-gray-600 placeholder-gray-400 border-none outline-none"
+                                  onBlur={async (e) => {
+                                    const noteText = e.target.value.trim();
+                                    if (noteText) {
+                                      try {
+                                        await addPersonalNote(carouselItem.id, noteText);
+                                        await loadUserData();
+                                        e.target.value = '';
+                                      } catch (error) {
+                                        console.error('Failed to add note:', error);
+                                      }
+                                    }
+                                  }}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                      e.currentTarget.blur();
+                                    }
+                                  }}
+                                />
+                                <PlusIcon size={16} className="text-gray-400" />
+                              </div>
+                            </div>
+                          ))}
                         </div>
-                      </div>
+                      ) : (
+                        // Non-carousel posts: single notes section
+                        <div className="space-y-2">
+                          <p className="text-xs text-gray-500">Personal Notes:</p>
+
+                          {/* Existing Notes */}
+                          {visit.personalNotes && visit.personalNotes.length > 0 && (
+                            <div className="space-y-2">
+                              {visit.personalNotes.map((note: PersonalNote) => (
+                                <div key={note.id} className="flex items-center justify-between bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
+                                  {editingNote?.reviewId === visit.dishId && editingNote?.noteId === note.id ? (
+                                    <input
+                                      type="text"
+                                      defaultValue={note.text}
+                                      autoFocus
+                                      className="flex-1 bg-transparent text-sm text-gray-600 border-none outline-none"
+                                      onBlur={async (e) => {
+                                        try {
+                                          if (e.target.value.trim() !== note.text) {
+                                            await updatePersonalNote(visit.dishId, note.id, e.target.value);
+                                            await loadUserData();
+                                          }
+                                        } catch (error) {
+                                          console.error('Failed to update note:', error);
+                                        }
+                                        setEditingNote(null);
+                                      }}
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                          e.currentTarget.blur();
+                                        }
+                                        if (e.key === 'Escape') {
+                                          setEditingNote(null);
+                                        }
+                                      }}
+                                    />
+                                  ) : (
+                                    <>
+                                      <div className="flex-1">
+                                        <span className="text-sm text-gray-600 italic">"{note.text}"</span>
+                                        <span className="text-xs text-gray-400 ml-2">
+                                          - {new Date(note.timestamp instanceof Date ? note.timestamp : note.timestamp.seconds ? note.timestamp.seconds * 1000 : note.timestamp).toLocaleDateString('en-US', {
+                                            month: 'short',
+                                            day: 'numeric',
+                                            year: 'numeric'
+                                          })}
+                                        </span>
+                                      </div>
+                                      <div className="flex items-center space-x-1 ml-2">
+                                        <button
+                                          onClick={() => setEditingNote({ reviewId: visit.dishId, noteId: note.id })}
+                                          className="text-gray-400 hover:text-gray-600 transition-colors"
+                                        >
+                                          <Edit2 size={14} />
+                                        </button>
+                                        <button
+                                          onClick={async () => {
+                                            try {
+                                              await deletePersonalNote(visit.dishId, note.id);
+                                              await loadUserData();
+                                            } catch (error) {
+                                              console.error('Failed to delete note:', error);
+                                            }
+                                          }}
+                                          className="text-gray-400 hover:text-red-600 transition-colors"
+                                        >
+                                          <X size={14} />
+                                        </button>
+                                      </div>
+                                    </>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* Add New Note */}
+                          <div className="flex items-center bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
+                            <input
+                              type="text"
+                              placeholder="Add personal note..."
+                              className="flex-1 bg-transparent text-sm text-gray-600 placeholder-gray-400 border-none outline-none"
+                              onBlur={async (e) => {
+                                const noteText = e.target.value.trim();
+                                if (noteText) {
+                                  try {
+                                    await addPersonalNote(visit.dishId, noteText);
+                                    await loadUserData();
+                                    e.target.value = '';
+                                  } catch (error) {
+                                    console.error('Failed to add note:', error);
+                                  }
+                                }
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  e.currentTarget.blur();
+                                }
+                              }}
+                            />
+                            <PlusIcon size={16} className="text-gray-400" />
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
-                  ))
+                  );
+                  })
                 )}
               </div>
           </>

@@ -294,6 +294,7 @@ export interface FirebaseReview {
   rating: number;
   personalNote: string;
   negativeNote: string;
+  personalNotes?: PersonalNote[];
   serverRating?: 'bad' | 'okay' | 'good' | null;
   price?: string | null;
   tags: string[];
@@ -745,7 +746,9 @@ export const convertVisitToCarouselFeedPost = async (reviews: FirebaseReview[]) 
       date: new Date(review.createdAt).toLocaleDateString()
     },
     tags: review.tags,
-    price: review.price
+    price: review.price,
+    personalNotes: review.personalNotes || [] // ADD THIS LINE
+
   }));
 
   return {
@@ -854,7 +857,8 @@ export const convertReviewToFeedPost = async (review: FirebaseReview) => {
     },
     location: review.location,
     tags: review.tags,
-    price: review.price
+    price: review.price,
+    personalNotes: review.personalNotes || [] // ADD THIS LINE
   };
 };
 
@@ -911,7 +915,8 @@ export const convertUserReviewToFeedPost = async (review: FirebaseReview) => {
     },
     location: review.location,
     tags: review.tags,
-    price: review.price
+    price: review.price,
+    personalNotes: review.personalNotes || [] // ADD THIS LINE
   };
 };
 
@@ -1031,5 +1036,107 @@ export const convertReviewsToFeedPosts = async (reviews: FirebaseReview[]) => {
       tags: review.tags,
       price: review.price
     }));
+  }
+};
+
+// Personal Notes Management
+export interface PersonalNote {
+  id: string;
+  text: string;
+  timestamp: Date;
+}
+
+// Add personal note to a review
+export const addPersonalNote = async (reviewId: string, noteText: string): Promise<void> => {
+  try {
+    const currentUser = getCurrentUser();
+    if (!currentUser) throw new Error('User must be authenticated');
+
+    const reviewRef = doc(db, 'reviews', reviewId);
+    const reviewDoc = await getDoc(reviewRef);
+    
+    if (!reviewDoc.exists()) throw new Error('Review not found');
+    
+    const reviewData = reviewDoc.data();
+    if (reviewData.userId !== currentUser.uid) throw new Error('Not authorized to edit this review');
+
+    const existingNotes = reviewData.personalNotes || [];
+    const newNote: PersonalNote = {
+      id: Date.now().toString(),
+      text: noteText.trim(),
+      timestamp: new Date()
+    };
+
+    await updateDoc(reviewRef, {
+      personalNotes: [...existingNotes, newNote],
+      updatedAt: serverTimestamp()
+    });
+
+    console.log('✅ Personal note added successfully');
+  } catch (error) {
+    console.error('❌ Error adding personal note:', error);
+    throw error;
+  }
+};
+
+// Update existing personal note
+export const updatePersonalNote = async (reviewId: string, noteId: string, newText: string): Promise<void> => {
+  try {
+    const currentUser = getCurrentUser();
+    if (!currentUser) throw new Error('User must be authenticated');
+
+    const reviewRef = doc(db, 'reviews', reviewId);
+    const reviewDoc = await getDoc(reviewRef);
+    
+    if (!reviewDoc.exists()) throw new Error('Review not found');
+    
+    const reviewData = reviewDoc.data();
+    if (reviewData.userId !== currentUser.uid) throw new Error('Not authorized to edit this review');
+
+    const existingNotes = reviewData.personalNotes || [];
+    const updatedNotes = existingNotes.map((note: PersonalNote) => 
+      note.id === noteId 
+        ? { ...note, text: newText.trim(), timestamp: new Date() }
+        : note
+    );
+
+    await updateDoc(reviewRef, {
+      personalNotes: updatedNotes,
+      updatedAt: serverTimestamp()
+    });
+
+    console.log('✅ Personal note updated successfully');
+  } catch (error) {
+    console.error('❌ Error updating personal note:', error);
+    throw error;
+  }
+};
+
+// Delete personal note
+export const deletePersonalNote = async (reviewId: string, noteId: string): Promise<void> => {
+  try {
+    const currentUser = getCurrentUser();
+    if (!currentUser) throw new Error('User must be authenticated');
+
+    const reviewRef = doc(db, 'reviews', reviewId);
+    const reviewDoc = await getDoc(reviewRef);
+    
+    if (!reviewDoc.exists()) throw new Error('Review not found');
+    
+    const reviewData = reviewDoc.data();
+    if (reviewData.userId !== currentUser.uid) throw new Error('Not authorized to edit this review');
+
+    const existingNotes = reviewData.personalNotes || [];
+    const filteredNotes = existingNotes.filter((note: PersonalNote) => note.id !== noteId);
+
+    await updateDoc(reviewRef, {
+      personalNotes: filteredNotes,
+      updatedAt: serverTimestamp()
+    });
+
+    console.log('✅ Personal note deleted successfully');
+  } catch (error) {
+    console.error('❌ Error deleting personal note:', error);
+    throw error;
   }
 };
