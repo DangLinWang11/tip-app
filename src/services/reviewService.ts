@@ -391,8 +391,8 @@ export const getUserVisitedRestaurants = async (): Promise<UserVisitedRestaurant
         id: firstReview.restaurantId || `manual_${restaurantKey}`,
         name: restaurantData?.name || firstReview.restaurant,
         location: {
-          lat: restaurantData?.coordinates?.latitude || 27.3364, // Default to Sarasota center
-          lng: restaurantData?.coordinates?.longitude || -82.5307
+          lat: restaurantData?.coordinates?.lat || 27.3364, // Default to Sarasota center
+          lng: restaurantData?.coordinates?.lng || -82.5307
         },
         cuisine: restaurantData?.cuisine || 'Restaurant',
         visitCount,

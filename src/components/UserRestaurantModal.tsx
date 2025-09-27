@@ -82,7 +82,12 @@ const UserRestaurantModal: React.FC<UserRestaurantModalProps> = ({
           
           {/* Restaurant name */}
           <div className="flex items-center justify-center mb-4 mt-2">
-            <h2 className="text-xl font-bold text-gray-900">{restaurant.name}</h2>
+            <button
+              onClick={() => navigate(`/restaurant/${restaurant.id}`)}
+              className="text-xl font-bold text-primary cursor-pointer hover:opacity-75 transition-opacity"
+            >
+              {restaurant.name}
+            </button>
           </div>
           
           {/* Stats row - visit count and cuisine only */}
