@@ -11,8 +11,8 @@ interface FirebaseRestaurant {
   cuisine: string;
   phone: string;
   coordinates: {
-    latitude: number;
-    longitude: number;
+    lat: number;
+    lng: number;
   };
   createdAt: any;
   updatedAt: any;
@@ -91,7 +91,7 @@ const RestaurantSearch: React.FC<RestaurantSearchProps> = ({
       id: `manual_${Date.now()}`,
       address: 'Restaurant Added',
       phone: '',
-      coordinates: { latitude: 0, longitude: 0 },
+      coordinates: { lat: 0, lng: 0 },
       createdAt: null,
       updatedAt: null,
       rating: 0,
@@ -107,7 +107,10 @@ const RestaurantSearch: React.FC<RestaurantSearchProps> = ({
     if (pendingRestaurant) {
       const updatedRestaurant = {
         ...pendingRestaurant,
-        coordinates: location
+        coordinates: {
+          lat: location.latitude,
+          lng: location.longitude
+        }
       };
       onSelect(updatedRestaurant);
     }

@@ -125,7 +125,7 @@ const createRestaurantIfNeeded = async (restaurant: any): Promise<string> => {
       cuisine: restaurant.cuisine || 'User Added',
       address: restaurant.address || 'Address not provided', 
       phone: restaurant.phone || '',
-      coordinates: restaurant.coordinates || { latitude: 0, longitude: 0 },
+      coordinates: restaurant.coordinates || { lat: 0, lng: 0 },
       qualityScore: null,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
@@ -142,14 +142,31 @@ const createRestaurantIfNeeded = async (restaurant: any): Promise<string> => {
 
 // Create menu item if it doesn't exist in Firebase
 const createMenuItemIfNeeded = async (dishName: string, restaurantId: string, selectedMenuItem: any): Promise<string> => {
-  // If it's already a Firebase menu item, return its ID
+  // If it's already a Firebase menu item with valid ID, return it
   if (selectedMenuItem?.id && !selectedMenuItem.id.startsWith('manual_')) {
     console.log('Using existing menu item ID:', selectedMenuItem.id);
     return selectedMenuItem.id;
   }
-  
-  // Create new menu item document
+
   try {
+    // Before creating a new dish, check if one with the same name already exists for this restaurant
+    console.log('Checking for existing menu item:', dishName, 'at restaurant:', restaurantId);
+    const existingItemQuery = query(
+      collection(db, 'menuItems'),
+      where('name', '==', dishName),
+      where('restaurantId', '==', restaurantId)
+    );
+
+    const existingItemSnapshot = await getDocs(existingItemQuery);
+
+    // If a dish with this name already exists for this restaurant, return its ID
+    if (!existingItemSnapshot.empty) {
+      const existingItem = existingItemSnapshot.docs[0];
+      console.log('✅ Found existing menu item with ID:', existingItem.id);
+      return existingItem.id;
+    }
+
+    // Only create a new dish if none exists
     console.log('Creating new menu item:', dishName, 'for restaurant:', restaurantId);
     const newMenuItem = {
       name: dishName,
@@ -160,8 +177,8 @@ const createMenuItemIfNeeded = async (dishName: string, restaurantId: string, se
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     };
-    
-    const docRef = await addDoc(collection(db, 'menuItems'), newMenuItem);  
+
+    const docRef = await addDoc(collection(db, 'menuItems'), newMenuItem);
     console.log('✅ Created new menu item with ID:', docRef.id);
     return docRef.id;
   } catch (error) {

@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { Wrapper, Status } from '@googlemaps/react-wrapper';
+import { Navigation } from 'lucide-react';
 
 interface LocationCoordinates {
   lat: number;
@@ -35,19 +36,17 @@ const MapComponent: React.FC<MapComponentProps> = ({
       const newMap = new window.google.maps.Map(ref.current, {
         center,
         zoom,
+        disableDefaultUI: true,
+        zoomControl: false,
         mapTypeControl: false,
         streetViewControl: false,
         fullscreenControl: false,
-        zoomControl: true,
+        panControl: false,
         rotateControl: false,
         scaleControl: false,
         gestureHandling: 'greedy',
         scrollwheel: true,
         disableDoubleClickZoom: false,
-        zoomControlOptions: {
-          position: window.google.maps.ControlPosition.RIGHT_BOTTOM,
-          style: window.google.maps.ZoomControlStyle.SMALL
-        },
         styles: [
           {
             featureType: 'poi',
@@ -124,7 +123,7 @@ const MapComponent: React.FC<MapComponentProps> = ({
         onClick={handleMyLocationClick}
         style={{
           position: 'absolute',
-          bottom: '140px',
+          bottom: '200px',
           right: '16px',
           width: '48px',
           height: '48px',
@@ -140,13 +139,7 @@ const MapComponent: React.FC<MapComponentProps> = ({
         }}
         title="My Location"
       >
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M12 2C13.1046 2 14 2.89543 14 4C14 5.10457 13.1046 6 12 6C10.8954 6 10 5.10457 10 4C10 2.89543 10.8954 2 12 2Z" fill="#666"/>
-          <path d="M12 18C13.1046 18 14 18.8954 14 20C14 21.1046 13.1046 22 12 22C10.8954 22 10 21.1046 10 20C10 18.8954 10.8954 18 12 18Z" fill="#666"/>
-          <path d="M22 12C22 13.1046 21.1046 14 20 14C18.8954 14 18 13.1046 18 12C18 10.8954 18.8954 10 20 10C21.1046 10 22 10.8954 22 12Z" fill="#666"/>
-          <path d="M6 12C6 13.1046 5.10457 14 4 14C2.89543 14 2 13.1046 2 12C2 10.8954 2.89543 10 4 10C5.10457 10 6 10.8954 6 12Z" fill="#666"/>
-          <circle cx="12" cy="12" r="2" fill="#666"/>
-        </svg>
+        <Navigation size={28} color="#4285F4" />
       </button>
     </div>
   );
@@ -197,15 +190,13 @@ const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
   onCancel
 }) => {
   const [currentCenter, setCurrentCenter] = useState<LocationCoordinates>({
-    lat: 27.3364,
-    lng: -82.5307
+    lat: 0,
+    lng: 0
   });
   const [userLocation, setUserLocation] = useState<LocationCoordinates | null>(null);
-  const [isGettingLocation, setIsGettingLocation] = useState(false);
 
   useEffect(() => {
-    if (isOpen && !userLocation) {
-      setIsGettingLocation(true);
+    if (isOpen) {
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
           (position) => {
@@ -215,18 +206,23 @@ const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
             };
             setUserLocation(userPos);
             setCurrentCenter(userPos);
-            setIsGettingLocation(false);
           },
           (error) => {
             console.error('Error getting location:', error);
-            setIsGettingLocation(false);
+            setCurrentCenter({
+              lat: 27.3364,
+              lng: -82.5307
+            });
           }
         );
       } else {
-        setIsGettingLocation(false);
+        setCurrentCenter({
+          lat: 27.3364,
+          lng: -82.5307
+        });
       }
     }
-  }, [isOpen, userLocation]);
+  }, [isOpen]);
 
   const handleCenterChanged = useCallback((coordinates: LocationCoordinates) => {
     setCurrentCenter(coordinates);
@@ -383,22 +379,21 @@ const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
 
             <button
               onClick={handleConfirm}
-              disabled={isGettingLocation}
               style={{
                 width: '100%',
                 padding: '16px',
-                backgroundColor: isGettingLocation ? '#9ca3af' : '#dc2626',
+                backgroundColor: '#dc2626',
                 color: 'white',
                 border: 'none',
                 borderRadius: '12px',
                 fontSize: '16px',
                 fontWeight: 'bold',
-                cursor: isGettingLocation ? 'not-allowed' : 'pointer',
+                cursor: 'pointer',
                 boxShadow: '0 2px 8px rgba(220, 38, 38, 0.2)',
                 transition: 'background-color 0.2s'
               }}
             >
-              {isGettingLocation ? 'Getting location...' : 'Confirm Location'}
+              Confirm Location
             </button>
           </div>
 

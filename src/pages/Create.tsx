@@ -24,6 +24,19 @@ interface ReviewSummary {
   selectedMenuItem: any;
 }
 
+const successMessages = [
+  "Now get back to exploring those taste buds!",
+  "Time to find your next culinary adventure!",
+  "Another delicious memory captured!",
+  "Your food journey just got richer!",
+  "Now go make some more food memories!",
+  "Time to hunt down your next great meal!",
+  "Back to the good stuff - eating!",
+  "Your taste buds have spoken!",
+  "Mission accomplished, food explorer!",
+  "Thanks for sharing your foodie wisdom!"
+];
+
 const Create: React.FC = () => {
   const navigate = useNavigate();
   const [showSuccess, setShowSuccess] = useState(false);
@@ -51,6 +64,8 @@ const Create: React.FC = () => {
   const [serverRating, setServerRating] = useState<'bad' | 'okay' | 'good' | null>(null);
   const [isPublic, setIsPublic] = useState(true);
   const [isPosting, setIsPosting] = useState(false);
+  const [isProcessingImages, setIsProcessingImages] = useState(false);
+  const [imageProcessingError, setImageProcessingError] = useState<string | null>(null);
 
   // Generate visitId on component mount
   useEffect(() => {
@@ -74,6 +89,8 @@ const Create: React.FC = () => {
     setCurrentTag('');
     setServerRating(null);
     setEditingIndex(null);
+    setIsProcessingImages(false);
+    setImageProcessingError(null);
   };
 
   // Load review data for editing
@@ -241,20 +258,129 @@ const Create: React.FC = () => {
     }
   };
 
+  // Mobile browser detection utility
+  const isMobileBrowser = () => {
+    const userAgent = navigator.userAgent.toLowerCase();
+    const isIOS = /iphone|ipad|ipod/.test(userAgent);
+    const isAndroid = /android/.test(userAgent);
+    const isSafari = /safari/.test(userAgent) && !/chrome/.test(userAgent);
+    const isChrome = /chrome/.test(userAgent);
+
+    return (isIOS && isSafari) || (isAndroid && isChrome);
+  };
+
+  // File validation utility
+  const validateImageFile = (file: File): string | null => {
+    // Check file type
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/heic', 'image/heif'];
+    if (!validTypes.includes(file.type.toLowerCase())) {
+      return `Invalid file type: ${file.type}. Please select a valid image file.`;
+    }
+
+    // Check file size (10MB limit)
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    if (file.size > maxSize) {
+      return `File too large: ${(file.size / 1024 / 1024).toFixed(1)}MB. Maximum size is 10MB.`;
+    }
+
+    return null;
+  };
+
   // Handle photo upload
   const handleAddPhoto = () => {
+    // Clear any previous errors
+    setImageProcessingError(null);
+
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = 'image/*';
     input.multiple = true;
+
     input.onchange = (e) => {
       const files = Array.from((e.target as HTMLInputElement).files || []);
-      if (files.length > 0) {
-        const newImageUrls = files.map(file => URL.createObjectURL(file));
-        setImages(prev => [...prev, ...newImageUrls].slice(0, 4));
-        setImageFiles(prev => [...prev, ...files].slice(0, 4));
+
+      if (files.length === 0) {
+        return;
+      }
+
+      // Validate files before processing
+      const validationErrors: string[] = [];
+      const validFiles: File[] = [];
+
+      files.forEach((file, index) => {
+        const error = validateImageFile(file);
+        if (error) {
+          validationErrors.push(`File ${index + 1}: ${error}`);
+        } else {
+          validFiles.push(file);
+        }
+      });
+
+      if (validationErrors.length > 0) {
+        setImageProcessingError(validationErrors.join('\n'));
+        return;
+      }
+
+      if (validFiles.length === 0) {
+        setImageProcessingError('No valid image files selected.');
+        return;
+      }
+
+      // Check if we're exceeding the limit
+      const remainingSlots = 4 - images.length;
+      const filesToProcess = validFiles.slice(0, remainingSlots);
+
+      if (filesToProcess.length === 0) {
+        setImageProcessingError('Maximum of 4 images allowed.');
+        return;
+      }
+
+      setIsProcessingImages(true);
+
+      const processImages = () => {
+        try {
+          const newImageUrls: string[] = [];
+          const processedFiles: File[] = [];
+
+          filesToProcess.forEach(file => {
+            try {
+              const url = URL.createObjectURL(file);
+              newImageUrls.push(url);
+              processedFiles.push(file);
+            } catch (error) {
+              console.error('Failed to create object URL for file:', file.name, error);
+            }
+          });
+
+          if (newImageUrls.length === 0) {
+            setImageProcessingError('Failed to process selected images. Please try again.');
+            setIsProcessingImages(false);
+            return;
+          }
+
+          // Update state with new images
+          setImages(prev => [...prev, ...newImageUrls]);
+          setImageFiles(prev => [...prev, ...processedFiles]);
+          setIsProcessingImages(false);
+
+          if (filesToProcess.length < validFiles.length) {
+            setImageProcessingError(`Added ${filesToProcess.length} images. Maximum of 4 images allowed.`);
+          }
+        } catch (error) {
+          console.error('Error processing images:', error);
+          setImageProcessingError('Failed to process images. Please try again.');
+          setIsProcessingImages(false);
+        }
+      };
+
+      // Add delay for mobile browsers to handle file picker closing timing
+      if (isMobileBrowser()) {
+        setTimeout(processImages, 100);
+      } else {
+        processImages();
       }
     };
+
     input.click();
   };
 
@@ -310,10 +436,10 @@ const Create: React.FC = () => {
             <CheckIcon size={40} className="text-white" />
           </div>
           <h1 className="text-2xl font-bold text-center mb-4">
-            {reviewSummaries.length + (isCurrentFormValid ? 1 : 0)} Reviews Saved!
+            Your review has been uploaded!
           </h1>
           <p className="text-gray-600 text-center mb-6">
-            Your restaurant visit has been saved to Firebase!
+            {successMessages[Math.floor(Math.random() * successMessages.length)]}
           </p>
           <div className="w-8 h-8 border-4 border-green-500 border-t-transparent rounded-full animate-spin"></div>
           <p className="text-sm text-gray-400 mt-4">Redirecting to your food map...</p>
@@ -403,6 +529,30 @@ const Create: React.FC = () => {
                 {/* Photos Section */}
                 <div>
                   <label className="block text-sm font-medium mb-2">Photos (Optional)</label>
+
+                  {/* Image processing status */}
+                  {isProcessingImages && (
+                    <div className="mb-3 p-3 bg-blue-50 border border-blue-200 rounded-xl">
+                      <div className="flex items-center space-x-2">
+                        <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                        <span className="text-blue-700 font-medium">Processing images...</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Error display */}
+                  {imageProcessingError && (
+                    <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-xl">
+                      <p className="text-red-700 text-sm whitespace-pre-line">{imageProcessingError}</p>
+                      <button
+                        onClick={() => setImageProcessingError(null)}
+                        className="text-red-600 hover:text-red-800 text-sm underline mt-1"
+                      >
+                        Dismiss
+                      </button>
+                    </div>
+                  )}
+
                   {images.length > 0 ? (
                     <ImageGrid images={images} onRemove={handleRemovePhoto} onAdd={handleAddPhoto} maxImages={4} />
                   ) : (
@@ -410,16 +560,26 @@ const Create: React.FC = () => {
                       <CameraIcon size={48} className="mx-auto mb-3 text-gray-400" />
                       <p className="text-gray-500 mb-4">Add photos of your dish</p>
                       <div className="flex justify-center space-x-4">
-                        <button 
-                          className="flex items-center space-x-2 bg-gray-100 px-4 py-2 rounded-lg hover:bg-gray-200"
+                        <button
+                          className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-all ${
+                            isProcessingImages
+                              ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                              : 'bg-gray-100 hover:bg-gray-200'
+                          }`}
                           onClick={handleAddPhoto}
+                          disabled={isProcessingImages}
                         >
                           <ImageIcon size={20} />
                           <span>Gallery</span>
                         </button>
-                        <button 
-                          className="flex items-center space-x-2 bg-gray-100 px-4 py-2 rounded-lg hover:bg-gray-200"
+                        <button
+                          className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-all ${
+                            isProcessingImages
+                              ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                              : 'bg-gray-100 hover:bg-gray-200'
+                          }`}
                           onClick={handleAddPhoto}
+                          disabled={isProcessingImages}
                         >
                           <CameraIcon size={20} />
                           <span>Camera</span>
