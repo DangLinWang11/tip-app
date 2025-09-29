@@ -1,5 +1,8 @@
+// File: src/App.tsx
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { onAuthStateChanged } from 'firebase/auth';
+import { auth, getUserProfile } from './lib/firebase';
 import Layout from './components/Layout';
 import Home from './pages/Home';
 import Discover from './pages/Discover';
@@ -33,69 +36,101 @@ const ComingSoon: React.FC<{ feature: string }> = ({ feature }) => (
   </div>
 );
 
-// Session management utilities
-const SESSION_DURATION = 30 * 24 * 60 * 60 * 1000; // 30 days in milliseconds
-
-const checkUserSession = () => {
-  try {
-    const userProfile = localStorage.getItem('userProfile');
-    if (!userProfile) return { isValid: false, needsPhoneOnly: false };
-    
-    const profile = JSON.parse(userProfile);
-    const now = Date.now();
-    
-    // Check if user is verified and has all required fields
-    if (profile.isVerified && profile.phoneNumber && profile.username && profile.lastLogin) {
-      const timeSinceLogin = now - profile.lastLogin;
-      
-      if (timeSinceLogin <= SESSION_DURATION) {
-        // Valid session, user can skip onboarding
-        return { isValid: true, needsPhoneOnly: false };
-      } else {
-        // Session expired, needs phone verification only
-        return { isValid: false, needsPhoneOnly: true };
-      }
-    }
-    
-    return { isValid: false, needsPhoneOnly: false };
-  } catch (error) {
-    console.error('Error checking user session:', error);
-    return { isValid: false, needsPhoneOnly: false };
-  }
-};
+// Loading screen component
+const LoadingScreen: React.FC = () => (
+  <div className="min-h-screen bg-white flex items-center justify-center">
+    <div className="text-center">
+      <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+      <p className="text-gray-600">Loading...</p>
+    </div>
+  </div>
+);
 
 export function App() {
-  const [isOnboarded, setIsOnboarded] = useState(false);
-  const [needsPhoneOnly, setNeedsPhoneOnly] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [authState, setAuthState] = useState<{
+    isAuthenticated: boolean;
+    needsUsername: boolean;
+    isLoading: boolean;
+  }>({
+    isAuthenticated: false,
+    needsUsername: false,
+    isLoading: true
+  });
   
   useEffect(() => {
-    const sessionCheck = checkUserSession();
-    setIsOnboarded(sessionCheck.isValid);
-    setNeedsPhoneOnly(sessionCheck.needsPhoneOnly);
-    setIsLoading(false);
+    // Firebase Auth state listener - automatically handles session persistence
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      console.log('🔐 Auth state changed:', user ? `User ${user.uid}` : 'No user');
+      
+      if (user) {
+        // User is signed in with Firebase Auth
+        try {
+          // Check if user has completed profile setup
+          const profileResult = await getUserProfile(user.uid);
+          
+          if (profileResult.success && profileResult.profile?.username) {
+            // User is fully onboarded
+            console.log('✅ User authenticated and onboarded:', profileResult.profile.username);
+            setAuthState({
+              isAuthenticated: true,
+              needsUsername: false,
+              isLoading: false
+            });
+          } else {
+            // User has Firebase auth but needs to complete profile (username)
+            console.log('⚠️ User authenticated but needs username');
+            setAuthState({
+              isAuthenticated: true,
+              needsUsername: true,
+              isLoading: false
+            });
+          }
+        } catch (error) {
+          console.error('❌ Error checking user profile:', error);
+          // If there's an error checking profile, assume needs username
+          setAuthState({
+            isAuthenticated: true,
+            needsUsername: true,
+            isLoading: false
+          });
+        }
+      } else {
+        // No user signed in
+        console.log('❌ No authenticated user');
+        setAuthState({
+          isAuthenticated: false,
+          needsUsername: false,
+          isLoading: false
+        });
+      }
+    });
+    
+    // Cleanup listener on unmount
+    return () => unsubscribe();
   }, []);
   
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
-        </div>
-      </div>
-    );
+  // Show loading screen while checking auth state
+  if (authState.isLoading) {
+    return <LoadingScreen />;
   }
   
-  if (!isOnboarded) {
+  // Show onboarding if not authenticated or needs username
+  if (!authState.isAuthenticated || authState.needsUsername) {
     return (
       <Onboarding 
-        onComplete={() => setIsOnboarded(true)} 
-        needsPhoneOnly={needsPhoneOnly}
+        onComplete={() => {
+          setAuthState({
+            isAuthenticated: true,
+            needsUsername: false,
+            isLoading: false
+          });
+        }}
+        needsUsernameOnly={authState.needsUsername}
       />
     );
   }
 
+  // User is fully authenticated and onboarded - show main app
   return (
     <LocationProvider>
       <Router>

@@ -1,13 +1,12 @@
-import React, { useState, useEffect, useRef } from 'react';
+// File: src/pages/Onboarding.tsx
+import React, { useState, useRef } from 'react';
 import { ChevronRightIcon, ShuffleIcon, UserIcon, EyeIcon, EyeOffIcon, Camera, X } from 'lucide-react';
-import { onAuthStateChanged, User } from 'firebase/auth';
 import { 
   auth, 
   signUpWithEmail, 
   signInWithEmail, 
   signInWithGoogle,
   createUserProfile, 
-  getUserProfile,
   updateLastLogin 
 } from '../lib/firebase';
 import { uploadPhoto } from '../services/reviewService';
@@ -15,6 +14,7 @@ import { getInitials } from '../utils/avatarUtils';
 
 interface OnboardingProps {
   onComplete: () => void;
+  needsUsernameOnly?: boolean; // NEW: Skip to username step if user is already authenticated
 }
 
 interface CropPosition {
@@ -23,8 +23,8 @@ interface CropPosition {
   scale: number;
 }
 
-const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
-  const [step, setStep] = useState(0);
+const Onboarding: React.FC<OnboardingProps> = ({ onComplete, needsUsernameOnly = false }) => {
+  const [step, setStep] = useState(needsUsernameOnly ? 2 : 0); // Start at username if already authenticated
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -49,25 +49,6 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
   const imageEditorRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  // Clear auth error when switching modes or changing inputs
-  useEffect(() => {
-    setAuthError('');
-  }, [isSignInMode, email, password]);
-
-  // Check if user already has a complete profile
-  const checkExistingUser = async (user: User) => {
-    try {
-      const result = await getUserProfile(user.uid);
-      if (result.success && result.profile) {
-        return result.profile;
-      }
-      return null;
-    } catch (error) {
-      console.error('Error checking existing user:', error);
-      return null;
-    }
-  };
-
   // Handle email/password authentication
   const handleAuthentication = async () => {
     if (!email.trim() || !password.trim()) return;
@@ -84,21 +65,12 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
       }
 
       if (result.success && result.user) {
-        // Update last login for existing users
-        if (isSignInMode) {
-          await updateLastLogin();
-        }
-
-        // Check if user already has a complete profile
-        const existingProfile = await checkExistingUser(result.user);
+        // Update last login
+        await updateLastLogin();
         
-        if (existingProfile && existingProfile.username && existingProfile.isOnboarded) {
-          // User exists with complete profile - complete onboarding
-          onComplete();
-        } else {
-          // New user or incomplete profile - go to username step
-          setStep(2);
-        }
+        // Move to username step
+        // App.tsx will handle checking if profile exists via onAuthStateChanged
+        setStep(2);
       } else {
         setAuthError(result.error || 'Authentication failed');
       }
@@ -121,17 +93,10 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
       if (result.success && result.user) {
         // Update last login
         await updateLastLogin();
-
-        // Check if user already has a complete profile
-        const existingProfile = await checkExistingUser(result.user);
         
-        if (existingProfile && existingProfile.username && existingProfile.isOnboarded) {
-          // User exists with complete profile - complete onboarding
-          onComplete();
-        } else {
-          // New user or incomplete profile - go to username step
-          setStep(2);
-        }
+        // Move to username step
+        // App.tsx will handle checking if profile exists via onAuthStateChanged
+        setStep(2);
       } else {
         setAuthError(result.error || 'Google sign-in failed');
       }
@@ -165,7 +130,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
       'Sauce', 'Broth', 'Stock', 'Marinade', 'Dressing', 'Seasoning', 'Herb', 'Pepper'
     ];
 
-    const randomNum = Math.floor(Math.random() * 9000) + 1000; // 1000-9999 for 4 digits
+    const randomNum = Math.floor(Math.random() * 9000) + 1000;
     const randomAdj = adjectives[Math.floor(Math.random() * adjectives.length)];
     const randomNoun = nouns[Math.floor(Math.random() * nouns.length)];
     setUsername(`${randomAdj}_${randomNoun}_${randomNum}`);
@@ -175,7 +140,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
   const handleImageSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      if (file.size > 5 * 1024 * 1024) { // 5MB limit
+      if (file.size > 5 * 1024 * 1024) {
         setAuthError('Image must be smaller than 5MB');
         return;
       }
@@ -196,13 +161,11 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
     }
   };
 
-  // Handle mouse down for dragging
   const handleMouseDown = (e: React.MouseEvent) => {
     setIsDragging(true);
     setDragStart({ x: e.clientX, y: e.clientY });
   };
 
-  // Handle mouse move for dragging
   const handleMouseMove = (e: React.MouseEvent) => {
     if (!isDragging || !imageEditorRef.current) return;
     
@@ -217,17 +180,14 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
     setDragStart({ x: e.clientX, y: e.clientY });
   };
 
-  // Handle mouse up
   const handleMouseUp = () => {
     setIsDragging(false);
   };
 
-  // Handle scale change
   const handleScaleChange = (scale: number) => {
     setCropPosition(prev => ({ ...prev, scale }));
   };
 
-  // Create cropped image
   const createCroppedImage = (): Promise<File> => {
     return new Promise((resolve, reject) => {
       if (!imagePreview || !canvasRef.current) {
@@ -244,11 +204,10 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
 
       const img = new Image();
       img.onload = () => {
-        const size = 400; // Final image size
+        const size = 400;
         canvas.width = size;
         canvas.height = size;
 
-        // Calculate crop area
         const imgAspect = img.width / img.height;
         let drawWidth = img.width * cropPosition.scale;
         let drawHeight = img.height * cropPosition.scale;
@@ -262,12 +221,10 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
         const offsetX = (cropPosition.x / 100) * (size - drawWidth);
         const offsetY = (cropPosition.y / 100) * (size - drawHeight);
 
-        // Create circular clipping path
         ctx.beginPath();
         ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
         ctx.clip();
 
-        // Draw image
         ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
 
         canvas.toBlob((blob) => {
@@ -285,14 +242,12 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
     });
   };
 
-  // Apply cropped image
   const applyCroppedImage = async () => {
     try {
       const croppedFile = await createCroppedImage();
       setSelectedImage(croppedFile);
       setShowImageEditor(false);
       
-      // Create new preview for the cropped image
       const reader = new FileReader();
       reader.onload = (e) => {
         setImagePreview(e.target?.result as string);
@@ -306,19 +261,17 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
 
   const handleNext = async () => {
     if (step === 1) {
-      // Handle email/password authentication
       await handleAuthentication();
     } else if (step < 2) {
       setStep(step + 1);
     } else {
-      // Final step - create user profile and complete onboarding
+      // Final step - create user profile
       const currentUser = auth.currentUser;
       if (currentUser && username.trim()) {
         setIsAuthenticating(true);
         
         let avatarUrl = '';
         
-        // Upload profile picture if one was selected
         if (selectedImage) {
           try {
             avatarUrl = await uploadPhoto(selectedImage);
@@ -345,18 +298,15 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
     }
   };
 
-  // Email validation
   const isValidEmail = (email: string) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
   };
 
-  // Password validation
   const isValidPassword = (password: string) => {
     return password.length >= 6;
   };
 
-  // User avatar component
   const UserAvatar: React.FC<{ size?: string }> = ({ size = 'w-24 h-24' }) => {
     const [imageError, setImageError] = useState(false);
     
@@ -385,7 +335,6 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
   return (
     <div className="flex flex-col min-h-screen bg-white p-6">
       <div className="flex-1 flex flex-col justify-center items-center">
-        {/* Step 0: Welcome Screen */}
         {step === 0 && (
           <>
             <div className="w-48 h-48 rounded-full overflow-hidden mb-8 shadow-lg">
@@ -405,7 +354,6 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
           </>
         )}
 
-        {/* Step 1: Email/Password Input */}
         {step === 1 && (
           <>
             <h1 className="text-3xl font-bold mb-8 text-center">
@@ -434,7 +382,6 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
               <div className="flex-1 border-t border-gray-300"></div>
             </div>
             <div className="w-full max-w-sm mb-8">
-              {/* Email Input */}
               <div className="mb-4">
                 <label className="block text-sm font-medium mb-2">Email Address</label>
                 <input
@@ -452,7 +399,6 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
                 )}
               </div>
 
-              {/* Password Input */}
               <div className="mb-4">
                 <label className="block text-sm font-medium mb-2">Password</label>
                 <div className="relative">
@@ -479,14 +425,12 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
                 )}
               </div>
 
-              {/* Error Message */}
               {authError && (
                 <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
                   <p className="text-sm text-red-600">{authError}</p>
                 </div>
               )}
 
-              {/* Toggle Sign In/Sign Up */}
               <div className="mt-4 text-center">
                 <button 
                   onClick={() => setIsSignInMode(!isSignInMode)}
@@ -499,7 +443,6 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
           </>
         )}
 
-        {/* Step 2: Username Creation */}
         {step === 2 && (
           <>
             <h1 className="text-3xl font-bold mb-6 text-center">
@@ -526,7 +469,6 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
                 You can always change this later
               </p>
             </div>
-            {/* Error Message */}
             {authError && (
               <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
                 <p className="text-sm text-red-600">{authError}</p>
@@ -559,10 +501,8 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
             </div>
           </>
         )}
-
       </div>
 
-      {/* Bottom Button */}
       <button 
         onClick={handleNext} 
         className="w-full bg-primary text-white py-4 rounded-xl font-medium flex items-center justify-center transition-colors hover:opacity-90 disabled:opacity-50"
@@ -585,7 +525,6 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
         )}
       </button>
 
-      {/* Image Editor Modal */}
       {showImageEditor && imagePreview && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl p-6 max-w-md w-full">
@@ -657,7 +596,6 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
         </div>
       )}
 
-      {/* Hidden canvas for image processing */}
       <canvas ref={canvasRef} className="hidden" />
     </div>
   );
