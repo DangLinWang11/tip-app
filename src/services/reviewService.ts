@@ -409,8 +409,8 @@ export const getUserVisitedRestaurants = async (): Promise<UserVisitedRestaurant
         id: firstReview.restaurantId || `manual_${restaurantKey}`,
         name: restaurantData?.name || firstReview.restaurant,
         location: {
-          lat: restaurantData?.coordinates?.lat || 27.3364, // Default to Sarasota center
-          lng: restaurantData?.coordinates?.lng || -82.5307
+          lat: parseFloat(restaurantData?.coordinates?.lat) || 27.3364, // Default to Sarasota center
+          lng: parseFloat(restaurantData?.coordinates?.lng) || -82.5307
         },
         cuisine: restaurantData?.cuisine || 'Restaurant',
         visitCount,
@@ -1154,6 +1154,52 @@ export const deletePersonalNote = async (reviewId: string, noteId: string): Prom
     console.log('✅ Personal note deleted successfully');
   } catch (error) {
     console.error('❌ Error deleting personal note:', error);
+    throw error;
+  }
+};
+
+export const deleteReview = async (reviewId: string, userId: string): Promise<void> => {
+  try {
+    const currentUser = getCurrentUser();
+    if (!currentUser) throw new Error('User must be authenticated');
+
+    if (currentUser.uid !== userId) throw new Error('Not authorized to delete this review');
+
+    const reviewRef = doc(db, 'reviews', reviewId);
+    const reviewDoc = await getDoc(reviewRef);
+
+    if (!reviewDoc.exists()) throw new Error('Review not found');
+
+    const reviewData = reviewDoc.data();
+    if (reviewData.userId !== currentUser.uid) throw new Error('Not authorized to delete this review');
+
+    await updateDoc(reviewRef, {
+      isDeleted: true,
+      deletedAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    });
+
+    try {
+      const currentStats = await getUserProfile();
+      if (currentStats.success && currentStats.profile) {
+        const pointsToSubtract = reviewData.pointsEarned || 20;
+        const newTotalPoints = Math.max(0, (currentStats.profile.stats?.pointsEarned || 0) - pointsToSubtract);
+        const newTotalReviews = Math.max(0, (currentStats.profile.stats?.totalReviews || 0) - 1);
+
+        await updateUserStats({
+          pointsEarned: newTotalPoints,
+          totalReviews: newTotalReviews
+        });
+
+        console.log('User stats updated after deletion:', { pointsEarned: newTotalPoints, totalReviews: newTotalReviews });
+      }
+    } catch (error) {
+      console.warn('Failed to update user stats after deletion (non-critical):', error);
+    }
+
+    console.log('Review soft deleted successfully');
+  } catch (error) {
+    console.error('Error deleting review:', error);
     throw error;
   }
 };

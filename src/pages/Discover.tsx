@@ -53,7 +53,7 @@ const Discover: React.FC = () => {
         
         const restaurantList: RestaurantWithExtras[] = restaurantSnapshot.docs.map((doc, index) => {
           const data = doc.data() as FirebaseRestaurant;
-          
+
           // Add mock data for fields not in Firebase yet
           const mockExtras = {
             rating: 4.0 + Math.random() * 1.0, // Random rating between 4.0-5.0
@@ -62,17 +62,17 @@ const Discover: React.FC = () => {
             priceRange: ['$', '$$', '$$$'][Math.floor(Math.random() * 3)], // Random price range
             coverImage: `https://images.unsplash.com/photo-${1579684947550 + index}?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80`,
             location: {
-              lat: data.coordinates.latitude,
-              lng: data.coordinates.longitude
+              lat: Number(data.coordinates.latitude),
+              lng: Number(data.coordinates.longitude)
             }
           };
-          
+
           return {
             id: doc.id,
             ...data,
             ...mockExtras
           };
-        });
+        }).filter(restaurant => restaurant.location.lat !== 0 && restaurant.location.lng !== 0 && !isNaN(restaurant.location.lat) && !isNaN(restaurant.location.lng));
         
         setRestaurants(restaurantList);
         console.log(`Loaded ${restaurantList.length} restaurants from Firebase`);

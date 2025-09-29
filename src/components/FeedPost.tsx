@@ -1,11 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { HeartIcon, MessageCircleIcon, BookmarkIcon, ShareIcon, CheckCircleIcon, MapPinIcon, PlusIcon } from 'lucide-react';
+import { HeartIcon, MessageCircleIcon, BookmarkIcon, ShareIcon, CheckCircleIcon, MapPinIcon, PlusIcon, TrashIcon } from 'lucide-react';
 import RatingBadge from './RatingBadge';
 import { useFeature } from '../utils/features';
 import SaveToListModal from './SaveToListModal';
 import { isFollowing, followUser, unfollowUser } from '../services/followService';
 import { getCurrentUser } from '../lib/firebase';
+import { deleteReview } from '../services/reviewService';
 
 interface CarouselItem {
   id: string;
@@ -233,6 +234,20 @@ const FeedPost: React.FC<FeedPostProps> = ({
     }
   };
 
+  const handleDeletePost = async () => {
+    const confirmed = window.confirm('Are you sure you want to delete this post? This action cannot be undone.');
+    if (!confirmed) return;
+
+    try {
+      await deleteReview(id, author.id);
+      window.location.reload();
+    } catch (error) {
+      console.error('Error deleting post:', error);
+      alert('Failed to delete post. Please try again.');
+    }
+  };
+
+
   return (
     <div className="bg-white rounded-2xl overflow-hidden shadow-sm mb-4">
       {/* Header */}
@@ -359,20 +374,30 @@ const FeedPost: React.FC<FeedPostProps> = ({
       {/* Content */}
       <div className="p-4">
         <div className="flex items-center justify-between mb-2">
-          <h3 className="font-medium text-lg">
-            <span 
-              onClick={handleDishClick}
-              className={(currentItem.dishId || restaurantId) ? "hover:text-primary cursor-pointer" : ""}
-            >
-              {isCarousel && carouselItems.length > 1 
-                ? `${currentItem.dish.name} (${currentIndex + 1}/${carouselItems.length})`
-                : currentItem.dish.name
-              }
+          <div className="flex items-center gap-2">
+            <h3 className="font-medium text-lg">
+              <span
+                onClick={handleDishClick}
+                className={(currentItem.dishId || restaurantId) ? "hover:text-primary cursor-pointer" : ""}
+              >
+                {isCarousel && carouselItems.length > 1
+                  ? `${currentItem.dish.name} (${currentIndex + 1}/${carouselItems.length})`
+                  : currentItem.dish.name
+                }
+              </span>
+            </h3>
+            <span className="text-xs text-gray-400">
+              {formatInstagramTimestamp(currentItem.review.date)}
             </span>
-          </h3>
-          <span className="text-xs text-gray-400 ml-2 flex-shrink-0">
-            {formatInstagramTimestamp(currentItem.review.date)}
-          </span>
+          </div>
+          {isOwnPost && (
+            <button
+              onClick={handleDeletePost}
+              className="text-gray-400 hover:text-red-500 transition-colors"
+            >
+              <TrashIcon size={16} />
+            </button>
+          )}
         </div>
         
         {/* Dual Review System */}
