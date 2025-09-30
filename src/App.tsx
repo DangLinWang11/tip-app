@@ -24,6 +24,11 @@ import AdminUpload from './pages/AdminUpload';
 import PostDetail from './pages/PostDetail';
 import { LocationProvider } from './contexts/LocationContext';
 import { useFeature } from './utils/features';
+import { runBackfillSoftDelete } from './dev/backfillSoftDelete';
+
+if (import.meta.env.DEV) {
+  (window as any).runBackfillSoftDelete = runBackfillSoftDelete;
+}
 
 // MVP Coming Soon component for disabled features
 const ComingSoon: React.FC<{ feature: string }> = ({ feature }) => (

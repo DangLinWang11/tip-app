@@ -10,6 +10,7 @@ import { deleteReview } from '../services/reviewService';
 
 interface CarouselItem {
   id: string;
+  reviewId?: string;
   dishId?: string;
   dish: {
     name: string;
@@ -152,7 +153,8 @@ const FeedPost: React.FC<FeedPostProps> = ({
   const currentItem = isCarousel && carouselItems.length > 0 
     ? carouselItems[currentIndex] 
     : { 
-        id: dishId || '',
+        id,
+        reviewId: id,
         dishId, 
         dish, 
         review, 
@@ -238,8 +240,22 @@ const FeedPost: React.FC<FeedPostProps> = ({
     const confirmed = window.confirm('Are you sure you want to delete this post? This action cannot be undone.');
     if (!confirmed) return;
 
+    const reviewPayload: { id?: string; reviewId?: string } | undefined = isCarousel
+      ? currentItem
+      : { id };
+
+    console.log('handleDeletePost id=', reviewPayload?.id, 'typeof', typeof reviewPayload?.id, 'payload', reviewPayload);
+
+    const reviewIdForDeletion = reviewPayload?.id ?? reviewPayload?.reviewId ?? id;
+
+    if (!reviewIdForDeletion) {
+      console.error('Unable to determine review ID for deletion', reviewPayload);
+      alert('Failed to determine review ID. Please try again.');
+      return;
+    }
+
     try {
-      await deleteReview(id, author.id);
+      await deleteReview(reviewIdForDeletion);
       window.location.reload();
     } catch (error) {
       console.error('Error deleting post:', error);

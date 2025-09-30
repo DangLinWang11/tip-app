@@ -109,6 +109,30 @@ export interface ReviewData {
   isPublic: boolean;
 }
 
+// Review identifier helpers
+type ReviewIdentifierInput = string | { id?: string | null; reviewId?: string | null };
+
+export const normalizeReviewId = (input: ReviewIdentifierInput): string => {
+  if (typeof input === 'string') {
+    const trimmed = input.trim();
+    if (trimmed) {
+      return trimmed;
+    }
+  } else if (input) {
+    if (typeof input.id === 'string' && input.id.trim()) {
+      return input.id.trim();
+    }
+    if (typeof input.reviewId === 'string' && input.reviewId.trim()) {
+      return input.reviewId.trim();
+    }
+  }
+
+  throw new Error('Invalid review identifier');
+};
+
+export const reviewDoc = (reviewId: string) => doc(db, 'reviews', reviewId);
+
+
 // Create restaurant if it doesn't exist in Firebase
 const createRestaurantIfNeeded = async (restaurant: any): Promise<string> => {
   // If it's already a Firebase restaurant, return its ID
@@ -218,10 +242,12 @@ export const saveReview = async (
       userId: currentUser.uid,
       timestamp: serverTimestamp(),
       createdAt: new Date().toISOString(),
+      updatedAt: serverTimestamp(),
       triedTimes: 1,
       visitedTimes: 1,
       rewardReason: "First review bonus",
-      pointsEarned: 20
+      pointsEarned: 20,
+      isDeleted: false
     });
     
     console.log('✅ Review saved successfully with ID:', docRef.id);
@@ -255,7 +281,9 @@ export const saveReview = async (
         where('restaurantId', '==', restaurantId)
       );
       const restaurantReviewsSnapshot = await getDocs(restaurantReviewsQuery);
-      const restaurantReviews = restaurantReviewsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as FirebaseReview));
+      const restaurantReviews = restaurantReviewsSnapshot.docs
+        .map(doc => ({ id: doc.id, ...doc.data() } as FirebaseReview))
+        .filter(review => review.isDeleted !== true);
 
       // Convert to ReviewWithCategory format (using default category for now)
       const reviewsWithCategory: ReviewWithCategory[] = restaurantReviews.map(review => ({
@@ -551,7 +579,9 @@ const getRestaurantQualityScore = async (restaurantId: string | null | undefined
       where('restaurantId', '==', restaurantId)
     );
     const reviewsSnapshot = await getDocs(reviewsQuery);
-    const restaurantReviews = reviewsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as FirebaseReview));
+    const restaurantReviews = reviewsSnapshot.docs
+      .map(doc => ({ id: doc.id, ...doc.data() } as FirebaseReview))
+      .filter(review => review.isDeleted !== true);
 
     // For now, we'll use reviews without category data since we don't have menu item lookup
     // In the future, you could fetch menu items to get categories
@@ -572,19 +602,23 @@ export const fetchReviews = async (limitCount = 20): Promise<FirebaseReview[]> =
   try {
     const reviewsRef = collection(db, 'reviews');
     const q = query(reviewsRef, orderBy('timestamp', 'desc'), limit(limitCount));
-    
+
     const querySnapshot = await getDocs(q);
     const reviews: FirebaseReview[] = [];
-    
+
     querySnapshot.forEach((doc) => {
       const data = doc.data();
+      if (data.isDeleted === true) {
+        return;
+      }
+
       reviews.push({
         id: doc.id,
         ...data
       } as FirebaseReview);
     });
-    
-    console.log(`Fetched ${reviews.length} reviews from Firestore`);
+
+    console.log('Fetched ' + reviews.length + ' reviews from Firestore');
     return reviews;
   } catch (error) {
     console.error('Error fetching reviews:', error);
@@ -608,22 +642,26 @@ export const fetchUserReviews = async (limitCount = 50): Promise<FirebaseReview[
       orderBy('timestamp', 'desc'), 
       limit(limitCount)
     );
-    
+
     const querySnapshot = await getDocs(q);
     const reviews: FirebaseReview[] = [];
-    
+
     querySnapshot.forEach((doc) => {
       const data = doc.data();
+      if (data.isDeleted === true) {
+        return;
+      }
+
       reviews.push({
         id: doc.id,
         ...data
       } as FirebaseReview);
     });
-    
+
     if (reviews.length === 0) {
       console.log('No reviews found for current user - this is normal for new users');
     } else {
-      console.log(`Successfully fetched ${reviews.length} user reviews from Firestore`);
+      console.log('Successfully fetched ' + reviews.length + ' user reviews from Firestore');
     }
     return reviews;
   } catch (error: any) {
@@ -1158,20 +1196,29 @@ export const deletePersonalNote = async (reviewId: string, noteId: string): Prom
   }
 };
 
-export const deleteReview = async (reviewId: string, userId: string): Promise<void> => {
+export const deleteReview = async (reviewInput: string | { id?: string | null; reviewId?: string | null }): Promise<void> => {
   try {
     const currentUser = getCurrentUser();
-    if (!currentUser) throw new Error('User must be authenticated');
+    if (!currentUser) {
+      throw new Error('User must be authenticated');
+    }
 
-    if (currentUser.uid !== userId) throw new Error('Not authorized to delete this review');
+    const reviewId = normalizeReviewId(reviewInput);
+    const reviewRef = reviewDoc(reviewId);
 
-    const reviewRef = doc(db, 'reviews', reviewId);
-    const reviewDoc = await getDoc(reviewRef);
+    console.log('[deleteReview]', reviewRef.path, reviewId);
 
-    if (!reviewDoc.exists()) throw new Error('Review not found');
+    const reviewSnapshot = await getDoc(reviewRef);
 
-    const reviewData = reviewDoc.data();
-    if (reviewData.userId !== currentUser.uid) throw new Error('Not authorized to delete this review');
+    if (!reviewSnapshot.exists()) {
+      throw new Error('Review not found');
+    }
+
+    const reviewData = reviewSnapshot.data() as (FirebaseReview & { pointsEarned?: number });
+
+    if (reviewData.userId !== currentUser.uid) {
+      throw new Error('Not authorized to delete this review');
+    }
 
     await updateDoc(reviewRef, {
       isDeleted: true,
