@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { SearchIcon, MapPinIcon, StarIcon, PlusIcon } from 'lucide-react';
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from '../lib/firebase';
@@ -8,7 +8,7 @@ interface FirebaseRestaurant {
   id: string;
   name: string;
   address: string;
-  cuisine: string;
+  cuisine: string;\n  cuisines?: string[];
   phone: string;
   coordinates: {
     lat: number;
@@ -87,7 +87,7 @@ const RestaurantSearch: React.FC<RestaurantSearchProps> = ({
   const handleManualRestaurantAdd = () => {
     const manualRestaurant = {
       name: query,
-      cuisine: 'Restaurant Added',
+      cuisine: 'Restaurant Added',\n      cuisines: ['Restaurant Added'],
       id: `manual_${Date.now()}`,
       address: 'Restaurant Added',
       phone: '',

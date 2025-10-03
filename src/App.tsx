@@ -1,8 +1,9 @@
-// File: src/App.tsx
+﻿// File: src/App.tsx
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth, getUserProfile } from './lib/firebase';
+import { I18nProvider } from './lib/i18n/useI18n';
 import Layout from './components/Layout';
 import Home from './pages/Home';
 import Discover from './pages/Discover';
@@ -65,7 +66,7 @@ export function App() {
   useEffect(() => {
     // Firebase Auth state listener - automatically handles session persistence
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      console.log('🔐 Auth state changed:', user ? `User ${user.uid}` : 'No user');
+      console.log('ðŸ” Auth state changed:', user ? `User ${user.uid}` : 'No user');
       
       if (user) {
         // User is signed in with Firebase Auth
@@ -75,7 +76,7 @@ export function App() {
           
           if (profileResult.success && profileResult.profile?.username) {
             // User is fully onboarded
-            console.log('✅ User authenticated and onboarded:', profileResult.profile.username);
+            console.log('âœ… User authenticated and onboarded:', profileResult.profile.username);
             setAuthState({
               isAuthenticated: true,
               needsUsername: false,
@@ -83,7 +84,7 @@ export function App() {
             });
           } else {
             // User has Firebase auth but needs to complete profile (username)
-            console.log('⚠️ User authenticated but needs username');
+            console.log('âš ï¸ User authenticated but needs username');
             setAuthState({
               isAuthenticated: true,
               needsUsername: true,
@@ -91,7 +92,7 @@ export function App() {
             });
           }
         } catch (error) {
-          console.error('❌ Error checking user profile:', error);
+          console.error('âŒ Error checking user profile:', error);
           // If there's an error checking profile, assume needs username
           setAuthState({
             isAuthenticated: true,
@@ -101,7 +102,7 @@ export function App() {
         }
       } else {
         // No user signed in
-        console.log('❌ No authenticated user');
+        console.log('âŒ No authenticated user');
         setAuthState({
           isAuthenticated: false,
           needsUsername: false,
@@ -137,8 +138,9 @@ export function App() {
 
   // User is fully authenticated and onboarded - show main app
   return (
-    <LocationProvider>
-      <Router>
+    <I18nProvider>
+      <LocationProvider>
+        <Router>
         <Routes>
           <Route path="/" element={<Layout />}>
             <Route index element={<Home />} />
@@ -169,7 +171,10 @@ export function App() {
           <Route path="/post/:postId" element={<PostDetail />} />
           <Route path="/admin-upload" element={<AdminUpload />} />
         </Routes>
-      </Router>
-    </LocationProvider>
+        </Router>
+      </LocationProvider>
+    </I18nProvider>
   );
 }
+
+

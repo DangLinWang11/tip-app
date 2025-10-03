@@ -1,0 +1,252 @@
+﻿{
+  "createWizard": {
+    "title": "Crear reseÃ±a de plato",
+    "subtitle": "Contemos la historia completa de este plato.",
+    "draftSaved": "Borrador guardado",
+    "draftRestored": "Borrador recuperado",
+    "steps": {
+      "basic": {
+        "title": "BÃ¡sicos",
+        "description": "Agrega lo esencial: fotos, lugar, plato, calificaciÃ³n."
+      },
+      "taste": {
+        "title": "Sabor",
+        "description": "Cuenta cÃ³mo se sintiÃ³ cada bocado."
+      },
+      "compare": {
+        "title": "Comparar",
+        "description": "CompÃ¡ralo con algo mÃ¡s (opcional)."
+      },
+      "outcome": {
+        "title": "Resultado",
+        "description": "Â¿VolverÃ­as por Ã©l?"
+      },
+      "caption": {
+        "title": "Leyenda",
+        "description": "AÃ±ade una nota rÃ¡pida antes de terminar."
+      }
+    },
+    "actions": {
+      "next": "Siguiente",
+      "back": "AtrÃ¡s",
+      "save": "Guardar borrador",
+      "submit": "Enviar reseÃ±a",
+      "clone": "Agregar otro plato",
+      "cancel": "Cancelar",
+      "add": "Agregar",
+      "skip": "Saltar",
+      "setup": "Configurar"
+    },
+    "status": {
+      "autosaving": "Guardando...",
+      "saved": "Guardado",
+      "error": "Algo fallÃ³",
+      "restored": "Borrador recuperado"
+    }
+  },
+  "media": {
+    "photos": "Fotos",
+    "videos": "Videos",
+    "addMedia": "Agrega fotos o videos",
+    "dragDrop": "Arrastra y suelta o",
+    "browse": "explora",
+    "imageLimit": "ImÃ¡genes hasta 1600px y 8 MB",
+    "videoLimit": "MP4 o WebM hasta 20s y 50 MB",
+    "processing": "Procesando medios...",
+    "remove": "Quitar",
+    "errors": {
+      "type": "Tipo de archivo no soportado",
+      "size": "El archivo es muy grande",
+      "duration": "El video dura mÃ¡s de 20 segundos",
+      "unknown": "No pudimos procesar el archivo"
+    }
+  },
+  "basic": {
+    "restaurant": "Restaurante",
+    "addRestaurant": "Â¿No aparece? Agrega el lugar",
+    "dish": "Plato",
+    "addDish": "Agregar plato",
+    "rating": "CalificaciÃ³n general",
+    "ratingHelp": "Desliza de 0.1 a 10.0",
+    "media": "Medios del plato",
+    "dishTag": "Estilo del plato",
+    "searchPlaceholder": {
+      "restaurant": "Buscar restaurante",
+      "dish": "Buscar plato"
+    },
+    "newRestaurant": "Agregar restaurante nuevo",
+    "newDish": "Agregar plato nuevo",
+    "newDishPlaceholder": "Nombre del plato",
+    "createDishHint": "Agrega un plato para mantener tu historial limpio",
+    "labels": {
+      "name": "Nombre",
+      "address": "DirecciÃ³n",
+      "cuisine": "Cocina",
+      "phone": "TelÃ©fono",
+      "location": "UbicaciÃ³n",
+      "category": "CategorÃ­a",
+      "price": "Precio",
+      "description": "DescripciÃ³n"
+    },
+    "actions": {
+      "setOnMap": "Ubicar en mapa",
+      "updateLocation": "Actualizar ubicaciÃ³n",
+      "createRestaurant": "Crear",
+      "cancel": "Cancelar"
+    },
+    "helpers": {
+      "locationOptional": "Opcional pero Ãºtil"
+    },
+    "loadingRestaurants": "Cargando restaurantes...",
+    "loadingDishes": "Cargando platos...",
+    "selectRestaurantFirst": "Elige un restaurante primero"
+  },
+  "taste": {
+    "coreTitle": "Detalles clave",
+    "coreSubtitle": "CuÃ©ntanos sobre porciÃ³n, valor, presentaciÃ³n y frescura.",
+    "optionalTitle": "MÃ¡s detalles",
+    "optionalSubtitle": "Sal, temperatura, textura y picante cuando aplica.",
+    "levels": {
+      "low": "Bajo",
+      "balanced": "Equilibrado",
+      "high": "Alto",
+      "small": "PequeÃ±o",
+      "right": "Justa",
+      "big": "Generosa",
+      "overpriced": "Caro",
+      "fair": "Justo",
+      "bargain": "Ganga",
+      "messy": "Desordenado",
+      "clean": "Limpio",
+      "wow": "Impresionante",
+      "just_right": "En su punto",
+      "generous": "Generoso",
+      "not_fresh": "No fresco",
+      "very_fresh": "Muy fresco",
+      "needs_more_salt": "Le falta sal",
+      "too_salty": "Demasiado salado",
+      "needs_reheating": "Necesita recalentar",
+      "ideal": "Temperatura ideal",
+      "too_hot": "Demasiado caliente",
+      "mushy": "Blandito/aguado",
+      "great_bite": "Buena mordida",
+      "tough": "Duro/chicloso",
+      "lacked_kick": "Le faltÃ³ picante",
+      "nice_warmth": "Pica agradable",
+      "too_spicy": "Demasiado picante"
+    },
+    "attributes": {
+      "portion": "TamaÃ±o de porciÃ³n",
+      "value": "Valor",
+      "presentation": "PresentaciÃ³n",
+      "freshness": "Frescura",
+      "saltiness": "Salinidad",
+      "temperature": "Temperatura",
+      "texture": "Textura y cocciÃ³n",
+      "spiciness": "Picante",
+      "notePlaceholder": "Agrega una nota (opcional)"
+    }
+  },
+  "comparison": {
+    "title": "Compara este plato",
+    "subtitle": "Opcional, pero nos ayuda a aprender tu gusto.",
+    "sameRestaurant": "De este restaurante",
+    "history": "De tu historial",
+    "archetype": "Arquetipos",
+    "freeText": "DescrÃ­belo a tu manera",
+    "freeTextPlaceholder": "Comparte una comparaciÃ³n rÃ¡pida...",
+    "reasonsPrompt": "Elige dos razones",
+    "selectDish": "Selecciona plato",
+    "selectArchetype": "Selecciona arquetipo",
+    "recentlyTried": "Probado recientemente",
+    "confirm": "Confirmar comparaciÃ³n",
+    "chips": {
+      "stale": "Rancio / raro",
+      "cleanFlavors": "Sabores limpios",
+      "bright": "Brillante",
+      "underSeasoned": "Poca sal",
+      "balancedSalt": "Buen balance",
+      "tooSalty": "Demasiada sal",
+      "lukewarm": "Tibio",
+      "idealTemp": "Temperatura ideal",
+      "scalding": "Quema",
+      "mushy": "Chicloso / blando",
+      "greatBite": "Gran mordida",
+      "tough": "Duro / chicloso",
+      "lackedKick": "FaltÃ³ picor",
+      "niceWarmth": "Picor agradable",
+      "overwhelms": "Picante extremo"
+    }
+  },
+  "outcome": {
+    "title": "Â¿VolverÃ­as?",
+    "subtitle": "Cierra con tus conclusiones.",
+    "orderAgain": "Â¿Lo pedirÃ­as de nuevo?",
+    "recommend": "Â¿Lo recomendarÃ­as?",
+    "audience": "Ideal para",
+    "audiencePlaceholder": "Elige los que aplican",
+    "returnIntent": "Plan para la prÃ³xima",
+    "audienceOptions": {
+      "spicy_lovers": "Fans del picante",
+      "date_night": "Cita",
+      "family": "Familia",
+      "quick_bite": "Bocado rÃ¡pido",
+      "solo": "Solo",
+      "group": "Grupo"
+    },
+    "returnOptions": {
+      "for_this": "Vuelvo por esto",
+      "for_others": "Traigo a alguien",
+      "no": "Tal vez no"
+    },
+    "notesPlaceholder": "Â¿Algo mÃ¡s que deberÃ­an saber?"
+  },
+  "reward": {
+    "tasteBonus": "+3 Explorador de sabor",
+    "compareBonus": "+5 Pro de comparaciones",
+    "submitBonus": "+10 ReseÃ±a completa",
+    "mediaBonus": "+2 Bonus de medios"
+  },
+  "validation": {
+    "required": "Campo obligatorio",
+    "restaurantRequired": "Elige un restaurante",
+    "dishRequired": "Elige o agrega un plato",
+    "ratingRequired": "Califica el plato",
+    "tasteRequired": "Configura los atributos clave",
+    "mediaTooLarge": "Algunos archivos superan el lÃ­mite",
+    "comparisonReasons": "Elige dos razones",
+    "profanity": "MantengÃ¡moslo amable"
+  },
+  "profanity": {
+    "warning": "MantengÃ¡moslo amable"
+  },
+  "common": {
+    "optional": "Opcional",
+    "yes": "SÃ­",
+    "no": "No"
+  },
+  "review": {
+    "addMedia": "AÃ±adir fotos o videos",
+    "addRestaurant": "Â¿No lo encuentras? AÃ±ade el lugar",
+    "dishCategory": "Selecciona una categorÃ­a",
+    "overallRating": "ValoraciÃ³n general",
+    "addDetails": "AÃ±adir mÃ¡s detalles",
+    "addCaption": "AÃ±ade una nota o comparaciÃ³n rÃ¡pida (opcional)",
+    "orderAgain": "Â¿Lo pedirÃ­as otra vez?",
+    "recommend": "Â¿Lo recomendarÃ­as?",
+    "submit": "Enviar reseÃ±a"
+  },
+  "audience": {
+    "spicy": "Amantes del picante",
+    "date": "Cita romÃ¡ntica",
+    "family": "Comida familiar",
+    "quick": "Bocado rÃ¡pido",
+    "solo": "Capricho personal",
+    "group": "ReuniÃ³n con amigos"
+  },
+  "nextVisit": {
+    "comeBack": "VolverÃ­a por esto",
+    "bring": "TraerÃ­a a alguien mÃ¡s",
+    "no": "Probablemente no"
+  }
+}

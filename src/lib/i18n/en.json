@@ -1,0 +1,252 @@
+﻿{
+  "createWizard": {
+    "title": "Create Dish Review",
+    "subtitle": "Let's capture the full story of this dish.",
+    "draftSaved": "Draft saved",
+    "draftRestored": "Draft restored",
+    "steps": {
+      "basic": {
+        "title": "Basics",
+        "description": "Add the essentials: photos, place, dish, rating."
+      },
+      "taste": {
+        "title": "Taste",
+        "description": "Share how the dish felt bite by bite."
+      },
+      "compare": {
+        "title": "Compare",
+        "description": "Match it against something else (optional)."
+      },
+      "outcome": {
+        "title": "Outcome",
+        "description": "Would you come back for it?"
+      },
+      "caption": {
+        "title": "Caption",
+        "description": "Add a quick note before you wrap up."
+      }
+    },
+    "actions": {
+      "next": "Next",
+      "back": "Back",
+      "save": "Save Draft",
+      "submit": "Submit Review",
+      "clone": "Add Another Dish",
+      "cancel": "Cancel",
+      "add": "Add",
+      "skip": "Skip",
+      "setup": "Set up"
+    },
+    "status": {
+      "autosaving": "Saving...",
+      "saved": "Saved",
+      "error": "Something went wrong",
+      "restored": "Draft restored"
+    }
+  },
+  "media": {
+    "photos": "Photos",
+    "videos": "Videos",
+    "addMedia": "Add photos or videos",
+    "dragDrop": "Drag & drop or",
+    "browse": "browse",
+    "imageLimit": "Images up to 1600px and 8 MB",
+    "videoLimit": "MP4 or WebM up to 20s and 50 MB",
+    "processing": "Processing media...",
+    "remove": "Remove",
+    "errors": {
+      "type": "Unsupported file type",
+      "size": "File is too large",
+      "duration": "Video is longer than 20 seconds",
+      "unknown": "Could not process file"
+    }
+  },
+  "basic": {
+    "restaurant": "Restaurant",
+    "addRestaurant": "Can't find it? Add the place",
+    "dish": "Dish",
+    "addDish": "Add dish",
+    "rating": "Overall rating",
+    "ratingHelp": "Drag to rate from 0.1 to 10.0",
+    "media": "Dish media",
+    "dishTag": "Dish style",
+    "searchPlaceholder": {
+      "restaurant": "Search for a restaurant",
+      "dish": "Search for a dish"
+    },
+    "newRestaurant": "Add a new restaurant",
+    "newDish": "Add new dish",
+    "newDishPlaceholder": "Name of the dish",
+    "createDishHint": "Add a dish to keep your history tidy",
+    "labels": {
+      "name": "Name",
+      "address": "Address",
+      "cuisine": "Cuisine",
+      "phone": "Phone",
+      "location": "Location",
+      "category": "Category",
+      "price": "Price",
+      "description": "Description"
+    },
+    "actions": {
+      "setOnMap": "Set on map",
+      "updateLocation": "Update location",
+      "createRestaurant": "Create",
+      "cancel": "Cancel"
+    },
+    "helpers": {
+      "locationOptional": "Optional but helpful"
+    },
+    "loadingRestaurants": "Loading restaurants...",
+    "loadingDishes": "Loading dishes...",
+    "selectRestaurantFirst": "Select a restaurant first"
+  },
+  "taste": {
+    "coreTitle": "Core details",
+    "coreSubtitle": "Tell us about the portion, value, presentation, and freshness.",
+    "optionalTitle": "Add more details",
+    "optionalSubtitle": "Saltiness, temperature, texture, and heat when it matters.",
+    "levels": {
+      "low": "Low",
+      "balanced": "Balanced",
+      "high": "High",
+      "small": "Small",
+      "right": "Just right",
+      "big": "Generous",
+      "overpriced": "Overpriced",
+      "fair": "Fair",
+      "bargain": "Bargain",
+      "messy": "Messy",
+      "clean": "Clean",
+      "wow": "Wow",
+      "just_right": "Just right",
+      "generous": "Generous",
+      "not_fresh": "Not fresh",
+      "very_fresh": "Very fresh",
+      "needs_more_salt": "Needs more salt",
+      "too_salty": "Too salty",
+      "needs_reheating": "Needs reheating",
+      "ideal": "Ideal temp",
+      "too_hot": "Too hot",
+      "mushy": "Mushy/soggy",
+      "great_bite": "Great bite",
+      "tough": "Tough/chewy",
+      "lacked_kick": "Lacked kick",
+      "nice_warmth": "Nice warmth",
+      "too_spicy": "Too spicy"
+    },
+    "attributes": {
+      "portion": "Portion size",
+      "value": "Value",
+      "presentation": "Presentation",
+      "freshness": "Freshness",
+      "saltiness": "Saltiness",
+      "temperature": "Temperature",
+      "texture": "Texture & doneness",
+      "spiciness": "Spiciness",
+      "notePlaceholder": "Add a quick note (optional)"
+    }
+  },
+  "comparison": {
+    "title": "Compare this dish",
+    "subtitle": "Optional, but it helps us learn your taste.",
+    "sameRestaurant": "From this restaurant",
+    "history": "From your history",
+    "archetype": "Dish archetypes",
+    "freeText": "Describe it in your own words",
+    "freeTextPlaceholder": "Share a quick comparison...",
+    "reasonsPrompt": "Pick two reasons",
+    "selectDish": "Select dish",
+    "selectArchetype": "Select archetype",
+    "recentlyTried": "Recently tried",
+    "confirm": "Confirm comparison",
+    "chips": {
+      "stale": "Stale / off",
+      "cleanFlavors": "Clean flavors",
+      "bright": "Exceptionally bright",
+      "underSeasoned": "Under-seasoned",
+      "balancedSalt": "Balance is good",
+      "tooSalty": "Overpowering / salty",
+      "lukewarm": "Lukewarm",
+      "idealTemp": "Ideal temp",
+      "scalding": "Scalding",
+      "mushy": "Mushy / soggy",
+      "greatBite": "Great bite",
+      "tough": "Tough / chewy",
+      "lackedKick": "Lacked kick",
+      "niceWarmth": "Nice warmth",
+      "overwhelms": "Heat overwhelms"
+    }
+  },
+  "outcome": {
+    "title": "Would you go back?",
+    "subtitle": "Wrap it up with your takeaways.",
+    "orderAgain": "Order again?",
+    "recommend": "Recommend it?",
+    "audience": "Great for",
+    "audiencePlaceholder": "Pick all that apply",
+    "returnIntent": "Next visit plan",
+    "audienceOptions": {
+      "spicy_lovers": "Spicy lovers",
+      "date_night": "Date night",
+      "family": "Family meal",
+      "quick_bite": "Quick bite",
+      "solo": "Solo treat",
+      "group": "Group hang"
+    },
+    "returnOptions": {
+      "for_this": "Come back for this",
+      "for_others": "Bring someone else",
+      "no": "Probably not"
+    },
+    "notesPlaceholder": "Anything else they should know?"
+  },
+  "reward": {
+    "tasteBonus": "+3 Taste Explorer",
+    "compareBonus": "+5 Comparison Pro",
+    "submitBonus": "+10 Review Complete",
+    "mediaBonus": "+2 Media Bonus"
+  },
+  "validation": {
+    "required": "This field is required",
+    "restaurantRequired": "Pick a restaurant",
+    "dishRequired": "Pick or add a dish",
+    "ratingRequired": "Rate the dish",
+    "tasteRequired": "Set all core taste attributes",
+    "mediaTooLarge": "Some files exceed the size limit",
+    "comparisonReasons": "Pick two reasons",
+    "profanity": "Please keep it friendly"
+  },
+  "profanity": {
+    "warning": "Please keep it friendly"
+  },
+  "common": {
+    "optional": "Optional",
+    "yes": "Yes",
+    "no": "No"
+  },
+  "review": {
+    "addMedia": "Add photos or videos",
+    "addRestaurant": "Can't find it? Add the place",
+    "dishCategory": "What type of dish is this?",
+    "overallRating": "Overall rating",
+    "addDetails": "Add more details",
+    "addCaption": "Add a quick note or comparison (optional)",
+    "orderAgain": "Would you order this again?",
+    "recommend": "Would you recommend it?",
+    "submit": "Submit Review"
+  },
+  "audience": {
+    "spicy": "Spicy lovers",
+    "date": "Date night",
+    "family": "Family meal",
+    "quick": "Quick bite",
+    "solo": "Solo treat",
+    "group": "Group hang"
+  },
+  "nextVisit": {
+    "comeBack": "Come back for this",
+    "bring": "Bring someone else",
+    "no": "Probably not"
+  }
+}

@@ -1,4 +1,4 @@
-// src/utils/features.ts
+﻿// src/utils/features.ts
 export const FEATURES = {
   // Social Features (MVP: Disabled)
   SOCIAL_FEED: false,           // Home page social feed from other users
@@ -17,6 +17,10 @@ export const FEATURES = {
   SOCIAL_SHARING: false,        // Share posts to other platforms
   RESTAURANT_SOCIAL: false,     // Restaurant posts in social feed
   
+  // Experimental
+  NEW_CREATE_FLOW: true,        // New multi-step create review flow
+  NEW_CREATE_V2: true,         // Create wizard v2 (caption step)
+
   // Core MVP Features (Always Enabled)
   PERSONAL_REVIEWS: true,       // User's own review creation and history
   RESTAURANT_DISCOVERY: true,   // Restaurant search and discovery
@@ -37,3 +41,4 @@ export const useFeature = (feature: keyof typeof FEATURES): boolean => {
   if (DEVELOPMENT_MODE) return true;
   return isFeatureEnabled(feature);
 };
+
