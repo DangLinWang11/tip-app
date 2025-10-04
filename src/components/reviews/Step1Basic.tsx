@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { Camera, Loader2, MapPin, Plus, Trash2, Video } from 'lucide-react';
 import { db } from '../../lib/firebase';
@@ -9,6 +9,7 @@ import { useReviewWizard } from './WizardContext';
 import CreateRestaurantModal from './CreateRestaurantModal';
 import AddDishInline from './AddDishInline';
 import DishCategorySelect from './DishCategorySelect';
+import { CUISINES, normalizeToken } from '../../utils/taxonomy';
 
 const CATEGORY_SLUGS = ['appetizer', 'entree', 'handheld', 'side', 'dessert', 'drink'] as const;
 
@@ -38,6 +39,7 @@ const Step1Basic: React.FC = () => {
   const [loadingDishes, setLoadingDishes] = useState(false);
   const [showAddDish, setShowAddDish] = useState(false);
   const [mediaError, setMediaError] = useState<string | null>(null);
+  const [customCuisineInput, setCustomCuisineInput] = useState('');
 
   useEffect(() => {
     const fetchRestaurants = async () => {
@@ -82,6 +84,59 @@ const Step1Basic: React.FC = () => {
     };
     loadDishes();
   }, [selectedRestaurant]);
+
+  const updateCuisineValues = (updater: (current: string[]) => string[]) => {
+    updateDraft((prev) => {
+      const current = prev.restaurantCuisines ?? prev.cuisines ?? [];
+      const next = updater(current);
+      const normalized = Array.from(new Set(next.map((entry) => normalizeToken(entry)).filter(Boolean)));
+      return {
+        ...prev,
+        restaurantCuisines: normalized.length ? normalized : undefined,
+        cuisines: normalized.length ? normalized : undefined
+      };
+    });
+  };
+
+  const toggleCuisine = (value: string) => {
+    const normalized = normalizeToken(value);
+    if (!normalized) return;
+    updateCuisineValues((current) => {
+      const set = new Set(current);
+      if (set.has(normalized)) {
+        set.delete(normalized);
+      } else {
+        set.add(normalized);
+      }
+      return Array.from(set);
+    });
+  };
+
+  const addCustomCuisine = () => {
+    const normalized = normalizeToken(customCuisineInput);
+    if (!normalized) return;
+    updateCuisineValues((current) => {
+      if (current.includes(normalized)) {
+        return current;
+      }
+      return [...current, normalized];
+    });
+    setCustomCuisineInput('');
+  };
+
+  const handleCustomCuisineKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key !== 'Enter') return;
+    event.preventDefault();
+    addCustomCuisine();
+  };
+
+  const selectedCuisines = useMemo(() => draft.restaurantCuisines ?? draft.cuisines ?? [], [draft.restaurantCuisines, draft.cuisines]);
+  const customSelectedCuisines = useMemo(() => selectedCuisines.filter((value) => !CUISINES.includes(value)), [selectedCuisines]);
+
+  const formatCuisineLabel = (value: string) => {
+    return value.split(' ').map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+  };
+
 
   useEffect(() => {
     if (selectedRestaurant) {
@@ -141,6 +196,8 @@ const Step1Basic: React.FC = () => {
             <p className="text-sm text-slate-500">{t('media.imageLimit')} / {t('media.videoLimit')}</p>
           </div>
         </div>
+
+
         <div className="mt-4 grid gap-4">
           <label className="flex min-h-[160px] cursor-pointer flex-col items-center justify-center rounded-3xl border-2 border-dashed border-slate-200 bg-slate-50 text-center transition hover:border-red-200 hover:bg-red-50">
             <input type="file" accept="image/*,video/mp4,video/webm" multiple className="hidden" onChange={handleFileInput} />
@@ -322,6 +379,61 @@ const Step1Basic: React.FC = () => {
             options={CATEGORY_SLUGS as unknown as string[]}
           />
         </div>
+        <div className="pt-2 space-y-3">
+          <h3 className="text-sm font-semibold text-slate-800">Cuisine (optional)</h3>
+          <div className="flex flex-wrap gap-2">
+            {CUISINES.map((cuisine) => {
+              const normalizedValue = normalizeToken(cuisine);
+              const isSelected = selectedCuisines.includes(normalizedValue);
+              return (
+                <button
+                  key={normalizedValue}
+                  type="button"
+                  onClick={() => toggleCuisine(cuisine)}
+                  className={`px-3 py-1 rounded-full text-xs font-medium transition ${
+                    isSelected ? 'bg-red-500 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  {formatCuisineLabel(cuisine)}
+                </button>
+              );
+            })}
+          </div>
+          <div className="flex items-center gap-2">
+            <input
+              type="text"
+              value={customCuisineInput}
+              onChange={(event) => setCustomCuisineInput(event.target.value)}
+              onKeyDown={handleCustomCuisineKeyDown}
+              placeholder="Add custom cuisine"
+              className="flex-1 rounded-2xl border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:border-red-400 focus:outline-none focus:ring-2 focus:ring-red-100"
+            />
+            <button
+              type="button"
+              onClick={addCustomCuisine}
+              disabled={!customCuisineInput.trim()}
+              className={`rounded-2xl px-3 py-2 text-sm font-semibold transition ${
+                customCuisineInput.trim() ? 'bg-red-500 text-white hover:bg-red-600' : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+              }`}
+            >
+              Add
+            </button>
+          </div>
+          {customSelectedCuisines.length ? (
+            <div className="flex flex-wrap gap-2">
+              {customSelectedCuisines.map((cuisine) => (
+                <button
+                  key={cuisine}
+                  type="button"
+                  onClick={() => toggleCuisine(cuisine)}
+                  className="px-3 py-1 rounded-full bg-slate-200 text-xs font-medium text-slate-700 hover:bg-slate-300 transition"
+                >
+                  {formatCuisineLabel(cuisine)}
+                </button>
+              ))}
+            </div>
+          ) : null}
+        </div>
       </section>
 
       <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-md shadow-slate-200/60 space-y-6">
@@ -379,6 +491,19 @@ const Step1Basic: React.FC = () => {
 };
 
 export default Step1Basic;
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

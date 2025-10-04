@@ -26,6 +26,7 @@ export interface ReviewDraft {
   userId: string;
   restaurantId?: string;
   restaurantCuisines?: string[];
+  cuisines?: string[];
   dishId?: string;
   dishName: string;
   dishCategory?: DishCategory;
@@ -61,3 +62,6 @@ export interface ReviewDraft {
   updatedAt?: unknown;
   isDeleted?: boolean;
 }
+
+
+

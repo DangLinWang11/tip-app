@@ -26,9 +26,11 @@ import PostDetail from './pages/PostDetail';
 import { LocationProvider } from './contexts/LocationContext';
 import { useFeature } from './utils/features';
 import { runBackfillSoftDelete } from './dev/backfillSoftDelete';
+import { runBackfillCuisines } from './dev/backfillCuisines';
 
 if (import.meta.env.DEV) {
   (window as any).runBackfillSoftDelete = runBackfillSoftDelete;
+  (window as any).runBackfillCuisines = runBackfillCuisines;
 }
 
 // MVP Coming Soon component for disabled features

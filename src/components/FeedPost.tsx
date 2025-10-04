@@ -1,12 +1,29 @@
-import React, { useState, useRef, useEffect } from 'react';
+﻿import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { HeartIcon, MessageCircleIcon, BookmarkIcon, ShareIcon, CheckCircleIcon, MapPinIcon, PlusIcon, TrashIcon } from 'lucide-react';
+import {
+  HeartIcon,
+  MessageCircleIcon,
+  BookmarkIcon,
+  ShareIcon,
+  CheckCircleIcon,
+  MapPinIcon,
+  PlusIcon,
+} from 'lucide-react';
+import { MoreHorizontal as DotsIcon } from 'lucide-react';
 import RatingBadge from './RatingBadge';
 import { useFeature } from '../utils/features';
 import SaveToListModal from './SaveToListModal';
 import { isFollowing, followUser, unfollowUser } from '../services/followService';
 import { getCurrentUser } from '../lib/firebase';
-import { deleteReview } from '../services/reviewService';
+import { deleteReview, reportReview } from '../services/reviewService';
+
+interface FeedPostReview {
+  positive: string;
+  negative: string;
+  date: string;
+  caption?: string;
+  coreDetails?: string[];
+}
 
 interface CarouselItem {
   id: string;
@@ -18,11 +35,7 @@ interface CarouselItem {
     rating: number;
     visitCount?: number;
   };
-  review: {
-    positive: string;
-    negative: string;
-    date: string;
-  };
+  review: FeedPostReview;
   tags: string[];
   price?: string;
 }
@@ -52,14 +65,14 @@ interface FeedPostProps {
     rating: number;
     visitCount?: number;
   };
-  review: {
-    positive: string;
-    negative: string;
-    date: string;
-  };
+  review: FeedPostReview;
   engagement: {
     likes: number;
     comments: number;
+  };
+  topComment?: {
+    author: string;
+    text: string;
   };
 }
 
@@ -77,7 +90,7 @@ const FeedPost: React.FC<FeedPostProps> = ({
   engagement
 }) => {
   // Log all IDs received by FeedPost component
-  console.log('📝 [FeedPost] Component initialized with IDs:', {
+  console.log('ðŸ“ [FeedPost] Component initialized with IDs:', {
     id: id,
     visitId: visitId,
     restaurantId: restaurantId,
@@ -97,6 +110,7 @@ const FeedPost: React.FC<FeedPostProps> = ({
   const [touchEnd, setTouchEnd] = useState(0);
   const imageRef = useRef<HTMLDivElement>(null);
   const [showSaveModal, setShowSaveModal] = useState(false);
+  const [isActionSheetOpen, setIsActionSheetOpen] = useState(false);
   
   // NEW: Follow state management
   const [isFollowingUser, setIsFollowingUser] = useState(false);
@@ -265,7 +279,12 @@ const FeedPost: React.FC<FeedPostProps> = ({
 
 
   return (
-    <div className="bg-white rounded-2xl overflow-hidden shadow-sm mb-4">
+    <div className="relative bg-white rounded-2xl overflow-hidden shadow-sm mb-4">
+      {/* Absolute rating (bigger, nudged down & left) */}
+      <div className="pointer-events-none absolute top-5 right-5 z-10">
+        <RatingBadge rating={currentItem.dish.rating} size="xl" />
+      </div>
+
       {/* Header */}
       <div className="p-4 flex items-center gap-4">
         <img src={author.image} alt={author.name} className="w-10 h-10 rounded-full object-cover" />
@@ -328,9 +347,6 @@ const FeedPost: React.FC<FeedPostProps> = ({
               )}
             </div>
           )}
-        </div>
-        <div className="flex-shrink-0">
-          <RatingBadge rating={currentItem.dish.rating} size="md" />
         </div>
       </div>
       
@@ -406,32 +422,51 @@ const FeedPost: React.FC<FeedPostProps> = ({
               {formatInstagramTimestamp(currentItem.review.date)}
             </span>
           </div>
-          {isOwnPost && (
-            <button
-              onClick={handleDeletePost}
-              className="text-gray-400 hover:text-red-500 transition-colors"
-            >
-              <TrashIcon size={16} />
-            </button>
-          )}
+
+          {/* NEW: overflow trigger (always visible) */}
+          <button
+            onClick={() => setIsActionSheetOpen(true)}
+            className="text-gray-500 hover:text-gray-800 p-1 rounded-md"
+            aria-label="More options"
+          >
+            <DotsIcon size={18} />
+          </button>
         </div>
         
+        {/* New caption (if present) */}
+        {currentItem.review.caption && (
+          <p className="text-sm text-gray-700 mb-2">{currentItem.review.caption}</p>
+        )}
+
+        {/* New core details as chips (if present) */}
+        {Array.isArray(currentItem.review.coreDetails) && currentItem.review.coreDetails.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 mb-2">
+            {currentItem.review.coreDetails.map((cd, i) => (
+              <span key={i} className="inline-flex items-center rounded-full border px-2.5 py-1 text-xs text-neutral-700 border-neutral-200 bg-white">
+                {cd}
+              </span>
+            ))}
+          </div>
+        )}
+
         {/* Dual Review System */}
-        <div className="space-y-1 mb-2">
-          <div className="flex items-start">
-            <div className="w-5 h-5 rounded-full bg-green-100 flex items-center justify-center mr-2 flex-shrink-0">
-              <span className="text-green-600 text-xs">+</span>
+        {!(currentItem.review.caption || (currentItem.review.coreDetails && currentItem.review.coreDetails.length)) && (
+          <div className="space-y-1 mb-2">
+            <div className="flex items-start">
+              <div className="w-5 h-5 rounded-full bg-green-100 flex items-center justify-center mr-2 flex-shrink-0">
+                <span className="text-green-600 text-xs">+</span>
+              </div>
+              <p className="text-xs flex-1 leading-5">{currentItem.review.positive}</p>
             </div>
-            <p className="text-xs flex-1 leading-5">{currentItem.review.positive}</p>
-          </div>
-          <div className="flex items-start">
-            <div className="w-5 h-5 rounded-full bg-red-100 flex items-center justify-center mr-2 flex-shrink-0">
-              <span className="text-red-600 text-xs">-</span>
+            <div className="flex items-start">
+              <div className="w-5 h-5 rounded-full bg-red-100 flex items-center justify-center mr-2 flex-shrink-0">
+                <span className="text-red-600 text-xs">-</span>
+              </div>
+              <p className="text-xs flex-1 leading-5">{currentItem.review.negative}</p>
             </div>
-            <p className="text-xs flex-1 leading-5">{currentItem.review.negative}</p>
           </div>
-        </div>
-        
+        )}
+
         {/* Engagement */}
         <div className="flex justify-between items-center pt-2 border-t border-light-gray">
           {showLikesComments ? (
@@ -441,7 +476,7 @@ const FeedPost: React.FC<FeedPostProps> = ({
                   <HeartIcon size={22} className="text-dark-gray" />
                   <span className="ml-1 text-sm">{engagement.likes}</span>
                 </button>
-                <button className="flex items-center">
+                <button onClick={() => navigate(`/post/${id}`)} className="flex items-center">
                   <MessageCircleIcon size={22} className="text-dark-gray" />
                   <span className="ml-1 text-sm">{engagement.comments}</span>
                 </button>
@@ -473,11 +508,18 @@ const FeedPost: React.FC<FeedPostProps> = ({
                   />
                   <span className="text-sm">{likeCount}</span>
                 </button>
+                <button
+                  onClick={() => navigate(`/post/${id}`)}
+                  className="flex items-center text-gray-600 hover:text-primary transition-colors"
+                >
+                  <MessageCircleIcon size={20} className="mr-1" />
+                  <span className="text-sm">{engagement.comments}</span>
+                </button>
               </div>
               <div className="flex items-center space-x-3">
                 <button 
                   onClick={() => {
-                    console.log('💾 [FeedPost] Opening SaveToListModal with IDs:', {
+                    console.log('ðŸ’¾ [FeedPost] Opening SaveToListModal with IDs:', {
                       id: id,
                       dishId: dishId,
                       currentItemDishId: currentItem.dishId,
@@ -515,6 +557,84 @@ const FeedPost: React.FC<FeedPostProps> = ({
         </div>
       </div>
 
+      {isActionSheetOpen && (
+        <div
+          className="fixed inset-0 z-[60] flex items-end justify-center bg-black/40"
+          onClick={() => setIsActionSheetOpen(false)}
+        >
+          {/* Sheet */}
+          <div
+            className="w-full max-w-md rounded-t-2xl bg-white shadow-lg p-2 pb-4 animate-[slideUp_160ms_ease-out] mx-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mx-auto mb-2 mt-1 h-1.5 w-10 rounded-full bg-neutral-200" />
+            <div className="divide-y divide-neutral-100">
+              {/* Share (everyone) */}
+              <button
+                className="w-full px-4 py-3 text-left text-[15px] hover:bg-neutral-50"
+                onClick={() => {
+                  setIsActionSheetOpen(false);
+                  const shareData = {
+                    title: `${currentItem.dish.name} at ${restaurant?.name}`,
+                    text: `Check out this ${currentItem.dish.rating}/10 rated dish!`,
+                    url: window.location.origin + `/post/${id}`,
+                  };
+                  if (navigator.share) {
+                    navigator.share(shareData).catch(() => {});
+                  } else {
+                    navigator.clipboard?.writeText(shareData.url).then(() => {
+                      alert('Link copied to clipboard');
+                    });
+                  }
+                }}
+              >
+                Share
+              </button>
+
+              {/* Report (everyone) */}
+              <button
+                className="w-full px-4 py-3 text-left text-[15px] hover:bg-neutral-50"
+                onClick={async () => {
+                  setIsActionSheetOpen(false);
+                  const reason = window.prompt('Report reason (spam, inappropriate, incorrect info):');
+                  if (!reason) return;
+                  const details = window.prompt('Optional details for our team:') || '';
+                  try {
+                    await reportReview(id, reason.trim(), details.trim());
+                    alert('Thanks! This post has been flagged for review.');
+                  } catch {
+                    alert('Failed to submit report. Please try again.');
+                  }
+                }}
+              >
+                Report
+              </button>
+
+              {/* Delete (owner only) */}
+              {isOwnPost && (
+                <button
+                  className="w-full px-4 py-3 text-left text-[15px] text-red-600 hover:bg-red-50"
+                  onClick={() => {
+                    setIsActionSheetOpen(false);
+                    handleDeletePost();
+                  }}
+                >
+                  Delete Post
+                </button>
+              )}
+            </div>
+
+            {/* Cancel */}
+            <button
+              className="mt-2 w-full rounded-xl bg-neutral-100 px-4 py-3 text-[15px] font-medium hover:bg-neutral-200"
+              onClick={() => setIsActionSheetOpen(false)}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
       {showSaveModal && (() => {
         const modalProps = {
           isOpen: showSaveModal,
@@ -525,13 +645,13 @@ const FeedPost: React.FC<FeedPostProps> = ({
           postId: id
         };
         
-        console.log('💾 [FeedPost] Rendering SaveToListModal with props:', modalProps);
+        console.log('ðŸ’¾ [FeedPost] Rendering SaveToListModal with props:', modalProps);
         
         return (
           <SaveToListModal
             {...modalProps}
             onClose={() => {
-              console.log('💾 [FeedPost] Closing SaveToListModal');
+              console.log('ðŸ’¾ [FeedPost] Closing SaveToListModal');
               setShowSaveModal(false);
             }}
           />
@@ -542,3 +662,11 @@ const FeedPost: React.FC<FeedPostProps> = ({
 };
 
 export default FeedPost;
+
+
+
+
+
+
+
+

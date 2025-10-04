@@ -190,3 +190,5 @@ export const useLocation = (): LocationContextType => {
   }
   return context;
 };
+export const useLocationContext = useLocation;
+

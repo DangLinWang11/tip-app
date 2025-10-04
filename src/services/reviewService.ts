@@ -1,6 +1,7 @@
-import { collection, addDoc, serverTimestamp, getDocs, query, orderBy, limit, where, doc, getDoc, updateDoc } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, getDocs, query, orderBy, limit, where, doc, getDoc, updateDoc, arrayUnion } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage, getUserProfile, getCurrentUser, updateUserStats } from '../lib/firebase';
+import { inferFacetsFromText, tokenizeForSearch, normalizeToken } from '../utils/taxonomy';
 import { getAvatarUrl } from '../utils/avatarUtils';
 
 // Category weights for quality score calculation
@@ -105,6 +106,8 @@ export interface ReviewData {
   serverRating?: 'bad' | 'okay' | 'good' | null;
   price?: string | null;
   tags: string[];
+  restaurantCuisines?: string[];
+  cuisines?: string[];
   images: string[];
   isPublic: boolean;
 }
@@ -131,6 +134,20 @@ export const normalizeReviewId = (input: ReviewIdentifierInput): string => {
 };
 
 export const reviewDoc = (reviewId: string) => doc(db, 'reviews', reviewId);
+
+// Report a review for moderation (reason should align with future enum values like 'spam' | 'inappropriate' | 'incorrect-info')
+export const reportReview = async (reviewId: string, reason: string, details: string) => {
+  const user = getCurrentUser();
+  const payload = {
+    reviewId,
+    reporterId: user?.uid || null,
+    reason,
+    details,
+    createdAt: new Date().toISOString(),
+    timestamp: serverTimestamp(),
+  };
+  await addDoc(collection(db, 'reports'), payload);
+};
 
 
 // Create restaurant if it doesn't exist in Firebase
@@ -211,6 +228,32 @@ const createMenuItemIfNeeded = async (dishName: string, restaurantId: string, se
   }
 };
 
+
+// Fetch menu item category helper for downstream scoring/facet logic
+export const getMenuItemCategory = async (menuItemId: string): Promise<string | null> => {
+  if (!menuItemId) {
+    return null;
+  }
+
+  try {
+    const menuItemRef = doc(db, 'menuItems', menuItemId);
+    const snapshot = await getDoc(menuItemRef);
+    if (!snapshot.exists()) {
+      return null;
+    }
+
+    const data = snapshot.data() as { category?: string } | undefined;
+    const rawCategory = typeof data?.category === 'string' ? data.category : undefined;
+    const normalized = rawCategory ? normalizeToken(rawCategory) : '';
+    return normalized || null;
+  } catch (error) {
+    console.warn('Failed to fetch menu item category', { menuItemId, error });
+    return null;
+  }
+};
+
+
+
 // Save review to Firestore with automatic restaurant/dish creation
 export const saveReview = async (
   reviewData: ReviewData, 
@@ -233,12 +276,112 @@ export const saveReview = async (
     // Step 2: Create menu item if it doesn't exist  
     const menuItemId = await createMenuItemIfNeeded(reviewData.dish, restaurantId, selectedMenuItem);
 
+    const menuItemRef = doc(db, 'menuItems', menuItemId);
+    const restaurantDocRef = doc(db, 'restaurants', restaurantId);
+
+    const cuisineSources = Array.isArray(reviewData.cuisines)
+      ? reviewData.cuisines
+      : Array.isArray(reviewData.restaurantCuisines)
+        ? reviewData.restaurantCuisines
+        : [];
+
+    const normalizedUserCuisines = cuisineSources
+      .map((entry) => normalizeToken(entry))
+      .filter((entry): entry is string => Boolean(entry));
+
+    const cuisinesForReview = normalizedUserCuisines.length
+      ? Array.from(new Set(normalizedUserCuisines))
+      : undefined;
+
+    let cuisinesForRestaurantDoc: string[] | undefined;
+
+    try {
+      const restaurantSnapshot = await getDoc(restaurantDocRef);
+      const existingRestaurantCuisinesRaw = restaurantSnapshot.exists() && Array.isArray(restaurantSnapshot.data()?.cuisines)
+        ? (restaurantSnapshot.data()?.cuisines as string[])
+        : [];
+      const normalizedExisting = existingRestaurantCuisinesRaw
+        .map((entry) => normalizeToken(entry))
+        .filter((entry): entry is string => Boolean(entry));
+      const existingUnique = Array.from(new Set(normalizedExisting));
+      const existingAlreadyNormalized =
+        existingRestaurantCuisinesRaw.length === existingUnique.length &&
+        existingRestaurantCuisinesRaw.every((value, index) => value === existingUnique[index]);
+
+      const cuisineSetForRestaurant = new Set(existingUnique);
+      normalizedUserCuisines.forEach((value) => cuisineSetForRestaurant.add(value));
+      const mergedRestaurantCuisines = Array.from(cuisineSetForRestaurant);
+      const hasNewCuisine = normalizedUserCuisines.some((value) => !existingUnique.includes(value));
+      const shouldUpdateRestaurantCuisines =
+        mergedRestaurantCuisines.length > 0 && (!existingAlreadyNormalized || hasNewCuisine);
+
+      if (shouldUpdateRestaurantCuisines) {
+        cuisinesForRestaurantDoc = mergedRestaurantCuisines;
+      }
+    } catch (error) {
+      console.warn('Failed to inspect restaurant cuisines', { restaurantId, error });
+    }
+
+    const facetSourceParts = [
+      reviewData.dish,
+      selectedRestaurant?.name,
+      reviewData.personalNote,
+      reviewData.negativeNote,
+      ...(reviewData.tags || [])
+    ].filter((part): part is string => typeof part === 'string' && part.trim().length > 0);
+
+    const combinedFacetText = facetSourceParts.join(' ');
+    const inferredFacets = inferFacetsFromText(combinedFacetText);
+
+    const cuisineSet = new Set<string>([...inferredFacets.cuisines, ...normalizedUserCuisines]);
+    const mergedCuisines = Array.from(cuisineSet);
+
+    const searchTokens = tokenizeForSearch(
+      reviewData.dish,
+      selectedRestaurant?.name,
+      ...(reviewData.tags || []),
+      ...inferredFacets.dishTypes,
+      ...mergedCuisines,
+      ...inferredFacets.attributes,
+      reviewData.personalNote,
+      reviewData.negativeNote
+    ).filter((token) => token && token.trim().length > 0);
+
+    const menuItemUpdates: Record<string, any> = {
+      updatedAt: serverTimestamp(),
+    };
+
+    if (inferredFacets.dishTypes.length) {
+      menuItemUpdates['facets.dishTypes'] = arrayUnion(...inferredFacets.dishTypes);
+    }
+
+    if (mergedCuisines.length) {
+      menuItemUpdates['facets.cuisines'] = arrayUnion(...mergedCuisines);
+    }
+
+    if (inferredFacets.attributes.length) {
+      menuItemUpdates['facets.attributes'] = arrayUnion(...inferredFacets.attributes);
+    }
+
+    if (searchTokens.length) {
+      menuItemUpdates.searchTokens = arrayUnion(...searchTokens);
+    }
+
+    try {
+      await updateDoc(menuItemRef, menuItemUpdates);
+    } catch (error) {
+      console.warn('Failed to update menu item facets', { menuItemId, error });
+
+    }
+
     // Step 3: Create review document with proper linking
-    console.log('🔄 Saving review with links - restaurantId:', restaurantId, 'menuItemId:', menuItemId);
-    const docRef = await addDoc(collection(db, 'reviews'), {
-      ...reviewData,
-      restaurantId: restaurantId, // Link to actual restaurant document
-      menuItemId: menuItemId,     // Link to actual menu item document
+    console.log('dY", Saving review with links - restaurantId:', restaurantId, 'menuItemId:', menuItemId);
+    const { restaurantCuisines: _ignoredRestaurantCuisines, cuisines: _ignoredCuisines, ...reviewDataRest } = reviewData as any;
+
+    const reviewDocumentPayload: Record<string, any> = {
+      ...reviewDataRest,
+      restaurantId,
+      menuItemId,
       userId: currentUser.uid,
       timestamp: serverTimestamp(),
       createdAt: new Date().toISOString(),
@@ -248,7 +391,14 @@ export const saveReview = async (
       rewardReason: "First review bonus",
       pointsEarned: 20,
       isDeleted: false
-    });
+    };
+
+    if (cuisinesForReview && cuisinesForReview.length) {
+      reviewDocumentPayload.restaurantCuisines = cuisinesForReview;
+      reviewDocumentPayload.cuisines = cuisinesForReview;
+    }
+
+    const docRef = await addDoc(collection(db, 'reviews'), reviewDocumentPayload);
     
     console.log('✅ Review saved successfully with ID:', docRef.id);
     console.log('✅ Linked to restaurant:', restaurantId, 'and menu item:', menuItemId);
@@ -282,25 +432,45 @@ export const saveReview = async (
       );
       const restaurantReviewsSnapshot = await getDocs(restaurantReviewsQuery);
       const restaurantReviews = restaurantReviewsSnapshot.docs
-        .map(doc => ({ id: doc.id, ...doc.data() } as FirebaseReview))
-        .filter(review => review.isDeleted !== true);
+        .map((doc) => ({ id: doc.id, ...doc.data() } as FirebaseReview))
+        .filter((review) => review.isDeleted !== true);
 
-      // Convert to ReviewWithCategory format (using default category for now)
-      const reviewsWithCategory: ReviewWithCategory[] = restaurantReviews.map(review => ({
+      const menuItemIds = Array.from(
+        new Set(
+          restaurantReviews
+            .map((review) => review.menuItemId)
+            .filter((id): id is string => typeof id === 'string' && id.trim().length > 0)
+        )
+      );
+
+      const categoryMap = new Map<string, string>();
+      await Promise.all(
+        menuItemIds.map(async (id) => {
+          const category = await getMenuItemCategory(id);
+          if (category) {
+            categoryMap.set(id, category);
+          }
+        })
+      );
+
+      const reviewsWithCategory: ReviewWithCategory[] = restaurantReviews.map((review) => ({
         ...review,
-        category: 'custom' // Default category since we don't have menu item lookup yet
+        category: review.menuItemId ? categoryMap.get(review.menuItemId) ?? 'custom' : 'custom'
       }));
 
-      // Calculate the new quality score
       const newQualityScore = calculateRestaurantQualityScore(reviewsWithCategory);
       
       // Update the restaurant document with the new quality score
-      const restaurantDocRef = doc(db, 'restaurants', restaurantId);
-      await updateDoc(restaurantDocRef, {
+      const restaurantUpdatePayload: Record<string, any> = {
         qualityScore: newQualityScore,
         updatedAt: serverTimestamp()
-      });
-      
+      };
+
+      if (cuisinesForRestaurantDoc && cuisinesForRestaurantDoc.length) {
+        restaurantUpdatePayload.cuisines = cuisinesForRestaurantDoc;
+      }
+
+      await updateDoc(restaurantDocRef, restaurantUpdatePayload);
       console.log('✅ Restaurant quality score updated:', newQualityScore);
     } catch (error) {
       console.warn('⚠️ Failed to update restaurant quality score (non-critical):', error);
@@ -343,6 +513,8 @@ export interface FirebaseReview {
   serverRating?: 'bad' | 'okay' | 'good' | null;
   price?: string | null;
   tags: string[];
+  restaurantCuisines?: string[];
+  cuisines?: string[];
   images: string[];
   isPublic: boolean;
   timestamp: any; // Firestore timestamp
@@ -521,48 +693,48 @@ export const getUserRestaurantReviews = async (restaurantId: string): Promise<Fi
 
 // Calculate restaurant quality score from reviews
 export const calculateRestaurantQualityScore = (reviews: ReviewWithCategory[]): number | null => {
-  // Extract ratings
-  const ratings = reviews.map(review => review.rating);
-  
-  // Calculate mean and standard deviation
+  if (!reviews.length) {
+    return null;
+  }
+
+  const ratings = reviews
+    .map((review) => review.rating)
+    .filter((rating) => typeof rating === 'number' && Number.isFinite(rating));
+
+  if (!ratings.length) {
+    return null;
+  }
+
   const mean = ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length;
   const variance = ratings.reduce((sum, rating) => sum + Math.pow(rating - mean, 2), 0) / ratings.length;
   const standardDeviation = Math.sqrt(variance);
-  
-  // Filter out outlier reviews (more than 2 standard deviations from mean)
-  const filteredReviews = reviews.filter(review => 
-    Math.abs(review.rating - mean) <= 2 * standardDeviation
-  );
-  
-  // If too many reviews were filtered out, use original set
+
+  const filteredReviews = reviews.filter((review) => Math.abs(review.rating - mean) <= 2 * standardDeviation);
+
   if (filteredReviews.length < Math.min(5, reviews.length * 0.5)) {
     filteredReviews.splice(0, filteredReviews.length, ...reviews);
   }
-  
-  // Calculate weighted ratings
+
   let totalWeight = 0;
   let weightedSum = 0;
-  
-  filteredReviews.forEach(review => {
-    // Get category weight (default to 0.8 for unknown categories)
+
+  filteredReviews.forEach((review) => {
     const categoryKey = review.category?.toLowerCase() || 'custom';
-    const weight = CATEGORY_WEIGHTS[categoryKey] || 0.8;
-    
+    const weight = CATEGORY_WEIGHTS[categoryKey] ?? 0.8;
+
     totalWeight += weight;
     weightedSum += review.rating * weight;
   });
-  
-  // Calculate weighted average
+
   const weightedAverage = totalWeight > 0 ? weightedSum / totalWeight : mean;
-  
-  // Apply consistency penalty for high variance
-  const consistencyPenalty = Math.min(0.2, variance / 10); // Max 20% penalty
+  const consistencyPenalty = Math.min(0.2, variance / 10);
   const adjustedAverage = weightedAverage * (1 - consistencyPenalty);
-  
-  // Convert to percentage and round to nearest integer
+
+  if (!Number.isFinite(adjustedAverage)) {
+    return null;
+  }
+
   const qualityPercentage = Math.round((adjustedAverage / 10) * 100);
-  
-  // Ensure result is between 0 and 100
   return Math.max(0, Math.min(100, qualityPercentage));
 };
 
@@ -580,14 +752,30 @@ const getRestaurantQualityScore = async (restaurantId: string | null | undefined
     );
     const reviewsSnapshot = await getDocs(reviewsQuery);
     const restaurantReviews = reviewsSnapshot.docs
-      .map(doc => ({ id: doc.id, ...doc.data() } as FirebaseReview))
-      .filter(review => review.isDeleted !== true);
+      .map((doc) => ({ id: doc.id, ...doc.data() } as FirebaseReview))
+      .filter((review) => review.isDeleted !== true);
 
-    // For now, we'll use reviews without category data since we don't have menu item lookup
-    // In the future, you could fetch menu items to get categories
-    const reviewsWithCategory: ReviewWithCategory[] = restaurantReviews.map(review => ({
+    const menuItemIds = Array.from(
+      new Set(
+        restaurantReviews
+          .map((review) => review.menuItemId)
+          .filter((id): id is string => typeof id === 'string' && id.trim().length > 0)
+      )
+    );
+
+    const categoryMap = new Map<string, string>();
+    await Promise.all(
+      menuItemIds.map(async (id) => {
+        const category = await getMenuItemCategory(id);
+        if (category) {
+          categoryMap.set(id, category);
+        }
+      })
+    );
+
+    const reviewsWithCategory: ReviewWithCategory[] = restaurantReviews.map((review) => ({
       ...review,
-      category: 'custom' // Default category since we don't have menu item lookup yet
+      category: review.menuItemId ? categoryMap.get(review.menuItemId) ?? 'custom' : 'custom'
     }));
 
     return calculateRestaurantQualityScore(reviewsWithCategory);
@@ -798,7 +986,9 @@ export const convertVisitToCarouselFeedPost = async (reviews: FirebaseReview[]) 
     review: {
       positive: review.personalNote,
       negative: review.negativeNote,
-      date: new Date(review.createdAt).toLocaleDateString()
+      date: new Date(review.createdAt).toISOString(), // ISO for consistent time math
+      caption: review.personalNote || undefined,
+      // coreDetails: (review as any).coreDetails || undefined // leave commented until field exists
     },
     tags: review.tags,
     price: review.price,
@@ -818,7 +1008,7 @@ export const convertVisitToCarouselFeedPost = async (reviews: FirebaseReview[]) 
     restaurant: {
       name: mainReview.restaurant,
       isVerified: Math.random() > 0.7,
-      qualityScore: qualityScore
+      qualityScore: qualityScore ?? undefined
     },
     dish: {
       name: reviews.length > 1 ? `${reviews.length} dishes` : mainReview.dish,
@@ -829,7 +1019,9 @@ export const convertVisitToCarouselFeedPost = async (reviews: FirebaseReview[]) 
     review: {
       positive: mainReview.personalNote,
       negative: mainReview.negativeNote,
-      date: new Date(mainReview.createdAt).toLocaleDateString()
+      date: new Date(mainReview.createdAt).toISOString(), // ISO for consistent time math
+      caption: mainReview.personalNote || undefined,
+      // coreDetails: (mainReview as any).coreDetails || undefined // leave commented until field exists
     },
     engagement: {
       likes: 0,
@@ -893,7 +1085,7 @@ export const convertReviewToFeedPost = async (review: FirebaseReview) => {
     restaurant: {
       name: review.restaurant,
       isVerified: Math.random() > 0.7,
-      qualityScore: qualityScore
+      qualityScore: qualityScore ?? undefined
     },
     dish: {
       name: review.dish,
@@ -904,7 +1096,9 @@ export const convertReviewToFeedPost = async (review: FirebaseReview) => {
     review: {
       positive: review.personalNote,
       negative: review.negativeNote,
-      date: new Date(review.createdAt).toLocaleDateString()
+      date: new Date(review.createdAt).toISOString(), // ISO for consistent time math
+      caption: review.personalNote || undefined,
+      // coreDetails: (review as any).coreDetails || undefined // leave commented until field exists
     },
     engagement: {
       likes: 0,
@@ -962,7 +1156,9 @@ export const convertUserReviewToFeedPost = async (review: FirebaseReview) => {
     review: {
       positive: review.personalNote,
       negative: review.negativeNote,
-      date: new Date(review.createdAt).toLocaleDateString()
+      date: new Date(review.createdAt).toISOString(), // ISO for consistent time math
+      caption: review.personalNote || undefined,
+      // coreDetails: (review as any).coreDetails || undefined // leave commented until field exists
     },
     engagement: {
       likes: 0,
@@ -1081,7 +1277,9 @@ export const convertReviewsToFeedPosts = async (reviews: FirebaseReview[]) => {
       review: {
         positive: review.personalNote,
         negative: review.negativeNote,
-        date: new Date(review.createdAt).toLocaleDateString()
+        date: new Date(review.createdAt).toISOString(), // ISO for consistent time math
+        caption: review.personalNote || undefined,
+        // coreDetails: (review as any).coreDetails || undefined // leave commented until field exists
       },
       engagement: {
         likes: Math.floor(Math.random() * 100) + 10,
@@ -1250,3 +1448,28 @@ export const deleteReview = async (reviewInput: string | { id?: string | null; r
     throw error;
   }
 };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

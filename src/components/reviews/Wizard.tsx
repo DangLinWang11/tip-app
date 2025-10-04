@@ -27,20 +27,20 @@ const safeId = () => {
 
 const sanitizeCuisinesInput = (value?: unknown): string[] | undefined => {
   if (!value) return undefined;
-  if (Array.isArray(value)) {
-    const cleaned = value
-      .map((entry) => (typeof entry === 'string' ? entry : String(entry || '')).trim())
-      .filter(Boolean);
-    return cleaned.length ? cleaned : undefined;
-  }
-  if (typeof value === 'string') {
-    const cleaned = value
-      .split(',')
-      .map((entry) => entry.trim())
-      .filter(Boolean);
-    return cleaned.length ? cleaned : undefined;
-  }
-  return undefined;
+
+  const toArray = (): string[] => {
+    if (Array.isArray(value)) return value as string[];
+    if (typeof value === 'string') return value.split(',');
+    return [String(value)];
+  };
+
+  const cleaned = toArray()
+    .map((entry) => (typeof entry === 'string' ? entry : String(entry || '')))
+    .map((entry) => entry.trim().toLowerCase())
+    .filter(Boolean);
+
+  if (!cleaned.length) return undefined;
+  return Array.from(new Set(cleaned));
 };
 
 const extractRestaurantCuisines = (restaurant?: Partial<RestaurantOption> | null): string[] | undefined => {
@@ -106,11 +106,13 @@ const ensureOptionalAttribute = <L extends string>(attribute: string, input: any
 
 const ensureDraftShape = (draft: ReviewDraft): ReviewDraft => {
   const taste = draft.taste || ({} as ReviewDraft['taste']);
+  const cuisines = sanitizeCuisinesInput(draft.cuisines) ?? sanitizeCuisinesInput(draft.restaurantCuisines);
 
   const normalized: ReviewDraft = {
     userId: draft.userId,
     restaurantId: draft.restaurantId,
-    restaurantCuisines: sanitizeCuisinesInput(draft.restaurantCuisines),
+    restaurantCuisines: cuisines,
+    cuisines,
     dishId: draft.dishId,
     dishName: draft.dishName || '',
     dishCategory: draft.dishCategory,
@@ -240,6 +242,7 @@ const Wizard: React.FC = () => {
           ...prev,
           restaurantId: undefined,
           restaurantCuisines: undefined,
+          cuisines: undefined,
           dishId: undefined,
           dishName: ''
         }));
@@ -256,6 +259,7 @@ const Wizard: React.FC = () => {
             parsed.userId = userId;
             parsed.restaurantId = restaurant.id;
             parsed.restaurantCuisines = cuisines ?? parsed.restaurantCuisines;
+            parsed.cuisines = cuisines ?? parsed.cuisines;
             setDraft(parsed);
             return;
           }
@@ -268,6 +272,7 @@ const Wizard: React.FC = () => {
         ...prev,
         restaurantId: restaurant.id,
         restaurantCuisines: cuisines,
+        cuisines: cuisines,
         dishId: undefined,
         dishName: ''
       }));
@@ -440,7 +445,9 @@ const Wizard: React.FC = () => {
     const fresh = buildInitialDraft(userId);
     if (keepRestaurant && selectedRestaurant) {
       fresh.restaurantId = selectedRestaurant.id;
-      fresh.restaurantCuisines = extractRestaurantCuisines(selectedRestaurant);
+      const cuisines = extractRestaurantCuisines(selectedRestaurant);
+      fresh.restaurantCuisines = cuisines;
+      fresh.cuisines = cuisines;
     }
     setDraft(fresh);
     setMediaItems((prev) => {
@@ -462,9 +469,9 @@ const Wizard: React.FC = () => {
       throw new Error('Dish category is required');
     }
 
-    const { comparison, caption, restaurantCuisines, ...restDraft } = normalizedDraft;
+    const { comparison, caption, restaurantCuisines, cuisines: draftCuisines, ...restDraft } = normalizedDraft;
     const sanitizedCaption = caption?.trim();
-    const cuisines = sanitizeCuisinesInput(restaurantCuisines);
+    const cuisines = sanitizeCuisinesInput(draftCuisines) ?? sanitizeCuisinesInput(restaurantCuisines);
 
     const batch = writeBatch(db);
     const reviewRef = doc(collection(db, 'reviews'));
@@ -591,6 +598,30 @@ const Wizard: React.FC = () => {
 };
 
 export default Wizard;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

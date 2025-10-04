@@ -1,21 +1,24 @@
-import React from 'react';
+﻿import React from 'react';
+
 interface RatingBadgeProps {
   rating: number;
-  size?: 'sm' | 'md' | 'lg';
+  size?: 'sm' | 'md' | 'lg' | 'xl';
 }
-const RatingBadge: React.FC<RatingBadgeProps> = ({
-  rating,
-  size = 'md'
-}) => {
-  const sizeClasses = {
-    sm: 'w-8 h-8 text-sm',
-    md: 'w-12 h-12 text-base',
-    lg: 'w-16 h-16 text-lg'
+
+const RatingBadge: React.FC<RatingBadgeProps> = ({ rating, size = 'md' }) => {
+  const sizeClasses: Record<'sm' | 'md' | 'lg' | 'xl', string> = {
+    sm: 'text-base',
+    md: 'text-xl',
+    lg: 'text-2xl',
+    xl: 'text-3xl',
   };
+
   return (
-    <span className="text-primary font-bold text-lg">
+    <span className={`text-primary font-bold ${sizeClasses[size]}`}>
       {rating.toFixed(1)}
     </span>
   );
 };
+
 export default RatingBadge;
+
