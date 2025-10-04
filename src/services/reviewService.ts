@@ -652,7 +652,7 @@ export const getUserRestaurantReviews = async (restaurantId: string): Promise<Fi
       collection(db, 'reviews'),
       where('userId', '==', currentUser.uid),
       where('restaurantId', '==', restaurantId),
-      orderBy('timestamp', 'desc')
+      orderBy('createdAt', 'desc')
     );
 
     const reviewsSnapshot = await getDocs(reviewsQuery);
@@ -789,7 +789,7 @@ const getRestaurantQualityScore = async (restaurantId: string | null | undefined
 export const fetchReviews = async (limitCount = 20): Promise<FirebaseReview[]> => {
   try {
     const reviewsRef = collection(db, 'reviews');
-    const q = query(reviewsRef, orderBy('timestamp', 'desc'), limit(limitCount));
+    const q = query(reviewsRef, orderBy('createdAt', 'desc'), limit(limitCount));
 
     const querySnapshot = await getDocs(q);
     const reviews: FirebaseReview[] = [];
@@ -800,9 +800,23 @@ export const fetchReviews = async (limitCount = 20): Promise<FirebaseReview[]> =
         return;
       }
 
+      // Map new media structure to old images array for backward compatibility
+      const mappedData = {
+        ...data,
+        images: data.media?.photos && Array.isArray(data.media.photos) && data.media.photos.length > 0
+          ? data.media.photos.map((photoPath: string) => {
+              // Convert storage path to download URL if needed
+              if (photoPath.startsWith('gs://')) {
+                return photoPath; // Already a storage path, will be converted later
+              }
+              return photoPath; // Assume it's already a download URL
+            })
+          : data.images || [] // Fallback to old images field if it exists
+      };
+
       reviews.push({
         id: doc.id,
-        ...data
+        ...mappedData
       } as FirebaseReview);
     });
 
@@ -825,9 +839,9 @@ export const fetchUserReviews = async (limitCount = 50): Promise<FirebaseReview[
 
     const reviewsRef = collection(db, 'reviews');
     const q = query(
-      reviewsRef, 
+      reviewsRef,
       where('userId', '==', currentUser.uid),
-      orderBy('timestamp', 'desc'), 
+      orderBy('createdAt', 'desc'),
       limit(limitCount)
     );
 
@@ -840,9 +854,23 @@ export const fetchUserReviews = async (limitCount = 50): Promise<FirebaseReview[
         return;
       }
 
+      // Map new media structure to old images array for backward compatibility
+      const mappedData = {
+        ...data,
+        images: data.media?.photos && Array.isArray(data.media.photos) && data.media.photos.length > 0
+          ? data.media.photos.map((photoPath: string) => {
+              // Convert storage path to download URL if needed
+              if (photoPath.startsWith('gs://')) {
+                return photoPath; // Already a storage path, will be converted later
+              }
+              return photoPath; // Assume it's already a download URL
+            })
+          : data.images || [] // Fallback to old images field if it exists
+      };
+
       reviews.push({
         id: doc.id,
-        ...data
+        ...mappedData
       } as FirebaseReview);
     });
 
@@ -986,7 +1014,7 @@ export const convertVisitToCarouselFeedPost = async (reviews: FirebaseReview[]) 
     review: {
       positive: review.personalNote,
       negative: review.negativeNote,
-      date: new Date(review.createdAt).toISOString(), // ISO for consistent time math
+      date: safeToISOString(review.createdAt),
       caption: review.personalNote || undefined,
       // coreDetails: (review as any).coreDetails || undefined // leave commented until field exists
     },
@@ -1031,6 +1059,31 @@ export const convertVisitToCarouselFeedPost = async (reviews: FirebaseReview[]) 
     tags: mainReview.tags,
     price: mainReview.price
   };
+};
+
+// Helper function to safely convert Firestore Timestamp or Date to ISO string
+const safeToISOString = (dateValue: any): string => {
+  if (!dateValue) {
+    return new Date().toISOString(); // Default to now if no date
+  }
+
+  // Handle Firestore Timestamp
+  if (dateValue.toDate && typeof dateValue.toDate === 'function') {
+    return dateValue.toDate().toISOString();
+  }
+
+  // Handle Date object
+  if (dateValue instanceof Date) {
+    return dateValue.toISOString();
+  }
+
+  // Handle string or number (timestamp)
+  try {
+    return new Date(dateValue).toISOString();
+  } catch (error) {
+    console.warn('Failed to convert date value:', dateValue, error);
+    return new Date().toISOString(); // Fallback to now
+  }
 };
 
 // Convert single review to feed post (for non-visit reviews) - UPDATED with author.id
@@ -1096,7 +1149,7 @@ export const convertReviewToFeedPost = async (review: FirebaseReview) => {
     review: {
       positive: review.personalNote,
       negative: review.negativeNote,
-      date: new Date(review.createdAt).toISOString(), // ISO for consistent time math
+      date: safeToISOString(review.createdAt),
       caption: review.personalNote || undefined,
       // coreDetails: (review as any).coreDetails || undefined // leave commented until field exists
     },
@@ -1156,7 +1209,7 @@ export const convertUserReviewToFeedPost = async (review: FirebaseReview) => {
     review: {
       positive: review.personalNote,
       negative: review.negativeNote,
-      date: new Date(review.createdAt).toISOString(), // ISO for consistent time math
+      date: safeToISOString(review.createdAt),
       caption: review.personalNote || undefined,
       // coreDetails: (review as any).coreDetails || undefined // leave commented until field exists
     },
@@ -1277,7 +1330,7 @@ export const convertReviewsToFeedPosts = async (reviews: FirebaseReview[]) => {
       review: {
         positive: review.personalNote,
         negative: review.negativeNote,
-        date: new Date(review.createdAt).toISOString(), // ISO for consistent time math
+        date: safeToISOString(review.createdAt),
         caption: review.personalNote || undefined,
         // coreDetails: (review as any).coreDetails || undefined // leave commented until field exists
       },

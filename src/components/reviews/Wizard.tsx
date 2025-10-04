@@ -397,7 +397,7 @@ const Wizard: React.FC = () => {
               ...prev,
               media: {
                 ...prev.media,
-                photos: [...prev.media.photos, upload.storagePath]
+                photos: [...prev.media.photos, upload.downloadURL]
               }
             }));
             showReward('media');
@@ -415,8 +415,8 @@ const Wizard: React.FC = () => {
               ...prev,
               media: {
                 photos: prev.media.photos,
-                videos: [...prev.media.videos, uploads.video.storagePath],
-                thumbnails: [...prev.media.thumbnails, uploads.thumbnail.storagePath]
+                videos: [...prev.media.videos, uploads.video.downloadURL],
+                thumbnails: [...prev.media.thumbnails, uploads.thumbnail.downloadURL]
               }
             }));
           }
@@ -496,7 +496,25 @@ const Wizard: React.FC = () => {
       payload.comparison = comparison;
     }
 
-    batch.set(reviewRef, payload);
+    // Remove undefined values to prevent Firestore errors (recursively)
+    const removeUndefined = (obj: any): any => {
+      if (obj === null || obj === undefined) return null;
+      if (typeof obj !== 'object') return obj;
+      if (Array.isArray(obj)) return obj.map(removeUndefined);
+
+      const cleaned: any = {};
+      Object.keys(obj).forEach(key => {
+        const value = obj[key];
+        if (value !== undefined) {
+          cleaned[key] = removeUndefined(value);
+        }
+      });
+      return cleaned;
+    };
+
+    const cleanedPayload = removeUndefined(payload);
+
+    batch.set(reviewRef, cleanedPayload);
     await batch.commit();
     try {
       localStorage.removeItem(buildStorageKey(userId, draft.restaurantId));
