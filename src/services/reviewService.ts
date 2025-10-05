@@ -738,6 +738,27 @@ export const calculateRestaurantQualityScore = (reviews: ReviewWithCategory[]): 
   return Math.max(0, Math.min(100, qualityPercentage));
 };
 
+// Helper function to fetch restaurant data by ID
+const getRestaurantById = async (restaurantId: string | null | undefined): Promise<{ name: string } | null> => {
+  if (!restaurantId) {
+    return null;
+  }
+
+  try {
+    const restaurantDoc = await getDoc(doc(db, 'restaurants', restaurantId));
+    if (restaurantDoc.exists()) {
+      const data = restaurantDoc.data();
+      return {
+        name: data.name || 'Unknown Restaurant'
+      };
+    }
+    return null;
+  } catch (error) {
+    console.warn('Failed to fetch restaurant data:', restaurantId, error);
+    return null;
+  }
+};
+
 // Helper function to get restaurant quality score for feed posts
 const getRestaurantQualityScore = async (restaurantId: string | null | undefined): Promise<number | null> => {
   if (!restaurantId) {
@@ -816,7 +837,11 @@ export const fetchReviews = async (limitCount = 20): Promise<FirebaseReview[]> =
 
       reviews.push({
         id: doc.id,
-        ...mappedData
+        ...mappedData,
+        restaurantId: data.restaurantId || null, // Explicitly map restaurantId (after spread to override)
+        menuItemId: data.menuItemId || null, // Explicitly map menuItemId (after spread to override)
+        dish: data.dish || data.dishName || 'Unknown Dish', // Map dishName to dish (after spread to override)
+        restaurant: data.restaurant || data.restaurantName || 'Unknown Restaurant' // Map restaurantName to restaurant (after spread to override)
       } as FirebaseReview);
     });
 
@@ -870,7 +895,11 @@ export const fetchUserReviews = async (limitCount = 50): Promise<FirebaseReview[
 
       reviews.push({
         id: doc.id,
-        ...mappedData
+        ...mappedData,
+        restaurantId: data.restaurantId || null, // Explicitly map restaurantId (after spread to override)
+        menuItemId: data.menuItemId || null, // Explicitly map menuItemId (after spread to override)
+        dish: data.dish || data.dishName || 'Unknown Dish', // Map dishName to dish (after spread to override)
+        restaurant: data.restaurant || data.restaurantName || 'Unknown Restaurant' // Map restaurantName to restaurant (after spread to override)
       } as FirebaseReview);
     });
 
@@ -962,9 +991,10 @@ export const convertVisitToCarouselFeedPost = async (reviews: FirebaseReview[]) 
   // Sort reviews by rating (highest first) for main image selection
   const sortedReviews = [...reviews].sort((a, b) => b.rating - a.rating);
   const mainReview = sortedReviews[0]; // Highest rated dish as main
-  
-  // Get restaurant quality score
+
+  // Get restaurant quality score and restaurant data
   const qualityScore = await getRestaurantQualityScore(mainReview.restaurantId);
+  const restaurantData = await getRestaurantById(mainReview.restaurantId);
   
   // Get author info from main review - UPDATED with id field
   let author: FeedPostAuthor = {
@@ -1001,28 +1031,32 @@ export const convertVisitToCarouselFeedPost = async (reviews: FirebaseReview[]) 
   // Calculate average rating for the visit
   const averageRating = reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length;
 
-  // Create carousel data for all dishes in the visit
-  const carouselItems = sortedReviews.map(review => ({
-    id: review.id,
-    dishId: review.menuItemId,
-    dish: {
-      name: review.dish,
-      image: review.images.length > 0 ? review.images[0] : `https://source.unsplash.com/500x500/?food,${encodeURIComponent(review.dish)}`,
-      rating: review.rating,
-      visitCount: review.visitedTimes
-    },
-    review: {
-      positive: review.personalNote,
-      negative: review.negativeNote,
-      date: safeToISOString(review.createdAt),
-      caption: review.personalNote || undefined,
-      // coreDetails: (review as any).coreDetails || undefined // leave commented until field exists
-    },
-    tags: review.tags,
-    price: review.price,
-    personalNotes: review.personalNotes || [] // ADD THIS LINE
+  // Extract tags from main review for the carousel post summary
+  const { tasteChips: mainTasteChips, audienceTags: mainAudienceTags } = extractReviewTags(mainReview);
 
-  }));
+  // Create carousel data for all dishes in the visit
+  const carouselItems = sortedReviews.map(review => {
+    const { tasteChips, audienceTags } = extractReviewTags(review);
+    return {
+      id: review.id,
+      dishId: review.menuItemId,
+      dish: {
+        name: review.dish,
+        image: review.images.length > 0 ? review.images[0] : `https://source.unsplash.com/500x500/?food,${encodeURIComponent(review.dish)}`,
+        rating: review.rating,
+        visitCount: review.visitedTimes
+      },
+      review: {
+        date: safeToISOString(review.createdAt),
+        caption: (review as any).caption || undefined,
+        tasteChips: tasteChips.length > 0 ? tasteChips : undefined,
+        audienceTags: audienceTags.length > 0 ? audienceTags : undefined
+      },
+      tags: review.tags,
+      price: review.price,
+      personalNotes: review.personalNotes || []
+    };
+  });
 
   return {
     id: mainReview.visitId || mainReview.id,
@@ -1034,7 +1068,7 @@ export const convertVisitToCarouselFeedPost = async (reviews: FirebaseReview[]) 
     carouselItems, // Array of all dishes in the visit
     author, // NOW includes author.id for follow functionality
     restaurant: {
-      name: mainReview.restaurant,
+      name: restaurantData?.name || mainReview.restaurant || 'Unknown Restaurant',
       isVerified: Math.random() > 0.7,
       qualityScore: qualityScore ?? undefined
     },
@@ -1045,11 +1079,10 @@ export const convertVisitToCarouselFeedPost = async (reviews: FirebaseReview[]) 
       visitCount: mainReview.visitedTimes
     },
     review: {
-      positive: mainReview.personalNote,
-      negative: mainReview.negativeNote,
       date: new Date(mainReview.createdAt).toISOString(), // ISO for consistent time math
-      caption: mainReview.personalNote || undefined,
-      // coreDetails: (mainReview as any).coreDetails || undefined // leave commented until field exists
+      caption: (mainReview as any).caption || undefined,
+      tasteChips: mainTasteChips.length > 0 ? mainTasteChips : undefined,
+      audienceTags: mainAudienceTags.length > 0 ? mainAudienceTags : undefined
     },
     engagement: {
       likes: 0,
@@ -1065,6 +1098,12 @@ export const convertVisitToCarouselFeedPost = async (reviews: FirebaseReview[]) 
 const safeToISOString = (dateValue: any): string => {
   if (!dateValue) {
     return new Date().toISOString(); // Default to now if no date
+  }
+
+  // Handle pending serverTimestamp() - this happens when reading immediately after write
+  if (typeof dateValue === 'object' && dateValue._methodName === 'serverTimestamp') {
+    console.warn('⏳ Pending serverTimestamp detected, using current time as fallback');
+    return new Date().toISOString();
   }
 
   // Handle Firestore Timestamp
@@ -1086,10 +1125,85 @@ const safeToISOString = (dateValue: any): string => {
   }
 };
 
+// Helper function to extract taste chips and audience tags from review data
+const extractReviewTags = (review: any): { tasteChips: string[]; audienceTags: string[] } => {
+  const tasteChips: string[] = [];
+  const audienceTags: string[] = [];
+
+  // Extract taste attributes if they exist
+  if (review.taste) {
+    // Value
+    if (review.taste.value?.level) {
+      const valueMap: Record<string, string> = {
+        'overpriced': 'Overpriced',
+        'fair': 'Fair value',
+        'bargain': 'Bargain'
+      };
+      const label = valueMap[review.taste.value.level];
+      if (label) tasteChips.push(label);
+    }
+
+    // Freshness
+    if (review.taste.freshness?.level) {
+      const freshnessMap: Record<string, string> = {
+        'not_fresh': 'Not fresh',
+        'just_right': 'Fresh',
+        'very_fresh': 'Very fresh'
+      };
+      const label = freshnessMap[review.taste.freshness.level];
+      if (label) tasteChips.push(label);
+    }
+
+    // Saltiness (optional)
+    if (review.taste.saltiness?.level) {
+      const saltinessMap: Record<string, string> = {
+        'needs_more_salt': 'Needs more salt',
+        'balanced': 'Balanced',
+        'too_salty': 'Too salty'
+      };
+      const label = saltinessMap[review.taste.saltiness.level];
+      if (label) tasteChips.push(label);
+    }
+  }
+
+  // Extract audience tags if they exist
+  if (review.outcome?.audience && Array.isArray(review.outcome.audience)) {
+    const audienceMap: Record<string, string> = {
+      'spicy_lovers': 'Spicy lovers',
+      'date_night': 'Date night',
+      'family': 'Family meal',
+      'quick_bite': 'Quick bite',
+      'solo': 'Solo treat',
+      'group': 'Group hang'
+    };
+
+    review.outcome.audience.forEach((tag: string) => {
+      const label = audienceMap[tag];
+      if (label) audienceTags.push(label);
+    });
+  }
+
+  return { tasteChips, audienceTags };
+};
+
 // Convert single review to feed post (for non-visit reviews) - UPDATED with author.id
 export const convertReviewToFeedPost = async (review: FirebaseReview) => {
-  // Get restaurant quality score
+  // Debug logging for restaurantId and dish info
+  console.log('📍 Converting review to feed post:', {
+    reviewId: review.id,
+    restaurantId: review.restaurantId,
+    restaurantName: review.restaurant || (review as any).restaurantName || 'N/A',
+    dishName: review.dish || (review as any).dishName || 'N/A',
+    createdAt: review.createdAt,
+    hasTimestamp: !!review.timestamp
+  });
+
+  // Get restaurant quality score and restaurant data
   const qualityScore = await getRestaurantQualityScore(review.restaurantId);
+  const restaurantData = await getRestaurantById(review.restaurantId);
+
+  // Extract taste and audience tags from review data
+  const { tasteChips, audienceTags } = extractReviewTags(review);
   
   let author: FeedPostAuthor = {
     id: review.userId || "anonymous", // NEW: Use actual userId as fallback
@@ -1127,7 +1241,7 @@ export const convertReviewToFeedPost = async (review: FirebaseReview) => {
     }
   }
   
-  return {
+  const feedPost = {
     id: review.id,
     visitId: review.visitId,
     userId: review.userId,
@@ -1136,22 +1250,21 @@ export const convertReviewToFeedPost = async (review: FirebaseReview) => {
     isCarousel: false, // Single dish post
     author, // NOW includes author.id for follow functionality
     restaurant: {
-      name: review.restaurant,
+      name: restaurantData?.name || review.restaurant || (review as any).restaurantName || 'Unknown Restaurant',
       isVerified: Math.random() > 0.7,
       qualityScore: qualityScore ?? undefined
     },
     dish: {
-      name: review.dish,
-      image: review.images.length > 0 ? review.images[0] : `https://source.unsplash.com/500x500/?food,${encodeURIComponent(review.dish)}`,
+      name: review.dish || (review as any).dishName || 'Unknown Dish',
+      image: review.images.length > 0 ? review.images[0] : `https://source.unsplash.com/500x500/?food,${encodeURIComponent(review.dish || (review as any).dishName || 'food')}`,
       rating: review.rating,
       visitCount: review.visitedTimes
     },
     review: {
-      positive: review.personalNote,
-      negative: review.negativeNote,
       date: safeToISOString(review.createdAt),
-      caption: review.personalNote || undefined,
-      // coreDetails: (review as any).coreDetails || undefined // leave commented until field exists
+      caption: (review as any).caption || undefined,
+      tasteChips: tasteChips.length > 0 ? tasteChips : undefined,
+      audienceTags: audienceTags.length > 0 ? audienceTags : undefined
     },
     engagement: {
       likes: 0,
@@ -1160,14 +1273,30 @@ export const convertReviewToFeedPost = async (review: FirebaseReview) => {
     location: review.location,
     tags: review.tags,
     price: review.price,
-    personalNotes: review.personalNotes || [] // ADD THIS LINE
+    personalNotes: review.personalNotes || []
   };
+
+  console.log('✅ [convertReviewToFeedPost] Created feed post:', {
+    reviewId: review.id,
+    restaurantId: feedPost.restaurantId,
+    restaurantName: feedPost.restaurant.name,
+    dishId: feedPost.dishId,
+    dishName: feedPost.dish.name
+  });
+
+  return feedPost;
 };
 
 // Convert current user's review to feed post format (optimized for profile page) - UPDATED with author.id
 export const convertUserReviewToFeedPost = async (review: FirebaseReview) => {
   const userProfileResult = await getUserProfile();
-  
+
+  // Fetch restaurant data
+  const restaurantData = await getRestaurantById(review.restaurantId);
+
+  // Extract taste and audience tags from review data
+  const { tasteChips, audienceTags } = extractReviewTags(review);
+
   let author: FeedPostAuthor = {
     id: review.userId || "you", // NEW: Use actual userId or fallback
     name: "You",
@@ -1186,7 +1315,7 @@ export const convertUserReviewToFeedPost = async (review: FirebaseReview) => {
       isVerified: profile.isVerified || false
     };
   }
-  
+
   return {
     id: review.id,
     visitId: review.visitId,
@@ -1196,22 +1325,21 @@ export const convertUserReviewToFeedPost = async (review: FirebaseReview) => {
     isCarousel: false, // Profile page shows individual reviews
     author, // NOW includes author.id for follow functionality
     restaurant: {
-      name: review.restaurant,
+      name: restaurantData?.name || review.restaurant || (review as any).restaurantName || 'Unknown Restaurant',
       isVerified: false,
       qualityScore: 85
     },
     dish: {
-      name: review.dish,
-      image: review.images.length > 0 ? review.images[0] : `https://source.unsplash.com/500x500/?food,${encodeURIComponent(review.dish)}`,
+      name: review.dish || (review as any).dishName || 'Unknown Dish',
+      image: review.images.length > 0 ? review.images[0] : `https://source.unsplash.com/500x500/?food,${encodeURIComponent(review.dish || (review as any).dishName || 'food')}`,
       rating: review.rating,
       visitCount: review.visitedTimes
     },
     review: {
-      positive: review.personalNote,
-      negative: review.negativeNote,
       date: safeToISOString(review.createdAt),
-      caption: review.personalNote || undefined,
-      // coreDetails: (review as any).coreDetails || undefined // leave commented until field exists
+      caption: (review as any).caption || undefined,
+      tasteChips: tasteChips.length > 0 ? tasteChips : undefined,
+      audienceTags: audienceTags.length > 0 ? audienceTags : undefined
     },
     engagement: {
       likes: 0,
@@ -1220,7 +1348,7 @@ export const convertUserReviewToFeedPost = async (review: FirebaseReview) => {
     location: review.location,
     tags: review.tags,
     price: review.price,
-    personalNotes: review.personalNotes || [] // ADD THIS LINE
+    personalNotes: review.personalNotes || []
   };
 };
 
@@ -1302,46 +1430,48 @@ export const convertReviewsToFeedPosts = async (reviews: FirebaseReview[]) => {
   } catch (error) {
     console.error('Error converting reviews to carousel feed posts:', error);
     // Fallback to individual posts
-    return reviews.map(review => ({
-      id: review.id,
-      visitId: review.visitId,
-      userId: review.userId,
-      restaurantId: review.restaurantId,
-      dishId: review.menuItemId,
-      isCarousel: false,
-      author: {
-        id: review.userId || "anonymous", // NEW: Include userId in fallback
-        name: review.userId || "Anonymous User",
-        username: review.userId || "anonymous",
-        image: getAvatarUrl({ username: review.userId || "anonymous" }),
-        isVerified: false
-      },
-      restaurant: {
-        name: review.restaurant,
-        isVerified: false,
-        qualityScore: 75
-      },
-      dish: {
-        name: review.dish,
-        image: review.images.length > 0 ? review.images[0] : `https://source.unsplash.com/500x500/?food,${encodeURIComponent(review.dish)}`,
-        rating: review.rating,
-        visitCount: review.visitedTimes
-      },
-      review: {
-        positive: review.personalNote,
-        negative: review.negativeNote,
-        date: safeToISOString(review.createdAt),
-        caption: review.personalNote || undefined,
-        // coreDetails: (review as any).coreDetails || undefined // leave commented until field exists
-      },
-      engagement: {
-        likes: Math.floor(Math.random() * 100) + 10,
-        comments: Math.floor(Math.random() * 30) + 1
-      },
-      location: review.location,
-      tags: review.tags,
-      price: review.price
-    }));
+    return reviews.map(review => {
+      const { tasteChips, audienceTags } = extractReviewTags(review);
+      return {
+        id: review.id,
+        visitId: review.visitId,
+        userId: review.userId,
+        restaurantId: review.restaurantId,
+        dishId: review.menuItemId,
+        isCarousel: false,
+        author: {
+          id: review.userId || "anonymous", // NEW: Include userId in fallback
+          name: review.userId || "Anonymous User",
+          username: review.userId || "anonymous",
+          image: getAvatarUrl({ username: review.userId || "anonymous" }),
+          isVerified: false
+        },
+        restaurant: {
+          name: review.restaurant,
+          isVerified: false,
+          qualityScore: 75
+        },
+        dish: {
+          name: review.dish,
+          image: review.images.length > 0 ? review.images[0] : `https://source.unsplash.com/500x500/?food,${encodeURIComponent(review.dish)}`,
+          rating: review.rating,
+          visitCount: review.visitedTimes
+        },
+        review: {
+          date: safeToISOString(review.createdAt),
+          caption: (review as any).caption || undefined,
+          tasteChips: tasteChips.length > 0 ? tasteChips : undefined,
+          audienceTags: audienceTags.length > 0 ? audienceTags : undefined
+        },
+        engagement: {
+          likes: Math.floor(Math.random() * 100) + 10,
+          comments: Math.floor(Math.random() * 30) + 1
+        },
+        location: review.location,
+        tags: review.tags,
+        price: review.price
+      };
+    });
   }
 };
 

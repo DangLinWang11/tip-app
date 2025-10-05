@@ -356,45 +356,52 @@ const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
             <div style={{
               backgroundColor: 'white',
               padding: '16px',
-              borderRadius: '12px',
+              borderRadius: '16px',
               boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-              marginBottom: '16px'
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px'
             }}>
-              <h3 style={{
-                margin: '0 0 8px 0',
-                fontSize: '18px',
-                fontWeight: 'bold',
-                color: '#1f2937'
-              }}>
-                Set location for {restaurantName}
-              </h3>
-              <p style={{
-                margin: 0,
-                fontSize: '14px',
-                color: '#6b7280'
-              }}>
-                Move the map to position the pin at the restaurant's exact location
-              </p>
+              <div style={{ flex: 1 }}>
+                <h3 style={{
+                  margin: '0 0 4px 0',
+                  fontSize: '16px',
+                  fontWeight: '600',
+                  color: '#1f2937'
+                }}>
+                  Set location for {restaurantName}
+                </h3>
+                <p style={{
+                  margin: 0,
+                  fontSize: '13px',
+                  color: '#6b7280',
+                  lineHeight: '1.4'
+                }}>
+                  Move the map to position the pin at the restaurant's exact location
+                </p>
+              </div>
+              <button
+                onClick={handleConfirm}
+                style={{
+                  padding: '12px 20px',
+                  backgroundColor: '#ef4444',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '12px',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 6px rgba(239, 68, 68, 0.3)',
+                  transition: 'background-color 0.2s',
+                  whiteSpace: 'nowrap',
+                  flexShrink: 0
+                }}
+                onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#dc2626'}
+                onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#ef4444'}
+              >
+                Pin Location
+              </button>
             </div>
-
-            <button
-              onClick={handleConfirm}
-              style={{
-                width: '100%',
-                padding: '16px',
-                backgroundColor: '#dc2626',
-                color: 'white',
-                border: 'none',
-                borderRadius: '12px',
-                fontSize: '16px',
-                fontWeight: 'bold',
-                cursor: 'pointer',
-                boxShadow: '0 2px 8px rgba(220, 38, 38, 0.2)',
-                transition: 'background-color 0.2s'
-              }}
-            >
-              Confirm Location
-            </button>
           </div>
 
           <div style={{ width: '100%', height: '100%' }}>

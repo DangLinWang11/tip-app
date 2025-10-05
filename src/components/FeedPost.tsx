@@ -18,11 +18,10 @@ import { getCurrentUser } from '../lib/firebase';
 import { deleteReview, reportReview } from '../services/reviewService';
 
 interface FeedPostReview {
-  positive: string;
-  negative: string;
   date: string;
   caption?: string;
-  coreDetails?: string[];
+  tasteChips?: string[];
+  audienceTags?: string[];
 }
 
 interface CarouselItem {
@@ -195,10 +194,14 @@ const FeedPost: React.FC<FeedPostProps> = ({
     const reviewDate = new Date(dateString);
     const now = new Date();
     const diffMs = now.getTime() - reviewDate.getTime();
+    const diffMinutes = Math.floor(diffMs / (1000 * 60));
     const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
     const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
-    if (diffHours < 24) {
+    if (diffHours < 1) {
+      // Show minutes for posts less than 1 hour old
+      return `${Math.max(1, diffMinutes)}m`; // Show at least 1m
+    } else if (diffHours < 24) {
       return `${diffHours}h`;
     } else if (diffDays <= 30) {
       return `${diffDays}d`;
@@ -243,10 +246,19 @@ const FeedPost: React.FC<FeedPostProps> = ({
   };
 
   const handleDishClick = () => {
+    console.log('🔍 [FeedPost] Dish click:', {
+      dishId: currentItem.dishId,
+      dishName: currentItem.dish.name,
+      restaurantId: restaurantId,
+      willNavigateTo: currentItem.dishId ? `/dish/${currentItem.dishId}` : restaurantId ? `/restaurant/${restaurantId}` : 'nowhere'
+    });
+
     if (currentItem.dishId) {
       navigate(`/dish/${currentItem.dishId}`);
     } else if (restaurantId) {
       navigate(`/restaurant/${restaurantId}`);
+    } else {
+      console.warn('⚠️ [FeedPost] No dishId or restaurantId available for navigation');
     }
   };
 
@@ -328,9 +340,15 @@ const FeedPost: React.FC<FeedPostProps> = ({
           {restaurant && (
             <div className="text-sm text-dark-gray flex items-center gap-1.5 mt-0.5">
               <MapPinIcon size={14} className="text-red-500" />
-              <span 
-                onClick={() => restaurantId && navigate(`/restaurant/${restaurantId}`)}
-                className={`max-w-32 truncate ${restaurantId ? "hover:text-primary cursor-pointer" : ""}`}
+              <span
+                onClick={() => {
+                  if (restaurantId) {
+                    navigate(`/restaurant/${restaurantId}`);
+                  } else {
+                    console.warn('Restaurant ID missing for:', restaurant.name, 'Review ID:', id);
+                  }
+                }}
+                className={`max-w-32 truncate ${restaurantId ? "hover:text-primary cursor-pointer" : "text-gray-500"}`}
               >
                 {restaurant.name}
               </span>
@@ -394,76 +412,117 @@ const FeedPost: React.FC<FeedPostProps> = ({
               key={index}
               onClick={() => handleDotClick(index)}
               className={`rounded-full transition-all duration-200 ${
-                index === currentIndex 
-                  ? 'w-3 h-3 bg-red-500' 
+                index === currentIndex
+                  ? 'w-3 h-3 bg-red-500'
                   : 'w-2 h-2 bg-red-300'
               }`}
             />
           ))}
         </div>
       )}
-      
-      {/* Content */}
-      <div className="p-4">
-        <div className="flex items-center justify-between mb-2">
+
+      {/* Dish Name Below Image */}
+      <div className="px-4 pt-3 pb-2">
+        <div className="flex items-center justify-between">
+          <h3 className="font-semibold text-xl">
+            <span
+              onClick={handleDishClick}
+              className={(currentItem.dishId || restaurantId) ? "hover:text-primary cursor-pointer" : ""}
+            >
+              {isCarousel && carouselItems.length > 1
+                ? `${currentItem.dish.name} (${currentIndex + 1}/${carouselItems.length})`
+                : currentItem.dish.name
+              }
+            </span>
+          </h3>
           <div className="flex items-center gap-2">
-            <h3 className="font-medium text-lg">
-              <span
-                onClick={handleDishClick}
-                className={(currentItem.dishId || restaurantId) ? "hover:text-primary cursor-pointer" : ""}
-              >
-                {isCarousel && carouselItems.length > 1
-                  ? `${currentItem.dish.name} (${currentIndex + 1}/${carouselItems.length})`
-                  : currentItem.dish.name
-                }
-              </span>
-            </h3>
-            <span className="text-xs text-gray-400">
+            <span className="text-sm text-gray-400">
               {formatInstagramTimestamp(currentItem.review.date)}
             </span>
+            <button
+              onClick={() => setIsActionSheetOpen(true)}
+              className="text-gray-500 hover:text-gray-800 p-1 rounded-md"
+              aria-label="More options"
+            >
+              <DotsIcon size={18} />
+            </button>
           </div>
-
-          {/* NEW: overflow trigger (always visible) */}
-          <button
-            onClick={() => setIsActionSheetOpen(true)}
-            className="text-gray-500 hover:text-gray-800 p-1 rounded-md"
-            aria-label="More options"
-          >
-            <DotsIcon size={18} />
-          </button>
         </div>
-        
-        {/* New caption (if present) */}
+      </div>
+
+      {/* Content */}
+      <div className="px-4 pb-4">
+        {/* Caption (if present) */}
         {currentItem.review.caption && (
           <p className="text-sm text-gray-700 mb-2">{currentItem.review.caption}</p>
         )}
 
-        {/* New core details as chips (if present) */}
-        {Array.isArray(currentItem.review.coreDetails) && currentItem.review.coreDetails.length > 0 && (
+        {/* Taste chips and audience tags */}
+        {(currentItem.review.tasteChips || currentItem.review.audienceTags) && (
           <div className="flex flex-wrap gap-1.5 mb-2">
-            {currentItem.review.coreDetails.map((cd, i) => (
-              <span key={i} className="inline-flex items-center rounded-full border px-2.5 py-1 text-xs text-neutral-700 border-neutral-200 bg-white">
-                {cd}
-              </span>
-            ))}
-          </div>
-        )}
+            {/* Taste attribute chips with color coding */}
+            {currentItem.review.tasteChips?.map((chip, i) => {
+              // Determine chip color based on content
+              let chipClass = "inline-flex items-center rounded-full border px-3 py-1.5 text-xs font-medium shadow-sm";
 
-        {/* Dual Review System */}
-        {!(currentItem.review.caption || (currentItem.review.coreDetails && currentItem.review.coreDetails.length)) && (
-          <div className="space-y-1 mb-2">
-            <div className="flex items-start">
-              <div className="w-5 h-5 rounded-full bg-green-100 flex items-center justify-center mr-2 flex-shrink-0">
-                <span className="text-green-600 text-xs">+</span>
-              </div>
-              <p className="text-xs flex-1 leading-5">{currentItem.review.positive}</p>
-            </div>
-            <div className="flex items-start">
-              <div className="w-5 h-5 rounded-full bg-red-100 flex items-center justify-center mr-2 flex-shrink-0">
-                <span className="text-red-600 text-xs">-</span>
-              </div>
-              <p className="text-xs flex-1 leading-5">{currentItem.review.negative}</p>
-            </div>
+              // Value-related chips (blue)
+              if (chip.includes('Bargain') || chip.includes('Fair') || chip.includes('Overpriced')) {
+                chipClass += chip.includes('Bargain')
+                  ? " bg-blue-50 text-blue-700 border-blue-200"
+                  : chip.includes('Fair')
+                  ? " bg-sky-50 text-sky-700 border-sky-200"
+                  : " bg-slate-100 text-slate-700 border-slate-300";
+              }
+              // Freshness-related chips (green gradient)
+              else if (chip.includes('fresh') || chip.includes('Fresh')) {
+                chipClass += chip.includes('Very')
+                  ? " bg-gradient-to-r from-green-50 to-emerald-50 text-green-700 border-green-200"
+                  : chip === 'Fresh'
+                  ? " bg-green-50 text-green-700 border-green-200"
+                  : " bg-orange-50 text-orange-700 border-orange-200";
+              }
+              // Saltiness-related chips (yellow/orange)
+              else if (chip.includes('salt') || chip.includes('Balanced')) {
+                chipClass += chip.includes('Balanced')
+                  ? " bg-amber-50 text-amber-700 border-amber-200"
+                  : chip.includes('Too')
+                  ? " bg-orange-100 text-orange-700 border-orange-300"
+                  : " bg-yellow-50 text-yellow-700 border-yellow-200";
+              }
+              // Default neutral
+              else {
+                chipClass += " bg-gray-50 text-gray-700 border-gray-200";
+              }
+
+              return (
+                <span key={`taste-${i}`} className={chipClass}>
+                  {chip}
+                </span>
+              );
+            })}
+
+            {/* Audience tags with enhanced emerald/green styling and emojis */}
+            {currentItem.review.audienceTags?.map((tag, i) => {
+              // Add emoji prefix based on tag type
+              const getTagEmoji = (tagText: string): string => {
+                if (tagText.includes('Spicy')) return '🌶️ ';
+                if (tagText.includes('Date')) return '❤️ ';
+                if (tagText.includes('Family')) return '👨‍👩‍👧‍👦 ';
+                if (tagText.includes('Quick')) return '⚡ ';
+                if (tagText.includes('Solo')) return '🧘 ';
+                if (tagText.includes('Group')) return '👥 ';
+                return '';
+              };
+
+              return (
+                <span
+                  key={`audience-${i}`}
+                  className="inline-flex items-center rounded-full border px-3 py-1.5 text-xs font-semibold bg-gradient-to-r from-emerald-50 to-green-50 text-emerald-700 border-emerald-300 shadow-sm"
+                >
+                  {getTagEmoji(tag)}{tag}
+                </span>
+              );
+            })}
           </div>
         )}
 

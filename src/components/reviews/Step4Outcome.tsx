@@ -1,5 +1,6 @@
 ﻿import React, { useState } from 'react';
 import { Check } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useI18n } from '../../lib/i18n/useI18n';
 import { useReviewWizard } from './WizardContext';
 
@@ -22,6 +23,7 @@ type AudienceOption = typeof AUDIENCE_OPTIONS[number]['value'];
 
 const Step4Outcome: React.FC = () => {
   const { t } = useI18n();
+  const navigate = useNavigate();
   const {
     draft,
     updateDraft,
@@ -29,7 +31,8 @@ const Step4Outcome: React.FC = () => {
     submitReview,
     isSubmitting,
     setIsSubmitting,
-    resetDraft
+    resetDraft,
+    selectedRestaurant
   } = useReviewWizard();
   const [successId, setSuccessId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -179,7 +182,7 @@ const Step4Outcome: React.FC = () => {
               <p className="text-xs">{t('createWizard.actions.clone')}</p>
             </div>
           </div>
-          <div className="mt-4 flex gap-3">
+          <div className="mt-4">
             <button
               type="button"
               onClick={() => {
@@ -188,7 +191,7 @@ const Step4Outcome: React.FC = () => {
               }}
               className="rounded-2xl bg-red-500 px-5 py-2 text-sm font-semibold text-white shadow-md shadow-red-200/60 hover:bg-red-600"
             >
-              {t('createWizard.actions.clone')}
+              {t('createWizard.actions.cloneFromRestaurant')}
             </button>
           </div>
         </div>
@@ -202,14 +205,24 @@ const Step4Outcome: React.FC = () => {
         >
           {t('createWizard.actions.back')}
         </button>
-        <button
-          type="button"
-          onClick={handleSubmit}
-          disabled={isSubmitting || Boolean(successId)}
-          className={`rounded-2xl px-6 py-3 text-sm font-semibold transition ${isSubmitting ? 'bg-slate-200 text-slate-400' : 'bg-red-500 text-white hover:bg-red-600 shadow-md shadow-red-200/60'}`}
-        >
-          {isSubmitting ? t('createWizard.status.autosaving') : t('review.submit')}
-        </button>
+        {successId ? (
+          <button
+            type="button"
+            onClick={() => navigate('/')}
+            className="rounded-2xl bg-red-500 px-6 py-3 text-sm font-semibold text-white shadow-md shadow-red-200/60 hover:bg-red-600"
+          >
+            {t('createWizard.actions.home')}
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={handleSubmit}
+            disabled={isSubmitting}
+            className={`rounded-2xl px-6 py-3 text-sm font-semibold transition ${isSubmitting ? 'bg-slate-200 text-slate-400' : 'bg-red-500 text-white hover:bg-red-600 shadow-md shadow-red-200/60'}`}
+          >
+            {isSubmitting ? t('createWizard.status.autosaving') : t('review.submit')}
+          </button>
+        )}
       </div>
     </div>
   );

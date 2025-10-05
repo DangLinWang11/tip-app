@@ -32,6 +32,8 @@
       "save": "Guardar borrador",
       "submit": "Enviar reseÃ±a",
       "clone": "Agregar otro plato",
+      "cloneFromRestaurant": "Agregar otro plato de este restaurante",
+      "home": "Inicio",
       "cancel": "Cancelar",
       "add": "Agregar",
       "skip": "Saltar",

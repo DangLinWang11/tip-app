@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { SearchIcon, FilterIcon, MapPinIcon, StarIcon } from 'lucide-react';
+import { SearchIcon, FilterIcon, MapPinIcon, StarIcon, Menu } from 'lucide-react';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import RestaurantMap from '../components/RestaurantMap';
@@ -186,11 +186,12 @@ const Discover: React.FC = () => {
               className="w-full pl-10 pr-4 py-2 bg-light-gray rounded-full text-sm"
             />
           </div>
-          <button 
+          <button
             onClick={() => navigate('/discover/list')}
-            className="ml-2 p-2 rounded-full bg-light-gray"
+            className="ml-2 p-2 rounded-full bg-light-gray hover:bg-gray-200 transition-colors"
+            aria-label="View list"
           >
-            <div className="text-sm font-medium">List</div>
+            <Menu size={20} className="text-dark-gray" />
           </button>
         </div>
         

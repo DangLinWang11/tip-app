@@ -23,6 +23,7 @@ const getCuisineIcon = (cuisine: string): string => {
     'fast food': '🍔',
     'casual': '🍽️'
   };
+  if (!cuisine) return '🍽️';
   return cuisineMap[cuisine.toLowerCase()] || '🍽️';
 };
 

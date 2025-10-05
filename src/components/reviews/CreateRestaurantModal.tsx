@@ -9,9 +9,7 @@ export interface RestaurantRecord {
   id: string;
   name: string;
   address?: string;
-  cuisine?: string;
   cuisines?: string[];
-  phone?: string;
   coordinates?: {
     latitude: number;
     longitude: number;
@@ -36,8 +34,6 @@ const CreateRestaurantModal: React.FC<CreateRestaurantModalProps> = ({
   const { t } = useI18n();
   const [name, setName] = useState(defaultName);
   const [address, setAddress] = useState('');
-  const [cuisineInput, setCuisineInput] = useState('');
-  const [phone, setPhone] = useState('');
   const [coordinates, setCoordinates] = useState<{ latitude: number; longitude: number } | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -47,15 +43,17 @@ const CreateRestaurantModal: React.FC<CreateRestaurantModalProps> = ({
     if (isOpen) {
       setName(defaultName);
       setAddress('');
-      setCuisineInput('');
-      setPhone('');
       setCoordinates(null);
       setError(null);
       setIsSubmitting(false);
     }
   }, [isOpen, defaultName]);
 
-  const canSubmit = useMemo(() => name.trim().length > 2 && cuisineInput.trim().length > 0, [name, cuisineInput]);
+  const canSubmit = useMemo(() => {
+    const hasValidName = name.trim().length > 2;
+    const hasAddressOrLocation = address.trim().length > 0 || coordinates !== null;
+    return hasValidName && hasAddressOrLocation;
+  }, [name, address, coordinates]);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -65,17 +63,9 @@ const CreateRestaurantModal: React.FC<CreateRestaurantModalProps> = ({
       setIsSubmitting(true);
       setError(null);
 
-      const cuisineList = cuisineInput
-        .split(',')
-        .map((entry) => entry.trim())
-        .filter(Boolean);
-
       const payload = {
         name: name.trim(),
         address: address.trim() || null,
-        cuisine: cuisineList[0] || null,
-        cuisines: cuisineList.length ? cuisineList : null,
-        phone: phone.trim() || null,
         coordinates: coordinates
           ? {
               latitude: coordinates.latitude,
@@ -92,9 +82,7 @@ const CreateRestaurantModal: React.FC<CreateRestaurantModalProps> = ({
         id: docRef.id,
         name: payload.name,
         address: payload.address || undefined,
-        cuisine: payload.cuisine || undefined,
-        cuisines: payload.cuisines || undefined,
-        phone: payload.phone || undefined,
+        cuisines: undefined,
         coordinates: payload.coordinates || undefined
       });
       onClose();
@@ -148,36 +136,9 @@ const CreateRestaurantModal: React.FC<CreateRestaurantModalProps> = ({
               placeholder={t('basic.labels.address')}
             />
           </div>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div>
-              <label className="block text-sm font-medium text-slate-600 mb-2">
-                {t('basic.labels.cuisine')} *
-              </label>
-              <input
-                type="text"
-                value={cuisineInput}
-                onChange={(event) => setCuisineInput(event.target.value)}
-                className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-base focus:border-red-400 focus:outline-none focus:ring-2 focus:ring-red-100"
-                placeholder={t('basic.labels.cuisine')}
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-600 mb-2">
-                {t('basic.labels.phone')}
-              </label>
-              <input
-                type="tel"
-                value={phone}
-                onChange={(event) => setPhone(event.target.value)}
-                className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-base focus:border-red-400 focus:outline-none focus:ring-2 focus:ring-red-100"
-                placeholder={t('basic.labels.phone')}
-              />
-            </div>
-          </div>
           <div>
             <label className="block text-sm font-medium text-slate-600 mb-2">
-              {t('basic.labels.location')}
+              {t('basic.labels.location')} {!address.trim() && <span className="text-red-500">*</span>}
             </label>
             <div className="flex items-center gap-3">
               <button
@@ -193,7 +154,9 @@ const CreateRestaurantModal: React.FC<CreateRestaurantModalProps> = ({
                   {coordinates.latitude.toFixed(4)}, {coordinates.longitude.toFixed(4)}
                 </span>
               ) : (
-                <span className="text-xs text-slate-400">{t('basic.helpers.locationOptional')}</span>
+                <span className="text-xs text-slate-400">
+                  {address.trim() ? t('basic.helpers.locationOptional') : 'Required if no address provided'}
+                </span>
               )}
             </div>
           </div>

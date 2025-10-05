@@ -32,6 +32,8 @@
       "save": "Save Draft",
       "submit": "Submit Review",
       "clone": "Add Another Dish",
+      "cloneFromRestaurant": "Add Another Dish from This Restaurant",
+      "home": "Home",
       "cancel": "Cancel",
       "add": "Add",
       "skip": "Skip",
