@@ -4,7 +4,7 @@ import { HomeIcon, SearchIcon, PlusSquareIcon, UserIcon } from 'lucide-react';
 
 const BottomNavigation: React.FC = () => {
   return (
-    <nav className="fixed inset-x-0 bottom-0 border-t bg-white/90 backdrop-blur supports-[backdrop-filter]:bg-white/60 z-50 pb-[calc(env(safe-area-inset-bottom)+8px)]">
+    <nav className="fixed inset-x-0 bottom-0 border-t bg-white/90 backdrop-blur supports-[backdrop-filter]:bg-white/60 z-50 pb-[calc(env(safe-area-inset-bottom)+16px)]">
       <ul className="grid grid-cols-4">
         <li className="min-w-0">
           <NavLink
@@ -14,7 +14,7 @@ const BottomNavigation: React.FC = () => {
             }
           >
             <HomeIcon className="h-6 w-6" aria-hidden="true" />
-            <span className="text-xs leading-none">My Food Map</span>
+            <span className="text-xs leading-none">Home</span>
           </NavLink>
         </li>
 
@@ -38,7 +38,7 @@ const BottomNavigation: React.FC = () => {
             }
           >
             <PlusSquareIcon className="h-6 w-6" aria-hidden="true" />
-            <span className="text-xs leading-none">Add Review</span>
+            <span className="text-xs leading-none">Create</span>
           </NavLink>
         </li>
 
