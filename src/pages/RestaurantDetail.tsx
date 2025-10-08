@@ -250,7 +250,22 @@ const RestaurantDetail: React.FC = () => {
           <button onClick={() => setShowSaveModal(true)} className="w-10 h-10 rounded-full border border-medium-gray flex items-center justify-center">
             <BookmarkIcon size={18} className={saved ? 'text-secondary fill-secondary' : ''} />
           </button>
-          <button className="w-10 h-10 rounded-full border border-medium-gray flex items-center justify-center">
+          <button
+            onClick={() => {
+              const shareData = {
+                title: restaurant?.name || 'Restaurant',
+                text: restaurant?.name || 'Restaurant',
+                url: window.location.href
+              };
+              if (navigator.share) {
+                navigator.share(shareData).catch(() => {/* ignore */});
+              } else {
+                navigator.clipboard?.writeText(window.location.href);
+                alert('Link copied to clipboard');
+              }
+            }}
+            className="w-10 h-10 rounded-full border border-medium-gray flex items-center justify-center"
+          >
             <ShareIcon size={18} />
           </button>
         </div>

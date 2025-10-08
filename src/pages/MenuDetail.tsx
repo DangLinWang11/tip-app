@@ -156,30 +156,9 @@ const MenuDetail: React.FC = () => {
             </button>
             <div>
               <h1 className="text-xl font-semibold">{menuItem.name}</h1>
-              {restaurant && (
-                <p className="text-sm text-dark-gray">at {restaurant.name}</p>
-              )}
             </div>
           </div>
-          <div className="flex items-center space-x-2">
-            <button
-              onClick={() => {
-                console.log('dY"? [MenuDetail] Open SaveToListModal (source: dish_detail)', {
-                  dishId: menuItem?.id,
-                  dishName: menuItem?.name,
-                  restaurantId: restaurant?.id,
-                  restaurantName: restaurant?.name,
-                  source: 'dish_detail'
-                });
-                setShowSaveModal(true);
-              }}
-            >
-              <BookmarkIcon size={24} className={saved ? 'text-primary fill-primary' : 'text-dark-gray'} />
-            </button>
-            <button>
-              <ShareIcon size={24} className="text-dark-gray" />
-            </button>
-          </div>
+          {/* Right side icons removed for cleaner header */}
         </div>
       </header>
 
@@ -230,7 +209,7 @@ const MenuDetail: React.FC = () => {
           </div>
 
           {/* Restaurant Info */}
-          {restaurant && (
+          {false && restaurant && (
             <div className="bg-light-gray rounded-lg p-3 mt-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center">
@@ -255,8 +234,8 @@ const MenuDetail: React.FC = () => {
             </div>
           )}
 
-          {/* Action Button */}
-          <div className="flex justify-center mt-4">
+          {/* Action Row: Write Review + Bookmark + Share */}
+          <div className="flex mt-4 space-x-3">
             <button
               onClick={() => navigate('/create', {
                 state: {
@@ -264,9 +243,35 @@ const MenuDetail: React.FC = () => {
                   selectedDish: menuItem.name
                 }
               })}
-              className="px-8 bg-primary text-white py-3 rounded-full font-medium text-base"
+              className="flex-1 bg-primary text-white py-3 rounded-full font-medium"
             >
               Write Review
+            </button>
+            <button
+              onClick={() => setShowSaveModal(true)}
+              className="w-10 h-10 rounded-full border border-medium-gray flex items-center justify-center"
+              aria-label="Save"
+            >
+              <BookmarkIcon size={18} className={saved ? 'text-secondary fill-secondary' : ''} />
+            </button>
+            <button
+              onClick={() => {
+                const shareData = {
+                  title: `${menuItem.name}${restaurant ? ' at ' + restaurant.name : ''}`,
+                  text: `${menuItem.name}${restaurant ? ' at ' + restaurant.name : ''}`,
+                  url: window.location.href
+                };
+                if (navigator.share) {
+                  navigator.share(shareData).catch(() => {/* ignore */});
+                } else {
+                  navigator.clipboard?.writeText(window.location.href);
+                  alert('Link copied to clipboard');
+                }
+              }}
+              className="w-10 h-10 rounded-full border border-medium-gray flex items-center justify-center"
+              aria-label="Share"
+            >
+              <ShareIcon size={18} />
             </button>
           </div>
         </div>
