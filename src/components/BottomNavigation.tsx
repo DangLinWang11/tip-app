@@ -4,45 +4,56 @@ import { HomeIcon, SearchIcon, PlusSquareIcon, UserIcon } from 'lucide-react';
 
 const BottomNavigation: React.FC = () => {
   return (
-    <nav className="bottom-nav pb-safe">
-      <div className="max-w-md mx-auto px-4 py-2 pb-6 flex justify-between items-center">
-        <NavLink 
-          to="/" 
-          className={({ isActive }) => 
-            `flex flex-col items-center justify-center ${isActive ? 'text-primary' : 'text-dark-gray'}`
-          }
-        >
-          <HomeIcon size={18} />
-          <span className="text-xs mt-2">My Food Map</span>
-        </NavLink>
+    <nav className="fixed inset-x-0 bottom-0 border-t bg-white/90 backdrop-blur supports-[backdrop-filter]:bg-white/60 z-50 pb-[calc(env(safe-area-inset-bottom)+8px)]">
+      <ul className="grid grid-cols-4">
+        <li className="min-w-0">
+          <NavLink
+            to="/"
+            className={({ isActive }) =>
+              `flex flex-col items-center justify-center gap-1 py-2 text-center ${isActive ? 'text-primary' : 'text-dark-gray'}`
+            }
+          >
+            <HomeIcon className="h-6 w-6" aria-hidden="true" />
+            <span className="text-xs leading-none">My Food Map</span>
+          </NavLink>
+        </li>
 
-        <NavLink 
-          to="/discover" 
-          className={({ isActive }) => 
-            `flex flex-col items-center justify-center ${isActive ? 'text-primary' : 'text-dark-gray'}`
-          }
-        >
-          <SearchIcon size={18} />
-          <span className="text-xs mt-2">Discover</span>
-        </NavLink>
+        <li className="min-w-0">
+          <NavLink
+            to="/discover"
+            className={({ isActive }) =>
+              `flex flex-col items-center justify-center gap-1 py-2 text-center ${isActive ? 'text-primary' : 'text-dark-gray'}`
+            }
+          >
+            <SearchIcon className="h-6 w-6" aria-hidden="true" />
+            <span className="text-xs leading-none">Discover</span>
+          </NavLink>
+        </li>
 
-        <NavLink to="/create" className="flex flex-col items-center justify-center">
-          <div className="bg-primary rounded-full p-1.5">
-            <PlusSquareIcon size={18} color="white" />
-          </div>
-          <span className="text-xs mt-1 text-dark-gray">Add Review</span>
-        </NavLink>
+        <li className="min-w-0">
+          <NavLink
+            to="/create"
+            className={({ isActive }) =>
+              `flex flex-col items-center justify-center gap-1 py-2 text-center ${isActive ? 'text-primary' : 'text-dark-gray'}`
+            }
+          >
+            <PlusSquareIcon className="h-6 w-6" aria-hidden="true" />
+            <span className="text-xs leading-none">Add Review</span>
+          </NavLink>
+        </li>
 
-        <NavLink 
-          to="/profile" 
-          className={({ isActive }) => 
-            `flex flex-col items-center justify-center ${isActive ? 'text-primary' : 'text-dark-gray'}`
-          }
-        >
-          <UserIcon size={18} />
-          <span className="text-xs mt-2">Profile</span>
-        </NavLink>
-      </div>
+        <li className="min-w-0">
+          <NavLink
+            to="/profile"
+            className={({ isActive }) =>
+              `flex flex-col items-center justify-center gap-1 py-2 text-center ${isActive ? 'text-primary' : 'text-dark-gray'}`
+            }
+          >
+            <UserIcon className="h-6 w-6" aria-hidden="true" />
+            <span className="text-xs leading-none">Profile</span>
+          </NavLink>
+        </li>
+      </ul>
     </nav>
   );
 };

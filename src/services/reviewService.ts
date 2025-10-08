@@ -1097,18 +1097,17 @@ export const convertVisitToCarouselFeedPost = async (reviews: FirebaseReview[]) 
 // Helper function to safely convert Firestore Timestamp or Date to ISO string
 const safeToISOString = (dateValue: any): string => {
   if (!dateValue) {
-    return new Date().toISOString(); // Default to now if no date
-  }
-
-  // Handle pending serverTimestamp() - this happens when reading immediately after write
-  if (typeof dateValue === 'object' && dateValue._methodName === 'serverTimestamp') {
-    console.warn('⏳ Pending serverTimestamp detected, using current time as fallback');
     return new Date().toISOString();
   }
 
-  // Handle Firestore Timestamp
+  // Handle Firestore Timestamp objects FIRST
   if (dateValue.toDate && typeof dateValue.toDate === 'function') {
-    return dateValue.toDate().toISOString();
+    try {
+      return dateValue.toDate().toISOString();
+    } catch (error) {
+      console.warn('Failed to convert Firestore Timestamp:', error);
+      return new Date().toISOString();
+    }
   }
 
   // Handle Date object
@@ -1116,13 +1115,19 @@ const safeToISOString = (dateValue: any): string => {
     return dateValue.toISOString();
   }
 
-  // Handle string or number (timestamp)
-  try {
-    return new Date(dateValue).toISOString();
-  } catch (error) {
-    console.warn('Failed to convert date value:', dateValue, error);
-    return new Date().toISOString(); // Fallback to now
+  // Handle ISO string
+  if (typeof dateValue === 'string') {
+    try {
+      return new Date(dateValue).toISOString();
+    } catch (error) {
+      console.warn('Failed to parse date string:', dateValue, error);
+      return new Date().toISOString();
+    }
   }
+
+  // Last resort fallback
+  console.warn('Unknown date format, using current time:', dateValue);
+  return new Date().toISOString();
 };
 
 // Helper function to extract taste chips and audience tags from review data
@@ -1403,8 +1408,8 @@ export const convertUserReviewsToFeedPosts = async (reviews: FirebaseReview[]) =
 // Convert all reviews to carousel feed posts (for general feed)
 export const convertReviewsToFeedPosts = async (reviews: FirebaseReview[]) => {
   try {
-    console.log(`Converting ${reviews.length} reviews to carousel feed posts...`);
-    
+    console.log('Converting reviews to feed posts. Total reviews:', reviews.length);
+
     const { visitGroups, individualReviews } = groupReviewsByVisit(reviews);
     const feedPosts = [];
 
@@ -1418,6 +1423,7 @@ export const convertReviewsToFeedPosts = async (reviews: FirebaseReview[]) => {
 
     // Convert individual reviews to single posts
     for (const review of individualReviews) {
+      console.log('Processing review:', review.id, 'isDeleted:', review.isDeleted, 'hasRestaurant:', !!review.restaurantId, 'hasUser:', !!review.userId);
       const singlePost = await convertReviewToFeedPost(review);
       feedPosts.push(singlePost);
     }
@@ -1425,7 +1431,7 @@ export const convertReviewsToFeedPosts = async (reviews: FirebaseReview[]) => {
     // Sort by creation date (newest first)
     feedPosts.sort((a, b) => new Date(b.review.date).getTime() - new Date(a.review.date).getTime());
 
-    console.log(`✅ Converted to ${feedPosts.length} feed posts (${visitGroups.size} visits + ${individualReviews.length} individual)`);
+    console.log('Successfully converted feed posts:', feedPosts.length);
     return feedPosts;
   } catch (error) {
     console.error('Error converting reviews to carousel feed posts:', error);

@@ -1,6 +1,6 @@
-﻿import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { collection, doc, serverTimestamp, writeBatch } from 'firebase/firestore';
+import { collection, doc, writeBatch } from 'firebase/firestore';
 import { db, getCurrentUser } from '../../lib/firebase';
 import { useI18n } from '../../lib/i18n/useI18n';
 import ProgressBar from './ProgressBar';
@@ -476,11 +476,13 @@ const Wizard: React.FC = () => {
     const batch = writeBatch(db);
     const reviewRef = doc(collection(db, 'reviews'));
 
+    const nowIso = new Date().toISOString();
+
     const payload: Record<string, unknown> = {
       ...restDraft,
       userId,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
+      createdAt: nowIso,
+      updatedAt: nowIso,
       isDeleted: false
     };
 
@@ -616,6 +618,8 @@ const Wizard: React.FC = () => {
 };
 
 export default Wizard;
+
+
 
 
 

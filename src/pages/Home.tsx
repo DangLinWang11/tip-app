@@ -49,8 +49,8 @@ const Home: React.FC = () => {
         setLoading(true);
         const currentUser = getCurrentUser();
         
-        // Load global reviews for community feed
-        const reviews = await fetchReviews(20);
+        // Load user reviews for community feed
+        const reviews = await fetchUserReviews(50);
         setFirebaseReviews(reviews);
         
         // Load user-specific reviews for stats calculation
