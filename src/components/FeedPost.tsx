@@ -16,6 +16,8 @@ import SaveToListModal from './SaveToListModal';
 import { isFollowing, followUser, unfollowUser } from '../services/followService';
 import { getCurrentUser } from '../lib/firebase';
 import { deleteReview, reportReview } from '../services/reviewService';
+import { collection, query, where, limit, getDocs } from 'firebase/firestore';
+import { db } from '../lib/firebase';
 
 interface FeedPostReview {
   date: string;
@@ -262,6 +264,33 @@ const FeedPost: React.FC<FeedPostProps> = ({
     }
   };
 
+  // Enhanced click handler: if dishId missing, try to lookup by name under restaurant
+  const handleDishClickEnhanced = async () => {
+    if (currentItem.dishId) {
+      navigate(`/dish/${currentItem.dishId}`);
+      return;
+    }
+    try {
+      if (restaurantId && currentItem.dish?.name) {
+        const q = query(
+          collection(db, 'menuItems'),
+          where('restaurantId', '==', restaurantId),
+          where('name', '==', currentItem.dish.name),
+          limit(1)
+        );
+        const snap = await getDocs(q);
+        if (!snap.empty) {
+          const docSnap = snap.docs[0];
+          navigate(`/dish/${docSnap.id}`);
+          return;
+        }
+      }
+    } catch (e) {
+      console.warn('[FeedPost] Fallback dish lookup failed', e);
+    }
+    if (restaurantId) navigate(`/restaurant/${restaurantId}`);
+  };
+
   const handleDeletePost = async () => {
     const confirmed = window.confirm('Are you sure you want to delete this post? This action cannot be undone.');
     if (!confirmed) return;
@@ -426,7 +455,7 @@ const FeedPost: React.FC<FeedPostProps> = ({
         <div className="flex items-center justify-between">
           <h3 className="font-semibold text-xl">
             <span
-              onClick={handleDishClick}
+              onClick={handleDishClickEnhanced}
               className={(currentItem.dishId || restaurantId) ? "hover:text-primary cursor-pointer" : ""}
             >
               {isCarousel && carouselItems.length > 1
@@ -721,7 +750,6 @@ const FeedPost: React.FC<FeedPostProps> = ({
 };
 
 export default FeedPost;
-
 
 
 

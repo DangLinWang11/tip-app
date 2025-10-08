@@ -4,6 +4,7 @@ import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firesto
 import { db } from '../lib/firebase';
 import { ArrowLeftIcon, StarIcon, MapPinIcon, BookmarkIcon, ShareIcon, ChefHatIcon } from 'lucide-react';
 import BottomNavigation from '../components/BottomNavigation';
+import SaveToListModal from '../components/SaveToListModal';
 
 interface MenuItem {
   id: string;
@@ -46,6 +47,8 @@ const MenuDetail: React.FC = () => {
   const [otherDishes, setOtherDishes] = useState<MenuItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [saved, setSaved] = useState(false);
+  const [showSaveModal, setShowSaveModal] = useState(false);
+  const [toastMsg, setToastMsg] = useState<string | null>(null);
 
   // Calculate average rating from reviews
   const calculateAverageRating = (reviewsArray: Review[]) => {
@@ -159,7 +162,18 @@ const MenuDetail: React.FC = () => {
             </div>
           </div>
           <div className="flex items-center space-x-2">
-            <button onClick={() => setSaved(!saved)}>
+            <button
+              onClick={() => {
+                console.log('dY"? [MenuDetail] Open SaveToListModal (source: dish_detail)', {
+                  dishId: menuItem?.id,
+                  dishName: menuItem?.name,
+                  restaurantId: restaurant?.id,
+                  restaurantName: restaurant?.name,
+                  source: 'dish_detail'
+                });
+                setShowSaveModal(true);
+              }}
+            >
               <BookmarkIcon size={24} className={saved ? 'text-primary fill-primary' : 'text-dark-gray'} />
             </button>
             <button>
@@ -188,6 +202,14 @@ const MenuDetail: React.FC = () => {
           <div className="flex justify-between items-start mb-3">
             <div>
               <h2 className="text-2xl font-semibold">{menuItem.name}</h2>
+              {restaurant && (
+                <div className="flex items-center mt-1 text-dark-gray">
+                  <MapPinIcon size={16} className="text-primary mr-1" />
+                  <Link to={`/restaurant/${restaurant.id}`} className="hover:underline">
+                    {restaurant.name}
+                  </Link>
+                </div>
+              )}
               <p className="text-dark-gray mt-1">{menuItem.category}</p>
               {menuItem.description && (
                 <p className="text-dark-gray text-sm mt-2">{menuItem.description}</p>
@@ -233,21 +255,18 @@ const MenuDetail: React.FC = () => {
             </div>
           )}
 
-          {/* Action Buttons */}
-          <div className="flex mt-4 space-x-3">
-            <button 
-              onClick={() => navigate('/create', { 
-                state: { 
+          {/* Action Button */}
+          <div className="flex justify-center mt-4">
+            <button
+              onClick={() => navigate('/create', {
+                state: {
                   selectedRestaurant: restaurant,
                   selectedDish: menuItem.name
-                } 
+                }
               })}
-              className="flex-1 bg-primary text-white py-3 rounded-full font-medium"
+              className="px-8 bg-primary text-white py-3 rounded-full font-medium text-base"
             >
               Write Review
-            </button>
-            <button className="px-6 py-3 border border-medium-gray rounded-full font-medium">
-              Add to List
             </button>
           </div>
         </div>
@@ -398,6 +417,33 @@ const MenuDetail: React.FC = () => {
       )}
 
       <BottomNavigation />
+
+      {/* Save Modal */}
+      {showSaveModal && menuItem && (
+        <SaveToListModal
+          isOpen={showSaveModal}
+          onClose={() => setShowSaveModal(false)}
+          restaurantId={restaurant?.id}
+          restaurantName={restaurant?.name}
+          dishId={menuItem.id}
+          dishName={menuItem.name}
+          onSaved={({ listName }) => {
+            setSaved(true);
+            const msg = listName ? `Saved to list ✅ — “${listName}”` : 'Saved to list ✅';
+            setToastMsg(msg);
+            setTimeout(() => setToastMsg(null), 1800);
+          }}
+        />
+      )}
+
+      {/* Toast */}
+      {toastMsg && (
+        <div className="fixed bottom-20 inset-x-0 flex justify-center z-[60]">
+          <div className="px-4 py-2 bg-black text-white text-sm rounded-full shadow-lg">
+            {toastMsg}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -18,6 +18,7 @@ interface SaveToListModalProps {
   dishId?: string;
   dishName?: string;
   postId?: string; // For saving specific posts/reviews
+  onSaved?: (r: { entity: 'dish' | 'restaurant'; listName?: string }) => void;
 }
 
 type SaveType = 'restaurant' | 'dish' | null;
@@ -29,7 +30,8 @@ const SaveToListModal: React.FC<SaveToListModalProps> = ({
   restaurantName,
   dishId,
   dishName,
-  postId
+  postId,
+  onSaved
 }) => {
   const [step, setStep] = useState<'select_type' | 'select_list'>('select_type');
   const [saveType, setSaveType] = useState<SaveType>(null);
@@ -47,6 +49,21 @@ const SaveToListModal: React.FC<SaveToListModalProps> = ({
       loadUserLists();
     }
   }, [isOpen, step]);
+
+  // If only one target is available (e.g., restaurant only), skip selection step
+  useEffect(() => {
+    if (!isOpen) return;
+    const hasRestaurant = !!(restaurantId && restaurantName);
+    const hasDish = !!((dishId || postId) && dishName);
+    if (step === 'select_type' && hasRestaurant && !hasDish) {
+      setSaveType('restaurant');
+      setStep('select_list');
+    }
+    if (step === 'select_type' && !hasRestaurant && hasDish) {
+      setSaveType('dish');
+      setStep('select_list');
+    }
+  }, [isOpen, step, restaurantId, restaurantName, dishId, dishName, postId]);
 
   // Reset modal state when closed
   useEffect(() => {
@@ -125,7 +142,18 @@ const SaveToListModal: React.FC<SaveToListModalProps> = ({
       if (result?.success) {
         const itemName = saveType === 'restaurant' ? restaurantName : dishName;
         setSuccess(`${itemName} saved successfully!`);
-        
+        try {
+          const savedEntity: 'dish' | 'restaurant' = saveType;
+          const listObj = lists.find(l => l.id === listId);
+          const listName = listObj?.name;
+          // Notify caller for toast/analytics
+          if (typeof onSaved === 'function') {
+            onSaved({ entity: savedEntity, listName });
+          }
+        } catch (e) {
+          // no-op: optional callback
+        }
+      
         // Close modal after short delay
         setTimeout(() => {
           onClose();

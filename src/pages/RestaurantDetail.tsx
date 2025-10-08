@@ -5,6 +5,7 @@ import { db } from '../lib/firebase';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeftIcon, StarIcon, MapPinIcon, PhoneIcon, ClockIcon, BookmarkIcon, ShareIcon, ChevronRightIcon, Utensils, Soup, Salad, Coffee, Cake, Fish, Pizza, Sandwich, ChefHat, ChevronDown } from 'lucide-react';
 import BottomNavigation from '../components/BottomNavigation';
+import SaveToListModal from '../components/SaveToListModal';
 import { calculateRestaurantQualityScore } from '../services/reviewService';
 
 interface Restaurant {
@@ -48,6 +49,8 @@ const RestaurantDetail: React.FC = () => {
   const [menuItemRatings, setMenuItemRatings] = useState<{[key: string]: {rating: number, count: number}}>({});
   const [loading, setLoading] = useState(true);
   const [saved, setSaved] = useState(false);
+  const [showSaveModal, setShowSaveModal] = useState(false);
+  const [toastMsg, setToastMsg] = useState<string | null>(null);
   const [openSections, setOpenSections] = useState<Set<string>>(new Set());
   const initializedRef = useRef(false);
 
@@ -98,6 +101,7 @@ const RestaurantDetail: React.FC = () => {
   const qualityScore = calculateRestaurantQualityScore(reviews.map(review => ({ ...review, category: 'custom' })));
   const reviewImages = getAllReviewImages(reviews);
   const groupedMenu = groupMenuByCategory(menuItems);
+  const avgDishRating = reviews.length > 0 ? (reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length) : null;
   
   // Initialize first section as open when menu items are loaded
   useEffect(() => {
@@ -227,10 +231,12 @@ const RestaurantDetail: React.FC = () => {
             </div>
           </div>
           <div className="flex items-center">
-            <div className="mr-2 flex items-center bg-light-gray px-3 py-1 rounded-full">
-              <span className="font-medium mr-2">Average Dish Rating</span>
-              <StarIcon size={16} className="text-accent mr-1" />
-              <span className="font-medium">{reviews.length > 0 ? (reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length).toFixed(1) : 'N/A'}</span>
+            <div className="mr-2 inline-flex items-center gap-2 bg-light-gray px-3 py-1.5 rounded-full">
+              <span className="text-sm text-dark-gray">Average Dish</span>
+              <span className="inline-flex items-center gap-1">
+                <StarIcon size={16} className="text-accent fill-accent" />
+                <span className="font-semibold">{avgDishRating !== null ? avgDishRating.toFixed(1) : 'N/A'}</span>
+              </span>
             </div>
           </div>
         </div>
@@ -241,7 +247,7 @@ const RestaurantDetail: React.FC = () => {
           >
             Write Review
           </button>
-          <button onClick={() => setSaved(!saved)} className="w-10 h-10 rounded-full border border-medium-gray flex items-center justify-center">
+          <button onClick={() => setShowSaveModal(true)} className="w-10 h-10 rounded-full border border-medium-gray flex items-center justify-center">
             <BookmarkIcon size={18} className={saved ? 'text-secondary fill-secondary' : ''} />
           </button>
           <button className="w-10 h-10 rounded-full border border-medium-gray flex items-center justify-center">
@@ -476,6 +482,31 @@ const RestaurantDetail: React.FC = () => {
         )}
       </div>
       <BottomNavigation />
+
+      {/* Save Modal */}
+      {showSaveModal && restaurant && (
+        <SaveToListModal
+          isOpen={showSaveModal}
+          onClose={() => setShowSaveModal(false)}
+          restaurantId={restaurant.id}
+          restaurantName={restaurant.name}
+          onSaved={({ listName }) => {
+            setSaved(true);
+            const msg = listName ? `Saved to list ✅ — “${listName}”` : 'Saved to list ✅';
+            setToastMsg(msg);
+            setTimeout(() => setToastMsg(null), 1800);
+          }}
+        />
+      )}
+
+      {/* Toast */}
+      {toastMsg && (
+        <div className="fixed bottom-20 inset-x-0 flex justify-center z-[60]">
+          <div className="px-4 py-2 bg-black text-white text-sm rounded-full shadow-lg">
+            {toastMsg}
+          </div>
+        </div>
+      )}
     </div>;
 };
 export default RestaurantDetail;
