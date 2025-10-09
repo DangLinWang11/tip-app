@@ -219,6 +219,11 @@ const Home: React.FC = () => {
           setPullY(Math.min(dy, 120));
         }
       }}
+      onTouchCancel={() => {
+        canPull.current = false;
+        pullStartY.current = null;
+        setPullY(0);
+      }}
       onTouchEnd={() => {
         if (pullY >= PULL_TRIGGER && !refreshing) {
           setRefreshing(true);

@@ -15,8 +15,14 @@ const ExpandedMapModal: React.FC<ExpandedMapModalProps> = ({
   if (!isOpen) return null;
 
   // Close modal when clicking backdrop
+  const unlockScroll = () => {
+    document.body.style.overflow = '';
+    document.documentElement.style.overflow = '';
+  };
+
   const handleBackdropClick = (e: React.MouseEvent) => {
     if (e.target === e.currentTarget) {
+      unlockScroll();
       onClose();
     }
   };
@@ -64,7 +70,7 @@ const ExpandedMapModal: React.FC<ExpandedMapModalProps> = ({
           </div>
           
           <button
-            onClick={onClose}
+            onClick={() => { unlockScroll(); onClose(); }}
             className="p-2 hover:bg-gray-100 rounded-full transition-colors flex items-center justify-center"
             aria-label="Close map"
           >
