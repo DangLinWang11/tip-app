@@ -85,22 +85,41 @@ const getRatingColor = (rating: number): string => {
 };
 
 const createPinIcon = (text: string, backgroundColor: string, showQualityPercentages: boolean = true): string => {
+  const airyColor = '#ff5a5f';
   const svg = showQualityPercentages 
     ? `
       <svg width="40" height="50" viewBox="0 0 40 50" xmlns="http://www.w3.org/2000/svg">
-        <path d="M20 2C11.16 2 4 9.16 4 18c0 13.5 16 28 16 28s16-14.5 16-28c0-8.84-7.16-16-16-16z" 
-              fill="${backgroundColor}"/>
+        <defs>
+          <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur in="SourceAlpha" stdDeviation="1.5" result="blur" />
+            <feOffset dy="1" result="offset" />
+            <feMerge>
+              <feMergeNode in="offset" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+        </defs>
+        <path d="M20 2C11.5 2 4.5 9 4.5 17.5C4.5 30 20 45.5 20 45.5C20 45.5 35.5 30 35.5 17.5C35.5 9 28.5 2 20 2Z" fill="${backgroundColor}" filter="url(#shadow)"/>
         ${text ? `<text x="20" y="22" font-family="Arial, sans-serif" font-size="10" font-weight="bold" 
               text-anchor="middle" fill="white">${text}</text>` : ''}
       </svg>
     `
     : `
       <svg width="40" height="50" viewBox="0 0 40 50" xmlns="http://www.w3.org/2000/svg">
-        <path d="M20 2C11.16 2 4 9.16 4 18c0 13.5 16 28 16 28s16-14.5 16-28c0-8.84-7.16-16-16-16z" 
-              fill="${backgroundColor}"/>
-        <circle cx="20" cy="18" r="8" fill="white"/>
+        <defs>
+          <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur in="SourceAlpha" stdDeviation="1.5" result="blur" />
+            <feOffset dy="1" result="offset" />
+            <feMerge>
+              <feMergeNode in="offset" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+        </defs>
+        <path d="M20 2C11.5 2 4.5 9 4.5 17.5C4.5 30 20 45.5 20 45.5C20 45.5 35.5 30 35.5 17.5C35.5 9 28.5 2 20 2Z" fill="${airyColor}" filter="url(#shadow)"/>
+        <circle cx="20" cy="18" r="6" fill="white" />
         ${text ? `<text x="20" y="22" font-family="Arial, sans-serif" font-size="10" font-weight="bold" 
-              text-anchor="middle" fill="${backgroundColor}">${text}</text>` : ''}
+              text-anchor="middle" fill="${airyColor}">${text}</text>` : ''}
       </svg>
     `;
   return 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg);

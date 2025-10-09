@@ -35,6 +35,10 @@ const Home: React.FC = () => {
   const [pullY, setPullY] = useState(0);
   const pullStartY = useRef<number | null>(null);
   const canPull = useRef(false);
+  const PULL_TRIGGER = 80; // pixels required to trigger refresh
+  const radius = 16; // progress ring radius (SVG units)
+  const circumference = 2 * Math.PI * radius;
+  const pullProgress = Math.max(0, Math.min(1, pullY / PULL_TRIGGER));
   
   // On mount: hydrate from cache if fresh, otherwise fetch
   useEffect(() => {
@@ -216,7 +220,7 @@ const Home: React.FC = () => {
         }
       }}
       onTouchEnd={() => {
-        if (pullY > 70 && !refreshing) {
+        if (pullY >= PULL_TRIGGER && !refreshing) {
           setRefreshing(true);
           setPullY(0);
           // Clear cache so fresh data is fetched
@@ -231,11 +235,33 @@ const Home: React.FC = () => {
         transition: pullY === 0 ? 'transform 150ms ease-out' : undefined,
       }}
     >
-      {/* Pull-to-refresh indicator */}
+      {/* Pull-to-refresh indicator with progressive ring */}
       {(pullY > 0 || refreshing) && (
-        <div className="fixed top-2 inset-x-0 flex justify-center z-50 pointer-events-none">
-          <div className="px-3 py-1 rounded-full bg-white shadow text-xs text-gray-600">
-            {refreshing ? 'Refreshing…' : 'Pull to refresh'}
+        <div className="fixed top-3 inset-x-0 flex items-center justify-center gap-2 z-50 pointer-events-none">
+          <svg
+            className={`${refreshing ? 'animate-spin' : ''}`}
+            width="32"
+            height="32"
+            viewBox="0 0 36 36"
+          >
+            {/* background track */}
+            <circle cx="18" cy="18" r="16" stroke="#e5e7eb" strokeWidth="3" fill="none" />
+            {/* progress arc */}
+            <circle
+              cx="18"
+              cy="18"
+              r="16"
+              stroke="#6b7280"
+              strokeWidth="3"
+              fill="none"
+              strokeLinecap="round"
+              strokeDasharray={`${circumference}`}
+              strokeDashoffset={`${circumference * (1 - (refreshing ? 0.85 : pullProgress))}`}
+              transform="rotate(-90 18 18)"
+            />
+          </svg>
+          <div className="px-2 py-1 rounded bg-white/90 backdrop-blur shadow text-xs text-gray-600">
+            {refreshing ? 'Refreshing…' : pullProgress >= 1 ? 'Release to refresh' : 'Pull to refresh'}
           </div>
         </div>
       )}
@@ -281,7 +307,10 @@ const Home: React.FC = () => {
 
         {/* Your Food Journey Section */}
         <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
-          <h2 className="text-lg font-bold text-primary mb-4">Your Food Journey</h2>
+          <h2 className="text-lg font-bold text-primary mb-4 flex items-center gap-2">
+            <MapPinIcon size={18} className="text-primary" />
+            <span>Your Food Journey</span>
+          </h2>
           <div 
             className="h-64 rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
             onClick={() => setShowExpandedMap(true)}

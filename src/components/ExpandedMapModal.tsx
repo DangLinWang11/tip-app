@@ -1,5 +1,5 @@
 import React from 'react';
-import { X } from 'lucide-react';
+import { X, MapIcon } from 'lucide-react';
 import UserJourneyMap from './UserJourneyMap';
 
 interface ExpandedMapModalProps {
@@ -55,9 +55,12 @@ const ExpandedMapModal: React.FC<ExpandedMapModalProps> = ({
       <div className="bg-white rounded-xl w-full h-full max-w-6xl max-h-[75vh] overflow-hidden shadow-2xl relative">
         {/* Header with close button */}
         <div className="absolute top-0 left-0 right-0 z-10 bg-white/95 backdrop-blur-sm border-b border-gray-200 p-4 flex items-center justify-between">
-          <div>
-            <h2 className="text-xl font-bold text-gray-900">Your Food Journey</h2>
-            <p className="text-sm text-gray-600">Click any restaurant pin to see your dishes</p>
+          <div className="flex items-start gap-2">
+            <MapIcon size={20} className="text-primary mt-0.5" />
+            <div>
+              <h2 className="text-xl font-bold text-gray-900">Your Food Journey</h2>
+              <p className="text-sm text-gray-600">Click any restaurant pin to see your dishes</p>
+            </div>
           </div>
           
           <button
@@ -71,14 +74,11 @@ const ExpandedMapModal: React.FC<ExpandedMapModalProps> = ({
 
         {/* Expanded map content */}
         <div className="w-full h-full pt-20">
-          <UserJourneyMap className="w-full h-full" />
+          <UserJourneyMap className="w-full h-full" showLegend />
         </div>
 
 
-        {/* Zoom hint */}
-        <div className="absolute bottom-8 right-4 bg-white/90 backdrop-blur-sm rounded-lg p-2 shadow-lg">
-          <p className="text-xs text-gray-500">Use scroll wheel to zoom</p>
-        </div>
+        {/* Removed zoom hint for a cleaner look */}
       </div>
     </div>
   );

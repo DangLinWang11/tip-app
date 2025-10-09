@@ -5,9 +5,10 @@ import { getUserVisitedRestaurants, UserVisitedRestaurant } from '../services/re
 
 interface UserJourneyMapProps {
   className?: string;
+  showLegend?: boolean;
 }
 
-const UserJourneyMap: React.FC<UserJourneyMapProps> = ({ className = '' }) => {
+const UserJourneyMap: React.FC<UserJourneyMapProps> = ({ className = '', showLegend = false }) => {
   const [visitedRestaurants, setVisitedRestaurants] = useState<UserVisitedRestaurant[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -135,21 +136,29 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({ className = '' }) => {
           showQualityPercentages={false}
           className="w-full h-full"
         />
-        
-        {/* Legend Overlay */}
-        <div className="absolute bottom-4 left-4 z-10">
-          <div className="bg-white rounded-lg shadow-lg px-4 py-3 flex items-center space-x-3">
-            {/* Red Pin Icon matching RestaurantMap pins with white circle */}
-            <div className="w-6 h-7 flex items-center justify-center">
-              <svg width="24" height="30" viewBox="0 0 40 50" xmlns="http://www.w3.org/2000/svg">
-                <path d="M20 2C11.16 2 4 9.16 4 18c0 13.5 16 28 16 28s16-14.5 16-28c0-8.84-7.16-16-16-16z" 
-                      fill="#ff3131"/>
-                <circle cx="20" cy="18" r="8" fill="white"/>
-              </svg>
+        {showLegend && (
+          <div className="absolute bottom-4 left-4 z-10">
+            <div className="bg-white rounded-lg shadow-lg px-4 py-3 flex items-center space-x-3">
+              <div className="w-6 h-7 flex items-center justify-center">
+                <svg width="24" height="30" viewBox="0 0 40 50" xmlns="http://www.w3.org/2000/svg">
+                  <defs>
+                    <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
+                      <feGaussianBlur in="SourceAlpha" stdDeviation="1.5" result="blur" />
+                      <feOffset dy="1" result="offset" />
+                      <feMerge>
+                        <feMergeNode in="offset" />
+                        <feMergeNode in="SourceGraphic" />
+                      </feMerge>
+                    </filter>
+                  </defs>
+                  <path d="M20 2C11.5 2 4.5 9 4.5 17.5C4.5 30 20 45.5 20 45.5C20 45.5 35.5 30 35.5 17.5C35.5 9 28.5 2 20 2Z" fill="#ff5a5f" filter="url(#shadow)"/>
+                  <circle cx="20" cy="18" r="6" fill="white" />
+                </svg>
+              </div>
+              <span className="text-gray-800 font-medium text-sm">Visited Restaurants</span>
             </div>
-            <span className="text-gray-800 font-medium text-sm">Visited Restaurants</span>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Restaurant Details Modal */}
