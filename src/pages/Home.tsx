@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { MapIcon, PlusIcon, MapPinIcon, Star } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import HamburgerMenu from '../components/HamburgerMenu';
@@ -7,6 +7,17 @@ import { fetchReviews, convertReviewsToFeedPosts, fetchUserReviews, FirebaseRevi
 import { getUserProfile, getCurrentUser } from '../lib/firebase';
 import UserJourneyMap from '../components/UserJourneyMap';
 import ExpandedMapModal from '../components/ExpandedMapModal';
+
+// Simple in-memory cache for Home state (survives route changes within session)
+type HomeCache = {
+  ts: number;
+  firebaseReviews: FirebaseReview[];
+  userReviews: FirebaseReview[];
+  feedPosts: any[];
+  userProfile: any;
+};
+let __homeCache: HomeCache | null = null;
+const HOME_CACHE_TTL_MS = 2 * 60 * 1000; // 2 minutes
 
 const Home: React.FC = () => {
   const navigate = useNavigate();
@@ -18,8 +29,26 @@ const Home: React.FC = () => {
   const [profileLoading, setProfileLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showExpandedMap, setShowExpandedMap] = useState(false);
+
+  // Pull-to-refresh state
+  const [refreshing, setRefreshing] = useState(false);
+  const [pullY, setPullY] = useState(0);
+  const pullStartY = useRef<number | null>(null);
+  const canPull = useRef(false);
   
-  // Fetch user profile on component mount
+  // On mount: hydrate from cache if fresh, otherwise fetch
+  useEffect(() => {
+    if (__homeCache && Date.now() - __homeCache.ts < HOME_CACHE_TTL_MS) {
+      setFirebaseReviews(__homeCache.firebaseReviews);
+      setUserReviews(__homeCache.userReviews);
+      setFeedPosts(__homeCache.feedPosts);
+      setUserProfile(__homeCache.userProfile);
+      setLoading(false);
+      setProfileLoading(false);
+    }
+  }, []);
+
+  // Fetch user profile on first mount or when no cache
   useEffect(() => {
     const loadUserProfile = async () => {
       try {
@@ -39,20 +68,21 @@ const Home: React.FC = () => {
       }
     };
 
-    loadUserProfile();
+    if (!__homeCache) {
+      loadUserProfile();
+    }
   }, []);
   
-  // Fetch reviews from Firebase on component mount
-  useEffect(() => {
-    const loadReviews = async () => {
+  // Fetch reviews from Firebase (used for first load and manual refresh)
+  const loadReviews = async () => {
       try {
         setLoading(true);
         const currentUser = getCurrentUser();
-        
+
         // Load user reviews for community feed
         const reviews = await fetchUserReviews(50);
         setFirebaseReviews(reviews);
-        
+
         // Load user-specific reviews for stats calculation
         if (currentUser) {
           const userReviewsData = await fetchUserReviews(50);
@@ -60,12 +90,20 @@ const Home: React.FC = () => {
         } else {
           setUserReviews([]);
         }
-        
+
         // Convert Firebase reviews to feed post format with real user data
         const posts = await convertReviewsToFeedPosts(reviews);
         setFeedPosts(posts);
-        
+
         setError(null);
+        // Update cache
+        __homeCache = {
+          ts: Date.now(),
+          firebaseReviews: reviews,
+          userReviews: currentUser ? (await fetchUserReviews(50)) : [],
+          feedPosts: posts,
+          userProfile
+        };
       } catch (err) {
         console.error('Failed to load reviews:', err);
         setError('Failed to load reviews');
@@ -73,10 +111,15 @@ const Home: React.FC = () => {
         setUserReviews([]); // Fallback to empty array
       } finally {
         setLoading(false);
+        setRefreshing(false);
       }
     };
-    
-    loadReviews();
+
+  // Initial fetch only when we have no cache
+  useEffect(() => {
+    if (!__homeCache) {
+      loadReviews();
+    }
   }, []);
 
   // Calculate user stats from their own reviews and profile data
@@ -154,7 +197,48 @@ const Home: React.FC = () => {
 
   // Always show the full Home dashboard (stats, map, community feed)
   return (
-    <div className="min-h-screen bg-gray-50 pb-16">
+    <div
+      className="min-h-screen bg-gray-50 pb-16"
+      onTouchStart={(e) => {
+        if (window.scrollY <= 0) {
+          canPull.current = true;
+          pullStartY.current = e.touches[0].clientY;
+        } else {
+          canPull.current = false;
+          pullStartY.current = null;
+        }
+      }}
+      onTouchMove={(e) => {
+        if (!canPull.current || pullStartY.current == null) return;
+        const dy = e.touches[0].clientY - pullStartY.current;
+        if (dy > 0) {
+          setPullY(Math.min(dy, 120));
+        }
+      }}
+      onTouchEnd={() => {
+        if (pullY > 70 && !refreshing) {
+          setRefreshing(true);
+          setPullY(0);
+          // Clear cache so fresh data is fetched
+          __homeCache = null;
+          loadReviews();
+        } else {
+          setPullY(0);
+        }
+      }}
+      style={{
+        transform: pullY > 0 ? `translateY(${pullY}px)` : undefined,
+        transition: pullY === 0 ? 'transform 150ms ease-out' : undefined,
+      }}
+    >
+      {/* Pull-to-refresh indicator */}
+      {(pullY > 0 || refreshing) && (
+        <div className="fixed top-2 inset-x-0 flex justify-center z-50 pointer-events-none">
+          <div className="px-3 py-1 rounded-full bg-white shadow text-xs text-gray-600">
+            {refreshing ? 'Refreshing…' : 'Pull to refresh'}
+          </div>
+        </div>
+      )}
       {/* Header */}
       <div className="bg-white px-4 py-1 shadow-sm">
         <div className="flex items-center justify-between">

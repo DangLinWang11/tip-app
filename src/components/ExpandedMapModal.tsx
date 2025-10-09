@@ -29,15 +29,21 @@ const ExpandedMapModal: React.FC<ExpandedMapModalProps> = ({
       }
     };
 
+    // Save original overflow styles so we can restore precisely
+    const originalBodyOverflow = document.body.style.overflow;
+    const originalHtmlOverflow = document.documentElement.style.overflow;
+
     if (isOpen) {
       document.addEventListener('keydown', handleEscape);
-      // Prevent body scroll when modal is open
+      // Prevent page scroll when modal is open (iOS-friendly)
       document.body.style.overflow = 'hidden';
+      document.documentElement.style.overflow = 'hidden';
     }
 
     return () => {
       document.removeEventListener('keydown', handleEscape);
-      document.body.style.overflow = 'unset';
+      document.body.style.overflow = originalBodyOverflow || '';
+      document.documentElement.style.overflow = originalHtmlOverflow || '';
     };
   }, [isOpen, onClose]);
 
