@@ -49,7 +49,7 @@ const ExpandedMapModal: React.FC<ExpandedMapModalProps> = ({
 
   return (
     <div 
-      className="fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center py-12 p-2"
+      className="fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center py-12 p-2 overscroll-contain"
       onClick={handleBackdropClick}
     >
       <div className="bg-white rounded-xl w-full h-full max-w-6xl max-h-[75vh] overflow-hidden shadow-2xl relative">

@@ -85,7 +85,7 @@ const getRatingColor = (rating: number): string => {
 };
 
 const createPinIcon = (text: string, backgroundColor: string, showQualityPercentages: boolean = true): string => {
-  const airyColor = '#ff5a5f';
+  const airyColor = '#ff3131';
   const svg = showQualityPercentages 
     ? `
       <svg width="40" height="50" viewBox="0 0 40 50" xmlns="http://www.w3.org/2000/svg">

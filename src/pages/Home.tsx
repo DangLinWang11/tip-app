@@ -35,7 +35,7 @@ const Home: React.FC = () => {
   const [pullY, setPullY] = useState(0);
   const pullStartY = useRef<number | null>(null);
   const canPull = useRef(false);
-  const PULL_TRIGGER = 80; // pixels required to trigger refresh
+  const PULL_TRIGGER = 140; // pixels required to trigger refresh (harder to trigger)
   const radius = 16; // progress ring radius (SVG units)
   const circumference = 2 * Math.PI * radius;
   const pullProgress = Math.max(0, Math.min(1, pullY / PULL_TRIGGER));
@@ -237,7 +237,7 @@ const Home: React.FC = () => {
     >
       {/* Pull-to-refresh indicator with progressive ring */}
       {(pullY > 0 || refreshing) && (
-        <div className="fixed top-3 inset-x-0 flex items-center justify-center gap-2 z-50 pointer-events-none">
+        <div className="fixed top-3 inset-x-0 flex items-center justify-center z-50 pointer-events-none">
           <svg
             className={`${refreshing ? 'animate-spin' : ''}`}
             width="32"
@@ -251,7 +251,7 @@ const Home: React.FC = () => {
               cx="18"
               cy="18"
               r="16"
-              stroke="#6b7280"
+              stroke="#ff3131"
               strokeWidth="3"
               fill="none"
               strokeLinecap="round"
@@ -260,9 +260,6 @@ const Home: React.FC = () => {
               transform="rotate(-90 18 18)"
             />
           </svg>
-          <div className="px-2 py-1 rounded bg-white/90 backdrop-blur shadow text-xs text-gray-600">
-            {refreshing ? 'Refreshing…' : pullProgress >= 1 ? 'Release to refresh' : 'Pull to refresh'}
-          </div>
         </div>
       )}
       {/* Header */}
@@ -308,7 +305,7 @@ const Home: React.FC = () => {
         {/* Your Food Journey Section */}
         <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
           <h2 className="text-lg font-bold text-primary mb-4 flex items-center gap-2">
-            <MapPinIcon size={18} className="text-primary" />
+            <MapIcon size={18} className="text-primary" />
             <span>Your Food Journey</span>
           </h2>
           <div 
