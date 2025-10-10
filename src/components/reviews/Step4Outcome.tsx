@@ -57,6 +57,10 @@ const Step4Outcome: React.FC = () => {
       setError(null);
       const id = await submitReview();
       setSuccessId(id);
+      try {
+        // Hint the Home screen to bypass cache once
+        navigate('/?refresh=1');
+      } catch {}
     } catch (err) {
       console.error('Submit failed', err);
       setError(t('createWizard.status.error'));

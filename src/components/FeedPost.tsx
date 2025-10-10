@@ -21,6 +21,9 @@ import { db } from '../lib/firebase';
 
 interface FeedPostReview {
   date: string;
+  // Raw Firestore timestamp and optimistic ms fallback for accurate relative time
+  createdAt?: any;
+  createdAtMs?: number;
   caption?: string;
   tasteChips?: string[];
   audienceTags?: string[];
@@ -191,30 +194,38 @@ const FeedPost: React.FC<FeedPostProps> = ({
     return '#EF4444'; // Red (0-54%)
   };
 
-  // Function to format timestamp Instagram-style
-  const formatInstagramTimestamp = (dateString: string): string => {
-    const reviewDate = new Date(dateString);
-    const now = new Date();
-    const diffMs = now.getTime() - reviewDate.getTime();
-    const diffMinutes = Math.floor(diffMs / (1000 * 60));
-    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  function formatRelativeTime(input: Date | number | string | any): string {
+    const toMillis = (v: any) =>
+      v && typeof v.seconds === "number" && typeof v.nanoseconds === "number"
+        ? v.seconds * 1000 + Math.floor(v.nanoseconds / 1e6)
+        : typeof v === "string"
+        ? Date.parse(v)
+        : typeof v === "number"
+        ? v
+        : (v as Date)?.getTime?.() ?? Date.now();
 
-    if (diffHours < 1) {
-      // Show minutes for posts less than 1 hour old
-      return `${Math.max(1, diffMinutes)}m`; // Show at least 1m
-    } else if (diffHours < 24) {
-      return `${diffHours}h`;
-    } else if (diffDays <= 30) {
-      return `${diffDays}d`;
-    } else {
-      // Format as M/D/YY
-      const month = reviewDate.getMonth() + 1;
-      const day = reviewDate.getDate();
-      const year = reviewDate.getFullYear().toString().slice(-2);
-      return `${month}/${day}/${year}`;
-    }
-  };
+    const now = Date.now();
+    const then = toMillis(input);
+    const diffMs = Math.max(0, now - then);
+    const diffMin = Math.floor(diffMs / 60000);
+    const diffHrs = Math.floor(diffMin / 60);
+
+    if (diffHrs < 1) return `${Math.max(1, diffMin)}m`; // 1–59m
+    if (diffHrs < 24) return `${diffHrs}h`;             // 1–23h
+
+    const d = new Date(then);
+    const mm = d.getMonth() + 1;
+    const dd = d.getDate();
+    const yy = String(d.getFullYear()).slice(-2);
+    return `${mm}/${dd}/${yy}`; // e.g., 8/9/26
+  }
+
+  // Minute tick to auto-refresh relative label
+  const [__tick, setTick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setTick(t => t + 1), 60_000);
+    return () => clearInterval(id);
+  }, []);
 
   // Handle touch events for swipe
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -466,7 +477,14 @@ const FeedPost: React.FC<FeedPostProps> = ({
           </h3>
           <div className="flex items-center gap-2">
             <span className="text-sm text-gray-400">
-              {formatInstagramTimestamp(currentItem.review.date)}
+              {(() => {
+                const when = formatRelativeTime(
+                  (currentItem.review as any).createdAt ??
+                  (currentItem.review as any).createdAtMs ??
+                  currentItem.review.date
+                );
+                return when;
+              })()}
             </span>
             <button
               onClick={() => setIsActionSheetOpen(true)}
@@ -750,8 +768,6 @@ const FeedPost: React.FC<FeedPostProps> = ({
 };
 
 export default FeedPost;
-
-
 
 
 

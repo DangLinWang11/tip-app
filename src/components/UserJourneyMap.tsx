@@ -6,9 +6,10 @@ import { getUserVisitedRestaurants, UserVisitedRestaurant } from '../services/re
 interface UserJourneyMapProps {
   className?: string;
   showLegend?: boolean;
+  showControls?: boolean; // show fullscreen + my-location controls
 }
 
-const UserJourneyMap: React.FC<UserJourneyMapProps> = ({ className = '', showLegend = false }) => {
+const UserJourneyMap: React.FC<UserJourneyMapProps> = ({ className = '', showLegend = false, showControls = true }) => {
   const [visitedRestaurants, setVisitedRestaurants] = useState<UserVisitedRestaurant[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -135,6 +136,8 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({ className = '', showLeg
           onRestaurantClick={handleRestaurantClick}
           showQualityPercentages={false}
           className="w-full h-full"
+          showMyLocationButton={showControls}
+          showGoogleControl={showControls}
         />
         {showLegend && (
           <div className="absolute bottom-4 left-4 z-10">

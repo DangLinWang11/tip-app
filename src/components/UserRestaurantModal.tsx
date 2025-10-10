@@ -186,7 +186,17 @@ const UserRestaurantModal: React.FC<UserRestaurantModalProps> = ({
                           {/* Timestamp at bottom-right */}
                           <div className="flex justify-end mt-2">
                             <div className="text-xs text-gray-500">
-                              {new Date(review.createdAt).toLocaleDateString()}
+                              {(() => {
+                                const v: any = (review as any).createdAt;
+                                const ms = v && typeof v.seconds === 'number' && typeof v.nanoseconds === 'number'
+                                  ? v.seconds * 1000 + Math.floor(v.nanoseconds / 1e6)
+                                  : typeof v === 'string'
+                                  ? Date.parse(v)
+                                  : typeof v === 'number'
+                                  ? v
+                                  : Date.now();
+                                return new Date(ms).toLocaleDateString();
+                              })()}
                             </div>
                           </div>
                         </div>

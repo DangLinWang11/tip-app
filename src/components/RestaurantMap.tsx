@@ -63,6 +63,8 @@ interface MapProps {
   onDishClick?: (id: string) => void;
   showQualityPercentages?: boolean;
   disableInfoWindows?: boolean;
+  showMyLocationButton?: boolean;
+  showGoogleControl?: boolean;
 }
 
 const getQualityColor = (percentage: number): string => {
@@ -137,11 +139,13 @@ const createDishPinIcon = (rating: string, backgroundColor: string): string => {
   return 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg);
 };
 
-const Map: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishes, userLocation, onRestaurantClick, onDishClick, showQualityPercentages = true, disableInfoWindows = false }) => {
+const Map: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishes, userLocation, onRestaurantClick, onDishClick, showQualityPercentages = true, disableInfoWindows = false, showMyLocationButton = true, showGoogleControl = true }) => {
   const ref = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<google.maps.Map>();
   const [locationError, setLocationError] = useState<string>('');
   const [userLocationMarker, setUserLocationMarker] = useState<google.maps.Marker | null>(null);
+  // Internal location state when user taps the navigation button
+  const [internalUserLocation, setInternalUserLocation] = useState<{ lat: number; lng: number } | null>(null);
 
 
   useEffect(() => {
@@ -151,7 +155,7 @@ const Map: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishes, u
         zoom,
         mapTypeControl: false,
         streetViewControl: false,
-        fullscreenControl: false,
+        fullscreenControl: showGoogleControl,
         zoomControl: false,
         rotateControl: false,
         scaleControl: false,
@@ -168,24 +172,25 @@ const Map: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishes, u
       });
       setMap(newMap);
     }
-  }, [ref, map, center, zoom]);
+  }, [ref, map, center, zoom, showGoogleControl]);
 
 
   // Update user location marker and center map
   useEffect(() => {
-    if (map && userLocation) {
+    const effectiveLocation = userLocation || internalUserLocation;
+    if (map && effectiveLocation) {
       // Remove existing user location marker
       if (userLocationMarker) {
         userLocationMarker.setMap(null);
       }
 
       // Center map on user location
-      map.panTo(userLocation);
+      map.panTo(effectiveLocation);
       map.setZoom(15); // Zoom in to show local area
 
       // Create new user location marker with blue dot and direction arrow
       const marker = new window.google.maps.Marker({
-        position: userLocation,
+        position: effectiveLocation,
         map,
         icon: {
           path: window.google.maps.SymbolPath.CIRCLE,
@@ -201,7 +206,7 @@ const Map: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishes, u
 
       setUserLocationMarker(marker);
     }
-  }, [map, userLocation]);
+  }, [map, userLocation, internalUserLocation]);
 
   useEffect(() => {
     if (map) {
@@ -338,19 +343,81 @@ const Map: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishes, u
     }
   }, [map, mapType, restaurants, dishes, onRestaurantClick]);
 
+  // Handle location button click
+  const centerOnMyLocation = () => {
+    setLocationError('');
+    if (!navigator.geolocation) {
+      setLocationError('Geolocation is not supported by this browser.');
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        setInternalUserLocation(coords);
+      },
+      (err) => {
+        if (err.code === err.PERMISSION_DENIED) {
+          setLocationError('Location permission denied. Enable it in settings to use navigation.');
+        } else if (err.code === err.POSITION_UNAVAILABLE) {
+          setLocationError('Location information is unavailable.');
+        } else if (err.code === err.TIMEOUT) {
+          setLocationError('Request to get your location timed out.');
+        } else {
+          setLocationError('Failed to get your location.');
+        }
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
+  };
+
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%' }}>
       <div ref={ref} style={{ width: '100%', height: '100%' }} />
-      
 
+      {/* Hide Google fullscreen control if requested via CSS as fallback */}
+      {!showGoogleControl && (
+        <style>{`.gm-fullscreen-control{display:none!important}`}</style>
+      )}
+
+      {/* Navigation (My Location) Button */}
+      {showMyLocationButton && (
+        <div
+          style={{ position: 'absolute', bottom: 14, right: showGoogleControl ? 72 : 16, zIndex: 5 }}
+          aria-hidden
+        >
+          <button
+            onClick={centerOnMyLocation}
+            title="Center on my location"
+            aria-label="Center on my location"
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 4,
+              background: '#fff',
+              border: '1px solid rgba(0,0,0,0.12)',
+              boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer'
+            }}
+          >
+            {/* White circle with blue navigation arrow */}
+            <svg width="22" height="22" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="12" cy="12" r="9" fill="#ffffff" stroke="#E5E7EB" strokeWidth="1" />
+              <path d="M12 5l4.5 9-4.5-2-4.5 2L12 5z" fill="#4285F4" />
+            </svg>
+          </button>
+        </div>
+      )}
 
       {/* Error Message */}
       {locationError && (
         <div style={{ 
           position: 'absolute', 
-          top: '16px', 
-          left: '16px', 
-          right: '16px', 
+          top: 16, 
+          left: 16, 
+          right: 16, 
           zIndex: 10 
         }}>
           <div style={{
@@ -358,8 +425,8 @@ const Map: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishes, u
             border: '1px solid #fca5a5',
             color: '#dc2626',
             padding: '12px 16px',
-            borderRadius: '8px',
-            fontSize: '14px'
+            borderRadius: 8,
+            fontSize: 14
           }}>
             {locationError}
           </div>
@@ -396,6 +463,8 @@ interface RestaurantMapProps {
   onDishClick?: (id: string) => void;
   showQualityPercentages?: boolean;
   disableInfoWindows?: boolean;
+  showMyLocationButton?: boolean;
+  showGoogleControl?: boolean;
 }
 
 // Fetch top dish from each restaurant from Firebase menuItems collection
@@ -497,7 +566,9 @@ const RestaurantMap: React.FC<RestaurantMapProps> = ({
   onRestaurantClick,
   onDishClick,
   showQualityPercentages = true,
-  disableInfoWindows = false
+  disableInfoWindows = false,
+  showMyLocationButton = true,
+  showGoogleControl = true
 }) => {
   const [topDishes, setTopDishes] = useState<Dish[]>([]);
   const sarasotaCenter = {
@@ -530,6 +601,8 @@ const RestaurantMap: React.FC<RestaurantMapProps> = ({
             onDishClick={onDishClick}
             showQualityPercentages={showQualityPercentages}
             disableInfoWindows={disableInfoWindows}
+            showMyLocationButton={showMyLocationButton}
+            showGoogleControl={showGoogleControl}
           />
         );
     }

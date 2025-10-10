@@ -1,4 +1,4 @@
-import { collection, addDoc, serverTimestamp, getDocs, query, orderBy, limit, where, doc, getDoc, updateDoc, arrayUnion } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, getDocs, query, orderBy, limit, where, doc, getDoc, updateDoc, arrayUnion, onSnapshot } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage, getUserProfile, getCurrentUser, updateUserStats } from '../lib/firebase';
 import { inferFacetsFromText, tokenizeForSearch, normalizeToken } from '../utils/taxonomy';
@@ -91,6 +91,22 @@ export const uploadMultiplePhotos = async (files: File[]): Promise<string[]> => 
     throw new Error('Failed to upload photos');
   }
 };
+
+// Lightweight creator for reviews using server timestamps and optimistic ms fallback
+export type NewReviewInput = Record<string, any>;
+export async function createReview(data: NewReviewInput): Promise<string> {
+  const nowMs = Date.now();
+  const docData = {
+    ...data,
+    createdAt: serverTimestamp(),
+    createdAtMs: nowMs,
+    updatedAt: serverTimestamp(),
+    isDeleted: false,
+    visibility: data?.visibility ?? 'public',
+  };
+  const ref = await addDoc(collection(db, 'reviews'), docData);
+  return ref.id;
+}
 
 // Review data interface
 export interface ReviewData {
@@ -378,14 +394,17 @@ export const saveReview = async (
     console.log('dY", Saving review with links - restaurantId:', restaurantId, 'menuItemId:', menuItemId);
     const { restaurantCuisines: _ignoredRestaurantCuisines, cuisines: _ignoredCuisines, ...reviewDataRest } = reviewData as any;
 
+    const nowMs = Date.now();
     const reviewDocumentPayload: Record<string, any> = {
       ...reviewDataRest,
       restaurantId,
       menuItemId,
       userId: currentUser.uid,
       timestamp: serverTimestamp(),
-      createdAt: new Date().toISOString(),
+      createdAt: serverTimestamp(),
+      createdAtMs: nowMs,
       updatedAt: serverTimestamp(),
+      visibility: 'public',
       triedTimes: 1,
       visitedTimes: 1,
       rewardReason: "First review bonus",
@@ -518,7 +537,8 @@ export interface FirebaseReview {
   images: string[];
   isPublic: boolean;
   timestamp: any; // Firestore timestamp
-  createdAt: string;
+  createdAt: any; // Firestore Timestamp or ISO string (legacy)
+  createdAtMs?: number; // Optimistic fallback for ordering
   triedTimes: number;
   visitedTimes: number;
   rewardReason: string;
@@ -600,9 +620,10 @@ export const getUserVisitedRestaurants = async (): Promise<UserVisitedRestaurant
       const visitCount = reviews.length;
       const totalRating = reviews.reduce((sum, review) => sum + review.rating, 0);
       const averageRating = totalRating / visitCount;
-      const lastVisit = reviews.sort((a, b) => 
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-      )[0].createdAt;
+      const lastVisitReview = reviews.sort((a, b) =>
+        new Date(safeToISOString(b.createdAt)).getTime() - new Date(safeToISOString(a.createdAt)).getTime()
+      )[0];
+      const lastVisit = safeToISOString(lastVisitReview.createdAt);
 
       // Create visited restaurant object
       const visitedRestaurant: UserVisitedRestaurant = {
@@ -1037,17 +1058,20 @@ export const convertVisitToCarouselFeedPost = async (reviews: FirebaseReview[]) 
   // Create carousel data for all dishes in the visit
   const carouselItems = sortedReviews.map(review => {
     const { tasteChips, audienceTags } = extractReviewTags(review);
+    const imgs = getReviewImages(review);
     return {
       id: review.id,
       dishId: review.menuItemId,
       dish: {
         name: review.dish,
-        image: review.images.length > 0 ? review.images[0] : `https://source.unsplash.com/500x500/?food,${encodeURIComponent(review.dish)}`,
+        image: imgs && imgs.length > 0 ? imgs[0] : `https://source.unsplash.com/500x500/?food,${encodeURIComponent(review.dish)}`,
         rating: review.rating,
         visitCount: review.visitedTimes
       },
       review: {
         date: safeToISOString(review.createdAt),
+        createdAt: review.createdAt,
+        createdAtMs: review.createdAtMs,
         caption: (review as any).caption || undefined,
         tasteChips: tasteChips.length > 0 ? tasteChips : undefined,
         audienceTags: audienceTags.length > 0 ? audienceTags : undefined
@@ -1074,12 +1098,14 @@ export const convertVisitToCarouselFeedPost = async (reviews: FirebaseReview[]) 
     },
     dish: {
       name: reviews.length > 1 ? `${reviews.length} dishes` : mainReview.dish,
-      image: mainReview.images.length > 0 ? mainReview.images[0] : `https://source.unsplash.com/500x500/?food,${encodeURIComponent(mainReview.dish)}`,
+      image: (() => { const imgs = getReviewImages(mainReview); return imgs && imgs.length > 0 ? imgs[0] : `https://source.unsplash.com/500x500/?food,${encodeURIComponent(mainReview.dish)}`; })(),
       rating: parseFloat(averageRating.toFixed(1)),
       visitCount: mainReview.visitedTimes
     },
     review: {
-      date: new Date(mainReview.createdAt).toISOString(), // ISO for consistent time math
+      date: safeToISOString(mainReview.createdAt),
+      createdAt: mainReview.createdAt,
+      createdAtMs: mainReview.createdAtMs,
       caption: (mainReview as any).caption || undefined,
       tasteChips: mainTasteChips.length > 0 ? mainTasteChips : undefined,
       audienceTags: mainAudienceTags.length > 0 ? mainAudienceTags : undefined
@@ -1110,9 +1136,35 @@ const safeToISOString = (dateValue: any): string => {
     }
   }
 
+  // Handle plain timestamp-like object: { seconds, nanoseconds }
+  if (
+    typeof dateValue === 'object' &&
+    dateValue !== null &&
+    typeof dateValue.seconds === 'number' &&
+    typeof dateValue.nanoseconds === 'number'
+  ) {
+    try {
+      const ms = dateValue.seconds * 1000 + Math.floor(dateValue.nanoseconds / 1e6);
+      return new Date(ms).toISOString();
+    } catch (error) {
+      console.warn('Failed to convert plain timestamp object:', dateValue, error);
+      return new Date().toISOString();
+    }
+  }
+
   // Handle Date object
   if (dateValue instanceof Date) {
     return dateValue.toISOString();
+  }
+
+  // Handle numeric milliseconds
+  if (typeof dateValue === 'number') {
+    try {
+      return new Date(dateValue).toISOString();
+    } catch (error) {
+      console.warn('Failed to parse numeric ms date:', dateValue, error);
+      return new Date().toISOString();
+    }
   }
 
   // Handle ISO string
@@ -1191,6 +1243,17 @@ const extractReviewTags = (review: any): { tasteChips: string[]; audienceTags: s
   return { tasteChips, audienceTags };
 };
 
+// Helper: get review images from either legacy images[] or new media.photos[]
+const getReviewImages = (review: any): string[] => {
+  try {
+    const photos = Array.isArray(review?.media?.photos) ? review.media.photos : [];
+    const images = Array.isArray(review?.images) ? review.images : [];
+    return photos.length > 0 ? photos : images;
+  } catch {
+    return Array.isArray(review?.images) ? review.images : [];
+  }
+};
+
 // Convert single review to feed post (for non-visit reviews) - UPDATED with author.id
 export const convertReviewToFeedPost = async (review: FirebaseReview) => {
   // Debug logging for restaurantId and dish info
@@ -1261,12 +1324,14 @@ export const convertReviewToFeedPost = async (review: FirebaseReview) => {
     },
     dish: {
       name: review.dish || (review as any).dishName || 'Unknown Dish',
-      image: review.images.length > 0 ? review.images[0] : `https://source.unsplash.com/500x500/?food,${encodeURIComponent(review.dish || (review as any).dishName || 'food')}`,
+      image: (() => { const imgs = getReviewImages(review); return imgs && imgs.length > 0 ? imgs[0] : `https://source.unsplash.com/500x500/?food,${encodeURIComponent(review.dish || (review as any).dishName || 'food')}`; })(),
       rating: review.rating,
       visitCount: review.visitedTimes
     },
     review: {
       date: safeToISOString(review.createdAt),
+      createdAt: review.createdAt,
+      createdAtMs: review.createdAtMs,
       caption: (review as any).caption || undefined,
       tasteChips: tasteChips.length > 0 ? tasteChips : undefined,
       audienceTags: audienceTags.length > 0 ? audienceTags : undefined
@@ -1336,12 +1401,14 @@ export const convertUserReviewToFeedPost = async (review: FirebaseReview) => {
     },
     dish: {
       name: review.dish || (review as any).dishName || 'Unknown Dish',
-      image: review.images.length > 0 ? review.images[0] : `https://source.unsplash.com/500x500/?food,${encodeURIComponent(review.dish || (review as any).dishName || 'food')}`,
+      image: (() => { const imgs = getReviewImages(review); return imgs && imgs.length > 0 ? imgs[0] : `https://source.unsplash.com/500x500/?food,${encodeURIComponent(review.dish || (review as any).dishName || 'food')}`; })(),
       rating: review.rating,
       visitCount: review.visitedTimes
     },
     review: {
       date: safeToISOString(review.createdAt),
+      createdAt: review.createdAt,
+      createdAtMs: review.createdAtMs,
       caption: (review as any).caption || undefined,
       tasteChips: tasteChips.length > 0 ? tasteChips : undefined,
       audienceTags: audienceTags.length > 0 ? audienceTags : undefined
@@ -1459,7 +1526,7 @@ export const convertReviewsToFeedPosts = async (reviews: FirebaseReview[]) => {
         },
         dish: {
           name: review.dish,
-          image: review.images.length > 0 ? review.images[0] : `https://source.unsplash.com/500x500/?food,${encodeURIComponent(review.dish)}`,
+          image: (() => { const imgs = getReviewImages(review); return imgs && imgs.length > 0 ? imgs[0] : `https://source.unsplash.com/500x500/?food,${encodeURIComponent(review.dish)}`; })(),
           rating: review.rating,
           visitCount: review.visitedTimes
         },
@@ -1480,6 +1547,25 @@ export const convertReviewsToFeedPosts = async (reviews: FirebaseReview[]) => {
     });
   }
 };
+
+// Real-time listener for the home feed (public, not deleted), newest first
+export function listenHomeFeed(onChange: (items: FirebaseReview[]) => void) {
+  // Broader query to include legacy docs missing visibility/isDeleted fields
+  const qRef = query(
+    collection(db, 'reviews'),
+    orderBy('createdAt', 'desc'),
+    limit(50)
+  );
+
+  const unsub = onSnapshot(qRef, { includeMetadataChanges: true }, (snap) => {
+    const raw = snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) })) as FirebaseReview[];
+    // Client-side filter: exclude soft-deleted, include public/legacy
+    const items = raw.filter((it: any) => it?.isDeleted !== true);
+    onChange(items as FirebaseReview[]);
+  });
+
+  return unsub;
+}
 
 // Personal Notes Management
 export interface PersonalNote {
@@ -1637,24 +1723,6 @@ export const deleteReview = async (reviewInput: string | { id?: string | null; r
     throw error;
   }
 };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

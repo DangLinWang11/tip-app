@@ -3,7 +3,7 @@ import { MapIcon, PlusIcon, MapPinIcon, Star } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import HamburgerMenu from '../components/HamburgerMenu';
 import FeedPost from '../components/FeedPost';
-import { fetchReviews, convertReviewsToFeedPosts, fetchUserReviews, FirebaseReview } from '../services/reviewService';
+import { fetchReviews, convertReviewsToFeedPosts, fetchUserReviews, FirebaseReview, listenHomeFeed } from '../services/reviewService';
 import { getUserProfile, getCurrentUser } from '../lib/firebase';
 import UserJourneyMap from '../components/UserJourneyMap';
 import ExpandedMapModal from '../components/ExpandedMapModal';
@@ -42,7 +42,11 @@ const Home: React.FC = () => {
   
   // On mount: hydrate from cache if fresh, otherwise fetch
   useEffect(() => {
-    if (__homeCache && Date.now() - __homeCache.ts < HOME_CACHE_TTL_MS) {
+    // Allow cache bypass once via URL flag
+    const url = new URL(window.location.href);
+    const forceRefresh = url.searchParams.get('refresh') === '1';
+
+    if (!forceRefresh && __homeCache && Date.now() - __homeCache.ts < HOME_CACHE_TTL_MS) {
       setFirebaseReviews(__homeCache.firebaseReviews);
       setUserReviews(__homeCache.userReviews);
       setFeedPosts(__homeCache.feedPosts);
@@ -119,12 +123,27 @@ const Home: React.FC = () => {
       }
     };
 
-  // Initial fetch only when we have no cache
+  // Real-time home feed listener (public, not deleted). Keeps feed fresh and ordered.
   useEffect(() => {
-    if (!__homeCache) {
-      loadReviews();
-    }
-  }, []);
+    const unsub = listenHomeFeed(async (items: FirebaseReview[]) => {
+      try {
+        const posts = await convertReviewsToFeedPosts(items);
+        setFeedPosts(posts);
+        // update cache
+        __homeCache = {
+          ts: Date.now(),
+          firebaseReviews: items,
+          userReviews: userReviews,
+          feedPosts: posts,
+          userProfile
+        };
+        setLoading(false);
+      } catch (e) {
+        console.error('Failed converting live feed posts', e);
+      }
+    });
+    return () => unsub();
+  }, [userReviews, userProfile]);
 
   // Calculate user stats from their own reviews and profile data
   const currentUser = getCurrentUser();
@@ -317,7 +336,7 @@ const Home: React.FC = () => {
             className="h-64 rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
             onClick={() => setShowExpandedMap(true)}
           >
-            <UserJourneyMap className="h-64 rounded-lg pointer-events-none" />
+            <UserJourneyMap className="h-64 rounded-lg pointer-events-none" showControls={false} />
           </div>
 
           {/* List View Button */}

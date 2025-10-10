@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { collection, doc, writeBatch } from 'firebase/firestore';
+import { collection, doc, writeBatch, serverTimestamp } from 'firebase/firestore';
+import { saveReview, type ReviewData } from '../../services/reviewService';
 import { db, getCurrentUser } from '../../lib/firebase';
 import { useI18n } from '../../lib/i18n/useI18n';
 import ProgressBar from './ProgressBar';
@@ -473,59 +474,33 @@ const Wizard: React.FC = () => {
     const sanitizedCaption = caption?.trim();
     const cuisines = sanitizeCuisinesInput(draftCuisines) ?? sanitizeCuisinesInput(restaurantCuisines);
 
-    const batch = writeBatch(db);
-    const reviewRef = doc(collection(db, 'reviews'));
-
-    const nowIso = new Date().toISOString();
-
-    const payload: Record<string, unknown> = {
-      ...restDraft,
-      userId,
-      createdAt: nowIso,
-      updatedAt: nowIso,
-      isDeleted: false
+    // Build ReviewData payload for saveReview so we get proper menuItemId linkage
+    const reviewData: ReviewData & { caption?: string } = {
+      restaurant: selectedRestaurant?.name || (restDraft as any).restaurant || 'Unknown Restaurant',
+      location: (selectedRestaurant as any)?.address || (restDraft as any).location || '',
+      dish: restDraft.dishName || (selectedDish as any)?.name || 'Unknown Dish',
+      rating: restDraft.rating,
+      personalNote: (restDraft as any).personalNote || '',
+      negativeNote: (restDraft as any).negativeNote || '',
+      serverRating: (restDraft as any).serverRating ?? null,
+      price: (restDraft as any).price ?? null,
+      tags: Array.isArray((restDraft as any).tags) ? (restDraft as any).tags : [],
+      restaurantCuisines: cuisines,
+      cuisines: cuisines,
+      images: Array.isArray(restDraft.media?.photos) ? restDraft.media!.photos : [],
+      isPublic: true,
+      caption: sanitizedCaption,
     };
 
-    if (cuisines && cuisines.length) {
-      payload.restaurantCuisines = cuisines;
-    }
-
-    if (sanitizedCaption) {
-      payload.caption = sanitizedCaption;
-    }
-
-    if (!useCaptionStep && comparison) {
-      payload.comparison = comparison;
-    }
-
-    // Remove undefined values to prevent Firestore errors (recursively)
-    const removeUndefined = (obj: any): any => {
-      if (obj === null || obj === undefined) return null;
-      if (typeof obj !== 'object') return obj;
-      if (Array.isArray(obj)) return obj.map(removeUndefined);
-
-      const cleaned: any = {};
-      Object.keys(obj).forEach(key => {
-        const value = obj[key];
-        if (value !== undefined) {
-          cleaned[key] = removeUndefined(value);
-        }
-      });
-      return cleaned;
-    };
-
-    const cleanedPayload = removeUndefined(payload);
-
-    batch.set(reviewRef, cleanedPayload);
-    await batch.commit();
+    const reviewId = await saveReview(reviewData, selectedRestaurant, selectedDish);
     try {
       localStorage.removeItem(buildStorageKey(userId, draft.restaurantId));
     } catch (error) {
       console.warn('Failed to clear draft storage', error);
     }
     showReward('submit');
-    return reviewRef.id;
-  }, [draft, showReward, userId, useCaptionStep]);
+    return reviewId;
+  }, [draft, showReward, userId, useCaptionStep, selectedRestaurant, selectedDish]);
 
   const contextValue = useMemo<WizardContextValue>(() => ({
     draft,
@@ -618,10 +593,6 @@ const Wizard: React.FC = () => {
 };
 
 export default Wizard;
-
-
-
-
 
 
 

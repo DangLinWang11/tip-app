@@ -34,7 +34,7 @@ interface Review {
   personalNote: string;
   negativeNote: string;
   images: string[];
-  createdAt: string;
+  createdAt: any;
   location: string;
 }
 
@@ -100,16 +100,34 @@ const MenuDetail: React.FC = () => {
         }
         
         // Fetch reviews for this specific dish
-        const reviewsQuery = query(
-          collection(db, 'reviews'), 
-          where('menuItemId', '==', id)
-        );
-        const reviewsSnapshot = await getDocs(reviewsQuery);
-        const reviewsData = reviewsSnapshot.docs.map(doc => ({ 
-          id: doc.id, 
-          ...doc.data() 
-        } as Review));
-        setReviews(reviewsData);
+        // Support both new field (menuItemId) and legacy field (dishId)
+        const reviewsRef = collection(db, 'reviews');
+        const [byMenuItemSnap, byDishSnap] = await Promise.all([
+          getDocs(query(reviewsRef, where('menuItemId', '==', id))),
+          getDocs(query(reviewsRef, where('dishId', '==', id))),
+        ]);
+
+        const rows = [...byMenuItemSnap.docs, ...byDishSnap.docs];
+        const map = new Map<string, any>();
+        for (const d of rows) {
+          if ((d.data() as any)?.isDeleted === true) continue;
+          map.set(d.id, { id: d.id, ...(d.data() as any) });
+        }
+
+        // Sort newest first; handle Timestamp, ms, or ISO
+        const toMs = (v: any) =>
+          v && typeof v.seconds === 'number' && typeof v.nanoseconds === 'number'
+            ? v.seconds * 1000 + Math.floor(v.nanoseconds / 1e6)
+            : typeof v === 'number'
+            ? v
+            : typeof v === 'string'
+            ? Date.parse(v)
+            : (v as Date)?.getTime?.() ?? 0;
+
+        const merged = Array.from(map.values())
+          .sort((a, b) => toMs(b.createdAt) - toMs(a.createdAt)) as Review[];
+
+        setReviews(merged);
         
       } catch (error) {
         console.error('Error fetching dish data:', error);
@@ -329,7 +347,17 @@ const MenuDetail: React.FC = () => {
                       </span>
                     </div>
                     <span className="text-xs text-dark-gray">
-                      {new Date(review.createdAt).toLocaleDateString()}
+                      {(() => {
+                        const v: any = (review as any).createdAt;
+                        const ms = v && typeof v.seconds === 'number' && typeof v.nanoseconds === 'number'
+                          ? v.seconds * 1000 + Math.floor(v.nanoseconds / 1e6)
+                          : typeof v === 'string'
+                          ? Date.parse(v)
+                          : typeof v === 'number'
+                          ? v
+                          : Date.now();
+                        return new Date(ms).toLocaleDateString();
+                      })()}
                     </span>
                   </div>
                   
