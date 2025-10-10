@@ -382,7 +382,7 @@ const Map: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishes, u
       {/* Navigation (My Location) Button */}
       {showMyLocationButton && (
         <div
-          style={{ position: 'absolute', bottom: 14, right: showGoogleControl ? 72 : 16, zIndex: 5 }}
+          style={{ position: 'absolute', bottom: 10, right: showGoogleControl ? 56 : 16, zIndex: 5 }}
           aria-hidden
         >
           <button
@@ -390,22 +390,22 @@ const Map: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishes, u
             title="Center on my location"
             aria-label="Center on my location"
             style={{
-              width: 40,
-              height: 40,
-              borderRadius: 4,
-              background: '#fff',
-              border: '1px solid rgba(0,0,0,0.12)',
-              boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
+              width: 68,
+              height: 68,
+              borderRadius: 9999,
+              background: 'transparent',
+              border: 'none',
+              boxShadow: 'none',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               cursor: 'pointer'
             }}
           >
-            {/* White circle with blue navigation arrow */}
-            <svg width="22" height="22" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <circle cx="12" cy="12" r="9" fill="#ffffff" stroke="#E5E7EB" strokeWidth="1" />
-              <path d="M12 5l4.5 9-4.5-2-4.5 2L12 5z" fill="#4285F4" />
+            {/* Larger circle with tilted blue navigation arrow */}
+            <svg width="48" height="48" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="12" cy="12" r="9.5" fill="#ffffff" stroke="#E5E7EB" strokeWidth="1" />
+              <path d="M12 5l4.5 9-4.5-2-4.5 2L12 5z" fill="#4285F4" transform="translate(0 1) rotate(45 12 12)" />
             </svg>
           </button>
         </div>

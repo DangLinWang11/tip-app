@@ -57,8 +57,18 @@ const ExpandedMapModal: React.FC<ExpandedMapModalProps> = ({
     <div 
       className="fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center py-12 p-2 overscroll-contain"
       onClick={handleBackdropClick}
+      onTouchStartCapture={(e) => { e.stopPropagation(); }}
+      onTouchMoveCapture={(e) => { e.stopPropagation(); }}
+      onTouchEndCapture={(e) => { e.stopPropagation(); }}
+      onWheelCapture={(e) => { e.stopPropagation(); }}
     >
-      <div className="bg-white rounded-xl w-full h-full max-w-6xl max-h-[75vh] overflow-hidden shadow-2xl relative">
+      <div 
+        className="bg-white rounded-xl w-full h-full max-w-6xl max-h-[75vh] overflow-hidden shadow-2xl relative"
+        onTouchStartCapture={(e) => { e.stopPropagation(); }}
+        onTouchMoveCapture={(e) => { e.stopPropagation(); }}
+        onTouchEndCapture={(e) => { e.stopPropagation(); }}
+        onWheelCapture={(e) => { e.stopPropagation(); }}
+      >
         {/* Header with close button */}
         <div className="absolute top-0 left-0 right-0 z-10 bg-white/95 backdrop-blur-sm border-b border-gray-200 p-4 flex items-center justify-between">
           <div className="flex items-start gap-2">
@@ -79,7 +89,13 @@ const ExpandedMapModal: React.FC<ExpandedMapModalProps> = ({
         </div>
 
         {/* Expanded map content */}
-        <div className="w-full h-full pt-20">
+        <div 
+          className="w-full h-full pt-20"
+          onTouchStartCapture={(e) => { e.stopPropagation(); }}
+          onTouchMoveCapture={(e) => { e.stopPropagation(); }}
+          onTouchEndCapture={(e) => { e.stopPropagation(); }}
+          onWheelCapture={(e) => { e.stopPropagation(); }}
+        >
           <UserJourneyMap className="w-full h-full" showLegend />
         </div>
 

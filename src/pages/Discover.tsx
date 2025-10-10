@@ -243,25 +243,7 @@ const Discover: React.FC = () => {
             <RestaurantMap mapType={mapType} restaurants={filteredRestaurants} dishes={dishes} userLocation={userLocation} onRestaurantClick={(id) => navigate(`/restaurant/${id}`)} onDishClick={(id) => navigate(`/dish/${id}`)} />
           </div>
         )}
-        
-        {/* Location Button */}
-        <div className="absolute bottom-20 right-4 z-30">
-          <button
-            onClick={handleLocationRequest}
-            className="bg-white rounded-full p-3 shadow-lg border border-gray-200 hover:shadow-xl transition-shadow duration-200"
-            title="Show my location"
-          >
-            <svg 
-              width="20" 
-              height="20" 
-              viewBox="0 0 24 24" 
-              fill="#00aeef"
-            >
-              <path d="M12 2L22 22L12 18L2 22L12 2Z"/>
-            </svg>
-          </button>
-        </div>
-
+        {/* Removed duplicate location button — using the one inside RestaurantMap */}
       </div>
     </div>
   );
