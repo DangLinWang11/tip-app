@@ -116,6 +116,8 @@ export interface ReviewData {
   restaurant: string;
   location: string;
   dish: string;
+  // Note: Firestore rules require dishName on create. We preserve dish for legacy reads,
+  // and ensure dishName is populated in the builder.
   rating: number;
   personalNote: string;
   negativeNote: string;
@@ -126,6 +128,35 @@ export interface ReviewData {
   cuisines?: string[];
   images: string[];
   isPublic: boolean;
+}
+
+// Canonical client payload for creating a review
+export type ReviewCreatePayload = Omit<ReviewData, 'dish'> & {
+  dish: string;
+  dishName: string; // required by rules
+};
+
+// Runtime assert helper
+function assert(condition: any, message: string): asserts condition {
+  if (!condition) {
+    throw new Error(message);
+  }
+}
+
+// Centralized builder that enforces required fields (including dishName)
+export function buildReviewCreatePayload(input: ReviewData & { caption?: string }): ReviewCreatePayload & { caption?: string } {
+  const dishName = (input as any).dishName || input.dish || 'Unknown Dish';
+  if (!(input as any).dishName) {
+    // Log a warning if the caller didn’t pass dishName explicitly
+    // (we still populate it here to satisfy rules)
+    try { console.warn('[buildReviewCreatePayload] dishName missing; deriving from dish'); } catch {}
+  }
+  assert(typeof dishName === 'string' && dishName.trim().length > 0, 'dishName is required');
+  const payload: ReviewCreatePayload & { caption?: string } = {
+    ...input,
+    dishName,
+  } as any;
+  return payload;
 }
 
 // Review identifier helpers
@@ -399,6 +430,8 @@ export const saveReview = async (
       ...reviewDataRest,
       restaurantId,
       menuItemId,
+      // Add dishName to satisfy Firestore rules which require dishName (string)
+      dishName: (reviewDataRest as any).dish || (reviewDataRest as any).dishName || 'Unknown Dish',
       userId: currentUser.uid,
       timestamp: serverTimestamp(),
       createdAt: serverTimestamp(),

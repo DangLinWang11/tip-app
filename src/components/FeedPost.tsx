@@ -78,6 +78,8 @@ interface FeedPostProps {
     author: string;
     text: string;
   };
+  // Optional tag slugs array associated with the review
+  tags?: string[];
 }
 
 const FeedPost: React.FC<FeedPostProps> = ({
@@ -91,7 +93,8 @@ const FeedPost: React.FC<FeedPostProps> = ({
   restaurant,
   dish,
   review,
-  engagement
+  engagement,
+  tags
 }) => {
   // Log all IDs received by FeedPost component
   console.log('ðŸ“ [FeedPost] Component initialized with IDs:', {
@@ -125,6 +128,37 @@ const FeedPost: React.FC<FeedPostProps> = ({
   // Feature flags
   const showLikesComments = useFeature('LIKES_COMMENTS');
   const showSocialSharing = useFeature('SOCIAL_SHARING');
+
+  // Tag labels and chip styling for slug-based tags
+  const TAG_LABELS: Record<string, string> = {
+    good_value: 'Good value',
+    overpriced: 'Overpriced',
+    very_fresh: 'Very fresh',
+    not_fresh: 'Not fresh',
+    spicy_lovers: 'Spicy lovers',
+    too_spicy: 'Too spicy',
+    mild: 'Mild',
+    served_hot: 'Served hot',
+    served_cold: 'Served cold',
+    lukewarm: 'Lukewarm',
+  };
+
+  const getTagChipClass = (slug: string): string => {
+    const positive = new Set(['good_value', 'very_fresh', 'spicy_lovers', 'served_hot']);
+    const negativeRed = new Set(['overpriced', 'too_spicy']);
+    const negativeAmber = new Set(['lukewarm', 'not_fresh']);
+    if (positive.has(slug)) return 'bg-gradient-to-r from-green-50 to-emerald-50 text-emerald-700 border-emerald-300';
+    if (negativeRed.has(slug)) return 'bg-rose-50 text-rose-700 border-rose-200';
+    if (negativeAmber.has(slug)) return 'bg-amber-50 text-amber-700 border-amber-200';
+    if (slug === 'served_cold') return 'bg-sky-50 text-sky-700 border-sky-200';
+    return 'bg-gray-50 text-gray-700 border-gray-200';
+  };
+
+  const getTagEmojiForSlug = (slug: string): string => {
+    if (slug === 'spicy_lovers') return '🌶️ ';
+    if (slug === 'too_spicy') return '🌶️ ';
+    return '';
+  };
 
   // NEW: Check follow status on component mount
   useEffect(() => {
@@ -505,7 +539,7 @@ const FeedPost: React.FC<FeedPostProps> = ({
         )}
 
         {/* Taste chips and audience tags */}
-        {(currentItem.review.tasteChips || currentItem.review.audienceTags) && (
+        {(currentItem.review.tasteChips || currentItem.review.audienceTags || (isCarousel ? (currentItem as any).tags?.length : tags?.length)) && (
           <div className="flex flex-wrap gap-1.5 mb-2">
             {/* Taste attribute chips with color coding */}
             {currentItem.review.tasteChips?.map((chip, i) => {
@@ -570,6 +604,24 @@ const FeedPost: React.FC<FeedPostProps> = ({
                 </span>
               );
             })}
+
+            {/* Tag slugs (from review.tags) rendered with color/emoji logic */}
+            {(() => {
+              const tagList: string[] = isCarousel ? ((currentItem as any).tags || []) : (tags || []);
+              return tagList.map((slug, i) => {
+                const label = TAG_LABELS[slug] || slug;
+                const chipClass = getTagChipClass(slug);
+                const emoji = getTagEmojiForSlug(slug);
+                return (
+                  <span
+                    key={`tag-${slug}-${i}`}
+                    className={`inline-flex items-center rounded-full border px-3 py-1.5 text-xs font-semibold shadow-sm ${chipClass}`}
+                  >
+                    {emoji}{label}
+                  </span>
+                );
+              });
+            })()}
           </div>
         )}
 
@@ -768,8 +820,3 @@ const FeedPost: React.FC<FeedPostProps> = ({
 };
 
 export default FeedPost;
-
-
-
-
-

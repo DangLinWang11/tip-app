@@ -174,6 +174,7 @@ const Step2Taste: React.FC = () => {
         </div>
       </section>
 
+
       <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-md shadow-slate-200/60">
         <button
           type="button"

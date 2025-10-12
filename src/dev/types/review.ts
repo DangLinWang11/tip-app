@@ -27,6 +27,8 @@ export interface ReviewDraft {
   restaurantId?: string;
   restaurantCuisines?: string[];
   cuisines?: string[];
+  // Optional tag slugs selected by the reviewer (e.g., 'overpriced', 'very_fresh')
+  tags?: string[];
   dishId?: string;
   dishName: string;
   dishCategory?: DishCategory;
@@ -62,6 +64,5 @@ export interface ReviewDraft {
   updatedAt?: unknown;
   isDeleted?: boolean;
 }
-
 
 

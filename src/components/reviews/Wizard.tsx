@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { collection, doc, writeBatch, serverTimestamp } from 'firebase/firestore';
-import { saveReview, type ReviewData } from '../../services/reviewService';
+import { saveReview, type ReviewData, buildReviewCreatePayload } from '../../services/reviewService';
 import { db, getCurrentUser } from '../../lib/firebase';
 import { useI18n } from '../../lib/i18n/useI18n';
 import ProgressBar from './ProgressBar';
@@ -470,12 +470,76 @@ const Wizard: React.FC = () => {
       throw new Error('Dish category is required');
     }
 
-    const { comparison, caption, restaurantCuisines, cuisines: draftCuisines, ...restDraft } = normalizedDraft;
-    const sanitizedCaption = caption?.trim();
+    const { comparison, caption, restaurantCuisines, cuisines: draftCuisines, outcome, ...restDraft } = normalizedDraft;
+    const sanitizedCaption = typeof caption === 'string' ? caption.trim() : undefined;
     const cuisines = sanitizeCuisinesInput(draftCuisines) ?? sanitizeCuisinesInput(restaurantCuisines);
 
+    // Derive tag slugs from existing Taste selections and Outcome audience (no UI changes)
+    const deriveTagsFromDraft = (draft: typeof normalizedDraft): string[] => {
+      const tags = new Set<string>();
+      const taste = draft.taste || {} as any;
+
+      // Value
+      switch (taste.value?.level) {
+        case 'overpriced':
+          tags.add('overpriced');
+          break;
+        case 'bargain':
+          tags.add('good_value');
+          break;
+        default:
+          break; // 'fair' -> no tag
+      }
+
+      // Freshness
+      switch (taste.freshness?.level) {
+        case 'very_fresh':
+          tags.add('very_fresh');
+          break;
+        case 'not_fresh':
+          tags.add('not_fresh');
+          break;
+        default:
+          break; // 'just_right' -> no tag
+      }
+
+      // Spiciness
+      switch (taste.spiciness?.level) {
+        case 'too_spicy':
+          tags.add('too_spicy');
+          break;
+        case 'lacked_kick':
+        case 'nice_warmth':
+          tags.add('mild');
+          break;
+        default:
+          break;
+      }
+
+      // Temperature (serving temp)
+      switch (taste.temperature?.level) {
+        case 'ideal':
+          tags.add('served_hot');
+          break;
+        case 'needs_reheating':
+          tags.add('lukewarm');
+          break;
+        default:
+          break; // no mapping for 'too_hot' here
+      }
+
+      // Audience (keep only spicy_lovers if selected)
+      if (Array.isArray(outcome?.audience) && outcome!.audience!.includes('spicy_lovers')) {
+        tags.add('spicy_lovers');
+      }
+
+      return Array.from(tags);
+    };
+    const derivedTags = deriveTagsFromDraft(normalizedDraft);
+
     // Build ReviewData payload for saveReview so we get proper menuItemId linkage
-    const reviewData: ReviewData & { caption?: string } = {
+    // Build base payload, omitting undefined fields
+    const base: any = {
       restaurant: selectedRestaurant?.name || (restDraft as any).restaurant || 'Unknown Restaurant',
       location: (selectedRestaurant as any)?.address || (restDraft as any).location || '',
       dish: restDraft.dishName || (selectedDish as any)?.name || 'Unknown Dish',
@@ -484,15 +548,32 @@ const Wizard: React.FC = () => {
       negativeNote: (restDraft as any).negativeNote || '',
       serverRating: (restDraft as any).serverRating ?? null,
       price: (restDraft as any).price ?? null,
-      tags: Array.isArray((restDraft as any).tags) ? (restDraft as any).tags : [],
-      restaurantCuisines: cuisines,
-      cuisines: cuisines,
       images: Array.isArray(restDraft.media?.photos) ? restDraft.media!.photos : [],
       isPublic: true,
-      caption: sanitizedCaption,
     };
+    if (Array.isArray(cuisines) && cuisines.length) {
+      base.restaurantCuisines = cuisines;
+      base.cuisines = cuisines;
+    }
+    if (derivedTags.length) {
+      base.tags = derivedTags;
+    }
+    if (typeof sanitizedCaption === 'string' && sanitizedCaption.length > 0) {
+      base.caption = sanitizedCaption;
+    }
 
-    const reviewId = await saveReview(reviewData, selectedRestaurant, selectedDish);
+    // Log raw taste and derived tags prior to build
+    try {
+      console.log('[Wizard.submit] taste selections (raw):', normalizedDraft.taste);
+      console.log('[Wizard.submit] derived tags:', derivedTags);
+      console.log('[Wizard.submit] review payload (pre-build, no undefined):', base);
+    } catch {}
+
+    const reviewData: ReviewData & { caption?: string } = base;
+
+    // Build canonical payload (ensures dishName is present)
+    const payload = buildReviewCreatePayload(reviewData);
+    const reviewId = await saveReview(payload, selectedRestaurant, selectedDish);
     try {
       localStorage.removeItem(buildStorageKey(userId, draft.restaurantId));
     } catch (error) {
@@ -593,9 +674,6 @@ const Wizard: React.FC = () => {
 };
 
 export default Wizard;
-
-
-
 
 
 
