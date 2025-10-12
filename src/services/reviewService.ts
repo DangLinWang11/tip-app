@@ -759,19 +759,33 @@ export const calculateRestaurantQualityScore = (reviews: ReviewWithCategory[]): 
   return Math.max(0, Math.min(100, qualityPercentage));
 };
 
-// Helper function to fetch restaurant data by ID
-const getRestaurantById = async (restaurantId: string | null | undefined): Promise<{ name: string } | null> => {
+// In-memory cache for restaurant docs to avoid repeated reads per session
+const restaurantDocCache = new Map<string, { name: string; qualityScore?: number }>();
+
+// Normalize Firestore boolean-ish fields (true/"true") and provide a unified client-side guard
+const asTrue = (v: any): boolean => v === true || v === 'true';
+const safeReview = (r: any): boolean => r && asTrue(r?.isDeleted) !== true && r?.visibility !== 'private';
+
+// Helper function to fetch restaurant data by ID (name + optional precomputed qualityScore)
+const getRestaurantById = async (restaurantId: string | null | undefined): Promise<{ name: string; qualityScore?: number } | null> => {
   if (!restaurantId) {
     return null;
   }
 
   try {
+    if (restaurantDocCache.has(restaurantId)) {
+      return restaurantDocCache.get(restaurantId)!;
+    }
+
     const restaurantDoc = await getDoc(doc(db, 'restaurants', restaurantId));
     if (restaurantDoc.exists()) {
       const data = restaurantDoc.data();
-      return {
-        name: data.name || 'Unknown Restaurant'
-      };
+      const payload = {
+        name: data.name || 'Unknown Restaurant',
+        qualityScore: typeof data.qualityScore === 'number' ? data.qualityScore : undefined
+      } as { name: string; qualityScore?: number };
+      restaurantDocCache.set(restaurantId, payload);
+      return payload;
     }
     return null;
   } catch (error) {
@@ -831,42 +845,51 @@ const getRestaurantQualityScore = async (restaurantId: string | null | undefined
 export const fetchReviews = async (limitCount = 20): Promise<FirebaseReview[]> => {
   try {
     const reviewsRef = collection(db, 'reviews');
-    const q = query(reviewsRef, orderBy('createdAt', 'desc'), limit(limitCount));
+    // Fetch more than needed and filter client-side to exclude malformed docs
+    const q = query(
+      reviewsRef,
+      orderBy('createdAt', 'desc'),
+      limit(limitCount * 3) // Fetch 3x to account for filtering
+    );
 
     const querySnapshot = await getDocs(q);
-    const reviews: FirebaseReview[] = [];
+    const raw = querySnapshot.docs.map((d) => ({ id: d.id, ...(d.data() as any) }));
 
-    querySnapshot.forEach((doc) => {
-      const data = doc.data();
-      if (data.isDeleted === true) {
-        return;
+    // Filter out malformed documents
+    const validDocs = raw.filter((doc: any) => {
+      // Exclude docs that look like Firebase metadata
+      if (doc._methodName || !doc.dish && !doc.dishName || !doc.userId) {
+        return false;
       }
+      return true;
+    });
 
-      // Map new media structure to old images array for backward compatibility
+    const droppedDeleted = validDocs.filter((r: any) => asTrue(r?.isDeleted) === true).length;
+    const droppedPrivate = validDocs.filter((r: any) => r?.visibility === 'private').length;
+    const items = validDocs.filter((r) => safeReview(r)).slice(0, limitCount); // Take requested count after filtering
+
+    const sample = items.slice(0, 3).map((r: any) => ({ id: r.id, isDeleted: r.isDeleted, visibility: r.visibility, dishName: r.dish || r.dishName }));
+    console.log(`Initial fetch snapshot: total=${raw.length}, valid=${validDocs.length}, dropped(deleted=${droppedDeleted}, private=${droppedPrivate}), emitted=${items.length}, sample=`, sample);
+
+    const reviews: FirebaseReview[] = items.map((data: any) => {
       const mappedData = {
         ...data,
         images: data.media?.photos && Array.isArray(data.media.photos) && data.media.photos.length > 0
-          ? data.media.photos.map((photoPath: string) => {
-              // Convert storage path to download URL if needed
-              if (photoPath.startsWith('gs://')) {
-                return photoPath; // Already a storage path, will be converted later
-              }
-              return photoPath; // Assume it's already a download URL
-            })
-          : data.images || [] // Fallback to old images field if it exists
+          ? data.media.photos.map((photoPath: string) => photoPath)
+          : data.images || []
       };
 
-      reviews.push({
-        id: doc.id,
+      return {
+        id: data.id,
         ...mappedData,
-        restaurantId: data.restaurantId || null, // Explicitly map restaurantId (after spread to override)
-        menuItemId: data.menuItemId || null, // Explicitly map menuItemId (after spread to override)
-        dish: data.dish || data.dishName || 'Unknown Dish', // Map dishName to dish (after spread to override)
-        restaurant: data.restaurant || data.restaurantName || 'Unknown Restaurant' // Map restaurantName to restaurant (after spread to override)
-      } as FirebaseReview);
+        restaurantId: data.restaurantId || null,
+        menuItemId: data.menuItemId || null,
+        dish: data.dish || data.dishName || 'Unknown Dish',
+        restaurant: data.restaurant || data.restaurantName || 'Unknown Restaurant'
+      } as FirebaseReview;
     });
 
-    console.log('Fetched ' + reviews.length + ' reviews from Firestore');
+    console.log(`Fetched reviews from Firestore (post-filter): ${reviews.length}`);
     return reviews;
   } catch (error) {
     console.error('Error fetching reviews:', error);
@@ -1013,8 +1036,7 @@ export const convertVisitToCarouselFeedPost = async (reviews: FirebaseReview[]) 
   const sortedReviews = [...reviews].sort((a, b) => b.rating - a.rating);
   const mainReview = sortedReviews[0]; // Highest rated dish as main
 
-  // Get restaurant quality score and restaurant data
-  const qualityScore = await getRestaurantQualityScore(mainReview.restaurantId);
+  // Fetch lightweight restaurant data (use precomputed qualityScore if present)
   const restaurantData = await getRestaurantById(mainReview.restaurantId);
   
   // Get author info from main review - UPDATED with id field
@@ -1094,7 +1116,7 @@ export const convertVisitToCarouselFeedPost = async (reviews: FirebaseReview[]) 
     restaurant: {
       name: restaurantData?.name || mainReview.restaurant || 'Unknown Restaurant',
       isVerified: Math.random() > 0.7,
-      qualityScore: qualityScore ?? undefined
+      qualityScore: restaurantData?.qualityScore
     },
     dish: {
       name: reviews.length > 1 ? `${reviews.length} dishes` : mainReview.dish,
@@ -1266,8 +1288,7 @@ export const convertReviewToFeedPost = async (review: FirebaseReview) => {
     hasTimestamp: !!review.timestamp
   });
 
-  // Get restaurant quality score and restaurant data
-  const qualityScore = await getRestaurantQualityScore(review.restaurantId);
+  // Fetch lightweight restaurant data (use precomputed qualityScore if present)
   const restaurantData = await getRestaurantById(review.restaurantId);
 
   // Extract taste and audience tags from review data
@@ -1320,7 +1341,7 @@ export const convertReviewToFeedPost = async (review: FirebaseReview) => {
     restaurant: {
       name: restaurantData?.name || review.restaurant || (review as any).restaurantName || 'Unknown Restaurant',
       isVerified: Math.random() > 0.7,
-      qualityScore: qualityScore ?? undefined
+      qualityScore: restaurantData?.qualityScore
     },
     dish: {
       name: review.dish || (review as any).dishName || 'Unknown Dish',
@@ -1498,7 +1519,8 @@ export const convertReviewsToFeedPosts = async (reviews: FirebaseReview[]) => {
     // Sort by creation date (newest first)
     feedPosts.sort((a, b) => new Date(b.review.date).getTime() - new Date(a.review.date).getTime());
 
-    console.log('Successfully converted feed posts:', feedPosts.length);
+    const missingQuality = feedPosts.reduce((acc, p: any) => acc + (p?.restaurant?.qualityScore === undefined ? 1 : 0), 0);
+    console.log(`Converted to feed posts: ${feedPosts.length} (missing qualityScore but kept: ${missingQuality})`);
     return feedPosts;
   } catch (error) {
     console.error('Error converting reviews to carousel feed posts:', error);
@@ -1550,18 +1572,32 @@ export const convertReviewsToFeedPosts = async (reviews: FirebaseReview[]) => {
 
 // Real-time listener for the home feed (public, not deleted), newest first
 export function listenHomeFeed(onChange: (items: FirebaseReview[]) => void) {
-  // Broader query to include legacy docs missing visibility/isDeleted fields
+  // Fetch more than needed (50) and filter client-side to exclude malformed docs
+  // This avoids needing a composite index for where + multiple orderBy
   const qRef = query(
     collection(db, 'reviews'),
     orderBy('createdAt', 'desc'),
-    limit(50)
+    limit(50) // Fetch extra to account for filtering
   );
 
   const unsub = onSnapshot(qRef, { includeMetadataChanges: true }, (snap) => {
-    const raw = snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) })) as FirebaseReview[];
-    // Client-side filter: exclude soft-deleted, include public/legacy
-    const items = raw.filter((it: any) => it?.isDeleted !== true);
-    onChange(items as FirebaseReview[]);
+    const raw = snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) }));
+
+    // Filter out malformed documents (those with _methodName, missing dishName, etc.)
+    const validDocs = raw.filter((doc: any) => {
+      // Exclude docs that look like Firebase metadata
+      if (doc._methodName || !doc.dish && !doc.dishName || !doc.userId) {
+        return false;
+      }
+      return true;
+    });
+
+    const deletedCount = validDocs.filter((it: any) => asTrue(it?.isDeleted) === true).length;
+    const privateCount = validDocs.filter((it: any) => it?.visibility === 'private').length;
+    const items = validDocs.filter((it) => safeReview(it)).slice(0, 12) as FirebaseReview[]; // Take top 12 after filtering
+    const sample = items.slice(0, 3).map((r: any) => ({ id: r.id, isDeleted: r.isDeleted, visibility: r.visibility, dishName: r.dish || r.dishName }));
+    console.log(`Live feed snapshot: total=${raw.length}, valid=${validDocs.length}, dropped(deleted=${deletedCount}, private=${privateCount}), emitted=${items.length}, sample=`, sample);
+    onChange(items);
   });
 
   return unsub;
@@ -1723,10 +1759,3 @@ export const deleteReview = async (reviewInput: string | { id?: string | null; r
     throw error;
   }
 };
-
-
-
-
-
-
-

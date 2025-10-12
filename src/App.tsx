@@ -27,10 +27,12 @@ import { LocationProvider } from './contexts/LocationContext';
 import { useFeature } from './utils/features';
 import { runBackfillSoftDelete } from './dev/backfillSoftDelete';
 import { runBackfillCuisines } from './dev/backfillCuisines';
+import { undeleteAllReviews } from './utils/undeleteReviews';
 
 if (import.meta.env.DEV) {
   (window as any).runBackfillSoftDelete = runBackfillSoftDelete;
   (window as any).runBackfillCuisines = runBackfillCuisines;
+  (window as any).undeleteAllReviews = undeleteAllReviews;
 }
 
 // MVP Coming Soon component for disabled features

@@ -1,8 +1,8 @@
-﻿rules_version = '2';
+rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     function authed() { return request.auth != null; }
-    function isOwner(data) { return authed() && data.userId == request.auth.uid; }
+    function isOwner() { return authed() && resource.data.userId == request.auth.uid; }
 
     // Users collection - users can read any user but only edit their own
     match /users/{userId} {
@@ -25,11 +25,32 @@ service cloud.firestore {
       allow create: if authed();
     }
 
-    // Reviews collection - owners can create/update, hard deletes blocked
+    // Reviews collection (v2 - query-enforced visibility)
     match /reviews/{reviewId} {
+      // Public reads; queries enforce isDeleted == false
       allow read: if true;
-      allow create: if authed() && request.resource.data.userId == request.auth.uid;
-      allow update: if isOwner(resource.data);
+
+      // Create: must be authed and create own review; enforce field types
+      allow create: if authed()
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.createdAt is timestamp
+        && request.resource.data.updatedAt is timestamp
+        && request.resource.data.isDeleted is bool
+        && request.resource.data.restaurantId is string
+        && request.resource.data.dishName is string
+        && request.resource.data.rating is number;
+
+      // Update: only owner; if fields are present, enforce types; userId must not change
+      allow update: if isOwner()
+        && request.resource.data.userId == resource.data.userId
+        && (!('createdAt' in request.resource.data) || request.resource.data.createdAt is timestamp)
+        && (!('updatedAt' in request.resource.data) || request.resource.data.updatedAt is timestamp)
+        && (!('isDeleted' in request.resource.data) || request.resource.data.isDeleted is bool)
+        && (!('restaurantId' in request.resource.data) || request.resource.data.restaurantId is string)
+        && (!('dishName' in request.resource.data) || request.resource.data.dishName is string)
+        && (!('rating' in request.resource.data) || request.resource.data.rating is number);
+
+      // Hard deletes blocked (use soft-delete via isDeleted)
       allow delete: if false;
     }
 
@@ -48,3 +69,4 @@ service cloud.firestore {
     }
   }
 }
+

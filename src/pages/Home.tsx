@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { MapIcon, PlusIcon, MapPinIcon, Star } from 'lucide-react';
+import { MapIcon, PlusIcon, MapPinIcon, Star, ChevronRight, Store } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import HamburgerMenu from '../components/HamburgerMenu';
 import FeedPost from '../components/FeedPost';
 import { fetchReviews, convertReviewsToFeedPosts, fetchUserReviews, FirebaseReview, listenHomeFeed } from '../services/reviewService';
 import { getUserProfile, getCurrentUser } from '../lib/firebase';
-import UserJourneyMap from '../components/UserJourneyMap';
-import ExpandedMapModal from '../components/ExpandedMapModal';
+// Defer heavy map code: code-split ExpandedMapModal and avoid inline map
+const ExpandedMapModal = React.lazy(() => import('../components/ExpandedMapModal'));
 
 // Simple in-memory cache for Home state (survives route changes within session)
 type HomeCache = {
@@ -17,16 +17,21 @@ type HomeCache = {
   userProfile: any;
 };
 let __homeCache: HomeCache | null = null;
-const HOME_CACHE_TTL_MS = 2 * 60 * 1000; // 2 minutes
+const HOME_CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
+
+// Helper to check if cache is valid
+const isCacheValid = () => __homeCache && Date.now() - __homeCache.ts < HOME_CACHE_TTL_MS;
 
 const Home: React.FC = () => {
   const navigate = useNavigate();
-  const [firebaseReviews, setFirebaseReviews] = useState<FirebaseReview[]>([]);
-  const [userReviews, setUserReviews] = useState<FirebaseReview[]>([]);
-  const [feedPosts, setFeedPosts] = useState<any[]>([]);
-  const [userProfile, setUserProfile] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [profileLoading, setProfileLoading] = useState(true);
+  // Initialize state from cache if available, preventing loading screen flash
+  const [firebaseReviews, setFirebaseReviews] = useState<FirebaseReview[]>(__homeCache?.firebaseReviews || []);
+  const [userReviews, setUserReviews] = useState<FirebaseReview[]>(__homeCache?.userReviews || []);
+  const [feedPosts, setFeedPosts] = useState<any[]>(__homeCache?.feedPosts || []);
+  const [userProfile, setUserProfile] = useState<any>(__homeCache?.userProfile || null);
+  // Only show loading if we don't have valid cache
+  const [loading, setLoading] = useState(!isCacheValid());
+  const [profileLoading, setProfileLoading] = useState(!isCacheValid());
   const [error, setError] = useState<string | null>(null);
   const [showExpandedMap, setShowExpandedMap] = useState(false);
 
@@ -40,94 +45,119 @@ const Home: React.FC = () => {
   const circumference = 2 * Math.PI * radius;
   const pullProgress = Math.max(0, Math.min(1, pullY / PULL_TRIGGER));
   
-  // On mount: hydrate from cache if fresh, otherwise fetch
+  // Initialize data on mount: load from network only if cache is stale or missing
   useEffect(() => {
-    // Allow cache bypass once via URL flag
-    const url = new URL(window.location.href);
-    const forceRefresh = url.searchParams.get('refresh') === '1';
+    const initializeData = async () => {
+      // Check for force refresh flag
+      const url = new URL(window.location.href);
+      const forceRefresh = url.searchParams.get('refresh') === '1';
 
-    if (!forceRefresh && __homeCache && Date.now() - __homeCache.ts < HOME_CACHE_TTL_MS) {
-      setFirebaseReviews(__homeCache.firebaseReviews);
-      setUserReviews(__homeCache.userReviews);
-      setFeedPosts(__homeCache.feedPosts);
-      setUserProfile(__homeCache.userProfile);
-      setLoading(false);
-      setProfileLoading(false);
-    }
-  }, []);
+      console.log('[Home] Initialization: cache valid?', isCacheValid(), 'force refresh?', forceRefresh);
 
-  // Fetch user profile on first mount or when no cache
-  useEffect(() => {
-    const loadUserProfile = async () => {
+      // If we have valid cache and no force refresh, we're done (state already initialized)
+      if (!forceRefresh && isCacheValid()) {
+        console.log('[Home] Using cached data, skipping fetch');
+        return;
+      }
+
+      // Otherwise, fetch fresh data
       try {
+        console.log('[Home] Fetching fresh data...');
+        setLoading(true);
         setProfileLoading(true);
+
         const currentUser = getCurrentUser();
-        
+        let loadedProfile = null;
+
+        // Load user profile
         if (currentUser) {
-          const result = await getUserProfile();
-          if (result.success && result.profile) {
-            setUserProfile(result.profile);
+          const profileResult = await getUserProfile();
+          if (profileResult.success && profileResult.profile) {
+            setUserProfile(profileResult.profile);
+            loadedProfile = profileResult.profile;
           }
         }
-      } catch (err) {
-        console.error('Failed to load user profile:', err);
-      } finally {
         setProfileLoading(false);
-      }
-    };
 
-    if (!__homeCache) {
-      loadUserProfile();
-    }
-  }, []);
-  
-  // Fetch reviews from Firebase (used for first load and manual refresh)
-  const loadReviews = async () => {
-      try {
-        setLoading(true);
-        const currentUser = getCurrentUser();
-
-        // Load user reviews for community feed
+        // Load user's reviews for stats
         const reviews = await fetchUserReviews(50);
+        console.log('[Home] Fetched user reviews:', reviews.length);
         setFirebaseReviews(reviews);
+        setUserReviews(currentUser ? reviews : []);
 
-        // Load user-specific reviews for stats calculation
-        if (currentUser) {
-          const userReviewsData = await fetchUserReviews(50);
-          setUserReviews(userReviewsData);
-        } else {
-          setUserReviews([]);
-        }
-
-        // Convert Firebase reviews to feed post format with real user data
-        const posts = await convertReviewsToFeedPosts(reviews);
+        // Load public feed (the listener will take over after initial load)
+        const publicFeed = await fetchReviews(12);
+        console.log('[Home] Fetched public feed:', publicFeed.length);
+        const posts = await convertReviewsToFeedPosts(publicFeed);
+        console.log('[Home] Converted to feed posts:', posts.length);
         setFeedPosts(posts);
 
-        setError(null);
         // Update cache
         __homeCache = {
           ts: Date.now(),
           firebaseReviews: reviews,
-          userReviews: currentUser ? (await fetchUserReviews(50)) : [],
+          userReviews: currentUser ? reviews : [],
           feedPosts: posts,
-          userProfile
+          userProfile: loadedProfile
         };
-      } catch (err) {
-        console.error('Failed to load reviews:', err);
-        setError('Failed to load reviews');
-        setFeedPosts([]); // Fallback to empty array
-        setUserReviews([]); // Fallback to empty array
-      } finally {
+
+        console.log('[Home] Initialization complete, cache updated');
         setLoading(false);
-        setRefreshing(false);
+      } catch (err) {
+        console.error('Failed to initialize home data:', err);
+        setError('Failed to load data');
+        setLoading(false);
+        setProfileLoading(false);
       }
     };
 
+    initializeData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  
+  // Fetch reviews from Firebase (used for first load and manual refresh)
+  const loadReviews = async () => {
+    try {
+      setLoading(true);
+      const currentUser = getCurrentUser();
+
+      // Load current user's reviews once and reuse for state + stats
+      const reviews = await fetchUserReviews(50);
+      setFirebaseReviews(reviews);
+      setUserReviews(currentUser ? reviews : []);
+
+      // Convert Firebase reviews to feed post format for initial render
+      const posts = await convertReviewsToFeedPosts(reviews);
+      setFeedPosts(posts);
+      setError(null);
+
+      // Update cache
+      __homeCache = {
+        ts: Date.now(),
+        firebaseReviews: reviews,
+        userReviews: currentUser ? reviews : [],
+        feedPosts: posts,
+        userProfile
+      };
+    } catch (err) {
+      console.error('Failed to load reviews:', err);
+      setError('Failed to load reviews');
+      setFeedPosts([]); // Fallback to empty array
+      setUserReviews([]); // Fallback to empty array
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
   // Real-time home feed listener (public, not deleted). Keeps feed fresh and ordered.
   useEffect(() => {
+    console.log('[Home] Setting up real-time feed listener');
     const unsub = listenHomeFeed(async (items: FirebaseReview[]) => {
       try {
+        console.log('[Home] Listener received items:', items.length);
         const posts = await convertReviewsToFeedPosts(items);
+        console.log('[Home] Converted to posts:', posts.length);
         setFeedPosts(posts);
         // update cache
         __homeCache = {
@@ -142,7 +172,10 @@ const Home: React.FC = () => {
         console.error('Failed converting live feed posts', e);
       }
     });
-    return () => unsub();
+    return () => {
+      console.log('[Home] Cleaning up feed listener');
+      unsub();
+    };
   }, [userReviews, userProfile]);
 
   // Calculate user stats from their own reviews and profile data
@@ -328,15 +361,25 @@ const Home: React.FC = () => {
 
         {/* Your Food Journey Section */}
         <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
-          <h2 className="text-lg font-bold text-primary mb-4 flex items-center gap-2">
-            <MapIcon size={18} className="text-primary" />
-            <span>Your Food Journey</span>
-          </h2>
+          {/* Badge displaying total restaurants visited */}
+          <div className="mb-4">
+            <div className="inline-flex items-center gap-2 rounded-full px-1 py-0.5">
+              <Store size={16} className="text-primary" />
+              <span className="text-primary font-semibold">Restaurant Counter:</span>
+              <span className="text-black font-bold">{userStats.totalRestaurants}</span>
+            </div>
+          </div>
           <div 
-            className="h-64 rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+            className="h-64 rounded-lg cursor-pointer hover:opacity-90 transition-opacity bg-gray-100 flex items-center justify-center"
             onClick={() => setShowExpandedMap(true)}
           >
-            <UserJourneyMap className="h-64 rounded-lg pointer-events-none" showControls={false} />
+            {/* Lightweight placeholder instead of mounting Google Maps */}
+            <div className="text-center">
+              <div className="w-12 h-12 mx-auto mb-2 flex items-center justify-center rounded-full bg-white shadow">
+                <MapIcon size={24} className="text-primary" />
+              </div>
+              <div className="text-gray-600 text-sm">Tap to open your journey map</div>
+            </div>
           </div>
 
           {/* List View Button */}
@@ -359,6 +402,7 @@ const Home: React.FC = () => {
           <div className="flex items-center">
             <div className="text-lg font-bold text-primary">Recent Activity from Friends</div>
           </div>
+          <ChevronRight size={22} className="text-primary" />
         </div>
 
         {/* Community Feed Section */}
@@ -404,10 +448,13 @@ const Home: React.FC = () => {
       </div>
 
       {/* Expanded Map Modal */}
-      <ExpandedMapModal 
-        isOpen={showExpandedMap}
-        onClose={() => setShowExpandedMap(false)}
-      />
+      {/* Lazy-loaded map modal to keep initial bundle light */}
+      <React.Suspense fallback={null}>
+        <ExpandedMapModal 
+          isOpen={showExpandedMap}
+          onClose={() => setShowExpandedMap(false)}
+        />
+      </React.Suspense>
     </div>
   );
 };
