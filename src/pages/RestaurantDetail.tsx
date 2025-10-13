@@ -1,12 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { db, getUserProfile } from '../lib/firebase';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeftIcon, StarIcon, MapPinIcon, PhoneIcon, ClockIcon, BookmarkIcon, ShareIcon, ChevronRightIcon, Utensils, Soup, Salad, Coffee, Cake, Fish, Pizza, Sandwich, ChefHat, ChevronDown } from 'lucide-react';
 import BottomNavigation from '../components/BottomNavigation';
 import SaveToListModal from '../components/SaveToListModal';
 import { calculateRestaurantQualityScore } from '../services/reviewService';
+import RatingBadge from '../components/RatingBadge';
+import { getAvatarUrl } from '../utils/avatarUtils';
 
 interface Restaurant {
   id: string;
@@ -14,7 +16,7 @@ interface Restaurant {
   address: string;
   phone: string;
   cuisine: string;
-  coordinates: { latitude: number; longitude: number };
+  coordinates?: { latitude?: number; longitude?: number; lat?: number; lng?: number };
   qualityScore?: number;
 }
 
@@ -24,17 +26,28 @@ interface MenuItem {
   category: string;
   price?: number;
   description?: string;
+  coverImage?: string | null;
 }
 
 interface Review {
   id: string;
   userId: string;
+  restaurantId?: string;
+  menuItemId?: string;
   dish: string;
   rating: number;
   personalNote: string;
   negativeNote: string;
-  images: string[];
-  createdAt: string;
+  images?: string[];
+  media?: { photos?: string[] };
+  createdAt: any;
+}
+
+interface ReviewAuthor {
+  id: string;
+  name: string;
+  username: string;
+  image: string;
 }
 const RestaurantDetail: React.FC = () => {
   const {
@@ -53,14 +66,14 @@ const RestaurantDetail: React.FC = () => {
   const [toastMsg, setToastMsg] = useState<string | null>(null);
   const [openSections, setOpenSections] = useState<Set<string>>(new Set());
   const initializedRef = useRef(false);
+  const [authors, setAuthors] = useState<Record<string, ReviewAuthor>>({});
 
   // Helper function to group menu items by category
   const groupMenuByCategory = (items: MenuItem[]) => {
     return items.reduce((acc, item) => {
-      if (!acc[item.category]) {
-        acc[item.category] = [];
-      }
-      acc[item.category].push(item);
+      const key = item.category || 'Custom';
+      if (!acc[key]) acc[key] = [];
+      acc[key].push(item);
       return acc;
     }, {} as Record<string, MenuItem[]>);
   };
@@ -68,7 +81,38 @@ const RestaurantDetail: React.FC = () => {
 
   // Helper function to get all images from reviews
   const getAllReviewImages = (reviewsArray: Review[]) => {
-    return reviewsArray.flatMap(review => review.images || []);
+    const out: string[] = [];
+    for (const r of reviewsArray) {
+      const mediaPhotos = Array.isArray(r?.media?.photos) ? r.media.photos : [];
+      const legacyImages = Array.isArray(r?.images) ? r.images : [];
+      if (mediaPhotos.length) out.push(...mediaPhotos);
+      else if (legacyImages.length) out.push(...legacyImages);
+    }
+    return out;
+  };
+
+  const extractReviewTags = (review: any): { tasteChips: string[]; audienceTags: string[] } => {
+    const tasteChips: string[] = [];
+    const audienceTags: string[] = [];
+    if (review.taste) {
+      if (review.taste.value?.level) {
+        const map: any = { overpriced: 'Overpriced', fair: 'Fair value', bargain: 'Bargain' };
+        const label = map[review.taste.value.level]; if (label) tasteChips.push(label);
+      }
+      if (review.taste.freshness?.level) {
+        const map: any = { not_fresh: 'Not fresh', just_right: 'Fresh', very_fresh: 'Very fresh' };
+        const label = map[review.taste.freshness.level]; if (label) tasteChips.push(label);
+      }
+      if (review.taste.saltiness?.level) {
+        const map: any = { needs_more_salt: 'Needs more salt', balanced: 'Balanced', too_salty: 'Too salty' };
+        const label = map[review.taste.saltiness.level]; if (label) tasteChips.push(label);
+      }
+    }
+    if (review.outcome?.audience && Array.isArray(review.outcome.audience)) {
+      const map: any = { spicy_lovers: 'Spicy lovers', date_night: 'Date night', family: 'Family meal', quick_bite: 'Quick bite', solo: 'Solo treat', group: 'Group hang' };
+      review.outcome.audience.forEach((t: string) => { const label = map[t]; if (label) audienceTags.push(label); });
+    }
+    return { tasteChips, audienceTags };
   };
 
   // Helper function to get category icon
@@ -135,7 +179,7 @@ const RestaurantDetail: React.FC = () => {
         // Fetch restaurant
         const restaurantDoc = await getDoc(doc(db, 'restaurants', id));
         if (restaurantDoc.exists()) {
-          setRestaurant({ id: restaurantDoc.id, ...restaurantDoc.data() } as Restaurant);
+          setRestaurant({ id: restaurantDoc.id, ...(restaurantDoc.data() as any) } as Restaurant);
         }
         
         // Fetch menu items
@@ -147,27 +191,38 @@ const RestaurantDetail: React.FC = () => {
         // Fetch reviews
         const reviewsQuery = query(collection(db, 'reviews'), where('restaurantId', '==', id));
         const reviewsSnapshot = await getDocs(reviewsQuery);
-        const reviewsData = reviewsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Review));
+        const reviewsData = reviewsSnapshot.docs
+          .map(doc => ({ id: doc.id, ...(doc.data() as any) } as Review))
+          .filter((r: any) => r?.isDeleted !== true);
         setReviews(reviewsData);
-        
-        // Calculate individual menu item ratings
+
+        // Calculate per-dish ratings and derive category fallback from reviews
         const ratingsMap: {[key: string]: {rating: number, count: number}} = {};
-        reviewsData.forEach(review => {
-          if (review.menuItemId) {
-            if (!ratingsMap[review.menuItemId]) {
-              ratingsMap[review.menuItemId] = { rating: 0, count: 0 };
-            }
-            ratingsMap[review.menuItemId].rating += review.rating;
-            ratingsMap[review.menuItemId].count += 1;
-          }
+        const categoryFromReview: {[key: string]: string} = {};
+        const addToMap = (key: string, review: Review) => {
+          if (!ratingsMap[key]) ratingsMap[key] = { rating: 0, count: 0 };
+          ratingsMap[key].rating += review.rating;
+          ratingsMap[key].count += 1;
+          const dc = (review as any).dishCategory as string | undefined;
+          if (dc && !categoryFromReview[key]) categoryFromReview[key] = dc;
+        };
+        reviewsData.forEach((review) => {
+          if ((review as any).menuItemId) addToMap((review as any).menuItemId as string, review);
+          if ((review as any).dishId) addToMap((review as any).dishId as string, review);
         });
-        
-        // Calculate averages
-        Object.keys(ratingsMap).forEach(menuItemId => {
-          ratingsMap[menuItemId].rating = ratingsMap[menuItemId].rating / ratingsMap[menuItemId].count;
+        Object.keys(ratingsMap).forEach((id) => {
+          ratingsMap[id].rating = ratingsMap[id].rating / ratingsMap[id].count;
         });
-        
         setMenuItemRatings(ratingsMap);
+
+        // If menu items have null/Custom category, set from review dishCategory
+        setMenuItems((prev) => prev.map((it) => {
+          const dc = categoryFromReview[it.id];
+          if (dc && (!it.category || it.category.toLowerCase() === 'custom')) {
+            return { ...it, category: dc } as any;
+          }
+          return it;
+        }));
         
       } catch (error) {
         console.error('Error fetching restaurant data:', error);
@@ -178,6 +233,29 @@ const RestaurantDetail: React.FC = () => {
     
     fetchRestaurantData();
   }, [id]);
+
+  // Load author profiles for condensed reviews
+  useEffect(() => {
+    const load = async () => {
+      const ids = Array.from(new Set(reviews.map(r => r.userId).filter(Boolean)));
+      if (!ids.length) return;
+      const up: Record<string, ReviewAuthor> = {};
+      await Promise.all(ids.map(async (uid) => {
+        try {
+          const res = await getUserProfile(uid);
+          if (res.success && res.profile) {
+            up[uid] = { id: uid, name: res.profile.displayName || res.profile.username, username: res.profile.username, image: getAvatarUrl(res.profile) };
+          } else {
+            up[uid] = { id: uid, name: 'Anonymous', username: 'anonymous', image: getAvatarUrl({ username: uid }) } as any;
+          }
+        } catch {
+          up[uid] = { id: uid, name: 'Anonymous', username: 'anonymous', image: getAvatarUrl({ username: uid }) } as any;
+        }
+      }));
+      setAuthors(prev => ({ ...prev, ...up }));
+    };
+    load();
+  }, [reviews]);
 
   if (loading) {
     return (
@@ -223,11 +301,6 @@ const RestaurantDetail: React.FC = () => {
             <h1 className="text-2xl font-semibold">{restaurant.name}</h1>
             <div className="flex items-center text-dark-gray mt-1">
               <span>{restaurant.cuisine}</span>
-              <span className="mx-1">•</span>
-              <div className="flex items-center">
-                <MapPinIcon size={14} className="mr-1" />
-                <span>{restaurant.address}</span>
-              </div>
             </div>
           </div>
           <div className="flex items-center">
@@ -278,8 +351,34 @@ const RestaurantDetail: React.FC = () => {
           <div className="flex items-center">
             <MapPinIcon size={18} className="text-dark-gray mr-3" />
             <div>
-              <p>{restaurant.address || 'Address not available'}</p>
-              <p className="text-sm text-secondary">Get Directions</p>
+              {(() => {
+                const c: any = (restaurant as any)?.coordinates || {};
+                const lat = typeof c.lat === 'number' ? c.lat : (typeof c.latitude === 'number' ? c.latitude : undefined);
+                const lng = typeof c.lng === 'number' ? c.lng : (typeof c.longitude === 'number' ? c.longitude : undefined);
+                const label = (lat != null && lng != null) ? `${lat.toFixed(5)}, ${lng.toFixed(5)}` : (restaurant.address || 'Location not available');
+                const href = lat != null && lng != null
+                  ? `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`
+                  : (restaurant.address ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(restaurant.address)}` : undefined);
+                return (
+                  <>
+                    <p>
+                      {lat != null && lng != null ? (
+                        <span 
+                          className="cursor-pointer hover:text-primary"
+                          onClick={() => navigate(`/discover?focusRestaurantId=${restaurant.id}`)}
+                        >
+                          {label}
+                        </span>
+                      ) : (
+                        label
+                      )}
+                    </p>
+                    {href ? (
+                      <a className="text-sm text-secondary hover:underline" href={href} target="_blank" rel="noreferrer">Get Directions</a>
+                    ) : null}
+                  </>
+                );
+              })()}
             </div>
           </div>
           <div className="flex items-center">
@@ -312,7 +411,7 @@ const RestaurantDetail: React.FC = () => {
                       <div className="w-10 h-10 bg-gray-50 rounded-full flex items-center justify-center mr-4">
                         <IconComponent size={20} className="text-red-500" style={{ color: '#ff3131' }} />
                       </div>
-                      <h3 className="font-semibold text-lg text-gray-900">{category}</h3>
+                      <h3 className="font-semibold text-lg text-gray-900">{category || 'Custom'}</h3>
                     </div>
                     <ChevronDown 
                       size={20} 
@@ -328,7 +427,7 @@ const RestaurantDetail: React.FC = () => {
                           onClick={() => navigate(`/dish/${item.id}`)}
                         >
                           <img 
-                            src="https://source.unsplash.com/100x100/food" 
+                            src={item.coverImage || "https://source.unsplash.com/100x100/food"} 
                             alt={item.name} 
                             className="w-20 h-20 rounded-xl object-cover" 
                           />
@@ -337,10 +436,7 @@ const RestaurantDetail: React.FC = () => {
                               <h4 className="font-semibold text-gray-900 flex-1 mr-2 group-hover:text-red-500 transition-colors" style={{ color: isOpen ? undefined : '#ff3131' }}>{item.name}</h4>
                               <div className="text-right">
                                 <div className="text-sm text-gray-500 mb-1">
-                                  {menuItemRatings[item.id] 
-                                    ? `${menuItemRatings[item.id].rating.toFixed(1)}/10` 
-                                    : '0/10 (no reviews yet)'
-                                  }
+                                  {menuItemRatings[item.id] ? `${menuItemRatings[item.id].rating.toFixed(1)}/10` : 'No reviews yet'}
                                 </div>
                                 {item.price && (
                                   <span className="font-semibold text-gray-900">${item.price}</span>
@@ -350,6 +446,32 @@ const RestaurantDetail: React.FC = () => {
                             <p className="text-gray-600 text-sm line-clamp-2 mt-1">
                               {item.description || 'Delicious dish'}
                             </p>
+                            {/* Users often say chips (aggregated top tags) */}
+                            {(() => {
+                              const related = reviews.filter((r) => (r as any).menuItemId === item.id || (r as any).dishId === item.id);
+                              if (related.length === 0) return null;
+                              const counts: Record<string, number> = {};
+                              related.forEach((r) => {
+                                const { tasteChips, audienceTags } = extractReviewTags(r as any);
+                                [...tasteChips, ...audienceTags].forEach((chip) => {
+                                  counts[chip] = (counts[chip] || 0) + 1;
+                                });
+                              });
+                              const top = Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([k])=>k);
+                              if (top.length === 0) return null;
+                              return (
+                                <div className="mt-2">
+                                  <span className="text-xs text-gray-500 mr-2">Users often say:</span>
+                                  <span className="inline-flex flex-wrap gap-1 align-middle">
+                                    {top.map((chip, i) => (
+                                      <span key={i} className="inline-flex items-center rounded-full border px-2 py-1 text-[11px] font-medium bg-gray-50 text-gray-700 border-gray-200">
+                                        {chip}
+                                      </span>
+                                    ))}
+                                  </span>
+                                </div>
+                              );
+                            })()}
                           </div>
                         </div>
                       ))}
@@ -415,80 +537,80 @@ const RestaurantDetail: React.FC = () => {
       <div className="bg-white mt-2 p-4 shadow-sm mb-8">
         <h2 className="font-semibold text-lg mb-4">Reviews</h2>
         <div className="space-y-4">
-          {reviews.length > 0 ? reviews.slice(0, 3).map((review, index) => (
-            <div key={review.id} className="border-b border-light-gray pb-4 last:border-0">
-              <div className="flex items-start">
-                <img 
-                  src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${review.userId || 'anonymous'}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf`} 
-                  alt="User" 
-                  className="w-10 h-10 rounded-full" 
-                />
-                <div className="ml-3 flex-1">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <p className="font-medium">{review.dish}</p>
-                      <div className="flex items-center">
-                        <div className="flex">
-                          {Array.from({ length: 10 }).map((_, i) => (
-                            <StarIcon 
-                              key={i} 
-                              size={12} 
-                              className={i < review.rating ? 'text-accent fill-accent' : 'text-dark-gray'} 
-                            />
-                          ))}
-                        </div>
-                        <span className="text-xs text-dark-gray ml-2">
-                          {review.rating}/10
-                        </span>
+          {reviews.length > 0 ? reviews.slice(0, 5).map((review) => {
+            const author = authors[review.userId];
+            const { tasteChips, audienceTags } = extractReviewTags(review as any);
+            const createdAtText = (() => {
+              const v: any = (review as any).createdAt;
+              const ms = v && typeof v.seconds === 'number' && typeof v.nanoseconds === 'number'
+                ? v.seconds * 1000 + Math.floor(v.nanoseconds / 1e6)
+                : typeof v === 'string' ? Date.parse(v) : typeof v === 'number' ? v : Date.now();
+              return new Date(ms).toLocaleDateString();
+            })();
+            const images = Array.isArray((review as any)?.media?.photos) ? (review as any).media.photos : (review.images || []);
+            return (
+              <div key={review.id} className="border-b border-light-gray pb-4 last:border-0">
+                <div className="flex items-start">
+                  <img
+                    src={author?.image || getAvatarUrl({ username: review.userId })}
+                    alt={author?.name || 'User'}
+                    className="w-10 h-10 rounded-full object-cover cursor-pointer"
+                    onClick={() => author?.username && navigate('/user/' + author.username)}
+                  />
+                  <div className="ml-3 flex-1">
+                    <div className="flex justify-between items-start mb-1">
+                      <div className="min-w-0">
+                        <p
+                          className="text-sm font-medium text-gray-900 truncate cursor-pointer hover:text-primary"
+                          onClick={() => author?.username && navigate('/user/' + author.username)}
+                        >
+                          {author?.name || 'Anonymous'}
+                        </p>
+                        <span className="text-xs text-gray-500">{createdAtText}</span>
                       </div>
+                      <RatingBadge rating={review.rating} size="md" />
                     </div>
-                    <span className="text-xs text-dark-gray">
-                      {(() => {
-                        const v: any = (review as any).createdAt;
-                        const ms = v && typeof v.seconds === 'number' && typeof v.nanoseconds === 'number'
-                          ? v.seconds * 1000 + Math.floor(v.nanoseconds / 1e6)
-                          : typeof v === 'string'
-                          ? Date.parse(v)
-                          : typeof v === 'number'
-                          ? v
-                          : Date.now();
-                        return new Date(ms).toLocaleDateString();
-                      })()}
-                    </span>
+                    {(review as any).caption && (
+                      <p className="text-sm text-gray-700 mb-2">{(review as any).caption}</p>
+                    )}
+                    {(tasteChips.length > 0 || audienceTags.length > 0) && (
+                      <div className="flex flex-wrap gap-1.5 mb-2">
+                        {tasteChips.map((chip, i) => {
+                          let cls = 'inline-flex items-center rounded-full border px-3 py-1.5 text-xs font-medium shadow-sm';
+                          if (chip.includes('Bargain') || chip.includes('Fair') || chip.includes('Overpriced')) {
+                            cls += chip.includes('Bargain') ? ' bg-blue-50 text-blue-700 border-blue-200'
+                              : chip.includes('Fair') ? ' bg-sky-50 text-sky-700 border-sky-200'
+                              : ' bg-slate-100 text-slate-700 border-slate-300';
+                          } else if (chip.includes('fresh') || chip.includes('Fresh')) {
+                            cls += chip.includes('Very') ? ' bg-gradient-to-r from-green-50 to-emerald-50 text-green-700 border-green-200'
+                              : chip === 'Fresh' ? ' bg-green-50 text-green-700 border-green-200'
+                              : ' bg-orange-50 text-orange-700 border-orange-200';
+                          } else if (chip.includes('salt') || chip.includes('Balanced')) {
+                            cls += chip.includes('Balanced') ? ' bg-amber-50 text-amber-700 border-amber-200'
+                              : chip.includes('Too') ? ' bg-orange-100 text-orange-700 border-orange-300'
+                              : ' bg-yellow-50 text-yellow-700 border-yellow-200';
+                          } else {
+                            cls += ' bg-gray-50 text-gray-700 border-gray-200';
+                          }
+                          return <span key={'taste-' + i} className={cls}>{chip}</span>;
+                        })}
+                        {audienceTags.map((tag, i) => (
+                          <span key={'audience-' + i} className="inline-flex items-center rounded-full border px-3 py-1.5 text-xs font-semibold bg-gradient-to-r from-emerald-50 to-green-50 text-emerald-700 border-emerald-300 shadow-sm">{tag}</span>
+                        ))}
+                      </div>
+                    )}
+                    {images && images.length > 0 && (
+                      <div className="flex mt-3 space-x-2">
+                        {images.slice(0, 3).map((src, i) => (
+                          <img key={i} src={src} alt="Review" className="w-16 h-16 rounded-md object-cover" />
+                        ))}
+                      </div>
+                    )}
                   </div>
-                  
-                  {review.personalNote && (
-                    <div className="mt-2 p-2 bg-green-50 border-l-4 border-green-400 rounded">
-                      <p className="text-sm text-green-800">
-                        <span className="font-medium">What was great:</span> {review.personalNote}
-                      </p>
-                    </div>
-                  )}
-                  
-                  {review.negativeNote && (
-                    <div className="mt-2 p-2 bg-red-50 border-l-4 border-red-400 rounded">
-                      <p className="text-sm text-red-800">
-                        <span className="font-medium">What could be better:</span> {review.negativeNote}
-                      </p>
-                    </div>
-                  )}
-                  
-                  {review.images && review.images.length > 0 && (
-                    <div className="flex mt-3 space-x-2">
-                      {review.images.slice(0, 3).map((image, i) => (
-                        <img 
-                          key={i} 
-                          src={image} 
-                          alt="Review" 
-                          className="w-16 h-16 rounded-md object-cover" 
-                        />
-                      ))}
-                    </div>
-                  )}
                 </div>
               </div>
-            </div>
-          )) : (
+            );
+          }) : (
             <div className="text-center py-8">
               <p className="text-dark-gray mb-4">No reviews yet. Be the first to share your experience!</p>
               <button 
@@ -500,7 +622,7 @@ const RestaurantDetail: React.FC = () => {
             </div>
           )}
         </div>
-        {reviews.length > 3 && (
+        {reviews.length > 5 && (
           <button className="w-full mt-3 py-2 border border-medium-gray rounded-full text-center font-medium">
             View All Reviews ({reviews.length})
           </button>

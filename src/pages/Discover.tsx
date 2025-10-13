@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { SearchIcon, FilterIcon, MapPinIcon, StarIcon, Menu } from 'lucide-react';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../lib/firebase';
@@ -11,9 +11,8 @@ interface FirebaseRestaurant {
   address: string;
   cuisine: string;
   phone: string;
-  coordinates: {
-    latitude: number;
-    longitude: number;
+  coordinates?: {
+    lat?: number; lng?: number; latitude?: number; longitude?: number;
   };
   createdAt: any;
   updatedAt: any;
@@ -33,6 +32,7 @@ interface RestaurantWithExtras extends FirebaseRestaurant {
 
 const Discover: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [mapType, setMapType] = useState<'restaurant' | 'dish'>('restaurant');
   const [searchQuery, setSearchQuery] = useState('');
   const [restaurants, setRestaurants] = useState<RestaurantWithExtras[]>([]);
@@ -53,6 +53,11 @@ const Discover: React.FC = () => {
         
         const restaurantList: RestaurantWithExtras[] = restaurantSnapshot.docs.map((doc, index) => {
           const data = doc.data() as FirebaseRestaurant;
+          const coords = (data as any)?.coordinates || {};
+          const latRaw = (coords as any).lat ?? (coords as any).latitude;
+          const lngRaw = (coords as any).lng ?? (coords as any).longitude;
+          const lat = typeof latRaw === 'number' ? latRaw : Number(latRaw);
+          const lng = typeof lngRaw === 'number' ? lngRaw : Number(lngRaw);
 
           // Add mock data for fields not in Firebase yet
           const mockExtras = {
@@ -62,8 +67,8 @@ const Discover: React.FC = () => {
             priceRange: ['$', '$$', '$$$'][Math.floor(Math.random() * 3)], // Random price range
             coverImage: `https://images.unsplash.com/photo-${1579684947550 + index}?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80`,
             location: {
-              lat: Number(data.coordinates.latitude),
-              lng: Number(data.coordinates.longitude)
+              lat: lat,
+              lng: lng,
             }
           };
 
@@ -72,7 +77,7 @@ const Discover: React.FC = () => {
             ...data,
             ...mockExtras
           };
-        }).filter(restaurant => restaurant.location.lat !== 0 && restaurant.location.lng !== 0 && !isNaN(restaurant.location.lat) && !isNaN(restaurant.location.lng));
+        }).filter(restaurant => !isNaN(restaurant.location.lat) && !isNaN(restaurant.location.lng));
         
         setRestaurants(restaurantList);
         console.log(`Loaded ${restaurantList.length} restaurants from Firebase`);
@@ -96,8 +101,8 @@ const Discover: React.FC = () => {
                 category: menuItem.category,
                 price: menuItem.price ? `${menuItem.price}` : undefined,
                 location: restaurant ? {
-                  lat: restaurant.coordinates.latitude + (Math.random() - 0.5) * 0.002,
-                  lng: restaurant.coordinates.longitude + (Math.random() - 0.5) * 0.002
+                  lat: restaurant.location.lat + (Math.random() - 0.5) * 0.002,
+                  lng: restaurant.location.lng + (Math.random() - 0.5) * 0.002
                 } : { lat: 27.3364, lng: -82.5307 },
                 coverImage: `https://source.unsplash.com/300x200/?${encodeURIComponent(menuItem.name)},food`
               };
@@ -240,7 +245,15 @@ const Discover: React.FC = () => {
           </div>
         ) : (
           <div className="h-[calc(100vh-200px)]">
-            <RestaurantMap mapType={mapType} restaurants={filteredRestaurants} dishes={dishes} userLocation={userLocation} onRestaurantClick={(id) => navigate(`/restaurant/${id}`)} onDishClick={(id) => navigate(`/dish/${id}`)} />
+            <RestaurantMap 
+              mapType={mapType} 
+              restaurants={filteredRestaurants} 
+              dishes={dishes} 
+              userLocation={userLocation} 
+              onRestaurantClick={(id) => navigate(`/restaurant/${id}`)} 
+              onDishClick={(id) => navigate(`/dish/${id}`)}
+              focusRestaurantId={new URLSearchParams(location.search).get('focusRestaurantId') || undefined}
+            />
           </div>
         )}
         {/* Removed duplicate location button — using the one inside RestaurantMap */}

@@ -78,6 +78,33 @@ const FoodMap: React.FC = () => {
     console.log(`Add note for visit ${visitId}`);
   };
 
+  // Feed-style compact timestamp (m, h, or MM/DD/YY)
+  function formatRelativeTime(input: Date | number | string | any): string {
+    const toMillis = (v: any) =>
+      v && typeof v.seconds === 'number' && typeof v.nanoseconds === 'number'
+        ? v.seconds * 1000 + Math.floor(v.nanoseconds / 1e6)
+        : typeof v === 'string'
+        ? Date.parse(v)
+        : typeof v === 'number'
+        ? v
+        : (v as Date)?.getTime?.() ?? Date.now();
+
+    const now = Date.now();
+    const then = toMillis(input);
+    const diffMs = Math.max(0, now - then);
+    const diffMin = Math.floor(diffMs / 60000);
+    const diffHrs = Math.floor(diffMin / 60);
+
+    if (diffHrs < 1) return `${Math.max(1, diffMin)}m`;
+    if (diffHrs < 24) return `${diffHrs}h`;
+
+    const d = new Date(then);
+    const mm = d.getMonth() + 1;
+    const dd = d.getDate();
+    const yy = String(d.getFullYear()).slice(-2);
+    return `${mm}/${dd}/${yy}`;
+  }
+
   // Empty state for users with no reviews
   const EmptyState = () => (
     <div className="text-center py-12 px-4">
@@ -255,8 +282,8 @@ const FoodMap: React.FC = () => {
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex-1">
                         <div className="flex items-center mb-1">
-                          <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center mr-3">
-                            <span className="text-white font-bold text-sm">{visit.dish?.rating || 0}</span>
+                          <div className="w-10 h-10 min-w-[40px] min-h-[40px] bg-primary rounded-full flex items-center justify-center mr-3 flex-shrink-0">
+                            <span className="text-white font-bold text-[13px]">{Number(visit.dish?.rating ?? 0).toFixed(1)}</span>
                           </div>
                           <div>
                             <h3 className="font-bold text-black">{visit.dish?.name || 'Unknown Dish'}</h3>
@@ -276,7 +303,13 @@ const FoodMap: React.FC = () => {
                         </div>
                       </div>
                       <div className="text-right flex flex-col items-end">
-                        <p className="text-sm text-gray-500">{visit.review?.date || 'Recently'}</p>
+                        <p className="text-sm text-gray-500">{
+                          formatRelativeTime(
+                            (visit.review as any)?.createdAt ??
+                            (visit.review as any)?.createdAtMs ??
+                            visit.review?.date
+                          )
+                        }</p>
                       </div>
                     </div>
 

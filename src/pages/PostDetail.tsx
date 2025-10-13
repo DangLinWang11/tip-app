@@ -264,7 +264,7 @@ const PostDetail: React.FC<PostDetailProps> = () => {
         {/* Image */}
         <div className="relative">
           <img 
-            src={post.images.length > 0 ? post.images[0] : `https://source.unsplash.com/800x600/?food,${encodeURIComponent(post.dish)}`} 
+            src={(Array.isArray(post.images) && post.images.length > 0) ? post.images[0] : `https://source.unsplash.com/800x600/?food,${encodeURIComponent(post.dish)}`} 
             alt={post.dish} 
             className="w-full aspect-square object-cover" 
           />
@@ -315,7 +315,7 @@ const PostDetail: React.FC<PostDetailProps> = () => {
           </div>
 
           {/* Tags */}
-          {post.tags.length > 0 && (
+          {Array.isArray(post.tags) && post.tags.length > 0 && (
             <div className="mb-6">
               <div className="flex flex-wrap gap-2">
                 {post.tags.map((tag, index) => (

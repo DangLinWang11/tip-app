@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
-import { Menu, X, Settings, HelpCircle } from 'lucide-react';
+import { Menu, X, Settings, HelpCircle, LogOut } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { signOutUser } from '../lib/firebase';
 
 // Simple Settings Modal Component
 const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-60 flex items-center justify-center p-4">
+    <div className="fixed inset-0 bg-black bg-opacity-50 z-[110] flex items-center justify-center p-4">
       <div className="bg-white rounded-xl shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
@@ -97,7 +99,7 @@ const HelpModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen,
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-60 flex items-center justify-center p-4">
+    <div className="fixed inset-0 bg-black bg-opacity-50 z-[110] flex items-center justify-center p-4">
       <div className="bg-white rounded-xl shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
@@ -178,6 +180,7 @@ const HelpModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen,
 };
 
 const HamburgerMenu: React.FC = () => {
+  const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
@@ -200,6 +203,23 @@ const HamburgerMenu: React.FC = () => {
     setHelpOpen(true);
   };
 
+  const handleLogout = async () => {
+    closeMenu();
+    const ok = window.confirm('Are you sure you want to log out?');
+    if (!ok) return;
+    try {
+      const res = await signOutUser();
+      if (!res.success) {
+        alert(res.error || 'Failed to log out');
+        return;
+      }
+      navigate('/');
+    } catch (e) {
+      console.error('Logout failed', e);
+      alert('Failed to log out');
+    }
+  };
+
   return (
     <div className="relative">
       {/* Menu Button */}
@@ -214,14 +234,14 @@ const HamburgerMenu: React.FC = () => {
       {/* Overlay */}
       {isOpen && (
         <div 
-          className="fixed inset-0 bg-black bg-opacity-50 z-40"
+          className="fixed inset-0 bg-black bg-opacity-50 z-[90]"
           onClick={closeMenu}
         />
       )}
 
       {/* Dropdown Menu */}
       <div className={`
-        absolute top-full right-0 mt-2 w-56 bg-white rounded-lg shadow-xl z-50 transform transition-all duration-200 ease-in-out
+        absolute top-full right-0 mt-2 w-56 bg-white rounded-lg shadow-xl z-[100] transform transition-all duration-200 ease-in-out
         ${isOpen ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'}
       `}>
         {/* Menu Items */}
@@ -242,6 +262,15 @@ const HamburgerMenu: React.FC = () => {
           >
             <HelpCircle size={18} className="mr-3" />
             <span>Help & Support</span>
+          </button>
+
+          {/* Logout */}
+          <button
+            onClick={handleLogout}
+            className="flex items-center px-4 py-3 text-red-600 hover:bg-red-50 transition-colors w-full text-left border-t border-gray-100"
+          >
+            <LogOut size={18} className="mr-3" />
+            <span>Log Out</span>
           </button>
         </div>
       </div>

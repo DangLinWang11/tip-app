@@ -46,6 +46,7 @@ interface DiscoverDish {
   restaurantCuisine?: string;
   category?: string;
   rating: number;
+  coverImage?: string | null;
   location: { lat: number | null; lng: number | null };
   distanceMiles?: number | null;
   distanceLabel?: string;
@@ -241,15 +242,18 @@ const DiscoverList: React.FC = () => {
 
             let dishReviews: FirebaseReview[] = [];
             if (restaurantIdForDish) {
-              const reviewsQuery = query(
-                collection(db, 'reviews'),
-                where('restaurantId', '==', restaurantIdForDish),
-                where('menuItemId', '==', menuDoc.id)
-              );
-              const reviewsSnapshot = await getDocs(reviewsQuery);
-              dishReviews = reviewsSnapshot.docs
-                .map((reviewDoc) => reviewDoc.data() as FirebaseReview)
-                .filter((review) => review.isDeleted !== true);
+              const base = collection(db, 'reviews');
+              const q1 = query(base, where('restaurantId', '==', restaurantIdForDish), where('menuItemId', '==', menuDoc.id));
+              const q2 = query(base, where('restaurantId', '==', restaurantIdForDish), where('dishId', '==', menuDoc.id));
+              const [snap1, snap2] = await Promise.all([getDocs(q1), getDocs(q2)]);
+              const merged = [...snap1.docs, ...snap2.docs];
+              const unique = new Map<string, any>();
+              for (const d of merged) {
+                const data = { id: d.id, ...(d.data() as any) } as FirebaseReview;
+                if ((data as any)?.isDeleted === true) continue;
+                unique.set(d.id, data);
+              }
+              dishReviews = Array.from(unique.values());
             }
 
             const rating = dishReviews.length
@@ -257,6 +261,21 @@ const DiscoverList: React.FC = () => {
               : 0;
 
             const location = restaurantInfo?.location ?? { lat: null, lng: null };
+
+            // Determine cover image: prefer menu item coverImage, else first review with photos
+            let coverImage: string | null = (data as any)?.coverImage ?? null;
+            if (!coverImage && dishReviews.length) {
+              const withPhotos = dishReviews.find((r: any) => {
+                const mediaPhotos = Array.isArray(r?.media?.photos) ? r.media.photos : [];
+                const legacyImages = Array.isArray(r?.images) ? r.images : [];
+                return mediaPhotos.length > 0 || legacyImages.length > 0;
+              });
+              if (withPhotos) {
+                const mediaPhotos = Array.isArray((withPhotos as any)?.media?.photos) ? (withPhotos as any).media.photos : [];
+                const legacyImages = Array.isArray((withPhotos as any)?.images) ? (withPhotos as any).images : [];
+                coverImage = (mediaPhotos[0] || legacyImages[0]) ?? null;
+              }
+            }
 
             return {
               id: menuDoc.id,
@@ -266,6 +285,7 @@ const DiscoverList: React.FC = () => {
               restaurantCuisine: restaurantInfo?.cuisine || '',
               category: data.category || '',
               rating,
+              coverImage,
               location,
             } as DiscoverDish;
           })
@@ -577,10 +597,14 @@ const DiscoverList: React.FC = () => {
               className="bg-white rounded-xl shadow-sm flex overflow-hidden border cursor-pointer hover:bg-gray-50 transition-colors h-16"
               onClick={() => navigate(`/dish/${dish.id}`)}
             >
-              <div className="w-16 h-16 bg-gray-100 flex items-center justify-center flex-shrink-0">
-                <div className="w-8 h-8 bg-gray-300 rounded-lg flex items-center justify-center">
-                  <Utensils size={18} className="text-gray-500" />
-                </div>
+              <div className="w-16 h-16 bg-gray-100 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                {dish.coverImage ? (
+                  <img src={dish.coverImage} alt={dish.name} className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-8 h-8 bg-gray-300 rounded-lg flex items-center justify-center">
+                    <Utensils size={18} className="text-gray-500" />
+                  </div>
+                )}
               </div>
               <div className="p-2 flex-1 flex flex-col justify-between">
                 <div className="flex justify-between items-start">
@@ -613,7 +637,5 @@ const DiscoverList: React.FC = () => {
 };
 
 export default DiscoverList;
-
-
 
 

@@ -229,7 +229,7 @@ const createRestaurantIfNeeded = async (restaurant: any): Promise<string> => {
 };
 
 // Create menu item if it doesn't exist in Firebase
-const createMenuItemIfNeeded = async (dishName: string, restaurantId: string, selectedMenuItem: any): Promise<string> => {
+const createMenuItemIfNeeded = async (dishName: string, restaurantId: string, selectedMenuItem: any, fallbackCategory?: string): Promise<string> => {
   // If it's already a Firebase menu item with valid ID, return it
   if (selectedMenuItem?.id && !selectedMenuItem.id.startsWith('manual_')) {
     console.log('Using existing menu item ID:', selectedMenuItem.id);
@@ -258,7 +258,7 @@ const createMenuItemIfNeeded = async (dishName: string, restaurantId: string, se
     console.log('Creating new menu item:', dishName, 'for restaurant:', restaurantId);
     const newMenuItem = {
       name: dishName,
-      category: selectedMenuItem?.category || 'Custom',
+      category: selectedMenuItem?.category || fallbackCategory || 'Custom',
       price: selectedMenuItem?.price || null,
       description: selectedMenuItem?.description || '',
       restaurantId: restaurantId,
@@ -321,7 +321,7 @@ export const saveReview = async (
     const restaurantId = await createRestaurantIfNeeded(selectedRestaurant);
     
     // Step 2: Create menu item if it doesn't exist  
-    const menuItemId = await createMenuItemIfNeeded(reviewData.dish, restaurantId, selectedMenuItem);
+    const menuItemId = await createMenuItemIfNeeded(reviewData.dish, restaurantId, selectedMenuItem, (reviewData as any)?.dishCategory);
 
     const menuItemRef = doc(db, 'menuItems', menuItemId);
     const restaurantDocRef = doc(db, 'restaurants', restaurantId);
@@ -454,6 +454,32 @@ export const saveReview = async (
     
     console.log('✅ Review saved successfully with ID:', docRef.id);
     console.log('✅ Linked to restaurant:', restaurantId, 'and menu item:', menuItemId);
+    
+    // Step 3.5: If this menu item has no cover image yet and this review has photos,
+    // set the dish's cover image to the first user photo.
+    try {
+      const menuDoc = await getDoc(menuItemRef);
+      const hasCover = menuDoc.exists() && typeof (menuDoc.data() as any)?.coverImage === 'string' && (menuDoc.data() as any).coverImage;
+      // Attempt to read images from either new media.photos[] or legacy images[] on the payload
+      const uploadedPhotos: string[] = (() => {
+        const mediaPhotos = Array.isArray((reviewDocumentPayload as any)?.media?.photos)
+          ? (reviewDocumentPayload as any).media.photos
+          : [];
+        const legacyImages = Array.isArray((reviewDocumentPayload as any)?.images)
+          ? (reviewDocumentPayload as any).images
+          : [];
+        return mediaPhotos.length > 0 ? mediaPhotos : legacyImages;
+      })();
+      if (!hasCover && uploadedPhotos.length > 0) {
+        await updateDoc(menuItemRef, {
+          coverImage: uploadedPhotos[0],
+          updatedAt: serverTimestamp(),
+        });
+        console.log('🖼️ Set menu item cover image from first user photo');
+      }
+    } catch (err) {
+      console.warn('⚠️ Failed to set menu item cover image (non-critical):', err);
+    }
     
     // Step 4: Update user stats after saving review
     try {

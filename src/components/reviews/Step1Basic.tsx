@@ -38,6 +38,8 @@ const Step1Basic: React.FC = () => {
   const [dishes, setDishes] = useState<DishOption[]>([]);
   const [loadingDishes, setLoadingDishes] = useState(false);
   const [showAddDish, setShowAddDish] = useState(false);
+  const [newDishMode, setNewDishMode] = useState(false);
+  const [newDishPrice, setNewDishPrice] = useState('');
   const [mediaError, setMediaError] = useState<string | null>(null);
   const [customCuisineInput, setCustomCuisineInput] = useState('');
 
@@ -178,6 +180,8 @@ const Step1Basic: React.FC = () => {
   const onDishSelected = (dish: DishOption) => {
     selectDish(dish);
     updateDraft((prev) => ({ ...prev, dishName: dish.name }));
+    setNewDishMode(!!dish.id && typeof dish.id === 'string' && dish.id.startsWith('manual_'));
+    setNewDishPrice(dish.price != null ? String(dish.price) : '');
   };
 
   const canProceed = !!selectedRestaurant && !!draft.dishName.trim() && !!draft.dishCategory && draft.rating >= 0.1 && draft.rating <= 10 && !pendingUploads;
@@ -308,16 +312,6 @@ const Step1Basic: React.FC = () => {
       <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-md shadow-slate-200/60 space-y-6">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold text-slate-900">{t('basic.dish')}</h2>
-          {selectedRestaurant ? (
-            <button
-              type="button"
-              onClick={() => setShowAddDish((value) => !value)}
-              className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 px-3 py-2 text-xs font-semibold text-red-500 hover:border-red-300"
-            >
-              <Plus className="h-4 w-4" />
-              {t('basic.addDish')}
-            </button>
-          ) : null}
         </div>
         <input
           value={draft.dishName}
@@ -351,10 +345,52 @@ const Step1Basic: React.FC = () => {
                   ) : null}
                 </button>
               ))}
+              {selectedRestaurant && draft.dishName.trim() && !dishes.some(d => d.name.toLowerCase() === draft.dishName.trim().toLowerCase()) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const manual = {
+                      id: 'manual_' + Date.now(),
+                      name: draft.dishName.trim(),
+                      restaurantId: selectedRestaurant.id,
+                      category: (draft as any).dishCategory || undefined,
+                      price: newDishPrice ? Number(newDishPrice) : undefined,
+                    } as DishOption as any;
+                    setNewDishMode(true);
+                    selectDish(manual);
+                  }}
+                  className="flex items-center justify-between rounded-2xl border border-dashed px-4 py-3 text-left transition hover:border-red-300 hover:bg-red-50/40"
+                >
+                  <div>
+                    <p className="text-sm font-semibold text-slate-800">{draft.dishName.trim()}</p>
+                    <p className="text-xs text-slate-500">Not found in menu</p>
+                  </div>
+                  <span className="text-xs font-semibold text-red-500">Add new dish</span>
+                </button>
+              )}
             </div>
           )
         ) : (
           <p className="text-xs text-slate-400"></p>
+        )}
+        {newDishMode && selectedDish && typeof selectedDish.id === 'string' && selectedDish.id.startsWith('manual_') && (
+          <div className="pt-2 grid gap-2">
+            <label className="text-sm font-medium text-slate-700">Price $ (Optional)</label>
+            <input
+              value={newDishPrice}
+              onChange={(e) => {
+                const v = e.target.value;
+                setNewDishPrice(v);
+                if (selectedDish) {
+                  const priceNum = v ? Number(v) : undefined;
+                  selectDish({ ...(selectedDish as any), price: priceNum } as any);
+                }
+              }}
+              inputMode="decimal"
+              placeholder="12.00"
+              className="w-40 rounded-2xl border border-slate-200 px-3 py-2 text-sm focus:border-red-400 focus:outline-none focus:ring-2 focus:ring-red-100"
+            />
+          </div>
         )}
         {showAddDish && selectedRestaurant ? (
           <AddDishInline
@@ -491,7 +527,6 @@ const Step1Basic: React.FC = () => {
 };
 
 export default Step1Basic;
-
 
 
 

@@ -465,6 +465,7 @@ interface RestaurantMapProps {
   disableInfoWindows?: boolean;
   showMyLocationButton?: boolean;
   showGoogleControl?: boolean;
+  focusRestaurantId?: string;
 }
 
 // Fetch top dish from each restaurant from Firebase menuItems collection
@@ -568,7 +569,8 @@ const RestaurantMap: React.FC<RestaurantMapProps> = ({
   showQualityPercentages = true,
   disableInfoWindows = false,
   showMyLocationButton = true,
-  showGoogleControl = true
+  showGoogleControl = true,
+  focusRestaurantId
 }) => {
   const [topDishes, setTopDishes] = useState<Dish[]>([]);
   const sarasotaCenter = {
@@ -582,6 +584,12 @@ const RestaurantMap: React.FC<RestaurantMapProps> = ({
     }
   }, [mapType, restaurants]);
 
+  const focusCenter = (() => {
+    if (!focusRestaurantId) return null;
+    const r = restaurants.find(r => String(r.id) === String(focusRestaurantId));
+    return r?.location || null;
+  })();
+
   const render = (status: Status) => {
     switch (status) {
       case Status.LOADING:
@@ -591,8 +599,8 @@ const RestaurantMap: React.FC<RestaurantMapProps> = ({
       case Status.SUCCESS:
         return (
           <Map
-            center={sarasotaCenter}
-            zoom={13}
+            center={focusCenter || sarasotaCenter}
+            zoom={focusCenter ? 16 : 13}
             mapType={mapType}
             restaurants={restaurants}
             dishes={topDishes}
