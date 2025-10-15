@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
-import { Menu, X, Settings, HelpCircle, LogOut } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Menu, X, Settings, HelpCircle, LogOut, Store as StoreIcon } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { signOutUser } from '../lib/firebase';
+import { signOutUser, analytics } from '../lib/firebase';
+import { logEvent } from 'firebase/analytics';
+import { useOwnedRestaurants } from '../hooks/useOwnedRestaurants';
 
 // Simple Settings Modal Component
 const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen, onClose }) => {
@@ -184,6 +186,7 @@ const HamburgerMenu: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
+  const { ownsAny } = useOwnedRestaurants();
 
   const toggleMenu = () => {
     setIsOpen(!isOpen);
@@ -246,6 +249,29 @@ const HamburgerMenu: React.FC = () => {
       `}>
         {/* Menu Items */}
         <div className="py-2">
+          {/* For Restaurants */}
+          {ownsAny ? (
+            <button
+              onClick={() => { try { if (analytics) logEvent(analytics as any, 'owner_entry', { source: 'hamburger', variant: 'owner' }); } catch {}; closeMenu(); navigate('/owner'); }}
+              className="flex items-center px-4 py-3 text-gray-700 hover:bg-gray-100 transition-colors w-full text-left whitespace-nowrap"
+              aria-label="Your Restaurant"
+              title="Analytics & deals for your restaurant."
+            >
+              <StoreIcon size={18} className="mr-3" />
+              <span>Your Restaurant</span>
+            </button>
+          ) : (
+            <button
+              onClick={() => { try { if (analytics) logEvent(analytics as any, 'owner_entry', { source: 'hamburger', variant: 'claim' }); } catch {}; closeMenu(); navigate('/owner?start=claim'); }}
+              className="flex items-center px-4 py-3 text-gray-700 hover:bg-gray-100 transition-colors w-full text-left whitespace-nowrap"
+              aria-label="Claim my restaurant"
+              title="Analytics & deals for your restaurant."
+            >
+              <StoreIcon size={18} className="mr-3" />
+              <span>Claim my restaurant</span>
+            </button>
+          )}
+
           {/* Settings */}
           <button
             onClick={openSettings}

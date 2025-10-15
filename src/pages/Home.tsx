@@ -186,7 +186,12 @@ const Home: React.FC = () => {
       : userReviews.length > 0 
         ? (userReviews.reduce((sum, review) => sum + review.rating, 0) / userReviews.length).toFixed(1)
         : "0.0",
-    totalRestaurants: userProfile?.stats?.totalRestaurants || new Set(userReviews.map(r => r.restaurant).filter(Boolean)).size,
+    totalRestaurants: userProfile?.stats?.totalRestaurants ||
+      new Set(
+        userReviews
+          .map((r: any) => r?.restaurantId || r?.restaurant || r?.restaurantName)
+          .filter(Boolean)
+      ).size,
     totalDishes: userReviews.length, // Use user's actual review count for dishes
     pointsEarned: userProfile?.stats?.pointsEarned || 0
   } : {

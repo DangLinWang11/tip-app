@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth, getUserProfile } from './lib/firebase';
+import { ensureUserProfile } from './services/userService';
 import { I18nProvider } from './lib/i18n/useI18n';
 import Layout from './components/Layout';
 import Home from './pages/Home';
@@ -75,6 +76,8 @@ export function App() {
       if (user) {
         // User is signed in with Firebase Auth
         try {
+          // Ensure minimal user profile exists
+          await ensureUserProfile(user);
           // Check if user has completed profile setup
           const profileResult = await getUserProfile(user.uid);
           
@@ -127,16 +130,22 @@ export function App() {
   // Show onboarding if not authenticated or needs username
   if (!authState.isAuthenticated || authState.needsUsername) {
     return (
-      <Onboarding 
-        onComplete={() => {
-          setAuthState({
-            isAuthenticated: true,
-            needsUsername: false,
-            isLoading: false
-          });
-        }}
-        needsUsernameOnly={authState.needsUsername}
-      />
+      <I18nProvider>
+        <LocationProvider>
+          <Router>
+            <Onboarding 
+              onComplete={() => {
+                setAuthState({
+                  isAuthenticated: true,
+                  needsUsername: false,
+                  isLoading: false
+                });
+              }}
+              needsUsernameOnly={authState.needsUsername}
+            />
+          </Router>
+        </LocationProvider>
+      </I18nProvider>
     );
   }
 
@@ -145,6 +154,8 @@ export function App() {
     <I18nProvider>
       <LocationProvider>
         <Router>
+        <RedirectAfterLogin />
+        <React.Suspense fallback={<LoadingScreen />}> 
         <Routes>
           <Route path="/" element={<Layout />}>
             <Route index element={<Home />} />
@@ -174,11 +185,37 @@ export function App() {
           <Route path="/dish/:id" element={<MenuDetail />} />
           <Route path="/post/:postId" element={<PostDetail />} />
           <Route path="/admin-upload" element={<AdminUpload />} />
+          <Route path="/admin/claims" element={<ClaimsReview />} />
+          <Route path="/owner/*" element={<OwnerPortalLazy />} />
         </Routes>
+        </React.Suspense>
         </Router>
       </LocationProvider>
     </I18nProvider>
   );
 }
 
+// Lazy-load Owner Portal to keep bundle lean
+const OwnerPortalLazy = React.lazy(() => import('./pages/owner/OwnerPortal'));
+const ClaimsReview = React.lazy(() => import('./pages/admin/ClaimsReview'));
 
+// Side-effect component to handle ?redirect=... after login
+const RedirectAfterLogin: React.FC = () => {
+  React.useEffect(() => {
+    try {
+      // Owners are normal users; we just honor redirect to /owner paths while remaining signed-in
+      const sp = new URLSearchParams(window.location.search);
+      const redirect = sp.get('redirect');
+      if (redirect && typeof redirect === 'string') {
+        // Clear the param to avoid loops
+        sp.delete('redirect');
+        const base = window.location.origin + window.location.pathname;
+        const rest = sp.toString();
+        const newUrl = rest ? `${base}?${rest}` : base;
+        window.history.replaceState({}, '', newUrl);
+        window.location.assign(redirect);
+      }
+    } catch {}
+  }, []);
+  return null;
+};

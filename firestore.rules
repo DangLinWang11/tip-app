@@ -3,6 +3,14 @@ service cloud.firestore {
   match /databases/{database}/documents {
     function authed() { return request.auth != null; }
     function isOwner() { return authed() && resource.data.userId == request.auth.uid; }
+    function isAdminUser() {
+      return authed() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
+    }
+    function isRestaurantOwner(restaurantId) {
+      return authed() &&
+        exists(/databases/$(database)/documents/restaurants/$(restaurantId)) &&
+        (request.auth.uid in get(/databases/$(database)/documents/restaurants/$(restaurantId)).data.ownerIds);
+    }
 
     // Users collection - users can read any user but only edit their own
     match /users/{userId} {
@@ -11,11 +19,18 @@ service cloud.firestore {
       allow create: if request.auth != null && request.auth.uid == userId;
     }
 
-    // Restaurants collection - anyone can read, authenticated users can create/update
+    // Restaurants collection - anyone can read
     match /restaurants/{restaurantId} {
       allow read: if true;
-      allow write: if authed();
-      allow create: if authed();
+      // Only admins can create/delete
+      allow create, delete: if isAdminUser();
+      // Update: admins can modify anything; non-admins cannot touch ownerIds
+      allow update: if authed() && (
+        isAdminUser() || (
+          // Non-admin updates allowed only if ownerIds untouched on both sides
+          !('ownerIds' in request.resource.data) && !('ownerIds' in resource.data)
+        )
+      );
     }
 
     // Menu items collection - anyone can read, authenticated users can create/update
@@ -54,6 +69,49 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // Owner claims: users can submit claims; only admins can approve
+    match /owner_claims/{claimId} {
+      allow read: if authed() && (
+        isAdminUser() || (resource.data.requesterUid == request.auth.uid)
+      );
+      allow create: if authed() && (
+        request.resource.data.requesterUid == request.auth.uid &&
+        request.resource.data.restaurantId is string &&
+        request.resource.data.status == 'pending' &&
+        request.resource.data.createdAt is timestamp
+      );
+      allow update: if isAdminUser();
+      allow delete: if isAdminUser();
+    }
+
+    // Deals
+    match /deals/{dealId} {
+      allow read: if authed() && (
+        isAdminUser() || isRestaurantOwner(resource.data.restaurantId)
+      );
+      allow create: if authed() && (
+        isRestaurantOwner(request.resource.data.restaurantId) &&
+        request.resource.data.createdBy == request.auth.uid &&
+        request.resource.data.status in ['draft','submitted'] &&
+        request.resource.data.createdAt is timestamp
+      );
+      allow update: if authed() && (
+        isAdminUser() || (
+          isRestaurantOwner(resource.data.restaurantId) &&
+          (!('restaurantId' in request.resource.data) || request.resource.data.restaurantId == resource.data.restaurantId) &&
+          (!('createdBy' in request.resource.data) || request.resource.data.createdBy == resource.data.createdBy) &&
+          (!('status' in request.resource.data) || request.resource.data.status in ['draft','submitted'])
+        )
+      );
+      allow delete: if isAdminUser();
+    }
+
+    // Restaurant stats (MVP; client cache writes allowed for owners)
+    match /restaurant_stats/{restaurantId} {
+      allow read: if authed() && (isAdminUser() || isRestaurantOwner(restaurantId));
+      allow write: if authed() && (isAdminUser() || isRestaurantOwner(restaurantId));
+    }
+
     // Saved lists collection - users can only access their own lists
     match /savedLists/{listId} {
       allow read, write: if request.auth != null && request.auth.uid == resource.data.userId;
@@ -69,4 +127,3 @@ service cloud.firestore {
     }
   }
 }
-

@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { EditIcon, GridIcon, BookmarkIcon, SearchIcon, PlusIcon, Star, Users, TrendingUp, Award, Share, User } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Store as StoreIcon } from 'lucide-react';
+import { useOwnedRestaurants } from '../hooks/useOwnedRestaurants';
+import { logEvent } from 'firebase/analytics';
+import { analytics } from '../lib/firebase';
 import FeedPost from '../components/FeedPost';
 import HamburgerMenu from '../components/HamburgerMenu';
 import { useFeature } from '../utils/features';
@@ -273,6 +277,7 @@ const SavedListsTab: React.FC = () => {
 
 const Profile: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [activeTab, setActiveTab] = useState<'activity' | 'saved'>('activity');
   const [searchTerm, setSearchTerm] = useState('');
   const [firebaseReviews, setFirebaseReviews] = useState<FirebaseReview[]>([]);
@@ -287,6 +292,17 @@ const Profile: React.FC = () => {
   // Feature flags
   const showTierRankings = useFeature('TIER_RANKINGS');
   const showSocialActivity = useFeature('SOCIAL_FEED');
+
+  // Owners are normal users; owner permissions come from restaurants.ownerIds
+  const { ownsAny } = useOwnedRestaurants();
+  const goClaimFromProfile = () => {
+    const params = new URLSearchParams(location.search);
+    const claimId = params.get('claim');
+    const target = claimId ? `/owner?start=claim&claim=${claimId}` : '/owner?start=claim';
+    if (import.meta.env.DEV) { try { console.log('[Profile] Claim target:', target); } catch {} }
+    try { if (analytics) logEvent(analytics as any, 'owner_entry', { source: 'profile', variant: 'claim' }); } catch {}
+    navigate(target);
+  };
   
   // Fetch user profile on component mount
   useEffect(() => {
@@ -600,6 +616,26 @@ const Profile: React.FC = () => {
                 <Share size={12} className="mr-1" />
                 Share
               </button>
+
+              {ownsAny ? (
+                <button
+                  onClick={() => navigate('/owner')}
+                  className="px-3 py-1.5 border border-gray-200 rounded-full text-xs flex items-center hover:bg-gray-50 transition-colors"
+                  aria-label="Your Restaurant"
+                >
+                  <StoreIcon size={12} className="mr-1" />
+                  Your Restaurant
+                </button>
+              ) : (
+                <button
+                  onClick={goClaimFromProfile}
+                  className="px-3 py-1.5 border border-gray-200 rounded-full text-xs flex items-center hover:bg-gray-50 transition-colors"
+                  aria-label="Claim my restaurant"
+                >
+                  <StoreIcon size={12} className="mr-1" />
+                  Claim my restaurant
+                </button>
+              )}
             </div>
           </div>
 

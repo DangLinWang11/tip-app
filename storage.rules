@@ -1,0 +1,19 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Claim proofs (private)
+    match /owner_claims/{claimId}/proofs/{fileId} {
+      // Default deny
+      allow read, write: if false;
+
+      // Requester can read/write their own claim proofs
+      allow read, write: if request.auth != null &&
+        get(/databases/(default)/documents/owner_claims/$(claimId)).data.requesterUid == request.auth.uid;
+
+      // Admins can read/write
+      allow read, write: if request.auth != null &&
+        get(/databases/(default)/documents/users/$(request.auth.uid)).data.isAdmin == true;
+    }
+  }
+}
+
