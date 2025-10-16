@@ -13,6 +13,7 @@ import { MoreHorizontal as DotsIcon } from 'lucide-react';
 import RatingBadge from './RatingBadge';
 import { useFeature } from '../utils/features';
 import SaveToListModal from './SaveToListModal';
+import ReceiptUploadModal from './ReceiptUploadModal';
 import { isFollowing, followUser, unfollowUser } from '../services/followService';
 import { getCurrentUser } from '../lib/firebase';
 import { deleteReview, reportReview } from '../services/reviewService';
@@ -119,7 +120,8 @@ const FeedPost: React.FC<FeedPostProps> = ({
   const imageRef = useRef<HTMLDivElement>(null);
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [isActionSheetOpen, setIsActionSheetOpen] = useState(false);
-  
+  const [showReceiptModal, setShowReceiptModal] = useState(false);
+
   // NEW: Follow state management
   const [isFollowingUser, setIsFollowingUser] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
@@ -552,21 +554,12 @@ const FeedPost: React.FC<FeedPostProps> = ({
                 {meta.label}
               </div>
               {isOwnPost && (state === 'unverified' || state === 'rejected') && (
-                <label className="text-xs text-primary hover:underline cursor-pointer">
+                <button
+                  onClick={() => setShowReceiptModal(true)}
+                  className="text-xs text-primary hover:underline cursor-pointer font-medium"
+                >
                   Add receipt
-                  <input type="file" accept="image/*,application/pdf" className="hidden" onChange={async (e) => {
-                    try {
-                      const files = Array.from(e.target.files || []);
-                      if (!files.length) return;
-                      const urls = await uploadReviewProofs(id, files);
-                      await markReviewPendingProof(id, urls);
-                      alert('Proof submitted. Pending verification.');
-                    } catch (err) {
-                      console.error('Proof upload failed', err);
-                      alert('Failed to upload proof.');
-                    }
-                  }} />
-                </label>
+                </button>
               )}
             </div>
           );
@@ -853,6 +846,15 @@ const FeedPost: React.FC<FeedPostProps> = ({
           />
         );
       })()}
+
+      <ReceiptUploadModal
+        isOpen={showReceiptModal}
+        onClose={() => setShowReceiptModal(false)}
+        onUpload={async (files) => {
+          const urls = await uploadReviewProofs(id, files);
+          await markReviewPendingProof(id, urls);
+        }}
+      />
     </div>
   );
 };
