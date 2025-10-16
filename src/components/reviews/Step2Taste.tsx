@@ -131,6 +131,12 @@ const Step2Taste: React.FC = () => {
     return CORE_ATTRIBUTES.every(({ key }) => Boolean(draft.taste[key]?.level));
   }, [draft.taste]);
 
+  const getMissingAttributes = () => {
+    return CORE_ATTRIBUTES
+      .filter(({ key }) => !draft.taste[key]?.level)
+      .map(({ translation }) => t(translation));
+  };
+
   const handleNext = () => {
     if (!isCoreComplete) return;
     showReward('taste');
@@ -194,7 +200,7 @@ const Step2Taste: React.FC = () => {
         ) : null}
       </section>
 
-      <div className="flex justify-between">
+      <div className="flex justify-between items-end">
         <button
           type="button"
           onClick={goBack}
@@ -202,14 +208,22 @@ const Step2Taste: React.FC = () => {
         >
           {t('createWizard.actions.back')}
         </button>
-        <button
-          type="button"
-          onClick={handleNext}
-          className={`rounded-2xl px-6 py-3 text-sm font-semibold transition ${isCoreComplete ? 'bg-red-500 text-white hover:bg-red-600 shadow-md shadow-red-200/60' : 'bg-slate-200 text-slate-400 cursor-not-allowed'}`}
-          disabled={!isCoreComplete}
-        >
-          {t('createWizard.actions.next')}
-        </button>
+        <div className="flex flex-col items-end gap-2">
+          {!isCoreComplete && getMissingAttributes().length > 0 && (
+            <div className="text-sm text-amber-600 bg-amber-50 border border-amber-200 rounded-2xl px-4 py-2">
+              <span className="font-medium">Please select: </span>
+              <span>{getMissingAttributes().join(', ')}</span>
+            </div>
+          )}
+          <button
+            type="button"
+            onClick={handleNext}
+            className={`rounded-2xl px-6 py-3 text-sm font-semibold transition ${isCoreComplete ? 'bg-red-500 text-white hover:bg-red-600 shadow-md shadow-red-200/60' : 'bg-slate-200 text-slate-400 cursor-not-allowed'}`}
+            disabled={!isCoreComplete}
+          >
+            {t('createWizard.actions.next')}
+          </button>
+        </div>
       </div>
     </div>
   );

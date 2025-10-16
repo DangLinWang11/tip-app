@@ -79,6 +79,7 @@ export const uploadPhoto = async (file: File | Blob): Promise<string> => {
       ext = mimeToExt[(file as any).type] || 'jpg';
     }
     const fileName = `reviews/${timestamp}_${randomString}.${ext}`;
+    try { console.debug('[uploadPhoto] upload path', fileName, 'type', (file as any).type); } catch {}
     
     // Create storage reference
     const storageRef = ref(storage, fileName);

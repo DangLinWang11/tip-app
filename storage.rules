@@ -3,27 +3,27 @@ service firebase.storage {
   match /b/{bucket}/o {
     // Claim proofs (private)
     match /owner_claims/{claimId}/proofs/{fileId} {
-      // Default deny
-      allow read, write: if false;
-
       // Requester can read/write their own claim proofs
       allow read, write: if request.auth != null &&
-        get(/databases/(default)/documents/owner_claims/$(claimId)).data.requesterUid == request.auth.uid;
+        firestore.get(/databases/(default)/documents/owner_claims/$(claimId)).data.requesterUid == request.auth.uid;
 
       // Admins can read/write
       allow read, write: if request.auth != null &&
-        get(/databases/(default)/documents/users/$(request.auth.uid)).data.isAdmin == true;
+        firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.isAdmin == true;
+
+      // Fallback deny
+      allow read, write: if false;
     }
 
     // Review verification proofs (private)
     match /reviews/{reviewId}/proofs/{fileId} {
       // Author can read/write their own review proofs
       allow read, write: if request.auth != null &&
-        get(/databases/(default)/documents/reviews/$(reviewId)).data.userId == request.auth.uid;
+        firestore.get(/databases/(default)/documents/reviews/$(reviewId)).data.userId == request.auth.uid;
 
       // Admins can read/write
       allow read, write: if request.auth != null &&
-        get(/databases/(default)/documents/users/$(request.auth.uid)).data.isAdmin == true;
+        firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.isAdmin == true;
 
       // Explicit deny fallback
       allow read, write: if false;

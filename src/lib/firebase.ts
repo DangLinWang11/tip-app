@@ -9,7 +9,7 @@ const firebaseConfig = {
   authDomain: "tip-sarasotav2.firebaseapp.com",
   projectId: "tip-sarasotav2",
   // storageBucket must be the bucket name, not a URL/domain
-  storageBucket: "tip-sarasotav2.appspot.com",
+  storageBucket: "tip-sarasotav2.firebasestorage.app",
   messagingSenderId: "279316450534",
   appId: "1:279316450534:web:6386a22fe38591ef84ff27",
   measurementId: "G-9RQW6H7238"

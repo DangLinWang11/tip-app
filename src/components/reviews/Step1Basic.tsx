@@ -186,6 +186,15 @@ const Step1Basic: React.FC = () => {
 
   const canProceed = !!selectedRestaurant && !!draft.dishName.trim() && !!draft.dishCategory && draft.rating >= 0.1 && draft.rating <= 10 && !pendingUploads;
 
+  const getMissingFields = () => {
+    const missing: string[] = [];
+    if (!selectedRestaurant) missing.push('restaurant');
+    if (!draft.dishName.trim()) missing.push('dish name');
+    if (!draft.dishCategory) missing.push('dish category');
+    if (pendingUploads) missing.push('wait for uploads to complete');
+    return missing;
+  };
+
   const handleNext = () => {
     if (!canProceed) return;
     goNext();
@@ -500,7 +509,13 @@ const Step1Basic: React.FC = () => {
       </section>
 
 
-      <div className="flex justify-end">
+      <div className="flex flex-col items-end gap-2">
+        {!canProceed && getMissingFields().length > 0 && (
+          <div className="text-sm text-amber-600 bg-amber-50 border border-amber-200 rounded-2xl px-4 py-2">
+            <span className="font-medium">Please complete: </span>
+            <span>{getMissingFields().join(', ')}</span>
+          </div>
+        )}
         <button
           type="button"
           onClick={handleNext}
