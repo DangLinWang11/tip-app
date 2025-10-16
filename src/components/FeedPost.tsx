@@ -16,6 +16,7 @@ import SaveToListModal from './SaveToListModal';
 import { isFollowing, followUser, unfollowUser } from '../services/followService';
 import { getCurrentUser } from '../lib/firebase';
 import { deleteReview, reportReview } from '../services/reviewService';
+import { uploadReviewProofs, markReviewPendingProof } from '../services/reviewVerificationService';
 import { collection, query, where, limit, getDocs } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 
@@ -533,6 +534,43 @@ const FeedPost: React.FC<FeedPostProps> = ({
 
       {/* Content */}
       <div className="px-4 pb-4">
+        {/* Verification badge (if present) */}
+        {(() => {
+          const state = (currentItem.review as any)?.verification?.state as string | undefined;
+          if (!state) return null;
+          const map: Record<string, { label: string; cls: string }> = {
+            verified: { label: 'Verified', cls: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+            pending_proof: { label: 'Pending verification', cls: 'bg-amber-50 text-amber-700 border-amber-200' },
+            pending_review: { label: 'Pending verification', cls: 'bg-amber-50 text-amber-700 border-amber-200' },
+            unverified: { label: 'Unverified', cls: 'bg-slate-50 text-slate-600 border-slate-200' },
+            rejected: { label: 'Rejected', cls: 'bg-rose-50 text-rose-700 border-rose-200' },
+          };
+          const meta = map[state] || map['unverified'];
+          return (
+            <div className="flex items-center gap-2 mb-2">
+              <div className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium ${meta.cls}`}>
+                {meta.label}
+              </div>
+              {isOwnPost && (state === 'unverified' || state === 'rejected') && (
+                <label className="text-xs text-primary hover:underline cursor-pointer">
+                  Add receipt
+                  <input type="file" accept="image/*,application/pdf" className="hidden" onChange={async (e) => {
+                    try {
+                      const files = Array.from(e.target.files || []);
+                      if (!files.length) return;
+                      const urls = await uploadReviewProofs(id, files);
+                      await markReviewPendingProof(id, urls);
+                      alert('Proof submitted. Pending verification.');
+                    } catch (err) {
+                      console.error('Proof upload failed', err);
+                      alert('Failed to upload proof.');
+                    }
+                  }} />
+                </label>
+              )}
+            </div>
+          );
+        })()}
         {/* Caption (if present) */}
         {currentItem.review.caption && (
           <p className="text-sm text-gray-700 mb-2">{currentItem.review.caption}</p>

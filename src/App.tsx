@@ -186,6 +186,7 @@ export function App() {
           <Route path="/post/:postId" element={<PostDetail />} />
           <Route path="/admin-upload" element={<AdminUpload />} />
           <Route path="/admin/claims" element={<ClaimsReview />} />
+          <Route path="/admin/reviews" element={<ReviewVerification />} />
           <Route path="/owner/*" element={<OwnerPortalLazy />} />
         </Routes>
         </React.Suspense>
@@ -198,6 +199,7 @@ export function App() {
 // Lazy-load Owner Portal to keep bundle lean
 const OwnerPortalLazy = React.lazy(() => import('./pages/owner/OwnerPortal'));
 const ClaimsReview = React.lazy(() => import('./pages/admin/ClaimsReview'));
+const ReviewVerification = React.lazy(() => import('./pages/admin/ReviewVerification'));
 
 // Side-effect component to handle ?redirect=... after login
 const RedirectAfterLogin: React.FC = () => {

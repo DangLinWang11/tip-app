@@ -442,6 +442,7 @@ export const saveReview = async (
       visitedTimes: 1,
       rewardReason: "First review bonus",
       pointsEarned: 20,
+      verification: { state: 'unverified' },
       isDeleted: false
     };
 
@@ -1414,7 +1415,8 @@ export const convertReviewToFeedPost = async (review: FirebaseReview) => {
       createdAtMs: review.createdAtMs,
       caption: (review as any).caption || undefined,
       tasteChips: tasteChips.length > 0 ? tasteChips : undefined,
-      audienceTags: audienceTags.length > 0 ? audienceTags : undefined
+      audienceTags: audienceTags.length > 0 ? audienceTags : undefined,
+      verification: (review as any).verification
     },
     engagement: {
       likes: 0,
@@ -1491,7 +1493,8 @@ export const convertUserReviewToFeedPost = async (review: FirebaseReview) => {
       createdAtMs: review.createdAtMs,
       caption: (review as any).caption || undefined,
       tasteChips: tasteChips.length > 0 ? tasteChips : undefined,
-      audienceTags: audienceTags.length > 0 ? audienceTags : undefined
+      audienceTags: audienceTags.length > 0 ? audienceTags : undefined,
+      verification: (review as any).verification
     },
     engagement: {
       likes: 0,
@@ -1615,7 +1618,8 @@ export const convertReviewsToFeedPosts = async (reviews: FirebaseReview[]) => {
           date: safeToISOString(review.createdAt),
           caption: (review as any).caption || undefined,
           tasteChips: tasteChips.length > 0 ? tasteChips : undefined,
-          audienceTags: audienceTags.length > 0 ? audienceTags : undefined
+          audienceTags: audienceTags.length > 0 ? audienceTags : undefined,
+          verification: (review as any).verification
         },
         engagement: {
           likes: Math.floor(Math.random() * 100) + 10,

@@ -6,6 +6,9 @@ service cloud.firestore {
     function isAdminUser() {
       return authed() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
     }
+    function isReviewAuthor(reviewId) {
+      return authed() && request.auth.uid == get(/databases/$(database)/documents/reviews/$(reviewId)).data.userId;
+    }
     function isRestaurantOwner(restaurantId) {
       return authed() &&
         exists(/databases/$(database)/documents/restaurants/$(restaurantId)) &&
@@ -55,18 +58,51 @@ service cloud.firestore {
         && request.resource.data.dishName is string
         && request.resource.data.rating is number;
 
-      // Update: only owner; if fields are present, enforce types; userId must not change
-      allow update: if isOwner()
-        && request.resource.data.userId == resource.data.userId
-        && (!('createdAt' in request.resource.data) || request.resource.data.createdAt is timestamp)
-        && (!('updatedAt' in request.resource.data) || request.resource.data.updatedAt is timestamp)
-        && (!('isDeleted' in request.resource.data) || request.resource.data.isDeleted is bool)
-        && (!('restaurantId' in request.resource.data) || request.resource.data.restaurantId is string)
-        && (!('dishName' in request.resource.data) || request.resource.data.dishName is string)
-        && (!('rating' in request.resource.data) || request.resource.data.rating is number);
+      // Admins can update verification/reward and other admin-safe fields
+      allow update: if isAdminUser();
+
+      // Authors: only safe fields + move verification to pending_proof + append proofUrls
+      allow update: if isReviewAuthor(reviewId) && authorUpdateIsSafe();
 
       // Hard deletes blocked (use soft-delete via isDeleted)
       allow delete: if false;
+
+      // Helper: constrain author updates
+      function authorUpdateIsSafe() {
+        return
+          !('reward' in request.resource.data) &&
+          authorVerificationWriteIsAllowed() &&
+          otherAuthorFieldsAreSafe();
+      }
+
+      // Only allow specific verification dot-path writes from authors
+      function authorVerificationWriteIsAllowed() {
+        return (
+          !('verification' in request.resource.data)
+          ||
+          (
+            request.resource.data.verification.state == 'pending_proof' &&
+            (!('verifiedAt' in request.resource.data.verification)) &&
+            (!('verifiedBy' in request.resource.data.verification)) &&
+            (!('matchScore' in request.resource.data.verification)) &&
+            (!('proofType' in request.resource.data.verification) || request.resource.data.verification.proofType == 'receipt') &&
+            (!('requestedAt' in request.resource.data.verification) || request.resource.data.verification.requestedAt is timestamp) &&
+            (!('proofUrls' in request.resource.data.verification) || request.resource.data.verification.proofUrls is list)
+          )
+        );
+      }
+
+      // Defense-in-depth helpers and author field constraints
+      function unchanged(path) { return request.resource.data[path] == resource.data[path]; }
+
+      function otherAuthorFieldsAreSafe() {
+        return
+          request.resource.data.userId == resource.data.userId &&
+          unchanged('restaurantId') &&
+          (!('rating' in request.resource.data) || request.resource.data.rating is number) &&
+          (!('dishName' in request.resource.data) || request.resource.data.dishName is string) &&
+          (!('updatedAt' in request.resource.data) || request.resource.data.updatedAt is timestamp);
+      }
     }
 
     // Owner claims: users can submit claims; only admins can approve

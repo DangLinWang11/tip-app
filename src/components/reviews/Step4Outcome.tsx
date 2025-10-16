@@ -3,6 +3,7 @@ import { Check } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useI18n } from '../../lib/i18n/useI18n';
 import { useReviewWizard } from './WizardContext';
+import { uploadReviewProofs, markReviewPendingProof } from '../../services/reviewVerificationService';
 
 const AUDIENCE_OPTIONS = [
   { value: 'spicy_lovers', labelKey: 'audience.spicy' },
@@ -36,6 +37,9 @@ const Step4Outcome: React.FC = () => {
   } = useReviewWizard();
   const [successId, setSuccessId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [proofMessage, setProofMessage] = useState<string | null>(null);
 
   const toggleAudience = (option: AudienceOption) => {
     updateDraft((prev) => {
@@ -57,6 +61,8 @@ const Step4Outcome: React.FC = () => {
       setError(null);
       const id = await submitReview();
       setSuccessId(id);
+      // Inform user that XP is instant but points are gated
+      setProofMessage('+XP awarded. Reward points pending verification.');
       try {
         // Hint the Home screen to bypass cache once
         navigate('/?refresh=1');
@@ -183,8 +189,39 @@ const Step4Outcome: React.FC = () => {
             </div>
             <div>
               <p className="text-sm font-semibold">{t('reward.submitBonus')}</p>
-              <p className="text-xs">{t('createWizard.actions.clone')}</p>
+              <p className="text-xs">{proofMessage || t('createWizard.actions.clone')}</p>
             </div>
+          </div>
+          {/* Optional: Add receipt/proof upload */}
+          <div className="mt-4 rounded-xl border border-slate-200 bg-white p-4">
+            <div className="font-medium text-slate-800 mb-1">Add a receipt to earn reward points (optional).</div>
+            <p className="text-xs text-slate-500 mb-3">Your proof is private and only visible to admins.</p>
+            <input
+              type="file"
+              accept="image/*,application/pdf"
+              multiple
+              disabled={uploading}
+              onChange={async (e) => {
+                const files = Array.from(e.target.files || []);
+                if (!successId || files.length === 0) return;
+                try {
+                  setUploading(true);
+                  setProgress(0);
+                  const urls = await uploadReviewProofs(successId, files, (r) => setProgress(Math.round(r*100)));
+                  await markReviewPendingProof(successId, urls);
+                  setProofMessage('Proof submitted. Pending verification.');
+                } catch (err) {
+                  console.error('Proof upload failed', err);
+                  setProofMessage('Failed to upload proof. Please try again.');
+                } finally {
+                  setUploading(false);
+                }
+              }}
+              className="block w-full text-sm"
+            />
+            {uploading && (
+              <div className="text-xs text-slate-600 mt-2">Uploading... {progress}%</div>
+            )}
           </div>
           <div className="mt-4">
             <button
