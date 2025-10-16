@@ -5,7 +5,7 @@ import { DAILY_VERIFIED_CAP } from '../config/rewards';
 
 export async function uploadReviewProofs(
   reviewId: string,
-  files: File[],
+  files: (File | Blob)[],
   onProgress?: (ratio: number) => void
 ): Promise<string[]> {
   if (!storage) throw new Error('Storage not initialized');
@@ -15,12 +15,28 @@ export async function uploadReviewProofs(
 
   const urls: string[] = [];
 
+  const mimeToExt: Record<string, string> = {
+    'image/jpeg': 'jpg',
+    'image/jpg': 'jpg',
+    'image/png': 'png',
+    'image/webp': 'webp',
+    'image/heic': 'heic',
+    'image/heif': 'heif',
+    'application/pdf': 'pdf',
+  };
+
   for (const f of files) {
     const stamp = Date.now();
-    const ext = (f.name.split('.').pop() || 'jpg').toLowerCase();
+    const maybeFile = f as File as { name?: string };
+    const rawName = typeof maybeFile?.name === 'string' ? maybeFile.name : '';
+    let ext = rawName && rawName.includes('.') ? (rawName.split('.').pop() || '').toLowerCase() : '';
+    if (!ext) {
+      ext = mimeToExt[(f as any).type] || 'jpg';
+    }
     const path = `reviews/${reviewId}/proofs/${user.uid}_${stamp}_${Math.random().toString(36).slice(2,8)}.${ext}`;
     const storageRef = ref(storage, path);
-    const task = uploadBytesResumable(storageRef, f, { contentType: f.type || 'image/jpeg' });
+    const contentType = (f as any).type || (ext === 'pdf' ? 'application/pdf' : `image/${ext === 'jpg' ? 'jpeg' : ext}`);
+    const task = uploadBytesResumable(storageRef, f, { contentType });
     await new Promise<void>((resolve, reject) => {
       task.on('state_changed', (snap) => {
         if (onProgress && snap.total > 0) onProgress(snap.bytesTransferred / snap.total);

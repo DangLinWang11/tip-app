@@ -8,7 +8,8 @@ const firebaseConfig = {
   apiKey: "AIzaSyBEzuZLNQo0SJ-zfq6IsBPbYKFj6NV6sAM",
   authDomain: "tip-sarasotav2.firebaseapp.com",
   projectId: "tip-sarasotav2",
-  storageBucket: "tip-sarasotav2.firebasestorage.app",
+  // storageBucket must be the bucket name, not a URL/domain
+  storageBucket: "tip-sarasotav2.appspot.com",
   messagingSenderId: "279316450534",
   appId: "1:279316450534:web:6386a22fe38591ef84ff27",
   measurementId: "G-9RQW6H7238"
