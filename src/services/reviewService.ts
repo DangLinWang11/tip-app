@@ -56,19 +56,36 @@ const CATEGORY_WEIGHTS: Record<string, number> = {
 };
 
 // Photo upload service
-export const uploadPhoto = async (file: File): Promise<string> => {
+export const uploadPhoto = async (file: File | Blob): Promise<string> => {
   try {
     // Generate unique filename
     const timestamp = Date.now();
     const randomString = Math.random().toString(36).substring(2, 15);
-    const fileExtension = file.name.split('.').pop() || 'jpg';
-    const fileName = `reviews/${timestamp}_${randomString}.${fileExtension}`;
+    const mimeToExt: Record<string, string> = {
+      'image/jpeg': 'jpg',
+      'image/jpg': 'jpg',
+      'image/png': 'png',
+      'image/webp': 'webp',
+      'image/heic': 'heic',
+      'image/heif': 'heif',
+      'video/mp4': 'mp4',
+      'application/pdf': 'pdf',
+    };
+
+    const maybeFile = file as File as { name?: string };
+    const rawName = typeof maybeFile?.name === 'string' ? maybeFile.name : '';
+    let ext = rawName && rawName.includes('.') ? (rawName.split('.').pop() || '').toLowerCase() : '';
+    if (!ext) {
+      ext = mimeToExt[(file as any).type] || 'jpg';
+    }
+    const fileName = `reviews/${timestamp}_${randomString}.${ext}`;
     
     // Create storage reference
     const storageRef = ref(storage, fileName);
     
     // Upload file
-    const snapshot = await uploadBytes(storageRef, file);
+    const contentType = (file as any).type || (ext === 'pdf' ? 'application/pdf' : `image/${ext === 'jpg' ? 'jpeg' : ext}`);
+    const snapshot = await uploadBytes(storageRef, file, { contentType });
     
     // Get download URL
     const downloadURL = await getDownloadURL(snapshot.ref);
@@ -81,7 +98,7 @@ export const uploadPhoto = async (file: File): Promise<string> => {
 };
 
 // Upload multiple photos
-export const uploadMultiplePhotos = async (files: File[]): Promise<string[]> => {
+export const uploadMultiplePhotos = async (files: (File | Blob)[]): Promise<string[]> => {
   try {
     const uploadPromises = files.map(file => uploadPhoto(file));
     const photoUrls = await Promise.all(uploadPromises);
