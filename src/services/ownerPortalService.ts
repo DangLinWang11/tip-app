@@ -27,9 +27,28 @@ export interface TopDishRow {
 export interface RecentPhotoItem { reviewId: string; url: string }
 
 export async function getOwnedRestaurants(uid: string): Promise<OwnedRestaurant[]> {
-  const q = query(collection(db, 'restaurants'), where('ownerIds', 'array-contains', uid));
-  const snap = await getDocs(q);
-  return snap.docs.map(d => ({ id: d.id, name: (d.data() as any).name, coverImage: (d.data() as any).coverImage }));
+  // Primary: new schema uses array field `ownerIds`
+  const q1 = query(collection(db, 'restaurants'), where('ownerIds', 'array-contains', uid));
+  // Fallback: older docs may use single `ownerUid`
+  const q2 = query(collection(db, 'restaurants'), where('ownerUid', '==', uid));
+
+  const [snap1, snap2] = await Promise.all([getDocs(q1), getDocs(q2)]);
+  const map = new Map<string, OwnedRestaurant>();
+  snap1.docs.forEach(d => {
+    const data = d.data() as any;
+    map.set(d.id, { id: d.id, name: data.name, coverImage: data.coverImage });
+  });
+  snap2.docs.forEach(d => {
+    const data = d.data() as any;
+    if (!map.has(d.id)) map.set(d.id, { id: d.id, name: data.name, coverImage: data.coverImage });
+  });
+
+  const list = Array.from(map.values());
+  if (import.meta.env.DEV) {
+    // Helpful debug in development to verify ownership resolution
+    console.log('[OwnerPortal] getOwnedRestaurants resolved', { uid, count: list.length, ids: list.map(r => r.id) });
+  }
+  return list;
 }
 
 export async function getUserClaims(uid: string) {

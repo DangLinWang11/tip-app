@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState, Suspense } from 'react';
+import { useLocation } from 'react-router-dom';
 import { getCurrentUser } from '../../lib/firebase';
 import { getOwnedRestaurants, fetchRestaurantKpis, submitOwnerClaim, getOrUpdateStatsCache } from '../../services/ownerPortalService';
 import RestaurantSwitcher from '../../components/owner/RestaurantSwitcher';
@@ -14,6 +15,7 @@ import { db } from '../../lib/firebase';
 import { uploadClaimProofs } from '../../services/claimsService';
 
 export default function OwnerPortal() {
+  const location = useLocation();
   const user = getCurrentUser();
   const [owned, setOwned] = useState<{ id: string; name: string }[]>([]);
   const [selected, setSelected] = useState<string | undefined>();
@@ -162,7 +164,11 @@ export default function OwnerPortal() {
   };
 
   if (!signedIn) {
-    const enc = encodeURIComponent('/owner?start=claim');
+    // Preserve any existing query string (e.g., start=claim, claim=ID) so
+    // we only deep-link into claim flow when explicitly requested.
+    const search = window.location.search || '';
+    const path = window.location.pathname || '/owner';
+    const enc = encodeURIComponent(`${path}${search}`);
     window.location.assign(`/login?redirect=${enc}`);
     return null;
   }
@@ -171,8 +177,12 @@ export default function OwnerPortal() {
     return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
   }
 
-  // If no owned restaurants, show claim UI
-  if (owned.length === 0 || showClaim) {
+  // Decide which surface to show
+  const forceDashboard = location.pathname.endsWith('/owner/dashboard') || (new URLSearchParams(location.search).get('start') === 'dashboard');
+  const shouldShowClaim = showClaim || (!forceDashboard && owned.length === 0);
+
+  // If no owned restaurants and not forcing dashboard, show claim UI
+  if (shouldShowClaim) {
     return (
       <div className="min-h-screen bg-slate-50 p-4">
         <div className="max-w-3xl mx-auto space-y-4">
@@ -255,6 +265,22 @@ export default function OwnerPortal() {
                 </div>
               )}
             </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // If dashboard explicitly requested but user has no ownerships, show an empty state
+  if (forceDashboard && owned.length === 0) {
+    return (
+      <div className="min-h-screen bg-slate-50 p-4">
+        <div className="max-w-3xl mx-auto space-y-4">
+          <div className="text-2xl font-bold text-slate-900">Owner Portal</div>
+          <div className="rounded-2xl border border-slate-200 bg-white p-6">
+            <div className="text-lg font-semibold text-slate-900 mb-2">No restaurants linked to your account</div>
+            <p className="text-sm text-slate-600 mb-4">To access analytics, first claim your restaurant.</p>
+            <a href="/owner?start=claim" className="inline-block rounded-xl bg-red-500 px-4 py-2 text-white text-sm">Claim my restaurant</a>
           </div>
         </div>
       </div>

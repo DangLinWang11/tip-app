@@ -13,9 +13,12 @@ export function useOwnedRestaurants() {
       if (!user) { setIds([]); return; }
       if (cache && cache.uid === user.uid) { setIds(cache.ids); return; }
       try {
-        const qy = query(collection(db, 'restaurants'), where('ownerIds', 'array-contains', user.uid));
-        const snap = await getDocs(qy);
-        const list = snap.docs.map(d => d.id);
+        // Primary + fallback
+        const q1 = query(collection(db, 'restaurants'), where('ownerIds', 'array-contains', user.uid));
+        const q2 = query(collection(db, 'restaurants'), where('ownerUid', '==', user.uid));
+        const [s1, s2] = await Promise.all([getDocs(q1), getDocs(q2)]);
+        const set = new Set<string>([...s1.docs.map(d => d.id), ...s2.docs.map(d => d.id)]);
+        const list = Array.from(set);
         cache = { uid: user.uid, ids: list };
         setIds(list);
       } catch {
@@ -26,4 +29,3 @@ export function useOwnedRestaurants() {
 
   return { ownedRestaurantIds: ids, ownsAny: ids.length > 0 };
 }
-

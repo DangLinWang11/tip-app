@@ -33,6 +33,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, needsUsernameOnly =
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isSignInMode, setIsSignInMode] = useState(false);
+  const [redirectAfterAuth, setRedirectAfterAuth] = useState<string | null>(null);
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [authError, setAuthError] = useState('');
   // Swipe tabs for the auth step
@@ -77,8 +78,8 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, needsUsernameOnly =
         // Update last login
         await updateLastLogin();
         
-        // Move to username step
-        // App.tsx will handle checking if profile exists via onAuthStateChanged
+        // Move to username step (for new users). App.tsx will switch
+        // to main app for existing users; RedirectAfterLogin uses ?redirect.
         setStep(2);
       } else {
         setAuthError(result.error || 'Authentication failed');
@@ -103,8 +104,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, needsUsernameOnly =
         // Update last login
         await updateLastLogin();
         
-        // Move to username step
-        // App.tsx will handle checking if profile exists via onAuthStateChanged
+        // Move to username step; main app + RedirectAfterLogin will handle redirect.
         setStep(2);
       } else {
         setAuthError(result.error || 'Google sign-in failed');
@@ -357,18 +357,44 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, needsUsernameOnly =
   };
 
   const encodeRedirect = (path: string) => `/login?redirect=${encodeURIComponent(path)}`;
+  const setRedirectQueryParam = (path: string) => {
+    const sp = new URLSearchParams(location.search);
+    sp.set('redirect', path);
+    const base = window.location.pathname;
+    const newUrl = `${base}?${sp.toString()}`;
+    window.history.replaceState({}, '', newUrl);
+    setRedirectAfterAuth(path);
+  };
   const isAuthed = !!auth.currentUser;
   const goOwner = () => {
-    const target = '/owner';
+    const target = '/owner/dashboard';
     try { if (analytics) logEvent(analytics as any, 'owner_entry', { source: 'onboarding', variant: 'owner' }); } catch {}
-    if (isAuthed) navigate(target); else navigate(encodeRedirect(target));
+    if (isAuthed) {
+      navigate(target);
+      return;
+    }
+    // Unauthed: open the auth panel inline and prepare redirect to Owner Portal
+    setStep(1);
+    setActiveTab(0);
+    tabsRef.current?.scrollTo({ left: 0, behavior: 'smooth' });
+    setIsSignInMode(true);
+    setRedirectQueryParam(target);
   };
   const goClaim = () => {
     const params = new URLSearchParams(location.search);
     const claimId = params.get('claim');
     const target = claimId ? `/owner?start=claim&claim=${claimId}` : '/owner?start=claim';
     try { if (analytics) logEvent(analytics as any, 'owner_entry', { source: 'onboarding', variant: 'claim' }); } catch {}
-    if (isAuthed) navigate(target); else navigate(encodeRedirect(target));
+    if (isAuthed) {
+      navigate(target);
+      return;
+    }
+    // Unauthed: open the auth panel inline and prepare redirect to Claim flow
+    setStep(1);
+    setActiveTab(0);
+    tabsRef.current?.scrollTo({ left: 0, behavior: 'smooth' });
+    setIsSignInMode(true);
+    setRedirectQueryParam(target);
   };
 
   return (

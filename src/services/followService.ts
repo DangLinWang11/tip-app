@@ -1,16 +1,17 @@
-import { 
-  collection, 
-  doc, 
-  addDoc, 
-  deleteDoc, 
-  query, 
-  where, 
-  getDocs, 
-  updateDoc, 
+import {
+  collection,
+  doc,
+  addDoc,
+  deleteDoc,
+  query,
+  where,
+  getDocs,
+  updateDoc,
   increment,
   getDoc,
   orderBy,
-  limit
+  limit,
+  getCountFromServer
 } from 'firebase/firestore';
 import { db, getCurrentUser } from '../lib/firebase';
 
@@ -67,28 +68,6 @@ export const followUser = async (targetUserId: string, targetUsername: string): 
       timestamp: new Date()
     });
 
-    // Update follower count for target user
-    const targetUserRef = doc(db, 'users', targetUserId);
-    const targetUserDoc = await getDoc(targetUserRef);
-    const currentFollowerCount = targetUserDoc.exists() 
-      ? (targetUserDoc.data().stats?.followers || 0) 
-      : 0;
-    
-    await updateDoc(targetUserRef, {
-      'stats.followers': Math.max(0, currentFollowerCount + 1)
-    });
-
-    // Update following count for current user
-    const currentUserRef = doc(db, 'users', currentUser.uid);
-    const currentUserDoc = await getDoc(currentUserRef);
-    const currentFollowingCount = currentUserDoc.exists() 
-      ? (currentUserDoc.data().stats?.following || 0) 
-      : 0;
-    
-    await updateDoc(currentUserRef, {
-      'stats.following': Math.max(0, currentFollowingCount + 1)
-    });
-
     return true;
   } catch (error) {
     console.error('Error following user:', error);
@@ -115,28 +94,6 @@ export const unfollowUser = async (targetUserId: string): Promise<boolean> => {
 
     // Delete the follow document
     await deleteDoc(snapshot.docs[0].ref);
-
-    // Update follower count for target user
-    const targetUserRef = doc(db, 'users', targetUserId);
-    const targetUserDoc = await getDoc(targetUserRef);
-    const currentFollowerCount = targetUserDoc.exists() 
-      ? (targetUserDoc.data().stats?.followers || 0) 
-      : 0;
-    
-    await updateDoc(targetUserRef, {
-      'stats.followers': Math.max(0, currentFollowerCount - 1)
-    });
-
-    // Update following count for current user
-    const currentUserRef = doc(db, 'users', currentUser.uid);
-    const currentUserDoc = await getDoc(currentUserRef);
-    const currentFollowingCount = currentUserDoc.exists() 
-      ? (currentUserDoc.data().stats?.following || 0) 
-      : 0;
-    
-    await updateDoc(currentUserRef, {
-      'stats.following': Math.max(0, currentFollowingCount - 1)
-    });
 
     return true;
   } catch (error) {
@@ -198,18 +155,18 @@ export const getFollowers = async (userId?: string): Promise<Follow[]> => {
 // Get follow counts for a user
 export const getFollowCounts = async (userId: string): Promise<FollowCounts> => {
   try {
-    const userRef = doc(db, 'users', userId);
-    const userDoc = await getDoc(userRef);
-    
-    if (userDoc.exists()) {
-      const userData = userDoc.data();
-      return {
-        following: userData.stats?.following || 0,
-        followers: userData.stats?.followers || 0
-      };
-    }
-    
-    return { following: 0, followers: 0 };
+    // Followers = count of follows where followingId == userId
+    const followersQ = query(collection(db, 'follows'), where('followingId', '==', userId));
+    const followersSnap = await getCountFromServer(followersQ);
+
+    // Following = count of follows where followerId == userId
+    const followingQ = query(collection(db, 'follows'), where('followerId', '==', userId));
+    const followingSnap = await getCountFromServer(followingQ);
+
+    return {
+      followers: Number(followersSnap.data().count || 0),
+      following: Number(followingSnap.data().count || 0)
+    };
   } catch (error) {
     console.error('Error getting follow counts:', error);
     return { following: 0, followers: 0 };
