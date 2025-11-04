@@ -1,0 +1,63 @@
+﻿src\components\FoodJourneyDialog.tsx:87:      className="fixed inset-0 z-[9999] bg-black/45 pointer-events-auto overscroll-contain"
+src\components\FoodJourneyDialog.tsx:94:        className="fixed left-4 right-4 top-20 bottom-6 bg-white rounded-2xl shadow-2xl pointer-events-auto flex flex-col overflow-hidden focus:outline-none"
+src\components\FoodJourneyDialog.tsx:117:            <div className="absolute inset-0 grid place-items-center">
+src\pages\Discover.tsx:182:      <header className="bg-white fixed top-0 left-0 right-0 z-50 px-4 py-3 shadow-sm" style={{overscrollBehavior: 'none', touchAction: 'none'}}>
+src\components\ExpandedMapModal.tsx:58:      className="fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center py-12 p-2 overscroll-contain"
+src\components\ExpandedMapModal.tsx:72:        <div className="absolute top-0 left-0 right-0 z-10 bg-white/95 backdrop-blur-sm border-b border-gray-200 p-4 flex items-center justify-between">
+src\components\EditListNameModal.tsx:66:    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+src\components\ImageGrid.tsx:15:  return <div className="grid grid-cols-2 gap-2">
+src\components\FeedPost.tsx:751:          className="fixed inset-0 z-[60] flex items-end justify-center bg-black/40"
+src\components\LocationPickerModal.tsx:281:          position: 'fixed',
+src\components\ReceiptUploadModal.tsx:47:      className="fixed inset-0 z-[70] flex items-end justify-center bg-black/40 backdrop-blur-sm"
+src\components\BottomNavigation.tsx:7:    <nav className="fixed inset-x-0 bottom-0 border-t bg-white/90 backdrop-blur supports-[backdrop-filter]:bg-white/60 z-50 pb-[calc(env(safe-area-inset-bottom)+16px)]">
+src\components\BottomNavigation.tsx:8:      <ul className="grid grid-cols-4">
+src\components\HamburgerMenu.tsx:13:    <div className="fixed inset-0 bg-black bg-opacity-50 z-[110] flex items-center justify-center p-4">
+src\components\HamburgerMenu.tsx:104:    <div className="fixed inset-0 bg-black bg-opacity-50 z-[110] flex items-center justify-center p-4">
+src\components\HamburgerMenu.tsx:240:          className="fixed inset-0 bg-black bg-opacity-50 z-[90]"
+src\pages\AdminUpload.tsx:225:              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+src\pages\AdminUpload.tsx:255:              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+src\components\SaveToListModal.tsx:220:    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+src\components\owner\cards\KpiCards.tsx:25:    <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+src\components\UserRestaurantModal.tsx:65:      className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
+src\pages\Notifications.tsx:22:      <header className="bg-white sticky top-0 z-10 shadow-sm">
+src\pages\FoodMap.tsx:216:        <div className="grid grid-cols-4 gap-3 mb-6">
+src\pages\DiscoverList.tsx:447:      <header className="bg-white sticky top-0 z-10 px-4 py-3 shadow-sm">
+src\pages\RestaurantDetail.tsx:503:          <div className="grid grid-cols-3 gap-1">
+src\pages\RestaurantDetail.tsx:515:          <div className="grid grid-cols-3 gap-1">
+src\pages\RestaurantDetail.tsx:651:        <div className="fixed bottom-20 inset-x-0 flex justify-center z-[60]">
+src\pages\EditProfile.tsx:513:        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+src\pages\Home.tsx:302:        <div className="fixed top-3 inset-x-0 flex items-center justify-center z-50 pointer-events-none">
+src\pages\PostDetail.tsx:207:      <div className="bg-white border-b border-gray-200 sticky top-0 z-50">
+src\pages\admin\ReviewVerification.tsx:148:          <table className="min-w-full text-sm">
+src\pages\admin\ReviewVerification.tsx:208:          </table>
+src\pages\admin\ReviewVerification.tsx:211:          <div className="fixed bottom-4 right-4 rounded-xl bg-black/80 text-white text-sm px-3 py-2">{toast}</div>
+src\pages\MenuDetail.tsx:283:      <header className="bg-white sticky top-0 z-10 shadow-sm p-4">
+src\pages\MenuDetail.tsx:390:          <div className="grid grid-cols-3 gap-1">
+src\pages\MenuDetail.tsx:570:          <div className="grid grid-cols-2 gap-3">
+src\pages\MenuDetail.tsx:613:        <div className="fixed bottom-20 inset-x-0 flex justify-center z-[60]">
+src\components\reviews\CreateRestaurantModal.tsx:100:    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+src\pages\PublicProfile.tsx:302:          <div className="grid grid-cols-2 gap-3 pt-4 border-t border-gray-100">
+src\pages\Onboarding.tsx:481:                    <div className="mt-3 grid gap-2">
+src\pages\Onboarding.tsx:575:        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+src\pages\admin\ClaimsReview.tsx:104:          <table className="min-w-full text-sm">
+src\pages\admin\ClaimsReview.tsx:155:          </table>
+src\pages\admin\ClaimsReview.tsx:158:          <div className="fixed bottom-4 right-4 rounded-xl bg-black/80 text-white text-sm px-3 py-2">{toast}</div>
+src\components\reviews\RewardToast.tsx:32:          className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50"
+src\components\reviews\AddDishInline.tsx:93:      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+src\components\reviews\Step1Basic.tsx:214:        <div className="mt-4 grid gap-4">
+src\components\reviews\Step1Basic.tsx:225:            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+src\components\reviews\Step1Basic.tsx:291:            <div className="grid gap-2">
+src\components\reviews\Step1Basic.tsx:338:            <div className="grid gap-2">
+src\components\reviews\Step1Basic.tsx:386:          <div className="pt-2 grid gap-2">
+src\components\owner\RecentPhotos.tsx:11:      <div className="grid grid-cols-3 gap-2">
+src\pages\Profile.tsx:523:      <header className="bg-white p-4 sticky top-0 z-10 shadow-sm">
+src\pages\Profile.tsx:623:          <div className="grid grid-cols-2 gap-3">
+src\components\reviews\Step3Compare.tsx:216:        <div className="grid gap-3 sm:grid-cols-2">
+src\components\reviews\Step3Compare.tsx:266:            <div className="grid gap-2">
+src\components\reviews\Step3Compare.tsx:285:            <div className="grid gap-2">
+src\components\owner\TopDishes.tsx:12:        <div className="grid grid-cols-6 py-2 text-xs font-medium text-slate-600">
+src\components\owner\TopDishes.tsx:19:          <div key={i} className="grid grid-cols-6 py-2 text-sm">
+src\components\reviews\Wizard.tsx:641:        <div className="sticky top-0 z-10 bg-white/90 backdrop-blur supports-[backdrop-filter]:bg-white/70">
+src\pages\owner\OwnerPortal.tsx:193:            <div className="grid gap-3">
+src\pages\owner\OwnerPortal.tsx:310:            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+src\pages\owner\OwnerPortal.tsx:320:            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">

@@ -1,0 +1,10 @@
+﻿src\pages\MenuDetail.tsx:2:import { useParams, Link, useNavigate } from 'react-router-dom';
+src\pages\MenuDetail.tsx:52:  const { id } = useParams<{ id: string }>();
+src\pages\ListDetail.tsx:2:import { useParams, useNavigate } from 'react-router-dom';
+src\pages\ListDetail.tsx:49:  const { id } = useParams<{ id: string }>();
+src\pages\PostDetail.tsx:2:import { useParams, useNavigate } from 'react-router-dom';
+src\pages\PostDetail.tsx:20:  const { postId } = useParams<{ postId: string }>();
+src\pages\PublicProfile.tsx:3:import { useNavigate, useParams } from 'react-router-dom';
+src\pages\PublicProfile.tsx:11:  const { username } = useParams<{ username: string }>();
+src\pages\RestaurantDetail.tsx:2:import { useParams, Link } from 'react-router-dom';
+src\pages\RestaurantDetail.tsx:55:  } = useParams<{

@@ -760,7 +760,7 @@ const Profile: React.FC = () => {
           ) : (
             <div className="space-y-3">
               {filteredPosts.map(post => (
-                <FeedPost key={post.id} {...post} />
+                <FeedPost key={post.id} {...post} showPendingVerification />
               ))}
             </div>
           )}

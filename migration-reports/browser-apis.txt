@@ -1,0 +1,176 @@
+﻿src\App.tsx:34:  (window as any).runBackfillSoftDelete = runBackfillSoftDelete;
+src\App.tsx:35:  (window as any).runBackfillCuisines = runBackfillCuisines;
+src\App.tsx:36:  (window as any).undeleteAllReviews = undeleteAllReviews;
+src\App.tsx:209:      const sp = new URLSearchParams(window.location.search);
+src\App.tsx:214:        const base = window.location.origin + window.location.pathname;
+src\App.tsx:217:        window.history.replaceState({}, '', newUrl);
+src\App.tsx:218:        window.location.assign(redirect);
+src\index.tsx:5:render(<App />, document.getElementById("root"));
+src\contexts\LocationContext.tsx:33:    const permissionRequested = localStorage.getItem('locationPermissionRequested');
+src\contexts\LocationContext.tsx:39:    // Listen for localStorage changes
+src\contexts\LocationContext.tsx:41:      const permissionRequested = localStorage.getItem('locationPermissionRequested');
+src\contexts\LocationContext.tsx:47:    window.addEventListener('storage', handleStorageChange);
+src\contexts\LocationContext.tsx:48:    return () => window.removeEventListener('storage', handleStorageChange);
+src\contexts\LocationContext.tsx:52:    if (!navigator.geolocation) {
+src\contexts\LocationContext.tsx:58:      const permission = await navigator.permissions.query({ name: 'geolocation' });
+src\contexts\LocationContext.tsx:70:    if (!navigator.geolocation) {
+src\contexts\LocationContext.tsx:80:        navigator.geolocation.getCurrentPosition(resolve, reject, {
+src\contexts\LocationContext.tsx:93:      localStorage.setItem('locationPermissionRequested', 'true');
+src\contexts\LocationContext.tsx:100:      localStorage.setItem('locationPermissionRequested', 'true');
+src\contexts\LocationContext.tsx:126:    if (!navigator.geolocation) {
+src\contexts\LocationContext.tsx:141:        navigator.geolocation.getCurrentPosition(resolve, reject, {
+src\lib\firebase.ts:66:if (typeof window !== 'undefined') {
+src\lib\firebase.ts:81:if (typeof window !== 'undefined' && auth) {
+src\components\ExpandedMapModal.tsx:19:    document.body.style.overflow = '';
+src\components\ExpandedMapModal.tsx:20:    document.documentElement.style.overflow = '';
+src\components\ExpandedMapModal.tsx:39:    const originalBodyOverflow = document.body.style.overflow;
+src\components\ExpandedMapModal.tsx:40:    const originalHtmlOverflow = document.documentElement.style.overflow;
+src\components\ExpandedMapModal.tsx:43:      document.addEventListener('keydown', handleEscape);
+src\components\ExpandedMapModal.tsx:45:      document.body.style.overflow = 'hidden';
+src\components\ExpandedMapModal.tsx:46:      document.documentElement.style.overflow = 'hidden';
+src\components\ExpandedMapModal.tsx:50:      document.removeEventListener('keydown', handleEscape);
+src\components\ExpandedMapModal.tsx:51:      document.body.style.overflow = originalBodyOverflow || '';
+src\components\ExpandedMapModal.tsx:52:      document.documentElement.style.overflow = originalHtmlOverflow || '';
+src\lib\i18n\useI18n.ts:48:  if (typeof window === 'undefined') return 'en';
+src\lib\i18n\useI18n.ts:49:  const fromStorage = window.localStorage.getItem(STORAGE_KEY);
+src\lib\i18n\useI18n.ts:53:  const browserLang = window.navigator.language?.slice(0, 2);
+src\lib\i18n\useI18n.ts:65:    if (typeof window !== 'undefined') {
+src\lib\i18n\useI18n.ts:66:      window.localStorage.setItem(STORAGE_KEY, locale);
+src\services\followService.ts:95:    // Delete the follow document
+src\lib\media.ts:65:  const canvas = document.createElement('canvas');
+src\lib\media.ts:105:    const video = document.createElement('video');
+src\lib\media.ts:127:    const video = document.createElement('video');
+src\lib\media.ts:142:      const canvas = document.createElement('canvas');
+src\pages\Discover.tsx:143:    if (!navigator.geolocation) {
+src\pages\Discover.tsx:148:    navigator.geolocation.getCurrentPosition(
+src\pages\Discover.tsx:239:                onClick={() => window.location.reload()} 
+src\components\FeedPost.tsx:50:  id: string; // This should be the review document ID from Firebase
+src\components\FeedPost.tsx:88:  id, // Review document ID from Firebase
+src\components\FeedPost.tsx:343:    const confirmed = window.confirm('Are you sure you want to delete this post? This action cannot be undone.');
+src\components\FeedPost.tsx:362:      window.location.reload();
+src\components\FeedPost.tsx:731:                    if (navigator.share) {
+src\components\FeedPost.tsx:732:                      navigator.share({
+src\components\FeedPost.tsx:735:                        url: window.location.href
+src\components\FeedPost.tsx:769:                    url: window.location.origin + `/post/${id}`,
+src\components\FeedPost.tsx:771:                  if (navigator.share) {
+src\components\FeedPost.tsx:772:                    navigator.share(shareData).catch(() => {});
+src\components\FeedPost.tsx:774:                    navigator.clipboard?.writeText(shareData.url).then(() => {
+src\components\FeedPost.tsx:788:                  const reason = window.prompt('Report reason (spam, inappropriate, incorrect info):');
+src\components\FeedPost.tsx:790:                  const details = window.prompt('Optional details for our team:') || '';
+src\services\ownerPortalService.ts:87:  // Current window
+src\services\ownerPortalService.ts:97:  // Previous window
+src\services\ownerPortalService.ts:107:  // Aggregate current window
+src\pages\DiscoverList.tsx:524:              onClick={() => window.location.reload()}
+src\components\FoodJourneyDialog.tsx:25:    const originalBodyOverflow = document.body.style.overflow;
+src\components\FoodJourneyDialog.tsx:26:    const originalHtmlOverflow = document.documentElement.style.overflow;
+src\components\FoodJourneyDialog.tsx:28:      document.body.style.overflow = 'hidden';
+src\components\FoodJourneyDialog.tsx:29:      document.documentElement.style.overflow = 'hidden';
+src\components\FoodJourneyDialog.tsx:32:      document.body.style.overflow = originalBodyOverflow || '';
+src\components\FoodJourneyDialog.tsx:33:      document.documentElement.style.overflow = originalHtmlOverflow || '';
+src\services\reviewService.ts:226:  // Create new restaurant document
+src\services\reviewService.ts:442:    // Step 3: Create review document with proper linking
+src\services\reviewService.ts:560:      // Update the restaurant document with the new quality score
+src\components\HamburgerMenu.tsx:211:    const ok = window.confirm('Are you sure you want to log out?');
+src\components\Layout.tsx:7:    document.body.style.overflow = '';
+src\components\Layout.tsx:8:    document.documentElement.style.overflow = '';
+src\pages\Home.tsx:52:      const url = new URL(window.location.href);
+src\pages\Home.tsx:264:        if (window.scrollY <= 0) {
+src\pages\Home.tsx:422:                onClick={() => window.location.reload()} 
+src\pages\ListDetail.tsx:306:      const shareUrl = `${window.location.origin}/list/${id}`;
+src\pages\ListDetail.tsx:313:      if (navigator.share) {
+src\pages\ListDetail.tsx:314:        await navigator.share(shareData);
+src\pages\ListDetail.tsx:317:        await navigator.clipboard.writeText(shareUrl);
+src\pages\ListDetail.tsx:323:        const shareUrl = `${window.location.origin}/list/${id}`;
+src\pages\ListDetail.tsx:324:        await navigator.clipboard.writeText(shareUrl);
+src\components\LocationPickerModal.tsx:36:      const newMap = new window.google.maps.Map(ref.current, {
+src\components\LocationPickerModal.tsx:79:      const marker = new window.google.maps.Marker({
+src\components\LocationPickerModal.tsx:83:          path: window.google.maps.SymbolPath.CIRCLE,
+src\components\LocationPickerModal.tsx:101:    if (navigator.geolocation) {
+src\components\LocationPickerModal.tsx:102:      navigator.geolocation.getCurrentPosition(
+src\components\LocationPickerModal.tsx:200:      if (navigator.geolocation) {
+src\components\LocationPickerModal.tsx:201:        navigator.geolocation.getCurrentPosition(
+src\pages\MenuDetail.tsx:368:                  url: window.location.href
+src\pages\MenuDetail.tsx:370:                if (navigator.share) {
+src\pages\MenuDetail.tsx:371:                  (navigator as any).share(shareData).catch(() => {/* ignore */});
+src\pages\MenuDetail.tsx:373:                  (navigator.clipboard as any)?.writeText(window.location.href);
+src\components\RatingSlider.tsx:77:    document.addEventListener('mousemove', handleGlobalMouseMove);
+src\components\RatingSlider.tsx:78:    document.addEventListener('mouseup', handleGlobalMouseUp);
+src\components\RatingSlider.tsx:79:    document.addEventListener('touchmove', handleGlobalTouchMove, { passive: false });
+src\components\RatingSlider.tsx:80:    document.addEventListener('touchend', handleGlobalTouchEnd);
+src\components\RatingSlider.tsx:83:      document.removeEventListener('mousemove', handleGlobalMouseMove);
+src\components\RatingSlider.tsx:84:      document.removeEventListener('mouseup', handleGlobalMouseUp);
+src\components\RatingSlider.tsx:85:      document.removeEventListener('touchmove', handleGlobalTouchMove);
+src\components\RatingSlider.tsx:86:      document.removeEventListener('touchend', handleGlobalTouchEnd);
+src\pages\Onboarding.tsx:302:            const sp = new URLSearchParams(window.location.search);
+src\pages\Onboarding.tsx:307:              const base = window.location.origin + window.location.pathname;
+src\pages\Onboarding.tsx:310:              window.history.replaceState({}, '', newUrl);
+src\pages\Onboarding.tsx:311:              window.location.assign(redirect);
+src\pages\Onboarding.tsx:363:    const base = window.location.pathname;
+src\pages\Onboarding.tsx:365:    window.history.replaceState({}, '', newUrl);
+src\pages\PostDetail.tsx:76:        // Fetch the review document from Firestore
+src\pages\PostDetail.tsx:167:    if (navigator.share) {
+src\pages\PostDetail.tsx:168:      navigator.share({
+src\pages\PostDetail.tsx:171:        url: window.location.href
+src\pages\owner\OwnerPortal.tsx:42:    const sp = new URLSearchParams(window.location.search);
+src\pages\owner\OwnerPortal.tsx:53:        document.getElementById('claim-panel')?.scrollIntoView({ behavior: 'smooth' });
+src\pages\owner\OwnerPortal.tsx:169:    const search = window.location.search || '';
+src\pages\owner\OwnerPortal.tsx:170:    const path = window.location.pathname || '/owner';
+src\pages\owner\OwnerPortal.tsx:172:    window.location.assign(`/login?redirect=${enc}`);
+src\components\RestaurantMap.tsx:153:      const newMap = new window.google.maps.Map(ref.current, {
+src\components\RestaurantMap.tsx:192:      const marker = new window.google.maps.Marker({
+src\components\RestaurantMap.tsx:196:          path: window.google.maps.SymbolPath.CIRCLE,
+src\components\RestaurantMap.tsx:219:      // Make onRestaurantClick and onDishClick available globally for info window clicks
+src\components\RestaurantMap.tsx:220:      (window as any).onRestaurantClick = onRestaurantClick;
+src\components\RestaurantMap.tsx:221:      (window as any).onDishClick = onDishClick;
+src\components\RestaurantMap.tsx:228:          const marker = new window.google.maps.Marker({
+src\components\RestaurantMap.tsx:235:              scaledSize: new window.google.maps.Size(40, 50),
+src\components\RestaurantMap.tsx:236:              anchor: new window.google.maps.Point(20, 50)
+src\components\RestaurantMap.tsx:242:          const infoWindow = new window.google.maps.InfoWindow({
+src\components\RestaurantMap.tsx:247:                  <h3 style="margin: 0 0 8px 0; font-size: 16px; font-weight: 600; cursor: pointer; color: #0066cc;" onclick="window.onRestaurantClick('${restaurant.id}')">${restaurant.name}</h3>
+src\components\RestaurantMap.tsx:285:          const marker = new window.google.maps.Marker({
+src\components\RestaurantMap.tsx:290:              scaledSize: new window.google.maps.Size(40, 50),
+src\components\RestaurantMap.tsx:291:              anchor: new window.google.maps.Point(20, 50)
+src\components\RestaurantMap.tsx:297:          const infoWindow = new window.google.maps.InfoWindow({
+src\components\RestaurantMap.tsx:300:                <h3 style="margin: 0 0 8px 0; font-size: 16px; font-weight: 600; cursor: pointer; color: #0066cc;" onclick="window.onDishClick('${dish.id}')">${dish.name}</h3>
+src\components\RestaurantMap.tsx:305:                  <span style="color: #0066cc; font-size: 14px; cursor: pointer;" onclick="window.onRestaurantClick('${dish.restaurantId}')">${dish.restaurantName}</span>
+src\components\RestaurantMap.tsx:331:        const bounds = new window.google.maps.LatLngBounds();
+src\components\RestaurantMap.tsx:337:        const bounds = new window.google.maps.LatLngBounds();
+src\components\RestaurantMap.tsx:349:    if (!navigator.geolocation) {
+src\components\RestaurantMap.tsx:353:    navigator.geolocation.getCurrentPosition(
+src\pages\Profile.tsx:83:        const shareUrl = `${window.location.origin}/list/${result.shareCode}`;
+src\pages\Profile.tsx:85:        if (navigator.share) {
+src\pages\Profile.tsx:86:          await navigator.share({
+src\pages\Profile.tsx:92:          await navigator.clipboard.writeText(shareUrl);
+src\pages\Profile.tsx:365:      if (!document.hidden) {
+src\pages\Profile.tsx:370:    document.addEventListener('visibilitychange', handleVisibilityChange);
+src\pages\Profile.tsx:373:      document.removeEventListener('visibilitychange', handleVisibilityChange);
+src\pages\Profile.tsx:380:      const shareUrl = `${window.location.origin}/profile/${userProfile.username}`;
+src\pages\Profile.tsx:387:      if (navigator.share) {
+src\pages\Profile.tsx:388:        await navigator.share(shareData);
+src\pages\Profile.tsx:391:        await navigator.clipboard.writeText(shareUrl);
+src\pages\Profile.tsx:398:        const shareUrl = `${window.location.origin}/profile/${userProfile.username}`;
+src\pages\Profile.tsx:399:        await navigator.clipboard.writeText(shareUrl);
+src\pages\Profile.tsx:511:            onClick={() => window.location.reload()} 
+src\pages\PublicProfile.tsx:103:      const shareUrl = `${window.location.origin}/profile/${username}`;
+src\pages\PublicProfile.tsx:110:      if (navigator.share) {
+src\pages\PublicProfile.tsx:111:        await navigator.share(shareData);
+src\pages\PublicProfile.tsx:114:        await navigator.clipboard.writeText(shareUrl);
+src\pages\PublicProfile.tsx:121:        const shareUrl = `${window.location.origin}/profile/${username}`;
+src\pages\PublicProfile.tsx:122:        await navigator.clipboard.writeText(shareUrl);
+src\pages\RestaurantDetail.tsx:331:                url: window.location.href
+src\pages\RestaurantDetail.tsx:333:              if (navigator.share) {
+src\pages\RestaurantDetail.tsx:334:                navigator.share(shareData).catch(() => {/* ignore */});
+src\pages\RestaurantDetail.tsx:336:                navigator.clipboard?.writeText(window.location.href);
+src\components\UserJourneyMap.tsx:96:            onClick={() => window.location.reload()} 
+src\components\UserJourneyMap.tsx:119:            onClick={() => window.location.href = '/create'} 
+src\pages\Rewards.tsx:179:           onClick={() => window.location.reload()} 
+src\components\reviews\RewardToast.tsx:20:    const handle = window.setTimeout(onDismiss, timeout);
+src\components\reviews\RewardToast.tsx:21:    return () => window.clearTimeout(handle);
+src\components\reviews\Wizard.tsx:257:          const stored = localStorage.getItem(buildStorageKey(userId, restaurant.id));
+src\components\reviews\Wizard.tsx:296:      const stored = localStorage.getItem(buildStorageKey(userId, null));
+src\components\reviews\Wizard.tsx:313:        localStorage.removeItem(lastStorageKeyRef.current);
+src\components\reviews\Wizard.tsx:320:    window.clearTimeout(autosaveTimeout.current);
+src\components\reviews\Wizard.tsx:322:    autosaveTimeout.current = window.setTimeout(() => {
+src\components\reviews\Wizard.tsx:324:        localStorage.setItem(key, JSON.stringify(draft));
+src\components\reviews\Wizard.tsx:332:    return () => window.clearTimeout(autosaveTimeout.current);
+src\components\reviews\Wizard.tsx:578:      localStorage.removeItem(buildStorageKey(userId, draft.restaurantId));

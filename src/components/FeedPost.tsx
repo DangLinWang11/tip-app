@@ -82,6 +82,9 @@ interface FeedPostProps {
   };
   // Optional tag slugs array associated with the review
   tags?: string[];
+  // When true, show the "Pending verification" badge.
+  // Used for a user's own profile page only.
+  showPendingVerification?: boolean;
 }
 
 const FeedPost: React.FC<FeedPostProps> = ({
@@ -96,7 +99,8 @@ const FeedPost: React.FC<FeedPostProps> = ({
   dish,
   review,
   engagement,
-  tags
+  tags,
+  showPendingVerification = false
 }) => {
   // Log all IDs received by FeedPost component
   console.log('ðŸ“ [FeedPost] Component initialized with IDs:', {
@@ -536,7 +540,9 @@ const FeedPost: React.FC<FeedPostProps> = ({
 
       {/* Content */}
       <div className="px-4 pb-4">
-        {/* Verification badge (if present) */}
+        {/* Verification badge (if present)
+            Only show "Pending verification" on a user's own profile view.
+        */}
         {(() => {
           const state = (currentItem.review as any)?.verification?.state as string | undefined;
           if (!state) return null;
@@ -547,6 +553,9 @@ const FeedPost: React.FC<FeedPostProps> = ({
             unverified: { label: 'Unverified', cls: 'bg-slate-50 text-slate-600 border-slate-200' },
             rejected: { label: 'Rejected', cls: 'bg-rose-50 text-rose-700 border-rose-200' },
           };
+          const isPending = state === 'pending_proof' || state === 'pending_review';
+          // Hide pending badges unless the caller (Profile page) opts in
+          if (isPending && !showPendingVerification) return null;
           const meta = map[state] || map['unverified'];
           return (
             <div className="flex items-center gap-2 mb-2">
