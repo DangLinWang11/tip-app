@@ -123,7 +123,7 @@ const MapComponent: React.FC<MapComponentProps> = ({
         onClick={handleMyLocationClick}
         style={{
           position: 'absolute',
-          bottom: '200px',
+          bottom: 'calc(68px + env(safe-area-inset-bottom) + 80px)',
           right: '16px',
           width: '48px',
           height: '48px',
@@ -135,7 +135,7 @@ const MapComponent: React.FC<MapComponentProps> = ({
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          zIndex: 10
+          zIndex: 60
         }}
         title="My Location"
       >
@@ -297,7 +297,7 @@ const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
             width: '100vw',
             height: '100vh',
             backgroundColor: 'white',
-            overflow: 'hidden'
+            overflow: 'visible'
           }}
           onClick={(e) => e.stopPropagation()}
         >
@@ -348,10 +348,10 @@ const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
 
           <div style={{
             position: 'absolute',
-            bottom: '32px',
+            bottom: 'calc(68px + env(safe-area-inset-bottom) + 16px)',
             left: '16px',
             right: '16px',
-            zIndex: 20
+            zIndex: 60
           }}>
             <div style={{
               backgroundColor: 'white',

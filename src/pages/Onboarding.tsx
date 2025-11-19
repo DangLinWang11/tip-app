@@ -530,9 +530,18 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, needsUsernameOnly =
 
         {step === 2 && (
           <>
-            <h1 className="text-3xl font-bold mb-6 text-center">
-              Create your profile
-            </h1>
+            <div className="w-full mb-6 flex items-center justify-between">
+              <button
+                onClick={() => setStep(1)}
+                className="text-gray-600 hover:text-gray-800 font-medium text-sm transition-colors"
+              >
+                ← Back
+              </button>
+              <h1 className="text-3xl font-bold text-center flex-1">
+                Create your profile
+              </h1>
+              <div className="w-12"></div>
+            </div>
             <div className="w-full mb-6">
               <label className="block text-sm font-medium mb-2">Username</label>
               <div className="flex items-center">
