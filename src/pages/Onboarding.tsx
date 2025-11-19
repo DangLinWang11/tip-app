@@ -27,7 +27,7 @@ interface CropPosition {
   scale: number;
 }
 
-const PREVIEW_SIZE = 256;
+const PREVIEW_SIZE = 400;
 
 const Onboarding: React.FC<OnboardingProps> = ({ onComplete, needsUsernameOnly = false }) => {
   const [step, setStep] = useState(needsUsernameOnly ? 2 : 0); // Start at username if already authenticated
@@ -241,29 +241,27 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, needsUsernameOnly =
 
       const img = new Image();
       img.onload = () => {
-        const size = 400;
+        const size = PREVIEW_SIZE;
         canvas.width = size;
         canvas.height = size;
 
-        const imgAspect = img.width / img.height;
-        let drawWidth = img.width * cropPosition.scale;
-        let drawHeight = img.height * cropPosition.scale;
-        
-        if (imgAspect > 1) {
-          drawHeight = drawWidth / imgAspect;
-        } else {
-          drawWidth = drawHeight * imgAspect;
-        }
+        const zoom = cropPosition.scale;
+        const sourceWidth = size / zoom;
+        const sourceHeight = size / zoom;
 
-        const previewScale = img.width / PREVIEW_SIZE;
-        const offsetX = (size / 2) - (drawWidth / 2) + (cropPosition.x * previewScale);
-        const offsetY = (size / 2) - (drawHeight / 2) + (cropPosition.y * previewScale);
+        const previewToImageScaleX = img.width / PREVIEW_SIZE;
+        const previewToImageScaleY = img.height / PREVIEW_SIZE;
 
-        ctx.beginPath();
-        ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
-        ctx.clip();
+        let sourceX = (img.width / 2) - (sourceWidth / 2) - ((cropPosition.x * previewToImageScaleX) / zoom);
+        let sourceY = (img.height / 2) - (sourceHeight / 2) - ((cropPosition.y * previewToImageScaleY) / zoom);
 
-        ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
+        const maxSourceX = Math.max(img.width - sourceWidth, 0);
+        const maxSourceY = Math.max(img.height - sourceHeight, 0);
+        sourceX = Math.max(0, Math.min(sourceX, maxSourceX));
+        sourceY = Math.max(0, Math.min(sourceY, maxSourceY));
+
+        ctx.clearRect(0, 0, size, size);
+        ctx.drawImage(img, sourceX, sourceY, sourceWidth, sourceHeight, 0, 0, size, size);
 
         canvas.toBlob((blob) => {
           if (blob) {
@@ -628,7 +626,8 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, needsUsernameOnly =
             <div className="mb-4">
               <div
                 ref={imageEditorRef}
-                className="relative w-64 h-64 mx-auto border-2 border-gray-300 rounded-full overflow-hidden cursor-move"
+                className="relative mx-auto border-2 border-gray-300 rounded-xl overflow-hidden cursor-move"
+                style={{ width: PREVIEW_SIZE, height: PREVIEW_SIZE }}
                 onMouseDown={handleMouseDown}
                 onMouseMove={handleMouseMove}
                 onMouseUp={handleMouseUp}
@@ -641,9 +640,8 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, needsUsernameOnly =
                   style={{
                     width: `${100 * cropPosition.scale}%`,
                     height: `${100 * cropPosition.scale}%`,
-                    left: '50%',
-                    top: '50%',
-                    transform: `translate(-50%, -50%) translate(${cropPosition.x}px, ${cropPosition.y}px)`,
+                    left: `calc(50% - ${50 * cropPosition.scale}% + ${cropPosition.x}px)`,
+                    top: `calc(50% - ${50 * cropPosition.scale}% + ${cropPosition.y}px)`
                   }}
                   draggable={false}
                 />
