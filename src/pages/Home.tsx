@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { MapIcon, PlusIcon, MapPinIcon, Star, ChevronRight, Store } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
+import { onAuthStateChanged } from 'firebase/auth';
 import HamburgerMenu from '../components/HamburgerMenu';
 import FeedPost from '../components/FeedPost';
 import { fetchReviews, convertReviewsToFeedPosts, fetchUserReviews, FirebaseReview, listenHomeFeed } from '../services/reviewService';
-import { getUserProfile, getCurrentUser } from '../lib/firebase';
+import { auth, getUserProfile, getCurrentUser } from '../lib/firebase';
 // Defer heavy map code: code-split ExpandedMapModal and avoid inline map
 const ExpandedMapModal = React.lazy(() => import('../components/ExpandedMapModal'));
 
@@ -17,23 +18,46 @@ type HomeCache = {
   userProfile: any;
 };
 let __homeCache: HomeCache | null = null;
+let __homeCacheUserId: string | null = null;
 const HOME_CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
 
-// Helper to check if cache is valid
-const isCacheValid = () => __homeCache && Date.now() - __homeCache.ts < HOME_CACHE_TTL_MS;
+// Helper to check if cache is valid for the given user
+const isCacheValid = (userId?: string | null) => {
+  if (!__homeCache) {
+    return false;
+  }
+  const activeUserId = userId ?? getCurrentUser()?.uid ?? null;
+  if (!activeUserId) {
+    return false;
+  }
+  if (__homeCacheUserId !== activeUserId) {
+    return false;
+  }
+  return Date.now() - __homeCache.ts < HOME_CACHE_TTL_MS;
+};
+
+const resolveInitialCache = (): HomeCache | null => {
+  const userId = getCurrentUser()?.uid ?? null;
+  if (!userId) {
+    return null;
+  }
+  return isCacheValid(userId) ? __homeCache : null;
+};
 
 const Home: React.FC = () => {
   const navigate = useNavigate();
+  const initialCache = useMemo(() => resolveInitialCache(), []);
   // Initialize state from cache if available, preventing loading screen flash
-  const [firebaseReviews, setFirebaseReviews] = useState<FirebaseReview[]>(__homeCache?.firebaseReviews || []);
-  const [userReviews, setUserReviews] = useState<FirebaseReview[]>(__homeCache?.userReviews || []);
-  const [feedPosts, setFeedPosts] = useState<any[]>(__homeCache?.feedPosts || []);
-  const [userProfile, setUserProfile] = useState<any>(__homeCache?.userProfile || null);
+  const [firebaseReviews, setFirebaseReviews] = useState<FirebaseReview[]>(initialCache?.firebaseReviews || []);
+  const [userReviews, setUserReviews] = useState<FirebaseReview[]>(initialCache?.userReviews || []);
+  const [feedPosts, setFeedPosts] = useState<any[]>(initialCache?.feedPosts || []);
+  const [userProfile, setUserProfile] = useState<any>(initialCache?.userProfile || null);
   // Only show loading if we don't have valid cache
-  const [loading, setLoading] = useState(!isCacheValid());
-  const [profileLoading, setProfileLoading] = useState(!isCacheValid());
+  const [loading, setLoading] = useState(!initialCache);
+  const [profileLoading, setProfileLoading] = useState(!initialCache);
   const [error, setError] = useState<string | null>(null);
   const [showExpandedMap, setShowExpandedMap] = useState(false);
+  const [authUser, setAuthUser] = useState(() => getCurrentUser());
 
   // Pull-to-refresh state
   const [refreshing, setRefreshing] = useState(false);
@@ -44,18 +68,44 @@ const Home: React.FC = () => {
   const radius = 16; // progress ring radius (SVG units)
   const circumference = 2 * Math.PI * radius;
   const pullProgress = Math.max(0, Math.min(1, pullY / PULL_TRIGGER));
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (!user) {
+        __homeCache = null;
+        __homeCacheUserId = null;
+        setUserProfile(null);
+        setUserReviews([]);
+        setFirebaseReviews([]);
+        setFeedPosts([]);
+      }
+      setAuthUser(user);
+    });
+
+    return () => unsubscribe();
+  }, []);
   
   // Initialize data on mount: load from network only if cache is stale or missing
   useEffect(() => {
+    if (!authUser) {
+      console.log('[Home] No authenticated user yet, skipping initialization');
+      return;
+    }
+
     const initializeData = async () => {
       // Check for force refresh flag
       const url = new URL(window.location.href);
       const forceRefresh = url.searchParams.get('refresh') === '1';
 
-      console.log('[Home] Initialization: cache valid?', isCacheValid(), 'force refresh?', forceRefresh);
+      console.log(
+        '[Home] Initialization: cache valid?',
+        isCacheValid(authUser.uid),
+        'force refresh?',
+        forceRefresh
+      );
 
       // If we have valid cache and no force refresh, we're done (state already initialized)
-      if (!forceRefresh && isCacheValid()) {
+      if (!forceRefresh && isCacheValid(authUser.uid)) {
         console.log('[Home] Using cached data, skipping fetch');
         return;
       }
@@ -66,12 +116,12 @@ const Home: React.FC = () => {
         setLoading(true);
         setProfileLoading(true);
 
-        const currentUser = getCurrentUser();
+        const currentUser = authUser;
         let loadedProfile = null;
 
         // Load user profile
         if (currentUser) {
-          const profileResult = await getUserProfile();
+          const profileResult = await getUserProfile(currentUser.uid);
           if (profileResult.success && profileResult.profile) {
             setUserProfile(profileResult.profile);
             loadedProfile = profileResult.profile;
@@ -100,6 +150,7 @@ const Home: React.FC = () => {
           feedPosts: posts,
           userProfile: loadedProfile
         };
+        __homeCacheUserId = currentUser?.uid || null;
 
         console.log('[Home] Initialization complete, cache updated');
         setLoading(false);
@@ -113,13 +164,13 @@ const Home: React.FC = () => {
 
     initializeData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [authUser]);
   
   // Fetch reviews from Firebase (used for first load and manual refresh)
   const loadReviews = async () => {
     try {
       setLoading(true);
-      const currentUser = getCurrentUser();
+      const currentUser = authUser;
 
       // Load current user's reviews once and reuse for state + stats
       const reviews = await fetchUserReviews(50);
@@ -139,6 +190,7 @@ const Home: React.FC = () => {
         feedPosts: posts,
         userProfile
       };
+      __homeCacheUserId = currentUser?.uid || null;
     } catch (err) {
       console.error('Failed to load reviews:', err);
       setError('Failed to load reviews');
@@ -167,6 +219,7 @@ const Home: React.FC = () => {
           feedPosts: posts,
           userProfile
         };
+        __homeCacheUserId = authUser?.uid || null;
         setLoading(false);
       } catch (e) {
         console.error('Failed converting live feed posts', e);
@@ -176,10 +229,10 @@ const Home: React.FC = () => {
       console.log('[Home] Cleaning up feed listener');
       unsub();
     };
-  }, [userReviews, userProfile]);
+  }, [userReviews, userProfile, authUser?.uid]);
 
   // Calculate user stats from their own reviews and profile data
-  const currentUser = getCurrentUser();
+  const currentUser = authUser;
   const userStats = currentUser ? {
     averageRating: userProfile?.stats?.averageRating 
       ? userProfile.stats.averageRating.toFixed(1) 
@@ -287,6 +340,7 @@ const Home: React.FC = () => {
           setPullY(0);
           // Clear cache so fresh data is fetched
           __homeCache = null;
+          __homeCacheUserId = null;
           loadReviews();
         } else {
           setPullY(0);

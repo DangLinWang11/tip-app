@@ -68,6 +68,8 @@ const CreateRestaurantModal: React.FC<CreateRestaurantModalProps> = ({
         address: address.trim() || null,
         coordinates: coordinates
           ? {
+              lat: coordinates.latitude,
+              lng: coordinates.longitude,
               latitude: coordinates.latitude,
               longitude: coordinates.longitude
             }

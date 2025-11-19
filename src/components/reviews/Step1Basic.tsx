@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { Camera, Loader2, MapPin, Plus, Trash2, Video } from 'lucide-react';
+import { useLoadScript } from '@react-google-maps/api';
 import { db } from '../../lib/firebase';
 import RatingSlider from '../RatingSlider';
 import { useI18n } from '../../lib/i18n/useI18n';
@@ -12,6 +13,27 @@ import DishCategorySelect from './DishCategorySelect';
 import { CUISINES, normalizeToken } from '../../utils/taxonomy';
 
 const CATEGORY_SLUGS = ['appetizer', 'entree', 'handheld', 'side', 'dessert', 'drink'] as const;
+const libraries: ('places')[] = ['places'];
+
+const calculateDistance = (lat1: number, lng1: number, lat2: number, lng2: number): number => {
+  const R = 3959;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLng = ((lng2 - lng1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLng / 2) * Math.sin(dLng / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+};
+
+const getQualityColor = (score: number | null | undefined): string => {
+  if (score === null || score === undefined) return 'bg-slate-200';
+  if (score >= 90) return 'bg-green-500';
+  if (score >= 80) return 'bg-green-400';
+  if (score >= 70) return 'bg-yellow-400';
+  if (score >= 60) return 'bg-orange-400';
+  return 'bg-red-400';
+};
 
 const Step1Basic: React.FC = () => {
   const { t } = useI18n();
@@ -42,6 +64,37 @@ const Step1Basic: React.FC = () => {
   const [newDishPrice, setNewDishPrice] = useState('');
   const [mediaError, setMediaError] = useState<string | null>(null);
   const [customCuisineInput, setCustomCuisineInput] = useState('');
+  const { isLoaded: mapsLoaded } = useLoadScript({
+    googleMapsApiKey: 'AIzaSyDH-MgeMBC3_yvge3yLz_gaCl_2x8Ra6PY',
+    libraries
+  });
+  const [placePredictions, setPlacePredictions] = useState<google.maps.places.AutocompletePrediction[]>([]);
+  const [fetchingPlaceDetails, setFetchingPlaceDetails] = useState(false);
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [predictionDistances, setPredictionDistances] = useState<Record<string, number | undefined>>({});
+
+  const fetchGooglePlaces = async (searchText: string) => {
+    if (!searchText || searchText.length < 2 || !mapsLoaded || typeof google === 'undefined') return;
+
+    try {
+      const service = new google.maps.places.AutocompleteService();
+      const request = {
+        input: searchText,
+        types: ['restaurant', 'cafe', 'food'],
+        componentRestrictions: { country: 'us' }
+      };
+
+      service.getPlacePredictions(request, async (predictions, status) => {
+        if (status === google.maps.places.PlacesServiceStatus.OK && predictions) {
+          setPlacePredictions(predictions.slice(0, 5));
+        } else {
+          setPlacePredictions([]);
+        }
+      });
+    } catch (error) {
+      console.error('Error fetching Google Places:', error);
+    }
+  };
 
   useEffect(() => {
     const fetchRestaurants = async () => {
@@ -86,6 +139,69 @@ const Step1Basic: React.FC = () => {
     };
     loadDishes();
   }, [selectedRestaurant]);
+
+  useEffect(() => {
+    if (typeof navigator === 'undefined' || !navigator.geolocation) {
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setUserLocation({
+          lat: position.coords.latitude,
+          lng: position.coords.longitude
+        });
+        console.log('Got user location:', position.coords);
+      },
+      () => {
+        console.log('Location permission denied, sorting by name instead');
+      }
+    );
+  }, []);
+
+  useEffect(() => {
+    if (!mapsLoaded || typeof google === 'undefined') {
+      return;
+    }
+    if (!placePredictions.length || !userLocation) {
+      setPredictionDistances({});
+      return;
+    }
+
+    const container = document.createElement('div');
+    const service = new google.maps.places.PlacesService(container);
+    let isCancelled = false;
+
+    setPredictionDistances({});
+
+    placePredictions.forEach((prediction) => {
+      service.getDetails(
+        {
+          placeId: prediction.place_id,
+          fields: ['geometry']
+        },
+        (place, status) => {
+          if (isCancelled) {
+            return;
+          }
+          if (status === google.maps.places.PlacesServiceStatus.OK && place?.geometry?.location) {
+            const lat = place.geometry.location.lat();
+            const lng = place.geometry.location.lng();
+            if (typeof lat === 'number' && typeof lng === 'number') {
+              const distance = calculateDistance(userLocation.lat, userLocation.lng, lat, lng);
+              setPredictionDistances((prev) => ({
+                ...prev,
+                [prediction.place_id]: distance
+              }));
+            }
+          }
+        }
+      );
+    });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [placePredictions, userLocation, mapsLoaded]);
 
   const updateCuisineValues = (updater: (current: string[]) => string[]) => {
     updateDraft((prev) => {
@@ -146,6 +262,17 @@ const Step1Basic: React.FC = () => {
     }
   }, [selectedRestaurant]);
 
+  const handleRestaurantQueryChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const value = event.target.value;
+    setRestaurantQuery(value);
+
+    if (mapsLoaded && value.length >= 2) {
+      fetchGooglePlaces(value);
+    } else {
+      setPlacePredictions([]);
+    }
+  };
+
   const filteredRestaurants = useMemo(() => {
     if (!restaurantQuery.trim()) return restaurants.slice(0, 6);
     const lower = restaurantQuery.toLowerCase();
@@ -157,6 +284,7 @@ const Step1Basic: React.FC = () => {
     const lower = draft.dishName.toLowerCase();
     return dishes.filter((dish) => dish.name.toLowerCase().includes(lower)).slice(0, 6);
   }, [draft.dishName, dishes]);
+  const restaurantResults = filteredRestaurants;
 
   const handleFileInput = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
@@ -175,6 +303,75 @@ const Step1Basic: React.FC = () => {
   const onRestaurantSelected = (restaurant: RestaurantOption) => {
     selectRestaurant(restaurant);
     setShowCreateRestaurant(false);
+    setRestaurantQuery(restaurant.name || '');
+    setPlacePredictions([]);
+    setShowAddDish(false);
+    selectDish(null);
+  };
+
+  const handleGooglePlaceSelected = async (placeId: string, description: string) => {
+    if (typeof google === 'undefined') {
+      return;
+    }
+    const predictionMatch = placePredictions.find((prediction) => prediction.place_id === placeId);
+    setFetchingPlaceDetails(true);
+
+    const container = document.createElement('div');
+    const service = new google.maps.places.PlacesService(container);
+
+    service.getDetails(
+      {
+        placeId,
+        fields: ['name', 'formatted_address', 'geometry', 'place_id', 'types']
+      },
+      async (place, status) => {
+        if (status === google.maps.places.PlacesServiceStatus.OK && place) {
+          try {
+            const placeQuery = query(collection(db, 'restaurants'), where('googlePlaceId', '==', placeId));
+            const snapshot = await getDocs(placeQuery);
+
+            if (!snapshot.empty) {
+              const docSnap = snapshot.docs[0];
+              const existing =
+                restaurants.find((restaurant) => restaurant.id === docSnap.id) ??
+                ({
+                  id: docSnap.id,
+                  ...(docSnap.data() as RestaurantOption)
+                } as RestaurantOption);
+              if (existing) {
+                onRestaurantSelected(existing);
+              }
+            } else {
+              const lat = place.geometry?.location?.lat() || 0;
+              const lng = place.geometry?.location?.lng() || 0;
+              const distance = userLocation ? calculateDistance(userLocation.lat, userLocation.lng, lat, lng) : undefined;
+
+              const newRestaurant: RestaurantOption = {
+                id: `google_${placeId}`,
+                name: place.name || predictionMatch?.structured_formatting?.main_text || description,
+                location: { formatted: place.formatted_address || '' },
+                coordinates: {
+                  lat,
+                  lng,
+                  latitude: lat,
+                  longitude: lng
+                },
+                googlePlaceId: placeId,
+                cuisines: [],
+                distance
+              };
+              onRestaurantSelected(newRestaurant);
+            }
+
+            setRestaurantQuery(place.name || predictionMatch?.description || description);
+            setPlacePredictions([]);
+          } catch (error) {
+            console.error('Error handling Google place selection', error);
+          }
+        }
+        setFetchingPlaceDetails(false);
+      }
+    );
   };
 
   const onDishSelected = (dish: DishOption) => {
@@ -271,50 +468,149 @@ const Step1Basic: React.FC = () => {
           <h2 className="text-lg font-semibold text-slate-900">{t('basic.restaurant')}</h2>
         </div>
         <div className="space-y-2">
-          <div className="relative">
+          <div className="relative mt-4">
             <input
+              type="text"
               value={restaurantQuery}
-              onChange={(event) => setRestaurantQuery(event.target.value)}
-              placeholder={t('basic.searchPlaceholder.restaurant')}
-              className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-base focus:border-red-400 focus:outline-none focus:ring-2 focus:ring-red-100"
+              onChange={handleRestaurantQueryChange}
+              placeholder="Search for a restaurant..."
+              className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-700 focus:border-red-400 focus:outline-none focus:ring-2 focus:ring-red-100"
             />
-            <MapPin className="absolute right-4 top-3.5 h-5 w-5 text-slate-300" />
+            <MapPin className="absolute right-4 top-3.5 h-5 w-5 text-slate-400" />
           </div>
           {restaurantError ? <p className="text-sm text-red-500">{restaurantError}</p> : null}
-          {loadingRestaurants ? (
-            <div className="flex items-center gap-2 text-sm text-slate-500">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              {t('basic.loadingRestaurants')}
-            </div>
-          ) : null}
-          {restaurantQuery && filteredRestaurants.length > 0 ? (
-            <div className="grid gap-2">
-              {filteredRestaurants.map((restaurant) => (
+          <div className="mt-4">
+            {loadingRestaurants || fetchingPlaceDetails ? (
+              <div className="flex items-center gap-2 text-slate-500 text-sm">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                {fetchingPlaceDetails ? 'Loading restaurant details...' : t('createWizard.status.loading')}
+              </div>
+            ) : (
+              <>
+                {placePredictions.length > 0 && (
+                  <div className="space-y-2 mb-4">
+                    <p className="text-xs uppercase tracking-wide text-slate-400">From Google Places</p>
+                    {placePredictions.map((prediction) => {
+                      const existingRestaurant = restaurants.find((r) => r.googlePlaceId === prediction.place_id);
+                      const distance = predictionDistances[prediction.place_id];
+
+                      return (
+                        <button
+                          key={prediction.place_id}
+                          type="button"
+                          onClick={() => {
+                            if (existingRestaurant) {
+                              onRestaurantSelected(existingRestaurant);
+                              setRestaurantQuery(existingRestaurant.name);
+                              setPlacePredictions([]);
+                            } else {
+                              handleGooglePlaceSelected(prediction.place_id, prediction.description);
+                            }
+                          }}
+                          className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-left transition hover:border-slate-300 hover:bg-slate-50"
+                        >
+                              <div className="flex items-center justify-between gap-3">
+                                <div className="flex-1 min-w-0 pr-2">
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-medium text-slate-900 truncate">{prediction.structured_formatting.main_text}</span>
+                                    {distance !== undefined && (
+                                      <span className="text-xs text-slate-400 whitespace-nowrap flex-shrink-0">{distance.toFixed(1)} mi</span>
+                                    )}
+                                  </div>
+                                  <p className="text-sm text-slate-500 truncate">{prediction.structured_formatting.secondary_text}</p>
+                                </div>
+                            {existingRestaurant ? (
+                              <div className={`flex-shrink-0 flex items-center justify-center px-3 py-1.5 rounded-full ${getQualityColor(existingRestaurant.qualityScore)}`}>
+                                <span className="text-sm font-bold text-white">{existingRestaurant.qualityScore || 0}%</span>
+                              </div>
+                            ) : (
+                              <span className="flex-shrink-0 text-xs font-medium text-amber-600 whitespace-nowrap">⭐ Be first</span>
+                            )}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {restaurantResults.length > 0 && placePredictions.length === 0 && (
+                  <div className="space-y-2">
+                    <p className="text-xs uppercase tracking-wide text-slate-400">Your saved restaurants</p>
+                    {restaurantResults
+                      .map((restaurant) => ({
+                        ...restaurant,
+                        distance:
+                          userLocation && restaurant.coordinates
+                            ? calculateDistance(
+                                userLocation.lat,
+                                userLocation.lng,
+                                restaurant.coordinates.lat || restaurant.coordinates.latitude || 0,
+                                restaurant.coordinates.lng || restaurant.coordinates.longitude || 0
+                              )
+                            : undefined
+                      }))
+                      .sort((a, b) => {
+                        if (a.distance !== undefined && b.distance !== undefined) {
+                          return a.distance - b.distance;
+                        }
+                        return a.name.localeCompare(b.name);
+                      })
+                      .map((restaurant) => (
+                        <button
+                          key={restaurant.id}
+                          type="button"
+                          onClick={() => onRestaurantSelected(restaurant)}
+                          className={`w-full rounded-2xl border px-4 py-3 text-left transition ${
+                            selectedRestaurant?.id === restaurant.id ? 'border-red-300 bg-red-50' : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="flex-1 min-w-0 pr-2">
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium text-slate-900 truncate">{restaurant.name}</span>
+                                {restaurant.distance !== undefined && (
+                                  <span className="text-xs text-slate-400 whitespace-nowrap flex-shrink-0">{restaurant.distance.toFixed(1)} mi</span>
+                                )}
+                              </div>
+                              <p className="text-sm text-slate-500 truncate">{restaurant.location?.formatted}</p>
+                              {restaurant.cuisines?.length ? (
+                                <div className="mt-1 flex flex-wrap gap-1">
+                                  {restaurant.cuisines.slice(0, 3).map((cuisine) => (
+                                    <span key={cuisine} className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">
+                                      {formatCuisineLabel(cuisine)}
+                                    </span>
+                                  ))}
+                                </div>
+                              ) : null}
+                            </div>
+                            {restaurant.qualityScore !== null && restaurant.qualityScore !== undefined ? (
+                              <div className={`flex-shrink-0 flex items-center justify-center px-3 py-1.5 rounded-full ${getQualityColor(restaurant.qualityScore)}`}>
+                                <span className="text-sm font-bold text-white">{restaurant.qualityScore}%</span>
+                              </div>
+                            ) : (
+                              <div className="flex-shrink-0 flex items-center justify-center px-3 py-1.5 rounded-full bg-slate-200">
+                                <span className="text-xs font-medium text-slate-500">New</span>
+                              </div>
+                            )}
+                          </div>
+                        </button>
+                      ))}
+                  </div>
+                )}
+
                 <button
                   type="button"
-                  key={restaurant.id}
-                  onClick={() => onRestaurantSelected(restaurant)}
-                  className={`flex items-center justify-between rounded-2xl border px-4 py-3 text-left transition ${selectedRestaurant?.id === restaurant.id ? 'border-red-400 bg-red-50' : 'border-slate-200 hover:border-red-200 hover:bg-red-50/40'}`}
+                  onClick={() => setShowCreateRestaurant(true)}
+                  className="mt-4 w-full rounded-2xl border border-dashed border-slate-300 px-4 py-3 text-left transition hover:border-red-300 hover:bg-red-50"
                 >
-                  <div>
-                    <p className="text-sm font-semibold text-slate-800">{restaurant.name}</p>
-                    {restaurant.address ? (
-                      <p className="text-xs text-slate-500">{restaurant.address}</p>
-                    ) : null}
+                  <div className="flex items-center gap-2">
+                    <Plus className="h-4 w-4 text-slate-400" />
+                    <span className="text-sm font-medium text-slate-600">Can't find it? Add the place manually</span>
                   </div>
-                  <span className="text-xs text-slate-400">{t('basic.restaurant')}</span>
                 </button>
-              ))}
-            </div>
-          ) : null}
-          <button
-            type="button"
-            onClick={() => setShowCreateRestaurant(true)}
-            className="inline-flex items-center gap-2 rounded-2xl border border-dashed border-slate-300 px-4 py-2 text-sm font-medium text-slate-600 hover:border-red-300 hover:text-red-500"
-          >
-            <Plus className="h-4 w-4" />
-            {t('review.addRestaurant')}
-          </button>
+              </>
+            )}
+          </div>
         </div>
       </section>
 

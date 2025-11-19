@@ -4,13 +4,14 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { logEvent } from 'firebase/analytics';
 import { analytics } from '../lib/firebase';
 import { ChevronRightIcon, ShuffleIcon, UserIcon, EyeIcon, EyeOffIcon, Camera, X } from 'lucide-react';
-import { 
-  auth, 
-  signUpWithEmail, 
-  signInWithEmail, 
+import {
+  auth,
+  signUpWithEmail,
+  signInWithEmail,
   signInWithGoogle,
-  createUserProfile, 
-  updateLastLogin 
+  createUserProfile,
+  updateLastLogin,
+  getUserProfile
 } from '../lib/firebase';
 import { uploadPhoto } from '../services/reviewService';
 import { getInitials } from '../utils/avatarUtils';
@@ -25,6 +26,8 @@ interface CropPosition {
   y: number;
   scale: number;
 }
+
+const PREVIEW_SIZE = 256;
 
 const Onboarding: React.FC<OnboardingProps> = ({ onComplete, needsUsernameOnly = false }) => {
   const [step, setStep] = useState(needsUsernameOnly ? 2 : 0); // Start at username if already authenticated
@@ -42,12 +45,14 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, needsUsernameOnly =
 
   // Profile picture states
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [originalSelectedImage, setOriginalSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [showImageEditor, setShowImageEditor] = useState(false);
-  const [cropPosition, setCropPosition] = useState<CropPosition>({ 
-    x: 50, 
-    y: 50, 
-    scale: 1 
+  const [originalImage, setOriginalImage] = useState<string | null>(null);
+  const [cropPosition, setCropPosition] = useState<CropPosition>({
+    x: 0,
+    y: 0,
+    scale: 1
   });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
@@ -77,10 +82,22 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, needsUsernameOnly =
       if (result.success && result.user) {
         // Update last login
         await updateLastLogin();
-        
-        // Move to username step (for new users). App.tsx will switch
-        // to main app for existing users; RedirectAfterLogin uses ?redirect.
-        setStep(2);
+
+        let userProfile: any = null;
+        try {
+          const profileResult = await getUserProfile(result.user.uid);
+          if (profileResult.success) {
+            userProfile = profileResult.profile;
+          }
+        } catch (profileError) {
+          console.error('Failed to fetch profile after email auth:', profileError);
+        }
+
+        if (!userProfile?.username) {
+          // Move to username step (for new users). App.tsx will switch
+          // to main app for existing users; RedirectAfterLogin uses ?redirect.
+          setStep(2);
+        }
       } else {
         setAuthError(result.error || 'Authentication failed');
       }
@@ -103,9 +120,21 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, needsUsernameOnly =
       if (result.success && result.user) {
         // Update last login
         await updateLastLogin();
+
+        let userProfile: any = null;
+        try {
+          const profileResult = await getUserProfile(result.user.uid);
+          if (profileResult.success) {
+            userProfile = profileResult.profile;
+          }
+        } catch (profileError) {
+          console.error('Failed to fetch profile after Google auth:', profileError);
+        }
         
-        // Move to username step; main app + RedirectAfterLogin will handle redirect.
-        setStep(2);
+        if (!userProfile?.username) {
+          // Move to username step; main app + RedirectAfterLogin will handle redirect.
+          setStep(2);
+        }
       } else {
         setAuthError(result.error || 'Google sign-in failed');
       }
@@ -159,33 +188,32 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, needsUsernameOnly =
         return;
       }
 
+      setOriginalImage(imagePreview);
+      setOriginalSelectedImage(selectedImage);
       setSelectedImage(file);
       const reader = new FileReader();
       reader.onload = (e) => {
         setImagePreview(e.target?.result as string);
         setShowImageEditor(true);
-        setCropPosition({ x: 50, y: 50, scale: 1 });
+        setCropPosition({ x: 0, y: 0, scale: 1 });
       };
       reader.readAsDataURL(file);
     }
   };
 
   const handleMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
     setIsDragging(true);
     setDragStart({ x: e.clientX, y: e.clientY });
   };
 
   const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isDragging || !imageEditorRef.current) return;
-    
+    if (!isDragging) return;
+
     const deltaX = e.clientX - dragStart.x;
     const deltaY = e.clientY - dragStart.y;
-    
-    const rect = imageEditorRef.current.getBoundingClientRect();
-    const newX = Math.max(0, Math.min(100, cropPosition.x + (deltaX / rect.width) * 100));
-    const newY = Math.max(0, Math.min(100, cropPosition.y + (deltaY / rect.height) * 100));
-    
-    setCropPosition(prev => ({ ...prev, x: newX, y: newY }));
+
+    setCropPosition(prev => ({ ...prev, x: prev.x + deltaX, y: prev.y + deltaY }));
     setDragStart({ x: e.clientX, y: e.clientY });
   };
 
@@ -227,8 +255,9 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, needsUsernameOnly =
           drawWidth = drawHeight * imgAspect;
         }
 
-        const offsetX = (cropPosition.x / 100) * (size - drawWidth);
-        const offsetY = (cropPosition.y / 100) * (size - drawHeight);
+        const previewScale = img.width / PREVIEW_SIZE;
+        const offsetX = (size / 2) - (drawWidth / 2) + (cropPosition.x * previewScale);
+        const offsetY = (size / 2) - (drawHeight / 2) + (cropPosition.y * previewScale);
 
         ctx.beginPath();
         ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
@@ -262,10 +291,22 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, needsUsernameOnly =
         setImagePreview(e.target?.result as string);
       };
       reader.readAsDataURL(croppedFile);
+      setOriginalImage(null);
+      setOriginalSelectedImage(null);
+      setCropPosition({ x: 0, y: 0, scale: 1 });
     } catch (error) {
       console.error('Error cropping image:', error);
       setAuthError('Failed to crop image');
     }
+  };
+
+  const handleCancelCrop = () => {
+    setSelectedImage(originalSelectedImage);
+    setImagePreview(originalImage);
+    setCropPosition({ x: 0, y: 0, scale: 1 });
+    setShowImageEditor(false);
+    setOriginalImage(null);
+    setOriginalSelectedImage(null);
   };
 
   const handleNext = async () => {
@@ -577,7 +618,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, needsUsernameOnly =
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold">Crop Profile Picture</h3>
               <button
-                onClick={() => setShowImageEditor(false)}
+                onClick={handleCancelCrop}
                 className="p-1 hover:bg-gray-100 rounded-full transition-colors"
               >
                 <X size={20} />
@@ -600,9 +641,9 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, needsUsernameOnly =
                   style={{
                     width: `${100 * cropPosition.scale}%`,
                     height: `${100 * cropPosition.scale}%`,
-                    left: `${cropPosition.x - 50}%`,
-                    top: `${cropPosition.y - 50}%`,
-                    transform: 'translate(-50%, -50%)',
+                    left: '50%',
+                    top: '50%',
+                    transform: `translate(-50%, -50%) translate(${cropPosition.x}px, ${cropPosition.y}px)`,
                   }}
                   draggable={false}
                 />
@@ -626,7 +667,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, needsUsernameOnly =
 
             <div className="flex space-x-3">
               <button
-                onClick={() => setShowImageEditor(false)}
+                onClick={handleCancelCrop}
                 className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
               >
                 Cancel

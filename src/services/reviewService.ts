@@ -217,35 +217,54 @@ export const reportReview = async (reviewId: string, reason: string, details: st
 
 // Create restaurant if it doesn't exist in Firebase
 const createRestaurantIfNeeded = async (restaurant: any): Promise<string> => {
-  // If it's already a Firebase restaurant, return its ID
-  if (restaurant.id && !restaurant.id.startsWith('manual_')) {
+  if (restaurant.googlePlaceId) {
+    console.log('Checking for existing restaurant with placeId:', restaurant.googlePlaceId);
+    const q = query(collection(db, 'restaurants'), where('googlePlaceId', '==', restaurant.googlePlaceId));
+    const snapshot = await getDocs(q);
+    if (!snapshot.empty) {
+      const existingId = snapshot.docs[0].id;
+      console.log('? Found existing restaurant with googlePlaceId:', existingId);
+      return existingId;
+    }
+  }
+
+  if (restaurant.id && !restaurant.id.startsWith('manual_') && !restaurant.id.startsWith('google_')) {
     console.log('Using existing restaurant ID:', restaurant.id);
     return restaurant.id;
   }
   
-  // Create new restaurant document
   try {
     console.log('Creating new restaurant:', restaurant.name);
+    
+    const coordinates = {
+      lat: restaurant.coordinates?.lat || restaurant.coordinates?.latitude || 0,
+      lng: restaurant.coordinates?.lng || restaurant.coordinates?.longitude || 0,
+      latitude: restaurant.coordinates?.lat || restaurant.coordinates?.latitude || 0,
+      longitude: restaurant.coordinates?.lng || restaurant.coordinates?.longitude || 0
+    };
+    
     const newRestaurant = {
       name: restaurant.name,
-      cuisine: restaurant.cuisine || 'User Added',
-      address: restaurant.address || 'Address not provided', 
+      cuisines: restaurant.cuisines || [],
+      location: {
+        formatted: restaurant.address || restaurant.location?.formatted || 'Address not provided'
+      },
       phone: restaurant.phone || '',
-      coordinates: restaurant.coordinates || { lat: 0, lng: 0 },
+      coordinates,
+      googlePlaceId: restaurant.googlePlaceId || null,
       qualityScore: null,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     };
     
     const docRef = await addDoc(collection(db, 'restaurants'), newRestaurant);
-    console.log('✅ Created new restaurant with ID:', docRef.id);
+    console.log('? Created new restaurant with ID:', docRef.id);
     return docRef.id;
   } catch (error) {
-    console.error('❌ Error creating restaurant:', error);
+    console.error('? Error creating restaurant:', error);
     throw new Error('Failed to create restaurant');
   }
 };
-
 // Create menu item if it doesn't exist in Firebase
 const createMenuItemIfNeeded = async (dishName: string, restaurantId: string, selectedMenuItem: any, fallbackCategory?: string): Promise<string> => {
   // If it's already a Firebase menu item with valid ID, return it

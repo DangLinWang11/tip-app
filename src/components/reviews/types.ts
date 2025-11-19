@@ -4,7 +4,9 @@ import { ReviewDraft } from '../../dev/types/review';
 
 export type WizardStepKey = 'basic' | 'taste' | 'compare' | 'caption' | 'outcome';
 
-export interface RestaurantOption extends RestaurantRecord {}
+export interface RestaurantOption extends RestaurantRecord {
+  distance?: number;
+}
 
 export interface DishOption extends DishRecord {}
 

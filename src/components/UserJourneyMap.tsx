@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import RestaurantMap from './RestaurantMap';
 import UserRestaurantModal from './UserRestaurantModal';
 import { getUserVisitedRestaurants, UserVisitedRestaurant } from '../services/reviewService';
@@ -10,6 +11,7 @@ interface UserJourneyMapProps {
 }
 
 const UserJourneyMap: React.FC<UserJourneyMapProps> = ({ className = '', showLegend = false, showControls = true }) => {
+  const navigate = useNavigate();
   const [visitedRestaurants, setVisitedRestaurants] = useState<UserVisitedRestaurant[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -116,7 +118,7 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({ className = '', showLeg
             Start reviewing restaurants to see your food journey on the map!
           </p>
           <button 
-            onClick={() => window.location.href = '/create'} 
+            onClick={() => navigate('/create')} 
             className="px-6 py-3 bg-primary text-white rounded-lg hover:bg-red-600 transition-colors font-medium"
           >
             Add Your First Review

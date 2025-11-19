@@ -7,6 +7,91 @@ import { useOwnedRestaurants } from '../hooks/useOwnedRestaurants';
 
 // Simple Settings Modal Component
 const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen, onClose }) => {
+  const [locationPermissionState, setLocationPermissionState] = useState<'granted' | 'denied' | 'prompt'>('prompt');
+  const [isRequestingLocation, setIsRequestingLocation] = useState(false);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    let permissionStatus: PermissionStatus | null = null;
+    let cancelled = false;
+
+    const handlePermissionChange = () => {
+      if (permissionStatus && !cancelled) {
+        setLocationPermissionState(permissionStatus.state);
+      }
+    };
+
+    const fetchPermissionStatus = async () => {
+      if (typeof navigator === 'undefined' || !navigator.permissions?.query) {
+        setLocationPermissionState('prompt');
+        return;
+      }
+
+      try {
+        permissionStatus = await navigator.permissions.query({ name: 'geolocation' });
+        if (cancelled || !permissionStatus) return;
+        setLocationPermissionState(permissionStatus.state);
+        if (typeof permissionStatus.addEventListener === 'function') {
+          permissionStatus.addEventListener('change', handlePermissionChange);
+        } else {
+          permissionStatus.onchange = handlePermissionChange;
+        }
+      } catch (error) {
+        console.warn('Unable to query geolocation permission', error);
+        setLocationPermissionState('prompt');
+      }
+    };
+
+    fetchPermissionStatus();
+
+    return () => {
+      cancelled = true;
+      if (permissionStatus) {
+        if (typeof permissionStatus.removeEventListener === 'function') {
+          permissionStatus.removeEventListener('change', handlePermissionChange);
+        } else if (permissionStatus.onchange === handlePermissionChange) {
+          permissionStatus.onchange = null;
+        }
+      }
+    };
+  }, [isOpen]);
+
+  const requestLocationAccess = () => {
+    if (typeof navigator === 'undefined' || !navigator.geolocation) {
+      alert('Your browser does not support location sharing.');
+      return;
+    }
+
+    setIsRequestingLocation(true);
+    navigator.geolocation.getCurrentPosition(
+      () => {
+        setIsRequestingLocation(false);
+        setLocationPermissionState('granted');
+      },
+      (error) => {
+        setIsRequestingLocation(false);
+        if (error.code === error.PERMISSION_DENIED) {
+          setLocationPermissionState('denied');
+          alert('Location permission is still blocked. Please enable it in your browser settings.');
+        } else {
+          setLocationPermissionState('prompt');
+          alert('Unable to access your location. Please try again.');
+        }
+      }
+    );
+  };
+
+  const handleLocationToggle = () => {
+    if (locationPermissionState === 'granted') {
+      alert('To stop sharing location, block location access for this site in your browser settings.');
+      return;
+    }
+    if (isRequestingLocation) {
+      return;
+    }
+    requestLocationAccess();
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -54,8 +139,21 @@ const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isO
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-gray-700">Share Location</span>
-                <input type="checkbox" className="toggle" defaultChecked />
+                <input
+                  type="checkbox"
+                  className="toggle"
+                  onChange={handleLocationToggle}
+                  checked={locationPermissionState === 'granted'}
+                  disabled={isRequestingLocation}
+                />
               </div>
+              {locationPermissionState !== 'granted' && (
+                <p className="text-xs text-gray-500">
+                  {locationPermissionState === 'denied'
+                    ? 'Location access is blocked. Toggle to request permission again.'
+                    : 'Location sharing is off. Toggle to enable it.'}
+                </p>
+              )}
             </div>
           </div>
 
