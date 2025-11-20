@@ -19,13 +19,24 @@ interface MapComponentProps {
   zoom: number;
   onCenterChanged: (coordinates: LocationCoordinates) => void;
   userLocation?: LocationCoordinates | null;
+  focusLocation?: LocationCoordinates | null;
+  onRequestUserLocation: () => void;
 }
+
+const DEFAULT_CENTER: LocationCoordinates = {
+  lat: 40.706,
+  lng: -74.009
+};
+
+const cloneDefaultCenter = () => ({ ...DEFAULT_CENTER });
 
 const MapComponent: React.FC<MapComponentProps> = ({ 
   center, 
   zoom, 
   onCenterChanged, 
-  userLocation 
+  userLocation,
+  focusLocation,
+  onRequestUserLocation
 }) => {
   const ref = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<google.maps.Map>();
@@ -95,25 +106,16 @@ const MapComponent: React.FC<MapComponentProps> = ({
     }
   }, [map, userLocation]);
 
-  const handleMyLocationClick = useCallback(() => {
-    if (!map) return;
-
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const userPos = {
-            lat: position.coords.latitude,
-            lng: position.coords.longitude
-          };
-          map.panTo(userPos);
-          map.setZoom(16);
-        },
-        (error) => {
-          console.error('Error getting location:', error);
-        }
-      );
+  useEffect(() => {
+    if (map && focusLocation) {
+      map.panTo(focusLocation);
+      map.setZoom(16);
     }
-  }, [map]);
+  }, [map, focusLocation]);
+
+  const handleMyLocationClick = useCallback(() => {
+    onRequestUserLocation();
+  }, [onRequestUserLocation]);
 
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%' }}>
@@ -123,7 +125,7 @@ const MapComponent: React.FC<MapComponentProps> = ({
         onClick={handleMyLocationClick}
         style={{
           position: 'absolute',
-          bottom: 'calc(68px + env(safe-area-inset-bottom) + 140px)',
+          bottom: '200px',
           right: '16px',
           width: '48px',
           height: '48px',
@@ -135,7 +137,7 @@ const MapComponent: React.FC<MapComponentProps> = ({
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          zIndex: 60
+          zIndex: 10
         }}
         title="My Location"
       >
@@ -189,40 +191,72 @@ const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
   onConfirm,
   onCancel
 }) => {
-  const [currentCenter, setCurrentCenter] = useState<LocationCoordinates>({
-    lat: 0,
-    lng: 0
-  });
+  const [currentCenter, setCurrentCenter] = useState<LocationCoordinates>(cloneDefaultCenter);
   const [userLocation, setUserLocation] = useState<LocationCoordinates | null>(null);
+  const [focusLocation, setFocusLocation] = useState<LocationCoordinates | null>(cloneDefaultCenter);
+  const [locationError, setLocationError] = useState<string | null>(null);
+
+  const requestUserLocation = useCallback(() => {
+    if (typeof navigator === 'undefined' || !navigator.geolocation) {
+      setLocationError('Location services are not supported in this browser.');
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const coords = {
+          lat: position.coords.latitude,
+          lng: position.coords.longitude
+        };
+        setUserLocation(coords);
+        setFocusLocation(coords);
+        setLocationError(null);
+      },
+      (error) => {
+        console.error('Error getting location:', error);
+        if (error.code === error.PERMISSION_DENIED) {
+          setLocationError('Location permission denied. Enable it in your browser settings to use this shortcut.');
+        } else {
+          setLocationError('Unable to fetch your location. Please try again.');
+        }
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 15000,
+        maximumAge: 0
+      }
+    );
+  }, []);
 
   useEffect(() => {
     if (isOpen) {
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-          (position) => {
-            const userPos = {
-              lat: position.coords.latitude,
-              lng: position.coords.longitude
-            };
-            setUserLocation(userPos);
-            setCurrentCenter(userPos);
-          },
-          (error) => {
-            console.error('Error getting location:', error);
-            setCurrentCenter({
-              lat: 27.3364,
-              lng: -82.5307
-            });
+      setCurrentCenter(cloneDefaultCenter());
+      setFocusLocation(cloneDefaultCenter());
+      setUserLocation(null);
+      setLocationError(null);
+
+      const tryPrefetch = async () => {
+        if (typeof navigator === 'undefined' || !navigator.permissions?.query) {
+          return;
+        }
+        try {
+          const permission = await navigator.permissions.query({
+            name: 'geolocation' as PermissionName
+          });
+          if (permission.state === 'granted') {
+            requestUserLocation();
           }
-        );
-      } else {
-        setCurrentCenter({
-          lat: 27.3364,
-          lng: -82.5307
-        });
-      }
+        } catch (error) {
+          console.warn('Unable to prefetch geolocation permission state', error);
+        }
+      };
+
+      tryPrefetch();
+    } else {
+      setFocusLocation(null);
+      setUserLocation(null);
     }
-  }, [isOpen]);
+  }, [isOpen, requestUserLocation]);
 
   const handleCenterChanged = useCallback((coordinates: LocationCoordinates) => {
     setCurrentCenter(coordinates);
@@ -255,6 +289,8 @@ const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
             zoom={15}
             onCenterChanged={handleCenterChanged}
             userLocation={userLocation}
+            focusLocation={focusLocation}
+            onRequestUserLocation={requestUserLocation}
           />
         );
     }
@@ -297,7 +333,7 @@ const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
             width: '100vw',
             height: '100vh',
             backgroundColor: 'white',
-            overflow: 'visible'
+            overflow: 'hidden'
           }}
           onClick={(e) => e.stopPropagation()}
         >
@@ -348,10 +384,10 @@ const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
 
           <div style={{
             position: 'absolute',
-            bottom: 'calc(68px + env(safe-area-inset-bottom) + 16px)',
+            bottom: '32px',
             left: '16px',
             right: '16px',
-            zIndex: 60
+            zIndex: 20
           }}>
             <div style={{
               backgroundColor: 'white',
@@ -402,6 +438,11 @@ const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
                 Pin Location
               </button>
             </div>
+            {locationError ? (
+              <p style={{ margin: '8px 0 0', fontSize: '12px', color: '#dc2626' }}>
+                {locationError}
+              </p>
+            ) : null}
           </div>
 
           <div style={{ width: '100%', height: '100%' }}>

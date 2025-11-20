@@ -127,7 +127,7 @@ export function FoodJourneyDialog({ open, onClose, markers, apiKey }: Props) {
             <GoogleMap
               options={mapOptions}
               center={center}
-              zoom={markers && markers.length ? 11 : 3}
+              zoom={markers && markers.length ? 11 : 12}
               mapContainerStyle={{ width: '100%', height: '100%' }}
             >
               {markers?.map((m) => (
@@ -142,4 +142,3 @@ export function FoodJourneyDialog({ open, onClose, markers, apiKey }: Props) {
 }
 
 export default FoodJourneyDialog;
-

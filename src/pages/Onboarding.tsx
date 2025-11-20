@@ -1,5 +1,5 @@
 // File: src/pages/Onboarding.tsx
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { logEvent } from 'firebase/analytics';
 import { analytics } from '../lib/firebase';
@@ -30,7 +30,8 @@ interface CropPosition {
 const PREVIEW_SIZE = 400;
 
 const Onboarding: React.FC<OnboardingProps> = ({ onComplete, needsUsernameOnly = false }) => {
-  const [step, setStep] = useState(needsUsernameOnly ? 2 : 0); // Start at username if already authenticated
+  const hasAuthenticatedUser = typeof window !== 'undefined' ? !!auth.currentUser : false;
+  const [step, setStep] = useState(needsUsernameOnly && hasAuthenticatedUser ? 2 : 0); // Start at username if already authenticated
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -63,6 +64,14 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, needsUsernameOnly =
 
   const navigate = useNavigate();
   const location = useLocation();
+
+  useEffect(() => {
+    if (!needsUsernameOnly) return;
+    if (!auth.currentUser) {
+      setStep(1);
+      setIsSignInMode(true);
+    }
+  }, [needsUsernameOnly]);
 
   // Handle email/password authentication
   const handleAuthentication = async () => {

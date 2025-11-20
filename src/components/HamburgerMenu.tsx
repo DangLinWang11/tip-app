@@ -7,89 +7,113 @@ import { useOwnedRestaurants } from '../hooks/useOwnedRestaurants';
 
 // Simple Settings Modal Component
 const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen, onClose }) => {
-  const [locationPermissionState, setLocationPermissionState] = useState<'granted' | 'denied' | 'prompt'>('prompt');
+  const [shareLocationEnabled, setShareLocationEnabled] = useState(false);
+  const [locationPermissionState, setLocationPermissionState] = useState<PermissionState | 'unsupported'>('prompt');
+  const [locationMessage, setLocationMessage] = useState<string | null>(null);
+  const [isLocationMessageError, setIsLocationMessageError] = useState(false);
   const [isRequestingLocation, setIsRequestingLocation] = useState(false);
 
   useEffect(() => {
-    if (!isOpen) return;
-    let permissionStatus: PermissionStatus | null = null;
-    let cancelled = false;
+    if (typeof window === 'undefined' || typeof navigator === 'undefined') {
+      return;
+    }
 
-    const handlePermissionChange = () => {
-      if (permissionStatus && !cancelled) {
-        setLocationPermissionState(permissionStatus.state);
+    let isMounted = true;
+    let permissionStatus: PermissionStatus | null = null;
+
+    const updateFromPermission = (state: PermissionState) => {
+      if (!isMounted) return;
+      setLocationPermissionState(state);
+      const granted = state === 'granted';
+      setShareLocationEnabled(granted);
+      if (state === 'denied') {
+        setLocationMessage('Location permission denied. Enable it in your browser settings.');
+        setIsLocationMessageError(true);
+      }
+      if (state === 'granted') {
+        setLocationMessage(null);
+        setIsLocationMessageError(false);
       }
     };
 
-    const fetchPermissionStatus = async () => {
-      if (typeof navigator === 'undefined' || !navigator.permissions?.query) {
-        setLocationPermissionState('prompt');
+    const handlePermissionChange = () => {
+      if (!permissionStatus) return;
+      updateFromPermission(permissionStatus.state);
+    };
+
+    const queryPermission = async () => {
+      if (!navigator.permissions?.query) {
+        setLocationPermissionState('unsupported');
+        setShareLocationEnabled(false);
         return;
       }
 
       try {
-        permissionStatus = await navigator.permissions.query({ name: 'geolocation' });
-        if (cancelled || !permissionStatus) return;
-        setLocationPermissionState(permissionStatus.state);
-        if (typeof permissionStatus.addEventListener === 'function') {
-          permissionStatus.addEventListener('change', handlePermissionChange);
-        } else {
-          permissionStatus.onchange = handlePermissionChange;
-        }
+        permissionStatus = await navigator.permissions.query({
+          name: 'geolocation' as PermissionName
+        });
+
+        if (!isMounted || !permissionStatus) return;
+        updateFromPermission(permissionStatus.state);
+        permissionStatus.addEventListener('change', handlePermissionChange);
       } catch (error) {
-        console.warn('Unable to query geolocation permission', error);
+        if (!isMounted) return;
         setLocationPermissionState('prompt');
+        setShareLocationEnabled(false);
       }
     };
 
-    fetchPermissionStatus();
+    queryPermission();
 
     return () => {
-      cancelled = true;
+      isMounted = false;
       if (permissionStatus) {
-        if (typeof permissionStatus.removeEventListener === 'function') {
-          permissionStatus.removeEventListener('change', handlePermissionChange);
-        } else if (permissionStatus.onchange === handlePermissionChange) {
-          permissionStatus.onchange = null;
-        }
+        permissionStatus.removeEventListener('change', handlePermissionChange);
       }
     };
-  }, [isOpen]);
+  }, []);
 
-  const requestLocationAccess = () => {
-    if (typeof navigator === 'undefined' || !navigator.geolocation) {
-      alert('Your browser does not support location sharing.');
-      return;
-    }
+  const handleShareLocationChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const checked = event.target.checked;
 
-    setIsRequestingLocation(true);
-    navigator.geolocation.getCurrentPosition(
-      () => {
-        setIsRequestingLocation(false);
-        setLocationPermissionState('granted');
-      },
-      (error) => {
-        setIsRequestingLocation(false);
-        if (error.code === error.PERMISSION_DENIED) {
-          setLocationPermissionState('denied');
-          alert('Location permission is still blocked. Please enable it in your browser settings.');
-        } else {
-          setLocationPermissionState('prompt');
-          alert('Unable to access your location. Please try again.');
-        }
+    if (checked) {
+      if (typeof navigator === 'undefined' || !navigator.geolocation) {
+        setShareLocationEnabled(false);
+        setLocationMessage('Geolocation is not supported in this browser.');
+        setIsLocationMessageError(true);
+        return;
       }
-    );
-  };
 
-  const handleLocationToggle = () => {
-    if (locationPermissionState === 'granted') {
-      alert('To stop sharing location, block location access for this site in your browser settings.');
-      return;
+      setIsRequestingLocation(true);
+      setLocationMessage(null);
+      setIsLocationMessageError(false);
+
+      navigator.geolocation.getCurrentPosition(
+        () => {
+          setIsRequestingLocation(false);
+          setLocationPermissionState('granted');
+          setShareLocationEnabled(true);
+          setLocationMessage(null);
+          setIsLocationMessageError(false);
+        },
+        (error: GeolocationPositionError) => {
+          setIsRequestingLocation(false);
+          setShareLocationEnabled(false);
+          const denied = error.code === error.PERMISSION_DENIED;
+          setLocationPermissionState(denied ? 'denied' : 'prompt');
+          setLocationMessage(
+            denied
+              ? 'Location access denied. Enable it in your browser settings.'
+              : 'Unable to access location. Please try again.'
+          );
+          setIsLocationMessageError(true);
+        }
+      );
+    } else {
+      setLocationMessage('To fully disable location, go to your browser settings.');
+      setIsLocationMessageError(false);
+      setShareLocationEnabled(locationPermissionState === 'granted');
     }
-    if (isRequestingLocation) {
-      return;
-    }
-    requestLocationAccess();
   };
 
   if (!isOpen) return null;
@@ -142,16 +166,14 @@ const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isO
                 <input
                   type="checkbox"
                   className="toggle"
-                  onChange={handleLocationToggle}
-                  checked={locationPermissionState === 'granted'}
+                  checked={shareLocationEnabled}
+                  onChange={handleShareLocationChange}
                   disabled={isRequestingLocation}
                 />
               </div>
-              {locationPermissionState !== 'granted' && (
-                <p className="text-xs text-gray-500">
-                  {locationPermissionState === 'denied'
-                    ? 'Location access is blocked. Toggle to request permission again.'
-                    : 'Location sharing is off. Toggle to enable it.'}
+              {locationMessage && (
+                <p className={`text-sm mt-2 ${isLocationMessageError ? 'text-red-600' : 'text-gray-500'}`}>
+                  {locationMessage}
                 </p>
               )}
             </div>
