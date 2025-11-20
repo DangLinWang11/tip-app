@@ -20,7 +20,7 @@ interface MapComponentProps {
   onCenterChanged: (coordinates: LocationCoordinates) => void;
   userLocation?: LocationCoordinates | null;
   focusLocation?: LocationCoordinates | null;
-  onRequestUserLocation: () => void;
+  onUserLocationDetected: (coordinates: LocationCoordinates) => void;
 }
 
 const DEFAULT_CENTER: LocationCoordinates = {
@@ -36,7 +36,7 @@ const MapComponent: React.FC<MapComponentProps> = ({
   onCenterChanged, 
   userLocation,
   focusLocation,
-  onRequestUserLocation
+  onUserLocationDetected
 }) => {
   const ref = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<google.maps.Map>();
@@ -113,35 +113,64 @@ const MapComponent: React.FC<MapComponentProps> = ({
     }
   }, [map, focusLocation]);
 
+  const pendingFocusRef = useRef<LocationCoordinates | null>(null);
+
+  useEffect(() => {
+    if (map && pendingFocusRef.current) {
+      map.panTo(pendingFocusRef.current);
+      map.setZoom(16);
+      pendingFocusRef.current = null;
+    }
+  }, [map]);
+
   const handleMyLocationClick = useCallback(() => {
-    onRequestUserLocation();
-  }, [onRequestUserLocation]);
+    if (typeof navigator === 'undefined' || !navigator.geolocation) {
+      alert('Geolocation is not supported by your browser');
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const userPos = {
+          lat: position.coords.latitude,
+          lng: position.coords.longitude
+        };
+
+        onCenterChanged(userPos);
+        onUserLocationDetected(userPos);
+
+        if (map) {
+          map.panTo(userPos);
+          map.setZoom(17);
+        } else {
+          pendingFocusRef.current = userPos;
+        }
+      },
+      (error) => {
+        if (error.code === error.PERMISSION_DENIED) {
+          alert('Please enable location permissions in your browser settings');
+        } else {
+          alert('Unable to retrieve your location');
+        }
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 5000,
+        maximumAge: 0
+      }
+    );
+  }, [map, onCenterChanged, onUserLocationDetected]);
 
   return (
-    <div style={{ position: 'relative', width: '100%', height: '100%' }}>
-      <div ref={ref} style={{ width: '100%', height: '100%' }} />
+    <div className="relative w-full h-full">
+      <div ref={ref} className="w-full h-full" />
       
       <button
         onClick={handleMyLocationClick}
-        style={{
-          position: 'absolute',
-          bottom: '200px',
-          right: '16px',
-          width: '48px',
-          height: '48px',
-          backgroundColor: 'white',
-          border: 'none',
-          borderRadius: '24px',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 10
-        }}
+        className="fixed bottom-36 right-4 z-10 w-12 h-12 rounded-full bg-white shadow-lg flex items-center justify-center text-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-300"
         title="My Location"
       >
-        <Navigation size={28} color="#4285F4" />
+        <Navigation className="w-6 h-6" />
       </button>
     </div>
   );
@@ -196,6 +225,12 @@ const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
   const [focusLocation, setFocusLocation] = useState<LocationCoordinates | null>(cloneDefaultCenter);
   const [locationError, setLocationError] = useState<string | null>(null);
 
+  const handleUserLocationDetected = useCallback((coords: LocationCoordinates) => {
+    setUserLocation(coords);
+    setFocusLocation(coords);
+    setLocationError(null);
+  }, []);
+
   const requestUserLocation = useCallback(() => {
     if (typeof navigator === 'undefined' || !navigator.geolocation) {
       setLocationError('Location services are not supported in this browser.');
@@ -204,13 +239,10 @@ const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
 
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        const coords = {
+        handleUserLocationDetected({
           lat: position.coords.latitude,
           lng: position.coords.longitude
-        };
-        setUserLocation(coords);
-        setFocusLocation(coords);
-        setLocationError(null);
+        });
       },
       (error) => {
         console.error('Error getting location:', error);
@@ -226,7 +258,7 @@ const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
         maximumAge: 0
       }
     );
-  }, []);
+  }, [handleUserLocationDetected]);
 
   useEffect(() => {
     if (isOpen) {
@@ -290,7 +322,7 @@ const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
             onCenterChanged={handleCenterChanged}
             userLocation={userLocation}
             focusLocation={focusLocation}
-            onRequestUserLocation={requestUserLocation}
+            onUserLocationDetected={handleUserLocationDetected}
           />
         );
     }
@@ -313,139 +345,61 @@ const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
         `}
       </style>
       <div
-        style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          zIndex: 1000,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center'
-        }}
+        className="fixed inset-0 bg-black/50 z-[1000] flex items-center justify-center"
         onClick={handleOverlayClick}
       >
         <div
-          style={{
-            position: 'relative',
-            width: '100vw',
-            height: '100vh',
-            backgroundColor: 'white',
-            overflow: 'hidden'
-          }}
+          className="relative w-screen h-screen bg-white overflow-hidden"
           onClick={(e) => e.stopPropagation()}
         >
           <button
             onClick={handleCancel}
-            style={{
-              position: 'absolute',
-              top: '16px',
-              left: '16px',
-              width: '48px',
-              height: '48px',
-              backgroundColor: 'white',
-              border: 'none',
-              borderRadius: '24px',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              zIndex: 20
-            }}
+            className="absolute top-4 left-4 z-30 w-12 h-12 rounded-full bg-white shadow-lg flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-gray-300"
             title="Cancel"
           >
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M18 6L6 18" stroke="#666" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              <path d="M6 6L18 18" stroke="#666" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M18 6L6 18" stroke="#666" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M6 6L18 18" stroke="#666" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </button>
 
-          <div style={{
-            position: 'absolute',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            zIndex: 15,
-            pointerEvents: 'none'
-          }}>
+          <div className="absolute inset-0 pointer-events-none flex items-center justify-center z-10">
             <svg width="40" height="50" viewBox="0 0 40 50" xmlns="http://www.w3.org/2000/svg">
-              <path 
-                d="M20 2C11.16 2 4 9.16 4 18c0 13.5 16 28 16 28s16-14.5 16-28c0-8.84-7.16-16-16-16z" 
+              <path
+                d="M20 2C11.16 2 4 9.16 4 18c0 13.5 16 28 16 28s16-14.5 16-28c0-8.84-7.16-16-16-16z"
                 fill="#dc2626"
                 stroke="#ffffff"
                 strokeWidth="2"
               />
-              <circle cx="20" cy="18" r="6" fill="white"/>
+              <circle cx="20" cy="18" r="6" fill="white" />
             </svg>
           </div>
 
-          <div style={{
-            position: 'absolute',
-            bottom: '32px',
-            left: '16px',
-            right: '16px',
-            zIndex: 20
-          }}>
-            <div style={{
-              backgroundColor: 'white',
-              padding: '16px',
-              borderRadius: '16px',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '12px'
-            }}>
-              <div style={{ flex: 1 }}>
-                <h3 style={{
-                  margin: '0 0 4px 0',
-                  fontSize: '16px',
-                  fontWeight: '600',
-                  color: '#1f2937'
-                }}>
+          <div className="fixed bottom-20 left-4 right-4 z-20 pb-[env(safe-area-inset-bottom)]">
+            <div className="bg-white rounded-2xl shadow-xl p-4 flex items-center gap-3">
+              <div className="flex-1">
+                <h3 className="text-base font-semibold text-gray-900 mb-1">
                   Set location for {restaurantName}
                 </h3>
-                <p style={{
-                  margin: 0,
-                  fontSize: '13px',
-                  color: '#6b7280',
-                  lineHeight: '1.4'
-                }}>
-                  Move the map to position the pin at the restaurant's exact location
+                <p className="text-sm text-gray-600">
+                  Move the map to position the pin at the restaurant&apos;s exact location
                 </p>
               </div>
               <button
                 onClick={handleConfirm}
-                style={{
-                  padding: '12px 20px',
-                  backgroundColor: '#ef4444',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '12px',
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                  boxShadow: '0 4px 6px rgba(239, 68, 68, 0.3)',
-                  transition: 'background-color 0.2s',
-                  whiteSpace: 'nowrap',
-                  flexShrink: 0
-                }}
-                onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#dc2626'}
-                onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#ef4444'}
+                className="px-5 py-3 rounded-xl bg-primary text-white font-semibold shadow-md hover:bg-red-600 transition-colors"
               >
                 Pin Location
               </button>
             </div>
             {locationError ? (
-              <p style={{ margin: '8px 0 0', fontSize: '12px', color: '#dc2626' }}>
+              <p className="mt-2 text-xs text-red-600">
                 {locationError}
               </p>
             ) : null}
           </div>
 
-          <div style={{ width: '100%', height: '100%' }}>
+          <div className="relative z-0 w-full h-full">
             <Wrapper
               apiKey="AIzaSyDH-MgeMBC3_yvge3yLz_gaCl_2x8Ra6PY"
               render={render}

@@ -1,9 +1,11 @@
 // File: src/pages/Onboarding.tsx
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { logEvent } from 'firebase/analytics';
 import { analytics } from '../lib/firebase';
 import { ChevronRightIcon, ShuffleIcon, UserIcon, EyeIcon, EyeOffIcon, Camera, X } from 'lucide-react';
+import Cropper from 'react-easy-crop';
+import { Area } from 'react-easy-crop/types';
 import {
   auth,
   signUpWithEmail,
@@ -20,14 +22,6 @@ interface OnboardingProps {
   onComplete: () => void;
   needsUsernameOnly?: boolean; // NEW: Skip to username step if user is already authenticated
 }
-
-interface CropPosition {
-  x: number;
-  y: number;
-  scale: number;
-}
-
-const PREVIEW_SIZE = 400;
 
 const Onboarding: React.FC<OnboardingProps> = ({ onComplete, needsUsernameOnly = false }) => {
   const hasAuthenticatedUser = typeof window !== 'undefined' ? !!auth.currentUser : false;
@@ -46,21 +40,14 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, needsUsernameOnly =
 
   // Profile picture states
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
-  const [originalSelectedImage, setOriginalSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [showImageEditor, setShowImageEditor] = useState(false);
-  const [originalImage, setOriginalImage] = useState<string | null>(null);
-  const [cropPosition, setCropPosition] = useState<CropPosition>({
-    x: 0,
-    y: 0,
-    scale: 1
-  });
-  const [isDragging, setIsDragging] = useState(false);
-  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [rawImage, setRawImage] = useState<string | null>(null);
+  const [showCropModal, setShowCropModal] = useState(false);
+  const [crop, setCrop] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const imageEditorRef = useRef<HTMLDivElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -197,110 +184,78 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, needsUsernameOnly =
         return;
       }
 
-      setOriginalImage(imagePreview);
-      setOriginalSelectedImage(selectedImage);
-      setSelectedImage(file);
       const reader = new FileReader();
       reader.onload = (e) => {
-        setImagePreview(e.target?.result as string);
-        setShowImageEditor(true);
-        setCropPosition({ x: 0, y: 0, scale: 1 });
+        setRawImage(e.target?.result as string);
+        setShowCropModal(true);
+        setCrop({ x: 0, y: 0 });
+        setZoom(1);
+        setCroppedAreaPixels(null);
       };
       reader.readAsDataURL(file);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   };
 
-  const handleMouseDown = (e: React.MouseEvent) => {
-    e.preventDefault();
-    setIsDragging(true);
-    setDragStart({ x: e.clientX, y: e.clientY });
-  };
+  const onCropComplete = useCallback((_: Area, croppedPixels: Area) => {
+    setCroppedAreaPixels(croppedPixels);
+  }, []);
 
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isDragging) return;
+  const createCroppedImage = (): Promise<{ file: File; preview: string } | null> => {
+    if (!rawImage || !croppedAreaPixels) return Promise.resolve(null);
 
-    const deltaX = e.clientX - dragStart.x;
-    const deltaY = e.clientY - dragStart.y;
-
-    setCropPosition(prev => ({ ...prev, x: prev.x + deltaX, y: prev.y + deltaY }));
-    setDragStart({ x: e.clientX, y: e.clientY });
-  };
-
-  const handleMouseUp = () => {
-    setIsDragging(false);
-  };
-
-  const handleScaleChange = (scale: number) => {
-    setCropPosition(prev => ({ ...prev, scale }));
-  };
-
-  const createCroppedImage = (): Promise<File> => {
     return new Promise((resolve, reject) => {
-      if (!imagePreview || !canvasRef.current) {
-        reject(new Error('No image to crop'));
-        return;
-      }
+      const image = new Image();
+      image.src = rawImage;
+      image.onload = () => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          reject(new Error('Cannot access canvas context'));
+          return;
+        }
 
-      const canvas = canvasRef.current;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) {
-        reject(new Error('Cannot get canvas context'));
-        return;
-      }
+        const OUTPUT_SIZE = 400;
+        canvas.width = OUTPUT_SIZE;
+        canvas.height = OUTPUT_SIZE;
 
-      const img = new Image();
-      img.onload = () => {
-        const size = PREVIEW_SIZE;
-        canvas.width = size;
-        canvas.height = size;
+        ctx.drawImage(
+          image,
+          croppedAreaPixels.x,
+          croppedAreaPixels.y,
+          croppedAreaPixels.width,
+          croppedAreaPixels.height,
+          0,
+          0,
+          OUTPUT_SIZE,
+          OUTPUT_SIZE
+        );
 
-        const zoom = cropPosition.scale;
-        const sourceWidth = size / zoom;
-        const sourceHeight = size / zoom;
-
-        const previewToImageScaleX = img.width / PREVIEW_SIZE;
-        const previewToImageScaleY = img.height / PREVIEW_SIZE;
-
-        let sourceX = (img.width / 2) - (sourceWidth / 2) - ((cropPosition.x * previewToImageScaleX) / zoom);
-        let sourceY = (img.height / 2) - (sourceHeight / 2) - ((cropPosition.y * previewToImageScaleY) / zoom);
-
-        const maxSourceX = Math.max(img.width - sourceWidth, 0);
-        const maxSourceY = Math.max(img.height - sourceHeight, 0);
-        sourceX = Math.max(0, Math.min(sourceX, maxSourceX));
-        sourceY = Math.max(0, Math.min(sourceY, maxSourceY));
-
-        ctx.clearRect(0, 0, size, size);
-        ctx.drawImage(img, sourceX, sourceY, sourceWidth, sourceHeight, 0, 0, size, size);
+        const previewDataUrl = canvas.toDataURL('image/jpeg', 0.95);
 
         canvas.toBlob((blob) => {
-          if (blob) {
-            const croppedFile = new File([blob], 'profile.jpg', { type: 'image/jpeg' });
-            resolve(croppedFile);
-          } else {
+          if (!blob) {
             reject(new Error('Failed to create cropped image'));
+            return;
           }
-        }, 'image/jpeg', 0.9);
+          const croppedFile = new File([blob], 'profile.jpg', { type: 'image/jpeg' });
+          resolve({ file: croppedFile, preview: previewDataUrl });
+        }, 'image/jpeg', 0.95);
       };
-      
-      img.onerror = () => reject(new Error('Failed to load image'));
-      img.src = imagePreview;
+      image.onerror = () => reject(new Error('Failed to load image'));
     });
   };
 
-  const applyCroppedImage = async () => {
+  const handleApplyCrop = async () => {
     try {
-      const croppedFile = await createCroppedImage();
-      setSelectedImage(croppedFile);
-      setShowImageEditor(false);
-      
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setImagePreview(e.target?.result as string);
-      };
-      reader.readAsDataURL(croppedFile);
-      setOriginalImage(null);
-      setOriginalSelectedImage(null);
-      setCropPosition({ x: 0, y: 0, scale: 1 });
+      const croppedResult = await createCroppedImage();
+      if (!croppedResult) return;
+      setSelectedImage(croppedResult.file);
+      setImagePreview(croppedResult.preview);
+      setShowCropModal(false);
+      setRawImage(null);
     } catch (error) {
       console.error('Error cropping image:', error);
       setAuthError('Failed to crop image');
@@ -308,12 +263,11 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, needsUsernameOnly =
   };
 
   const handleCancelCrop = () => {
-    setSelectedImage(originalSelectedImage);
-    setImagePreview(originalImage);
-    setCropPosition({ x: 0, y: 0, scale: 1 });
-    setShowImageEditor(false);
-    setOriginalImage(null);
-    setOriginalSelectedImage(null);
+    setShowCropModal(false);
+    setRawImage(null);
+    setCrop({ x: 0, y: 0 });
+    setZoom(1);
+    setCroppedAreaPixels(null);
   };
 
   const handleNext = async () => {
@@ -539,17 +493,19 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, needsUsernameOnly =
 
         {step === 2 && (
           <>
-            <div className="w-full mb-6 flex items-center justify-between">
+            <div className="relative w-full mb-6 pt-4 flex items-center justify-center">
               <button
                 onClick={() => setStep(1)}
-                className="text-gray-600 hover:text-gray-800 font-medium text-sm transition-colors"
+                className="absolute left-4 top-4 flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 active:bg-gray-300 transition-colors min-h-[44px]"
               >
-                ← Back
+                <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+                <span className="text-gray-700 font-medium">Back</span>
               </button>
-              <h1 className="text-3xl font-bold text-center flex-1">
+              <h1 className="text-3xl font-bold text-center">
                 Create your profile
               </h1>
-              <div className="w-12"></div>
             </div>
             <div className="w-full mb-6">
               <label className="block text-sm font-medium mb-2">Username</label>
@@ -628,78 +584,61 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, needsUsernameOnly =
         )}
       </button>
 
-      {showImageEditor && imagePreview && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl p-6 max-w-md w-full">
-            <div className="flex items-center justify-between mb-4">
+      {showCropModal && rawImage && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden">
+            <div className="flex items-center justify-between p-4 border-b">
               <h3 className="text-lg font-semibold">Crop Profile Picture</h3>
-              <button
-                onClick={handleCancelCrop}
-                className="p-1 hover:bg-gray-100 rounded-full transition-colors"
-              >
+              <button onClick={handleCancelCrop} className="p-2 rounded-full hover:bg-gray-100 transition-colors">
                 <X size={20} />
               </button>
             </div>
-            
-            <div className="mb-4">
-              <div
-                ref={imageEditorRef}
-                className="relative mx-auto border-2 border-gray-300 rounded-xl overflow-hidden cursor-move"
-                style={{ width: PREVIEW_SIZE, height: PREVIEW_SIZE }}
-                onMouseDown={handleMouseDown}
-                onMouseMove={handleMouseMove}
-                onMouseUp={handleMouseUp}
-                onMouseLeave={handleMouseUp}
-              >
-                <img
-                  src={imagePreview}
-                  alt="Crop preview"
-                  className="absolute"
-                  style={{
-                    width: `${100 * cropPosition.scale}%`,
-                    height: `${100 * cropPosition.scale}%`,
-                    left: `calc(50% - ${50 * cropPosition.scale}% + ${cropPosition.x}px)`,
-                    top: `calc(50% - ${50 * cropPosition.scale}% + ${cropPosition.y}px)`
-                  }}
-                  draggable={false}
-                />
-              </div>
-            </div>
 
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Zoom
-              </label>
-              <input
-                type="range"
-                min="1"
-                max="3"
-                step="0.1"
-                value={cropPosition.scale}
-                onChange={(e) => handleScaleChange(parseFloat(e.target.value))}
-                className="w-full"
+            <div className="relative h-96 bg-gray-100">
+              <Cropper
+                image={rawImage}
+                crop={crop}
+                zoom={zoom}
+                aspect={1}
+                cropShape="round"
+                onCropChange={setCrop}
+                onZoomChange={setZoom}
+                onCropComplete={onCropComplete}
               />
             </div>
 
-            <div className="flex space-x-3">
-              <button
-                onClick={handleCancelCrop}
-                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={applyCroppedImage}
-                className="flex-1 px-4 py-2 bg-primary text-white rounded-lg hover:bg-red-600 transition-colors"
-              >
-                Apply
-              </button>
+            <div className="p-4 space-y-4">
+              <div>
+                <label className="text-sm font-medium text-gray-700 block mb-2">Zoom</label>
+                <input
+                  type="range"
+                  min={1}
+                  max={3}
+                  step={0.1}
+                  value={zoom}
+                  onChange={(e) => setZoom(Number(e.target.value))}
+                  className="w-full"
+                />
+              </div>
+
+              <div className="flex gap-2">
+                <button
+                  onClick={handleCancelCrop}
+                  className="flex-1 py-3 border border-gray-300 rounded-lg font-medium hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleApplyCrop}
+                  className="flex-1 py-3 bg-primary text-white rounded-lg font-medium hover:bg-red-600"
+                >
+                  Apply
+                </button>
+              </div>
             </div>
           </div>
         </div>
       )}
-
-      <canvas ref={canvasRef} className="hidden" />
     </div>
   );
 };
