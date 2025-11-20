@@ -123,7 +123,7 @@ const MapComponent: React.FC<MapComponentProps> = ({
         onClick={handleMyLocationClick}
         style={{
           position: 'absolute',
-          bottom: 'calc(68px + env(safe-area-inset-bottom) + 80px)',
+          bottom: 'calc(68px + env(safe-area-inset-bottom) + 140px)',
           right: '16px',
           width: '48px',
           height: '48px',
