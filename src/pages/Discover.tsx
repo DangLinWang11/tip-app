@@ -40,10 +40,16 @@ const Discover: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [userLocation, setUserLocation] = useState<{lat: number, lng: number} | null>(null);
+  const [mapReady, setMapReady] = useState(false);
   const isFirstLoad = useRef(true);
 
   useEffect(() => {
     isFirstLoad.current = false;
+  }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setMapReady(true), 100);
+    return () => clearTimeout(timer);
   }, []);
 
   // Fetch restaurants from Firebase
@@ -229,15 +235,21 @@ const Discover: React.FC = () => {
       {/* Map Section */}
       <div className="flex-1 relative z-10 -mt-[10px]">
         <div className="h-full relative">
-          <RestaurantMap 
-            mapType={mapType} 
-            restaurants={filteredRestaurants} 
-            dishes={dishes} 
-            userLocation={userLocation} 
-            onRestaurantClick={(id) => navigate(`/restaurant/${id}`)} 
-            onDishClick={(id) => navigate(`/dish/${id}`)}
-            focusRestaurantId={new URLSearchParams(location.search).get('focusRestaurantId') || undefined}
-          />
+          {mapReady ? (
+            <RestaurantMap 
+              mapType={mapType} 
+              restaurants={filteredRestaurants} 
+              dishes={dishes} 
+              userLocation={userLocation} 
+              onRestaurantClick={(id) => navigate(`/restaurant/${id}`)} 
+              onDishClick={(id) => navigate(`/dish/${id}`)}
+              focusRestaurantId={new URLSearchParams(location.search).get('focusRestaurantId') || undefined}
+            />
+          ) : (
+            <div className="flex-1 flex items-center justify-center h-full">
+              <div className="text-gray-500">Loading map...</div>
+            </div>
+          )}
 
           {loading && (
             <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-white px-3 py-1 rounded-full shadow-md text-sm z-50">

@@ -9,6 +9,10 @@ const BottomNavigation: React.FC = () => {
         <li className="min-w-0">
           <NavLink
             to="/"
+            onClick={(e) => {
+              e.stopPropagation();
+              window.scrollTo({ top: window.scrollY, behavior: 'instant' });
+            }}
             className={({ isActive }) =>
               `flex flex-col items-center justify-center gap-1 py-2 text-center ${isActive ? 'text-[#FF385C] font-medium' : 'text-gray-500'}`
             }
@@ -21,6 +25,10 @@ const BottomNavigation: React.FC = () => {
         <li className="min-w-0">
           <NavLink
             to="/discover"
+            onClick={(e) => {
+              e.stopPropagation();
+              window.scrollTo({ top: window.scrollY, behavior: 'instant' });
+            }}
             className={({ isActive }) =>
               `flex flex-col items-center justify-center gap-1 py-2 text-center ${isActive ? 'text-[#FF385C] font-medium' : 'text-gray-500'}`
             }
@@ -33,6 +41,10 @@ const BottomNavigation: React.FC = () => {
         <li className="min-w-0">
           <NavLink
             to="/create"
+            onClick={(e) => {
+              e.stopPropagation();
+              window.scrollTo({ top: window.scrollY, behavior: 'instant' });
+            }}
             className={({ isActive }) =>
               `flex flex-col items-center justify-center gap-1 py-2 text-center ${isActive ? 'text-[#FF385C] font-medium' : 'text-gray-500'}`
             }
@@ -45,6 +57,10 @@ const BottomNavigation: React.FC = () => {
         <li className="min-w-0">
           <NavLink
             to="/profile"
+            onClick={(e) => {
+              e.stopPropagation();
+              window.scrollTo({ top: window.scrollY, behavior: 'instant' });
+            }}
             className={({ isActive }) =>
               `flex flex-col items-center justify-center gap-1 py-2 text-center ${isActive ? 'text-[#FF385C] font-medium' : 'text-gray-500'}`
             }
