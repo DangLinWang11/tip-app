@@ -178,7 +178,7 @@ const Discover: React.FC = () => {
 
 
   return (
-    <div className="flex flex-col h-screen bg-light-gray">
+    <div className="flex flex-col h-screen bg-light-gray pt-[160px]">
       <header className="bg-white fixed top-0 left-0 right-0 z-50 px-4 py-3 shadow-sm" style={{overscrollBehavior: 'none', touchAction: 'none'}}>
         <div className="flex items-center mb-4">
           <div className="relative flex-1">
@@ -222,7 +222,7 @@ const Discover: React.FC = () => {
       </header>
 
       {/* Map Section */}
-      <div className="flex-1 relative z-10 mt-[160px]">
+      <div className="flex-1 relative z-10">
         {loading ? (
           <div className="flex h-full items-center justify-center bg-gray-100">
             <div className="text-center">
