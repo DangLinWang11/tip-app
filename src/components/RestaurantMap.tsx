@@ -365,16 +365,23 @@ const Map: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishes, u
       return;
     }
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-        setInternalUserLocation(coords);
+      (position) => {
+        if (map) {
+          const coords = {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude
+          };
+          map.panTo(coords);
+          map.setZoom(15);
+        }
       },
-      (err) => {
-        if (err.code === err.PERMISSION_DENIED) {
+      (error) => {
+        console.error('Location error:', error);
+        if (error.code === error.PERMISSION_DENIED) {
           setLocationError('Location permission denied. Enable it in settings to use navigation.');
-        } else if (err.code === err.POSITION_UNAVAILABLE) {
+        } else if (error.code === error.POSITION_UNAVAILABLE) {
           setLocationError('Location information is unavailable.');
-        } else if (err.code === err.TIMEOUT) {
+        } else if (error.code === error.TIMEOUT) {
           setLocationError('Request to get your location timed out.');
         } else {
           setLocationError('Failed to get your location.');
