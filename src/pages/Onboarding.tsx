@@ -493,7 +493,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, needsUsernameOnly =
 
         {step === 2 && (
           <>
-            <div className="relative w-full mb-6 pt-10">
+            <div className="relative w-full mb-6 pt-2">
               <button
                 onClick={() => setStep(1)}
                 className="absolute left-4 top-0 flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 active:bg-gray-300 transition-colors min-h-[44px]"
