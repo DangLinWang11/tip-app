@@ -359,20 +359,7 @@ const Map: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishes, u
       // Store markers on map for cleanup
       (map as any).markers = markers;
 
-      // Auto-fit bounds to show all pins when we have restaurants/dishes
-      if (mapType === 'restaurant' && restaurants.length > 0) {
-        const bounds = new window.google.maps.LatLngBounds();
-        restaurants.forEach((restaurant) => {
-          bounds.extend(restaurant.location);
-        });
-        map.fitBounds(bounds);
-      } else if (mapType === 'dish' && dishes.length > 0) {
-        const bounds = new window.google.maps.LatLngBounds();
-        dishes.forEach((dish) => {
-          bounds.extend(dish.location);
-        });
-        map.fitBounds(bounds);
-      }
+      // Removed auto-fit bounds to keep map centered on initial user/fallback location
     }
   }, [map, mapType, restaurants, dishes, onRestaurantClick]);
 
