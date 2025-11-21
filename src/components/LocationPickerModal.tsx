@@ -167,10 +167,10 @@ const MapComponent: React.FC<MapComponentProps> = ({
       
       <button
         onClick={handleMyLocationClick}
-        className="fixed bottom-36 right-4 z-20 w-12 h-12 rounded-full bg-white shadow-lg flex items-center justify-center text-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-300"
+        className="fixed bottom-[450px] right-4 w-12 h-12 rounded-full bg-white shadow-lg flex items-center justify-center z-[60]"
         title="My Location"
       >
-        <Navigation className="w-6 h-6" />
+        <Navigation className="w-6 h-6 text-blue-500" />
       </button>
     </div>
   );
@@ -382,7 +382,7 @@ const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
                   Set location for {restaurantName}
                 </h3>
                 <p className="text-sm text-gray-600">
-                  Move the map to position the pin at the restaurant&apos;s exact location
+                  Move the map to position the pin
                 </p>
               </div>
               <button
