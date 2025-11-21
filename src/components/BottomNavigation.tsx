@@ -4,17 +4,17 @@ import { HomeIcon, SearchIcon, PlusSquareIcon, UserIcon } from 'lucide-react';
 
 const BottomNavigation: React.FC = () => {
   return (
-    <nav className="fixed inset-x-0 bottom-0 border-t bg-white/90 backdrop-blur supports-[backdrop-filter]:bg-white/60 z-50 pb-[calc(env(safe-area-inset-bottom)+16px)]">
+    <nav className="fixed inset-x-0 bottom-0 bg-white border-t border-gray-200 shadow-[0_-1px_3px_rgba(0,0,0,0.1)] z-50 pb-[calc(env(safe-area-inset-bottom)+16px)]">
       <ul className="grid grid-cols-4">
         <li className="min-w-0">
           <NavLink
             to="/"
             className={({ isActive }) =>
-              `flex flex-col items-center justify-center gap-1 py-2 text-center ${isActive ? 'text-primary' : 'text-dark-gray'}`
+              `flex flex-col items-center justify-center gap-1 py-2 text-center ${isActive ? 'text-[#FF385C] font-medium' : 'text-gray-500'}`
             }
           >
-            <HomeIcon className="h-6 w-6" aria-hidden="true" />
-            <span className="text-xs leading-none">Home</span>
+            <HomeIcon className="h-7 w-7" aria-hidden="true" />
+            <span className="text-[11px] font-medium leading-none">Home</span>
           </NavLink>
         </li>
 
@@ -22,11 +22,11 @@ const BottomNavigation: React.FC = () => {
           <NavLink
             to="/discover"
             className={({ isActive }) =>
-              `flex flex-col items-center justify-center gap-1 py-2 text-center ${isActive ? 'text-primary' : 'text-dark-gray'}`
+              `flex flex-col items-center justify-center gap-1 py-2 text-center ${isActive ? 'text-[#FF385C] font-medium' : 'text-gray-500'}`
             }
           >
-            <SearchIcon className="h-6 w-6" aria-hidden="true" />
-            <span className="text-xs leading-none">Discover</span>
+            <SearchIcon className="h-7 w-7" aria-hidden="true" />
+            <span className="text-[11px] font-medium leading-none">Discover</span>
           </NavLink>
         </li>
 
@@ -34,11 +34,11 @@ const BottomNavigation: React.FC = () => {
           <NavLink
             to="/create"
             className={({ isActive }) =>
-              `flex flex-col items-center justify-center gap-1 py-2 text-center ${isActive ? 'text-primary' : 'text-dark-gray'}`
+              `flex flex-col items-center justify-center gap-1 py-2 text-center ${isActive ? 'text-[#FF385C] font-medium' : 'text-gray-500'}`
             }
           >
-            <PlusSquareIcon className="h-6 w-6" aria-hidden="true" />
-            <span className="text-xs leading-none">Create</span>
+            <PlusSquareIcon className="h-7 w-7" aria-hidden="true" />
+            <span className="text-[11px] font-medium leading-none">Create</span>
           </NavLink>
         </li>
 
@@ -46,11 +46,11 @@ const BottomNavigation: React.FC = () => {
           <NavLink
             to="/profile"
             className={({ isActive }) =>
-              `flex flex-col items-center justify-center gap-1 py-2 text-center ${isActive ? 'text-primary' : 'text-dark-gray'}`
+              `flex flex-col items-center justify-center gap-1 py-2 text-center ${isActive ? 'text-[#FF385C] font-medium' : 'text-gray-500'}`
             }
           >
-            <UserIcon className="h-6 w-6" aria-hidden="true" />
-            <span className="text-xs leading-none">Profile</span>
+            <UserIcon className="h-7 w-7" aria-hidden="true" />
+            <span className="text-[11px] font-medium leading-none">Profile</span>
           </NavLink>
         </li>
       </ul>
