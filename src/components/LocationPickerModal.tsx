@@ -375,7 +375,7 @@ const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
             </svg>
           </div>
 
-          <div className="fixed bottom-24 left-4 right-4 z-30 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
+          <div className="fixed bottom-32 left-4 right-4 z-30 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
             <div className="bg-white rounded-2xl shadow-xl p-4 flex items-center gap-3">
               <div className="flex-1">
                 <h3 className="text-base font-semibold text-gray-900 mb-1">
