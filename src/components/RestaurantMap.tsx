@@ -158,14 +158,8 @@ const Map: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishes, u
         zoom,
         mapTypeControl: false,
         streetViewControl: false,
-        fullscreenControl: showGoogleControl,
-        fullscreenControlOptions: {
-          position: google.maps.ControlPosition.RIGHT_TOP
-        },
-        zoomControl: showGoogleControl,
-        zoomControlOptions: {
-          position: google.maps.ControlPosition.RIGHT_TOP
-        },
+        fullscreenControl: false,
+        zoomControl: false,
         rotateControl: false,
         scaleControl: false,
         gestureHandling: 'greedy',
@@ -403,7 +397,7 @@ const Map: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishes, u
       {showMyLocationButton && (
         <button
           onClick={centerOnMyLocation}
-          className="absolute bottom-28 right-4 w-12 h-12 rounded-full bg-white shadow-lg flex items-center justify-center z-[60] border border-gray-100"
+          className="absolute bottom-24 right-4 w-12 h-12 rounded-full bg-white shadow-lg flex items-center justify-center z-[60] border border-gray-100"
           title="My Location"
           aria-label="Center on my location"
         >
