@@ -167,7 +167,7 @@ const MapComponent: React.FC<MapComponentProps> = ({
       
       <button
         onClick={handleMyLocationClick}
-        className="fixed bottom-36 right-4 z-10 w-12 h-12 rounded-full bg-white shadow-lg flex items-center justify-center text-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-300"
+        className="fixed bottom-36 right-4 z-20 w-12 h-12 rounded-full bg-white shadow-lg flex items-center justify-center text-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-300"
         title="My Location"
       >
         <Navigation className="w-6 h-6" />
@@ -354,7 +354,7 @@ const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
         >
           <button
             onClick={handleCancel}
-            className="absolute top-4 left-4 z-30 w-12 h-12 rounded-full bg-white shadow-lg flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-gray-300"
+            className="absolute top-4 left-4 z-40 w-12 h-12 rounded-full bg-white shadow-lg flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-gray-300"
             title="Cancel"
           >
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -375,7 +375,7 @@ const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
             </svg>
           </div>
 
-          <div className="fixed bottom-20 left-4 right-4 z-20 pb-[env(safe-area-inset-bottom)]">
+          <div className="fixed bottom-24 left-4 right-4 z-30 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
             <div className="bg-white rounded-2xl shadow-xl p-4 flex items-center gap-3">
               <div className="flex-1">
                 <h3 className="text-base font-semibold text-gray-900 mb-1">

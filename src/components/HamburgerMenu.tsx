@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { Menu, X, Settings, HelpCircle, LogOut, Store as StoreIcon } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { signOutUser, analytics } from '../lib/firebase';
@@ -7,59 +7,39 @@ import { useOwnedRestaurants } from '../hooks/useOwnedRestaurants';
 
 // Simple Settings Modal Component
 const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen, onClose }) => {
-  const [shareLocationEnabled, setShareLocationEnabled] = useState(false);
   const [locationPermissionState, setLocationPermissionState] = useState<PermissionState | 'unsupported'>('prompt');
   const [locationMessage, setLocationMessage] = useState<string | null>(null);
-  const [isLocationMessageError, setIsLocationMessageError] = useState(false);
-  const [isRequestingLocation, setIsRequestingLocation] = useState(false);
 
   useEffect(() => {
-    if (typeof window === 'undefined' || typeof navigator === 'undefined') {
+    if (!isOpen || typeof navigator === 'undefined' || !navigator.permissions?.query) {
       return;
     }
 
     let isMounted = true;
     let permissionStatus: PermissionStatus | null = null;
 
-    const updateFromPermission = (state: PermissionState) => {
+    const updatePermissionState = (state: PermissionState) => {
       if (!isMounted) return;
       setLocationPermissionState(state);
-      const granted = state === 'granted';
-      setShareLocationEnabled(granted);
-      if (state === 'denied') {
-        setLocationMessage('Location permission denied. Enable it in your browser settings.');
-        setIsLocationMessageError(true);
-      }
-      if (state === 'granted') {
-        setLocationMessage(null);
-        setIsLocationMessageError(false);
-      }
-    };
 
-    const handlePermissionChange = () => {
-      if (!permissionStatus) return;
-      updateFromPermission(permissionStatus.state);
+      if (state === 'denied') {
+        setLocationMessage('Location denied. To fix: Settings -> Safari -> Clear Website Data, then re-add PWA.');
+      } else if (state === 'granted') {
+        setLocationMessage('Location access enabled');
+      } else {
+        setLocationMessage(null);
+      }
     };
 
     const queryPermission = async () => {
-      if (!navigator.permissions?.query) {
-        setLocationPermissionState('unsupported');
-        setShareLocationEnabled(false);
-        return;
-      }
-
       try {
-        permissionStatus = await navigator.permissions.query({
-          name: 'geolocation' as PermissionName
-        });
-
+        permissionStatus = await navigator.permissions.query({ name: 'geolocation' as PermissionName });
         if (!isMounted || !permissionStatus) return;
-        updateFromPermission(permissionStatus.state);
-        permissionStatus.addEventListener('change', handlePermissionChange);
-      } catch (error) {
-        if (!isMounted) return;
-        setLocationPermissionState('prompt');
-        setShareLocationEnabled(false);
+
+        updatePermissionState(permissionStatus.state);
+        permissionStatus.addEventListener('change', () => updatePermissionState(permissionStatus!.state));
+      } catch {
+        setLocationPermissionState('unsupported');
       }
     };
 
@@ -68,52 +48,30 @@ const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isO
     return () => {
       isMounted = false;
       if (permissionStatus) {
-        permissionStatus.removeEventListener('change', handlePermissionChange);
+        permissionStatus.removeEventListener('change', () => {});
       }
     };
-  }, []);
+  }, [isOpen]);
 
-  const handleShareLocationChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const checked = event.target.checked;
-
-    if (checked) {
-      if (typeof navigator === 'undefined' || !navigator.geolocation) {
-        setShareLocationEnabled(false);
-        setLocationMessage('Geolocation is not supported in this browser.');
-        setIsLocationMessageError(true);
-        return;
-      }
-
-      setIsRequestingLocation(true);
-      setLocationMessage(null);
-      setIsLocationMessageError(false);
-
-      navigator.geolocation.getCurrentPosition(
-        () => {
-          setIsRequestingLocation(false);
-          setLocationPermissionState('granted');
-          setShareLocationEnabled(true);
-          setLocationMessage(null);
-          setIsLocationMessageError(false);
-        },
-        (error: GeolocationPositionError) => {
-          setIsRequestingLocation(false);
-          setShareLocationEnabled(false);
-          const denied = error.code === error.PERMISSION_DENIED;
-          setLocationPermissionState(denied ? 'denied' : 'prompt');
-          setLocationMessage(
-            denied
-              ? 'Location access denied. Enable it in your browser settings.'
-              : 'Unable to access location. Please try again.'
-          );
-          setIsLocationMessageError(true);
-        }
-      );
-    } else {
-      setLocationMessage('To fully disable location, go to your browser settings.');
-      setIsLocationMessageError(false);
-      setShareLocationEnabled(locationPermissionState === 'granted');
+  const handleRequestLocation = () => {
+    if (typeof navigator === 'undefined' || !navigator.geolocation) {
+      setLocationMessage('Geolocation not supported');
+      return;
     }
+
+    navigator.geolocation.getCurrentPosition(
+      () => {
+        setLocationPermissionState('granted');
+        setLocationMessage('Location access granted!');
+      },
+      (error) => {
+        if (error.code === error.PERMISSION_DENIED) {
+          setLocationMessage('Permission denied. iOS Settings -> Safari -> Clear Website Data -> Re-add PWA.');
+        } else {
+          setLocationMessage('Unable to get location. Try again.');
+        }
+      }
+    );
   };
 
   if (!isOpen) return null;
@@ -121,35 +79,53 @@ const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isO
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-[110] flex items-center justify-center p-4">
       <div className="bg-white rounded-xl shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
-        {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <h2 className="text-xl font-semibold text-gray-900">Settings</h2>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-          >
+          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
             <X size={20} className="text-gray-700" />
           </button>
         </div>
 
-        {/* Settings Content */}
         <div className="p-6 space-y-6">
-          {/* Notifications */}
+          {/* Location Section */}
           <div>
-            <h3 className="text-lg font-medium text-gray-900 mb-3">Notifications</h3>
+            <h3 className="text-lg font-medium text-gray-900 mb-3">Location</h3>
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-gray-700">Push Notifications</span>
-                <input type="checkbox" className="toggle" defaultChecked />
+                <span className="text-gray-700">Permission Status</span>
+                <span
+                  className={`text-sm font-medium ${
+                    locationPermissionState === 'granted'
+                      ? 'text-green-600'
+                      : locationPermissionState === 'denied'
+                        ? 'text-red-600'
+                        : 'text-gray-500'
+                  }`}
+                >
+                  {locationPermissionState === 'granted'
+                    ? 'Granted'
+                    : locationPermissionState === 'denied'
+                      ? 'Denied'
+                      : locationPermissionState === 'unsupported'
+                        ? 'Not Supported'
+                        : 'Not Requested'}
+                </span>
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-gray-700">Email Updates</span>
-                <input type="checkbox" className="toggle" />
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-gray-700">Review Reminders</span>
-                <input type="checkbox" className="toggle" defaultChecked />
-              </div>
+
+              {locationPermissionState !== 'granted' && (
+                <button
+                  onClick={handleRequestLocation}
+                  className="w-full py-2 px-4 bg-primary text-white rounded-lg hover:bg-red-600 transition-colors"
+                >
+                  Request Location Access
+                </button>
+              )}
+
+              {locationMessage && (
+                <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg">
+                  {locationMessage}
+                </p>
+              )}
             </div>
           </div>
 
@@ -161,21 +137,6 @@ const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isO
                 <span className="text-gray-700">Public Profile</span>
                 <input type="checkbox" className="toggle" defaultChecked />
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-gray-700">Share Location</span>
-                <input
-                  type="checkbox"
-                  className="toggle"
-                  checked={shareLocationEnabled}
-                  onChange={handleShareLocationChange}
-                  disabled={isRequestingLocation}
-                />
-              </div>
-              {locationMessage && (
-                <p className={`text-sm mt-2 ${isLocationMessageError ? 'text-red-600' : 'text-gray-500'}`}>
-                  {locationMessage}
-                </p>
-              )}
             </div>
           </div>
 
@@ -431,3 +392,5 @@ const HamburgerMenu: React.FC = () => {
 };
 
 export default HamburgerMenu;
+
+
