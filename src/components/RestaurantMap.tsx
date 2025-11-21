@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Wrapper, Status } from '@googlemaps/react-wrapper';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../lib/firebase';
+import { Navigation } from 'lucide-react';
 
 const getCuisineIcon = (cuisine: string): string => {
   const cuisineMap: { [key: string]: string } = {
@@ -156,7 +157,13 @@ const Map: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishes, u
         mapTypeControl: false,
         streetViewControl: false,
         fullscreenControl: showGoogleControl,
-        zoomControl: false,
+        fullscreenControlOptions: {
+          position: google.maps.ControlPosition.RIGHT_TOP
+        },
+        zoomControl: showGoogleControl,
+        zoomControlOptions: {
+          position: google.maps.ControlPosition.RIGHT_TOP
+        },
         rotateControl: false,
         scaleControl: false,
         gestureHandling: 'greedy',
@@ -381,34 +388,14 @@ const Map: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishes, u
 
       {/* Navigation (My Location) Button */}
       {showMyLocationButton && (
-        <div
-          style={{ position: 'absolute', bottom: 10, right: showGoogleControl ? 56 : 16, zIndex: 5 }}
-          aria-hidden
+        <button
+          onClick={centerOnMyLocation}
+          className="absolute bottom-28 right-4 w-12 h-12 rounded-full bg-white shadow-lg flex items-center justify-center z-[60] border border-gray-100"
+          title="My Location"
+          aria-label="Center on my location"
         >
-          <button
-            onClick={centerOnMyLocation}
-            title="Center on my location"
-            aria-label="Center on my location"
-            style={{
-              width: 68,
-              height: 68,
-              borderRadius: 9999,
-              background: 'transparent',
-              border: 'none',
-              boxShadow: 'none',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer'
-            }}
-          >
-            {/* Larger circle with tilted blue navigation arrow */}
-            <svg width="48" height="48" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <circle cx="12" cy="12" r="9.5" fill="#ffffff" stroke="#E5E7EB" strokeWidth="1" />
-              <path d="M12 5l4.5 9-4.5-2-4.5 2L12 5z" fill="#4285F4" transform="translate(0 1) rotate(45 12 12)" />
-            </svg>
-          </button>
-        </div>
+          <Navigation className="w-6 h-6 text-blue-500" />
+        </button>
       )}
 
       {/* Error Message */}
