@@ -167,7 +167,7 @@ const MapComponent: React.FC<MapComponentProps> = ({
       
       <button
         onClick={handleMyLocationClick}
-        className="fixed bottom-[450px] right-4 w-12 h-12 rounded-full bg-white shadow-lg flex items-center justify-center z-[60]"
+        className="fixed bottom-[200px] right-4 w-12 h-12 rounded-full bg-white shadow-lg flex items-center justify-center z-[60]"
         title="My Location"
       >
         <Navigation className="w-6 h-6 text-blue-500" />
@@ -375,7 +375,7 @@ const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
             </svg>
           </div>
 
-          <div className="fixed bottom-28 left-4 right-4 z-[60] p-4">
+          <div className="fixed bottom-16 left-4 right-4 z-[60] p-4">
             <div className="bg-white rounded-2xl shadow-xl p-4 flex items-center gap-3">
               <div className="flex-1">
                 <h3 className="text-base font-semibold text-gray-900 mb-1">
