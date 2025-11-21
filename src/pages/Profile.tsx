@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { EditIcon, GridIcon, BookmarkIcon, SearchIcon, PlusIcon, Star, Users, TrendingUp, Award, Share, User } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Store as StoreIcon } from 'lucide-react';
@@ -285,7 +285,12 @@ const Profile: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [followerCount, setFollowerCount] = useState(0);
+  const isFirstLoad = useRef(true);
   
+  useEffect(() => {
+    isFirstLoad.current = false;
+  }, []);
+
   // Feature flags
   const showTierRankings = useFeature('TIER_RANKINGS');
   const showSocialActivity = useFeature('SOCIAL_FEED');
@@ -489,7 +494,7 @@ const Profile: React.FC = () => {
   };
 
   // Loading state
-  if (profileLoading) {
+  if (!userProfile && profileLoading) {
     return (
       <div className="min-h-screen bg-light-gray flex items-center justify-center">
         <div className="text-center">

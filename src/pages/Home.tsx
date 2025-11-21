@@ -64,10 +64,15 @@ const Home: React.FC = () => {
   const [pullY, setPullY] = useState(0);
   const pullStartY = useRef<number | null>(null);
   const canPull = useRef(false);
+  const isFirstLoad = useRef(true);
   const PULL_TRIGGER = 140; // pixels required to trigger refresh (harder to trigger)
   const radius = 16; // progress ring radius (SVG units)
   const circumference = 2 * Math.PI * radius;
   const pullProgress = Math.max(0, Math.min(1, pullY / PULL_TRIGGER));
+
+  useEffect(() => {
+    isFirstLoad.current = false;
+  }, []);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -297,16 +302,8 @@ const Home: React.FC = () => {
     </div>
   );
 
-  // Show loading state
-  if (loading || profileLoading) {
-    return (
-      <div className="min-h-screen bg-light-gray flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading your food journey...</p>
-        </div>
-      </div>
-    );
+  if (isFirstLoad.current && loading && feedPosts.length === 0) {
+    return <div>Loading...</div>;
   }
 
   // Always show the full Home dashboard (stats, map, community feed)

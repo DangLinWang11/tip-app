@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { SearchIcon, FilterIcon, MapPinIcon, StarIcon, Menu } from 'lucide-react';
 import { collection, getDocs, query, where } from 'firebase/firestore';
@@ -40,6 +40,11 @@ const Discover: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [userLocation, setUserLocation] = useState<{lat: number, lng: number} | null>(null);
+  const isFirstLoad = useRef(true);
+
+  useEffect(() => {
+    isFirstLoad.current = false;
+  }, []);
 
   // Fetch restaurants from Firebase
   useEffect(() => {
@@ -223,27 +228,7 @@ const Discover: React.FC = () => {
 
       {/* Map Section */}
       <div className="flex-1 relative z-10 -mt-[10px]">
-        {loading ? (
-          <div className="flex h-full items-center justify-center bg-gray-100">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
-              <p className="text-gray-600">Loading restaurants...</p>
-            </div>
-          </div>
-        ) : error ? (
-          <div className="flex h-full items-center justify-center bg-red-50">
-            <div className="text-center">
-              <p className="text-red-600 font-medium">Error loading restaurants</p>
-              <p className="text-red-500 text-sm">{error}</p>
-              <button 
-                onClick={() => window.location.reload()} 
-                className="mt-2 px-4 py-2 bg-primary text-white rounded-lg text-sm"
-              >
-                Retry
-              </button>
-            </div>
-          </div>
-        ) : (
+        <div className="h-full relative">
           <RestaurantMap 
             mapType={mapType} 
             restaurants={filteredRestaurants} 
@@ -253,7 +238,28 @@ const Discover: React.FC = () => {
             onDishClick={(id) => navigate(`/dish/${id}`)}
             focusRestaurantId={new URLSearchParams(location.search).get('focusRestaurantId') || undefined}
           />
-        )}
+
+          {loading && (
+            <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-white px-3 py-1 rounded-full shadow-md text-sm z-50">
+              Loading restaurants...
+            </div>
+          )}
+
+          {error && (
+            <div className="absolute inset-0 flex items-center justify-center bg-red-50/80 z-40">
+              <div className="text-center bg-white rounded-xl shadow px-4 py-3">
+                <p className="text-red-600 font-medium">Error loading restaurants</p>
+                <p className="text-red-500 text-sm">{error}</p>
+                <button 
+                  onClick={() => window.location.reload()} 
+                  className="mt-2 px-4 py-2 bg-primary text-white rounded-lg text-sm"
+                >
+                  Retry
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
         {/* Removed duplicate location button — using the one inside RestaurantMap */}
       </div>
     </div>
