@@ -222,7 +222,7 @@ const Discover: React.FC = () => {
       </header>
 
       {/* Map Section */}
-      <div className="flex-1 relative z-10 pt-[160px] pb-16">
+      <div className="flex-1 relative z-10 mt-[160px]">
         {loading ? (
           <div className="flex h-full items-center justify-center bg-gray-100">
             <div className="text-center">
