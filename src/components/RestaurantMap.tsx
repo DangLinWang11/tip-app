@@ -4,6 +4,8 @@ import { collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { Navigation } from 'lucide-react';
 
+const NYC_FALLBACK = { lat: 40.7060, lng: -74.0086 };
+
 const getCuisineIcon = (cuisine: string): string => {
   const cuisineMap: { [key: string]: string } = {
     'mediterranean': '🫒',
@@ -171,9 +173,33 @@ const Map: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishes, u
         disableDoubleClickZoom: false,
         styles: [
           {
-            featureType: 'poi',
-            elementType: 'labels',
-            stylers: [{ visibility: 'off' }]
+            featureType: "water",
+            elementType: "geometry",
+            stylers: [{ color: "#e3f2fd" }]
+          },
+          {
+            featureType: "landscape",
+            elementType: "geometry",
+            stylers: [{ color: "#f5f5f5" }]
+          },
+          {
+            featureType: "road",
+            elementType: "geometry",
+            stylers: [{ color: "#ffffff" }]
+          },
+          {
+            featureType: "road",
+            elementType: "labels.text.fill",
+            stylers: [{ color: "#9e9e9e" }]
+          },
+          {
+            featureType: "poi",
+            elementType: "labels",
+            stylers: [{ visibility: "off" }]
+          },
+          {
+            featureType: "transit",
+            stylers: [{ visibility: "off" }]
           }
         ]
       });
@@ -560,10 +586,23 @@ const RestaurantMap: React.FC<RestaurantMapProps> = ({
   focusRestaurantId
 }) => {
   const [topDishes, setTopDishes] = useState<Dish[]>([]);
-  const sarasotaCenter = {
-    lat: 27.3364,
-    lng: -82.5307
-  };
+  const [initialCenter, setInitialCenter] = useState(NYC_FALLBACK);
+
+  useEffect(() => {
+    if (!navigator.geolocation) return;
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setInitialCenter({
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude
+        });
+      },
+      () => {
+        // keep NYC fallback
+      }
+    );
+  }, []);
 
   useEffect(() => {
     if (mapType === 'dish' && restaurants.length > 0) {
@@ -586,7 +625,7 @@ const RestaurantMap: React.FC<RestaurantMapProps> = ({
       case Status.SUCCESS:
         return (
           <Map
-            center={focusCenter || sarasotaCenter}
+            center={focusCenter || initialCenter}
             zoom={focusCenter ? 16 : 13}
             mapType={mapType}
             restaurants={restaurants}

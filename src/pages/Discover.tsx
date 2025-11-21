@@ -178,7 +178,7 @@ const Discover: React.FC = () => {
 
 
   return (
-    <div className="min-h-screen bg-light-gray pb-16 pt-[160px]">
+    <div className="flex flex-col h-screen bg-light-gray">
       <header className="bg-white fixed top-0 left-0 right-0 z-50 px-4 py-3 shadow-sm" style={{overscrollBehavior: 'none', touchAction: 'none'}}>
         <div className="flex items-center mb-4">
           <div className="relative flex-1">
@@ -222,16 +222,16 @@ const Discover: React.FC = () => {
       </header>
 
       {/* Map Section */}
-      <div className="relative z-10">
+      <div className="flex-1 relative z-10 pt-[160px] pb-16">
         {loading ? (
-          <div className="h-[calc(100vh-200px)] flex items-center justify-center bg-gray-100">
+          <div className="flex h-full items-center justify-center bg-gray-100">
             <div className="text-center">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
               <p className="text-gray-600">Loading restaurants...</p>
             </div>
           </div>
         ) : error ? (
-          <div className="h-[calc(100vh-200px)] flex items-center justify-center bg-red-50">
+          <div className="flex h-full items-center justify-center bg-red-50">
             <div className="text-center">
               <p className="text-red-600 font-medium">Error loading restaurants</p>
               <p className="text-red-500 text-sm">{error}</p>
@@ -244,17 +244,15 @@ const Discover: React.FC = () => {
             </div>
           </div>
         ) : (
-          <div className="h-[calc(100vh-200px)]">
-            <RestaurantMap 
-              mapType={mapType} 
-              restaurants={filteredRestaurants} 
-              dishes={dishes} 
-              userLocation={userLocation} 
-              onRestaurantClick={(id) => navigate(`/restaurant/${id}`)} 
-              onDishClick={(id) => navigate(`/dish/${id}`)}
-              focusRestaurantId={new URLSearchParams(location.search).get('focusRestaurantId') || undefined}
-            />
-          </div>
+          <RestaurantMap 
+            mapType={mapType} 
+            restaurants={filteredRestaurants} 
+            dishes={dishes} 
+            userLocation={userLocation} 
+            onRestaurantClick={(id) => navigate(`/restaurant/${id}`)} 
+            onDishClick={(id) => navigate(`/dish/${id}`)}
+            focusRestaurantId={new URLSearchParams(location.search).get('focusRestaurantId') || undefined}
+          />
         )}
         {/* Removed duplicate location button — using the one inside RestaurantMap */}
       </div>
