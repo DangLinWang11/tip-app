@@ -194,11 +194,11 @@ export default function OwnerPortal() {
               {/* Autocomplete: restaurant search */}
               <div className="relative">
                 <input
-                  className="w-full rounded-xl border border-slate-300 p-2 text-sm"
+                  className="w-full rounded-xl border border-slate-300 p-2 text-base"
                   placeholder="Search restaurant by name"
                   value={searchTerm}
-                  onChange={e=>setSearchTerm(e.target.value)}
-                  onFocus={()=>setSearchOpen(!!searchResults.length)}
+                  onChange={e => setSearchTerm(e.target.value)}
+                  onFocus={() => setSearchOpen(!!searchResults.length)}
                 />
                 {searchOpen && searchResults.length > 0 && (
                   <div className="absolute z-10 mt-1 w-full bg-white border border-slate-200 rounded-xl shadow">
@@ -222,19 +222,19 @@ export default function OwnerPortal() {
                 )}
                 {searchOpen && searchResults.length === 0 && (
                   <div className="absolute z-10 mt-1 w-full bg-white border border-slate-200 rounded-xl shadow p-3 text-sm text-slate-600">
-                    No results. <button className="underline" onClick={()=>setShowCantFind(true)}>Can’t find your restaurant?</button>
+                    No results. <button className="underline" onClick={() => setShowCantFind(true)}>Can’t find your restaurant?</button>
                   </div>
                 )}
               </div>
-              <input className="rounded-xl border border-slate-300 p-2 text-sm" placeholder="Restaurant ID (auto-set on select)" value={claimRestaurantId} onChange={e=>setClaimRestaurantId(e.target.value)} />
-              <input className="rounded-xl border border-slate-300 p-2 text-sm" placeholder="Business Name" value={claimBusinessName} onChange={e=>setClaimBusinessName(e.target.value)} />
-              <input className="rounded-xl border border-slate-300 p-2 text-sm" placeholder="Contact email" value={claimEmail} onChange={e=>setClaimEmail(e.target.value)} />
-              <input className="rounded-xl border border-slate-300 p-2 text-sm" placeholder="Contact phone (optional)" value={claimPhone} onChange={e=>setClaimPhone(e.target.value)} />
-              <input className="rounded-xl border border-slate-300 p-2 text-sm" placeholder="Supporting link (website or social)" value={claimLink} onChange={e=>setClaimLink(e.target.value)} />
-              <textarea className="rounded-xl border border-slate-300 p-2 text-sm" placeholder="Notes (optional)" value={claimNotes} onChange={e=>setClaimNotes(e.target.value)} />
+              <input className="rounded-xl border border-slate-300 p-2 text-base" placeholder="Restaurant ID (auto-set on select)" value={claimRestaurantId} onChange={e => setClaimRestaurantId(e.target.value)} />
+              <input className="rounded-xl border border-slate-300 p-2 text-base" placeholder="Business Name" value={claimBusinessName} onChange={e => setClaimBusinessName(e.target.value)} />
+              <input className="rounded-xl border border-slate-300 p-2 text-base" placeholder="Contact email" value={claimEmail} onChange={e => setClaimEmail(e.target.value)} />
+              <input className="rounded-xl border border-slate-300 p-2 text-base" placeholder="Contact phone (optional)" value={claimPhone} onChange={e => setClaimPhone(e.target.value)} />
+              <input className="rounded-xl border border-slate-300 p-2 text-base" placeholder="Supporting link (website or social)" value={claimLink} onChange={e => setClaimLink(e.target.value)} />
+              <textarea className="rounded-xl border border-slate-300 p-2 text-base" placeholder="Notes (optional)" value={claimNotes} onChange={e => setClaimNotes(e.target.value)} />
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Proof files (optional)</label>
-                <input type="file" multiple onChange={e=>setProofFiles(e.target.files)} className="text-sm" />
+                <input type="file" multiple onChange={e => setProofFiles(e.target.files)} className="text-base" />
                 <p className="text-xs text-slate-500 mt-1">Upload a photo of license, POS, or utility bill. Visible only to admins.</p>
                 {proofFiles && proofFiles.length > 0 && (
                   <div className="mt-2 space-y-1">
@@ -260,7 +260,7 @@ export default function OwnerPortal() {
                   <div className="font-semibold mb-1">Can’t find your restaurant?</div>
                   <p>Please contact us at support@tipapp.example with your business name, address, and a link to a website or social page. We’ll help get it added.</p>
                   <div className="mt-2">
-                    <button className="text-xs underline" onClick={()=>setShowCantFind(false)}>Close</button>
+                    <button className="text-xs underline" onClick={() => setShowCantFind(false)}>Close</button>
                   </div>
                 </div>
               )}
@@ -318,7 +318,7 @@ export default function OwnerPortal() {
             <TopDishes rows={topDishes} />
             <RecentPhotos items={photos} />
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <DealForm restaurantId={selected!} onCreated={async ()=>{ const ds = await listDealsForRestaurant(selected!); setDeals(ds); }} />
+              <DealForm restaurantId={selected!} onCreated={async () => { const ds = await listDealsForRestaurant(selected!); setDeals(ds); }} />
               <div className="self-stretch">
                 <Suspense>
                   {/* Simple deals list */}
@@ -330,7 +330,7 @@ export default function OwnerPortal() {
                     <div className="text-sm text-slate-500">No deals yet</div>
                   ) : (
                     <div className="space-y-2">
-                      {deals.map((d:any) => (
+                      {deals.map((d: any) => (
                         <div key={d.id} className="flex items-center justify-between rounded-xl border border-slate-100 p-3">
                           <div>
                             <div className="text-sm font-medium text-slate-900">{d.title}</div>
