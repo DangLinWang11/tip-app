@@ -40,10 +40,7 @@ const Discover: React.FC = () => {
   const [dishes, setDishes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [userLocation, setUserLocation] = useState<{lat: number, lng: number, accuracy?: number} | null>({
-    lat: 40.7060,
-    lng: -74.0086
-  });
+  const [userLocation, setUserLocation] = useState<{lat: number, lng: number, accuracy?: number} | null>(null);
   const [mapReady, setMapReady] = useState(false);
   const isFirstLoad = useRef(true);
 
@@ -55,6 +52,7 @@ const Discover: React.FC = () => {
     const timer = setTimeout(() => setMapReady(true), 100);
     return () => clearTimeout(timer);
   }, []);
+
 
   // Fetch restaurants from Firebase
   useEffect(() => {

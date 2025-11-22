@@ -209,7 +209,7 @@ const Map: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishes, u
 
   // Update user location marker and center map
   useEffect(() => {
-    const effectiveLocation = userLocation || internalUserLocation;
+    const effectiveLocation = internalUserLocation || userLocation;
     if (map && effectiveLocation) {
       if (userLocationMarker) {
         userLocationMarker.setMap(null);
@@ -267,6 +267,12 @@ const Map: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishes, u
       }
     }
   }, [map, userLocation, internalUserLocation]);
+
+  useEffect(() => {
+    if (userLocation) {
+      setInternalUserLocation(null);
+    }
+  }, [userLocation?.lat, userLocation?.lng]);
 
   useEffect(() => {
     return () => {
@@ -622,21 +628,6 @@ const RestaurantMap: React.FC<RestaurantMapProps> = ({
   const [topDishes, setTopDishes] = useState<Dish[]>([]);
   const [initialCenter, setInitialCenter] = useState(NYC_FALLBACK);
 
-  useEffect(() => {
-    if (!navigator.geolocation) return;
-
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setInitialCenter({
-          lat: pos.coords.latitude,
-          lng: pos.coords.longitude
-        });
-      },
-      () => {
-        // keep NYC fallback
-      }
-    );
-  }, []);
 
   useEffect(() => {
     if (mapType === 'dish' && restaurants.length > 0) {

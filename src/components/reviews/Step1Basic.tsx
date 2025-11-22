@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { collection, getDocs, query, where } from 'firebase/firestore';
-import { Camera, Loader2, MapPin, Plus, Trash2, Video } from 'lucide-react';
+import { Camera, Loader2, MapPin, Plus, Trash2, Video, X, AlertCircle } from 'lucide-react';
 import { useLoadScript } from '@react-google-maps/api';
 import { db } from '../../lib/firebase';
 import RatingSlider from '../RatingSlider';
@@ -72,6 +72,44 @@ const Step1Basic: React.FC = () => {
   const [fetchingPlaceDetails, setFetchingPlaceDetails] = useState(false);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [predictionDistances, setPredictionDistances] = useState<Record<string, number | undefined>>({});
+  const [showLocationBanner, setShowLocationBanner] = useState(!userLocation);
+  const [locationError, setLocationError] = useState<string | null>(null);
+  const [requestingLocation, setRequestingLocation] = useState(false);
+
+  const requestLocationPermission = async () => {
+    if (typeof navigator === 'undefined' || !navigator.geolocation) {
+      setLocationError('Geolocation is not supported by your browser');
+      return;
+    }
+
+    setRequestingLocation(true);
+    setLocationError(null);
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setUserLocation({
+          lat: position.coords.latitude,
+          lng: position.coords.longitude
+        });
+        setShowLocationBanner(false);
+        setRequestingLocation(false);
+      },
+      (error) => {
+        setRequestingLocation(false);
+        if (error.code === error.PERMISSION_DENIED) {
+          setLocationError('Location permission denied. Enable it in your browser settings.');
+          setShowLocationBanner(false);
+        } else {
+          setLocationError('Unable to get location. Please try again.');
+        }
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0
+      }
+    );
+  };
 
   const fetchGooglePlaces = async (searchText: string) => {
     if (!searchText || searchText.length < 2 || !mapsLoaded || typeof google === 'undefined') return;
@@ -140,23 +178,6 @@ const Step1Basic: React.FC = () => {
     loadDishes();
   }, [selectedRestaurant]);
 
-  useEffect(() => {
-    if (typeof navigator === 'undefined' || !navigator.geolocation) {
-      return;
-    }
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        setUserLocation({
-          lat: position.coords.latitude,
-          lng: position.coords.longitude
-        });
-        console.log('Got user location:', position.coords);
-      },
-      () => {
-        console.log('Location permission denied, sorting by name instead');
-      }
-    );
-  }, []);
 
   useEffect(() => {
     if (!mapsLoaded || typeof google === 'undefined') {
@@ -265,6 +286,11 @@ const Step1Basic: React.FC = () => {
   const handleRestaurantQueryChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const value = event.target.value;
     setRestaurantQuery(value);
+
+    // Request location on first keystroke if not already enabled
+    if (!userLocation && showLocationBanner && value.length > 0 && !requestingLocation) {
+      requestLocationPermission();
+    }
 
     if (mapsLoaded && value.length >= 2) {
       fetchGooglePlaces(value);
@@ -467,6 +493,49 @@ const Step1Basic: React.FC = () => {
         <div>
           <h2 className="text-lg font-semibold text-slate-900">{t('basic.restaurant')}</h2>
         </div>
+
+        {showLocationBanner && !userLocation && (
+          <div className="rounded-2xl bg-gradient-to-r from-blue-50 to-blue-100/50 border border-blue-200 p-4 flex items-center gap-3">
+            <MapPin className="h-5 w-5 text-blue-600 flex-shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-blue-900">
+                Enable location to see nearby restaurants first
+              </p>
+              <p className="text-xs text-blue-700 mt-1">
+                We'll show distance to each restaurant so you can find the closest ones
+              </p>
+            </div>
+            <button
+              onClick={requestLocationPermission}
+              disabled={requestingLocation}
+              className="flex-shrink-0 px-4 py-2 bg-red-500 hover:bg-red-600 disabled:bg-red-400 text-white rounded-lg font-medium text-sm transition-colors"
+            >
+              {requestingLocation ? 'Enabling...' : 'Enable'}
+            </button>
+            <button
+              onClick={() => setShowLocationBanner(false)}
+              className="flex-shrink-0 p-2 hover:bg-blue-200 rounded transition-colors text-blue-600"
+              aria-label="Dismiss location banner"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        )}
+
+        {locationError && (
+          <div className="rounded-2xl bg-red-50 border border-red-200 p-4 flex items-start gap-3">
+            <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="text-sm font-medium text-red-900">
+                Location access needed to see nearby restaurants
+              </p>
+              <p className="text-xs text-red-700 mt-1">
+                Enable location in your browser settings or try again
+              </p>
+            </div>
+          </div>
+        )}
+
         <div className="space-y-2">
           <div className="relative mt-4">
             <input

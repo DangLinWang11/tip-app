@@ -306,23 +306,6 @@ const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
       setUserLocation(null);
       setLocationError(null);
 
-      const tryPrefetch = async () => {
-        if (typeof navigator === 'undefined' || !navigator.permissions?.query) {
-          return;
-        }
-        try {
-          const permission = await navigator.permissions.query({
-            name: 'geolocation' as PermissionName
-          });
-          if (permission.state === 'granted') {
-            requestUserLocation();
-          }
-        } catch (error) {
-          console.warn('Unable to prefetch geolocation permission state', error);
-        }
-      };
-
-      tryPrefetch();
     } else {
       setFocusLocation(null);
       setUserLocation(null);
