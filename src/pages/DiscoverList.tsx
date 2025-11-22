@@ -23,6 +23,7 @@ interface FirebaseRestaurant {
   createdAt: any;
   updatedAt: any;
   qualityScore?: number;
+  googlePhotos?: string[];
 }
 
 interface RestaurantWithExtras extends FirebaseRestaurant {
@@ -168,8 +169,8 @@ const DiscoverList: React.FC = () => {
           const lng = typeof rawLng === 'number' ? rawLng : null;
           const normalizedCuisines = Array.isArray((data as any)?.cuisines)
             ? (data as any)?.cuisines
-                .map((value: unknown) => (typeof value === 'string' ? normalizeToken(value) : ''))
-                .filter((value): value is string => Boolean(value))
+              .map((value: unknown) => (typeof value === 'string' ? normalizeToken(value) : ''))
+              .filter((value): value is string => Boolean(value))
             : undefined;
 
           const averageRating = reviews.length
@@ -183,7 +184,7 @@ const DiscoverList: React.FC = () => {
             qualityPercentage: computedQuality ?? null,
             reviewCount: reviews.length,
             priceRange: ['$', '$$', '$$$'][Math.floor(Math.random() * 3)],
-            coverImage: null,
+            coverImage: (data.googlePhotos && data.googlePhotos.length > 0) ? data.googlePhotos[0] : null,
             cuisines: normalizedCuisines,
             location: { lat, lng },
             normalizedCuisine: normalizeToken(data.cuisine || ''),
@@ -424,22 +425,22 @@ const DiscoverList: React.FC = () => {
 
   const restaurantsForRender = selectedCategory === 'nearme' && coords
     ? [...filteredRestaurants].sort((a, b) => {
-        const aLat = a.location.lat;
-        const aLng = a.location.lng;
-        const bLat = b.location.lat;
-        const bLng = b.location.lng;
+      const aLat = a.location.lat;
+      const aLng = a.location.lng;
+      const bLat = b.location.lat;
+      const bLng = b.location.lng;
 
-        const da =
-          aLat != null && aLng != null
-            ? haversine(coords, { lat: aLat, lng: aLng })
-            : Number.POSITIVE_INFINITY;
-        const db =
-          bLat != null && bLng != null
-            ? haversine(coords, { lat: bLat, lng: bLng })
-            : Number.POSITIVE_INFINITY;
+      const da =
+        aLat != null && aLng != null
+          ? haversine(coords, { lat: aLat, lng: aLng })
+          : Number.POSITIVE_INFINITY;
+      const db =
+        bLat != null && bLng != null
+          ? haversine(coords, { lat: bLat, lng: bLng })
+          : Number.POSITIVE_INFINITY;
 
-        return da - db;
-      })
+      return da - db;
+    })
     : filteredRestaurants;
 
   return (
@@ -457,15 +458,13 @@ const DiscoverList: React.FC = () => {
 
           <div className="relative">
             <div
-              className={`flex items-center bg-gray-200 rounded-full p-1 w-20 h-10 cursor-pointer transition-colors ${
-                viewMode === 'dish' ? 'bg-red-100' : ''
-              }`}
+              className={`flex items-center bg-gray-200 rounded-full p-1 w-20 h-10 cursor-pointer transition-colors ${viewMode === 'dish' ? 'bg-red-100' : ''
+                }`}
               onClick={() => setViewMode(viewMode === 'restaurant' ? 'dish' : 'restaurant')}
             >
               <div
-                className={`absolute w-8 h-8 bg-white rounded-full shadow-md transition-transform duration-200 ease-in-out ${
-                  viewMode === 'dish' ? 'transform translate-x-10' : 'transform translate-x-0'
-                }`}
+                className={`absolute w-8 h-8 bg-white rounded-full shadow-md transition-transform duration-200 ease-in-out ${viewMode === 'dish' ? 'transform translate-x-10' : 'transform translate-x-0'
+                  }`}
               />
 
               <div className="flex items-center justify-between w-full relative z-10">
@@ -504,9 +503,8 @@ const DiscoverList: React.FC = () => {
               <button
                 key={value}
                 onClick={() => handleCategorySelect(value)}
-                className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                  isActive ? 'bg-primary text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
+                className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-colors ${isActive ? 'bg-primary text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
               >
                 {category}
               </button>
