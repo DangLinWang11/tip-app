@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { SearchIcon, FilterIcon, MapPinIcon, StarIcon, Menu } from 'lucide-react';
+import { FilterIcon, MapPinIcon, StarIcon, Menu } from 'lucide-react';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import RestaurantMap from '../components/RestaurantMap';
+import DiscoverSearchBar from '../components/DiscoverSearchBar';
 
 interface FirebaseRestaurant {
   id: string;
@@ -34,12 +35,15 @@ const Discover: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [mapType, setMapType] = useState<'restaurant' | 'dish'>('restaurant');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery] = useState('');
   const [restaurants, setRestaurants] = useState<RestaurantWithExtras[]>([]);
   const [dishes, setDishes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [userLocation, setUserLocation] = useState<{lat: number, lng: number} | null>(null);
+  const [userLocation, setUserLocation] = useState<{lat: number, lng: number, accuracy?: number} | null>({
+    lat: 40.7060,
+    lng: -74.0086
+  });
   const [mapReady, setMapReady] = useState(false);
   const isFirstLoad = useRef(true);
 
@@ -159,7 +163,7 @@ const Discover: React.FC = () => {
     navigator.geolocation.getCurrentPosition(
       (position) => {
         const { latitude, longitude } = position.coords;
-        const newLocation = { lat: latitude, lng: longitude };
+        const newLocation = { lat: latitude, lng: longitude, accuracy: position.coords.accuracy ?? undefined };
         setUserLocation(newLocation);
         console.log('User location:', latitude, longitude);
       },
@@ -191,15 +195,13 @@ const Discover: React.FC = () => {
   return (
     <div className="flex flex-col h-screen bg-white">
       <header className="bg-white fixed top-0 left-0 right-0 z-50 px-4 py-3 shadow-sm" style={{overscrollBehavior: 'none', touchAction: 'none'}}>
-        <div className="flex items-center mb-4">
-          <div className="relative flex-1">
-            <SearchIcon size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-dark-gray" />
-            <input
-              type="text"
-              placeholder="Search restaurants, dishes..."
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 bg-light-gray rounded-full text-sm"
+        <div className="flex items-center mb-4 gap-3">
+          <div className="flex-1">
+            <DiscoverSearchBar
+              userLocation={userLocation}
+              onRestaurantSelect={(restaurantId) => {
+                console.log('Restaurant selected:', restaurantId);
+              }}
             />
           </div>
           <button

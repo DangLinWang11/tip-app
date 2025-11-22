@@ -80,7 +80,7 @@ const Step1Basic: React.FC = () => {
       const service = new google.maps.places.AutocompleteService();
       const request = {
         input: searchText,
-        types: ['restaurant', 'cafe', 'food'],
+        types: ['restaurant'],
         componentRestrictions: { country: 'us' }
       };
 

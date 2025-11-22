@@ -2,9 +2,8 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { Wrapper, Status } from '@googlemaps/react-wrapper';
 import { Navigation } from 'lucide-react';
 
-interface LocationCoordinates {
-  lat: number;
-  lng: number;
+interface LocationCoordinates extends google.maps.LatLngLiteral {
+  accuracy?: number;
 }
 
 interface LocationPickerModalProps {
@@ -41,6 +40,7 @@ const MapComponent: React.FC<MapComponentProps> = ({
   const ref = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<google.maps.Map>();
   const [userLocationMarker, setUserLocationMarker] = useState<google.maps.Marker | null>(null);
+  const [userAccuracyCircle, setUserAccuracyCircle] = useState<google.maps.Circle | null>(null);
 
   useEffect(() => {
     if (ref.current && !map) {
@@ -86,9 +86,12 @@ const MapComponent: React.FC<MapComponentProps> = ({
       if (userLocationMarker) {
         userLocationMarker.setMap(null);
       }
+      if (userAccuracyCircle) {
+        userAccuracyCircle.setMap(null);
+      }
 
       const marker = new window.google.maps.Marker({
-        position: userLocation,
+        position: { lat: userLocation.lat, lng: userLocation.lng },
         map,
         icon: {
           path: window.google.maps.SymbolPath.CIRCLE,
@@ -102,9 +105,43 @@ const MapComponent: React.FC<MapComponentProps> = ({
         zIndex: 1000
       });
 
+      const radius = Math.min(Math.max(userLocation.accuracy ?? 100, 30), 2000);
+      const circle = new window.google.maps.Circle({
+        strokeColor: '#4285F4',
+        strokeOpacity: 0.6,
+        strokeWeight: 1,
+        fillColor: '#4285F4',
+        fillOpacity: 0.15,
+        map,
+        center: { lat: userLocation.lat, lng: userLocation.lng },
+        radius,
+        zIndex: 999
+      });
+
       setUserLocationMarker(marker);
+      setUserAccuracyCircle(circle);
+    } else {
+      if (userLocationMarker) {
+        userLocationMarker.setMap(null);
+        setUserLocationMarker(null);
+      }
+      if (userAccuracyCircle) {
+        userAccuracyCircle.setMap(null);
+        setUserAccuracyCircle(null);
+      }
     }
   }, [map, userLocation]);
+
+  useEffect(() => {
+    return () => {
+      if (userLocationMarker) {
+        userLocationMarker.setMap(null);
+      }
+      if (userAccuracyCircle) {
+        userAccuracyCircle.setMap(null);
+      }
+    };
+  }, [userLocationMarker, userAccuracyCircle]);
 
   useEffect(() => {
     if (map && focusLocation) {
@@ -133,10 +170,11 @@ const MapComponent: React.FC<MapComponentProps> = ({
       (position) => {
         const userPos = {
           lat: position.coords.latitude,
-          lng: position.coords.longitude
+          lng: position.coords.longitude,
+          accuracy: position.coords.accuracy ?? undefined
         };
 
-        onCenterChanged(userPos);
+        onCenterChanged({ lat: userPos.lat, lng: userPos.lng });
         onUserLocationDetected(userPos);
 
         if (map) {
@@ -241,7 +279,8 @@ const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
       (position) => {
         handleUserLocationDetected({
           lat: position.coords.latitude,
-          lng: position.coords.longitude
+          lng: position.coords.longitude,
+          accuracy: position.coords.accuracy ?? undefined
         });
       },
       (error) => {

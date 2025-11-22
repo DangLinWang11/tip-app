@@ -6,6 +6,10 @@ import { Navigation } from 'lucide-react';
 
 const NYC_FALLBACK = { lat: 40.7060, lng: -74.0086 };
 
+interface UserLocationCoordinates extends google.maps.LatLngLiteral {
+  accuracy?: number;
+}
+
 const getCuisineIcon = (cuisine: string): string => {
   const cuisineMap: { [key: string]: string } = {
     'mediterranean': '🫒',
@@ -61,7 +65,7 @@ interface MapProps {
   mapType: 'restaurant' | 'dish';
   restaurants: Restaurant[];
   dishes: Dish[];
-  userLocation?: {lat: number, lng: number} | null;
+  userLocation?: UserLocationCoordinates | null;
   onRestaurantClick?: (id: string) => void;
   onDishClick?: (id: string) => void;
   showQualityPercentages?: boolean;
@@ -147,8 +151,9 @@ const Map: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishes, u
   const [map, setMap] = useState<google.maps.Map>();
   const [locationError, setLocationError] = useState<string>('');
   const [userLocationMarker, setUserLocationMarker] = useState<google.maps.Marker | null>(null);
+  const [userAccuracyCircle, setUserAccuracyCircle] = useState<google.maps.Circle | null>(null);
   // Internal location state when user taps the navigation button
-  const [internalUserLocation, setInternalUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [internalUserLocation, setInternalUserLocation] = useState<UserLocationCoordinates | null>(null);
 
 
   useEffect(() => {
@@ -206,18 +211,23 @@ const Map: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishes, u
   useEffect(() => {
     const effectiveLocation = userLocation || internalUserLocation;
     if (map && effectiveLocation) {
-      // Remove existing user location marker
       if (userLocationMarker) {
         userLocationMarker.setMap(null);
       }
+      if (userAccuracyCircle) {
+        userAccuracyCircle.setMap(null);
+      }
 
       // Center map on user location
-      map.panTo(effectiveLocation);
-      map.setZoom(15); // Zoom in to show local area
+      const target = { lat: effectiveLocation.lat, lng: effectiveLocation.lng };
+      map.panTo(target);
+      if ((map.getZoom() ?? 0) < 15) {
+        map.setZoom(15);
+      }
 
-      // Create new user location marker with blue dot and direction arrow
+      // Create new user location marker with blue dot
       const marker = new window.google.maps.Marker({
-        position: effectiveLocation,
+        position: target,
         map,
         icon: {
           path: window.google.maps.SymbolPath.CIRCLE,
@@ -228,12 +238,46 @@ const Map: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishes, u
           strokeWeight: 2,
         },
         title: 'Your location',
-        zIndex: 1000 // Ensure it appears above other markers
+        zIndex: 1000
+      });
+
+      const radius = Math.min(Math.max(effectiveLocation.accuracy ?? 120, 30), 2000);
+      const circle = new window.google.maps.Circle({
+        strokeColor: '#4285F4',
+        strokeOpacity: 0.6,
+        strokeWeight: 1,
+        fillColor: '#4285F4',
+        fillOpacity: 0.15,
+        map,
+        center: target,
+        radius,
+        zIndex: 999
       });
 
       setUserLocationMarker(marker);
+      setUserAccuracyCircle(circle);
+    } else {
+      if (userLocationMarker) {
+        userLocationMarker.setMap(null);
+        setUserLocationMarker(null);
+      }
+      if (userAccuracyCircle) {
+        userAccuracyCircle.setMap(null);
+        setUserAccuracyCircle(null);
+      }
     }
   }, [map, userLocation, internalUserLocation]);
+
+  useEffect(() => {
+    return () => {
+      if (userLocationMarker) {
+        userLocationMarker.setMap(null);
+      }
+      if (userAccuracyCircle) {
+        userAccuracyCircle.setMap(null);
+      }
+    };
+  }, [userLocationMarker, userAccuracyCircle]);
 
   useEffect(() => {
     if (map) {
@@ -369,9 +413,11 @@ const Map: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishes, u
         if (map) {
           const coords = {
             lat: position.coords.latitude,
-            lng: position.coords.longitude
+            lng: position.coords.longitude,
+            accuracy: position.coords.accuracy ?? undefined
           };
-          map.panTo(coords);
+          setInternalUserLocation(coords);
+          map.panTo({ lat: coords.lat, lng: coords.lng });
           map.setZoom(15);
         }
       },
@@ -459,7 +505,7 @@ interface RestaurantMapProps {
   className?: string;
   mapType: 'restaurant' | 'dish';
   restaurants?: Restaurant[];
-  userLocation?: {lat: number, lng: number} | null;
+  userLocation?: UserLocationCoordinates | null;
   onRestaurantClick?: (id: string) => void;
   onDishClick?: (id: string) => void;
   showQualityPercentages?: boolean;

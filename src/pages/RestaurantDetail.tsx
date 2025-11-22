@@ -3,7 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { db, getUserProfile } from '../lib/firebase';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeftIcon, StarIcon, MapPinIcon, PhoneIcon, ClockIcon, BookmarkIcon, ShareIcon, ChevronRightIcon, Utensils, Soup, Salad, Coffee, Cake, Fish, Pizza, Sandwich, ChefHat, ChevronDown } from 'lucide-react';
+import { ArrowLeftIcon, StarIcon, MapPinIcon, PhoneIcon, ClockIcon, BookmarkIcon, ShareIcon, ChevronRightIcon, Utensils, Soup, Salad, Coffee, Cake, Fish, Pizza, Sandwich, ChefHat, ChevronDown, Globe, DollarSign } from 'lucide-react';
 import BottomNavigation from '../components/BottomNavigation';
 import SaveToListModal from '../components/SaveToListModal';
 import { calculateRestaurantQualityScore } from '../services/reviewService';
@@ -18,6 +18,11 @@ interface Restaurant {
   cuisine: string;
   coordinates?: { latitude?: number; longitude?: number; lat?: number; lng?: number };
   qualityScore?: number;
+  googlePhotos?: string[];
+  hours?: Record<string, string>;
+  website?: string;
+  priceLevel?: number;
+  source?: string;
 }
 
 interface MenuItem {
@@ -67,6 +72,7 @@ const RestaurantDetail: React.FC = () => {
   const [openSections, setOpenSections] = useState<Set<string>>(new Set());
   const initializedRef = useRef(false);
   const [authors, setAuthors] = useState<Record<string, ReviewAuthor>>({});
+  const [showAllHours, setShowAllHours] = useState(false);
 
   // Helper function to group menu items by category
   const groupMenuByCategory = (items: MenuItem[]) => {
@@ -129,18 +135,31 @@ const RestaurantDetail: React.FC = () => {
     return Utensils; // Default icon
   };
 
-  const getQualityColor = (percentage: number): string => {
-    if (percentage >= 95) return '#059669'; // Bright Green (95-100%)
-    if (percentage >= 90) return '#10B981'; // Green (90-94%)
-    if (percentage >= 85) return '#34D399'; // Light Green (85-89%)
-    if (percentage >= 80) return '#6EE7B7'; // Yellow-Green (80-84%)
+  const formatPriceLevelLabel = (level?: number | null) => {
+    if (level === null || level === undefined) return null;
+    const clamped = Math.min(Math.max(Math.round(level), 1), 4);
+    return '$'.repeat(clamped);
+  };
+
+const getQualityColor = (percentage: number): string => {
+  if (percentage >= 95) return '#059669'; // Bright Green (95-100%)
+  if (percentage >= 90) return '#10B981'; // Green (90-94%)
+  if (percentage >= 85) return '#34D399'; // Light Green (85-89%)
+  if (percentage >= 80) return '#6EE7B7'; // Yellow-Green (80-84%)
     if (percentage >= 75) return '#FDE047'; // Yellow (75-79%)
     if (percentage >= 70) return '#FACC15'; // Orange-Yellow (70-74%)
     if (percentage >= 65) return '#F59E0B'; // Orange (65-69%)
     if (percentage >= 60) return '#F97316'; // Red-Orange (60-64%)
-    if (percentage >= 55) return '#FB7185'; // Light Red (55-59%)
-    return '#EF4444'; // Red (0-54%)
-  };
+  if (percentage >= 55) return '#FB7185'; // Light Red (55-59%)
+  return '#EF4444'; // Red (0-54%)
+};
+
+const getCurrentDayHours = (hours: Record<string, string>) => {
+  const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const today = days[new Date().getDay()].toLowerCase();
+  const normalizedEntry = Object.entries(hours).find(([key]) => key.toLowerCase() === today);
+  return normalizedEntry?.[1] || hours[today] || 'Hours not available';
+};
 
   const qualityScore = calculateRestaurantQualityScore(reviews.map(review => ({ ...review, category: 'custom' })));
   const reviewImages = getAllReviewImages(reviews);
@@ -234,6 +253,10 @@ const RestaurantDetail: React.FC = () => {
     fetchRestaurantData();
   }, [id]);
 
+  useEffect(() => {
+    setShowAllHours(false);
+  }, [restaurant?.id]);
+
   // Load author profiles for condensed reviews
   useEffect(() => {
     const load = async () => {
@@ -278,20 +301,60 @@ const RestaurantDetail: React.FC = () => {
       </div>
     );
   }
+
+  const headerPhoto = restaurant.googlePhotos?.[0];
+  const hasReviews = reviews.length > 0;
+  const isGoogleOnlyListing = !hasReviews && restaurant.source === 'google_places';
+  const hoursRecord = restaurant.hours || {};
+  const hoursAvailable = Object.keys(hoursRecord).length > 0;
+  const hoursOrder = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+  const orderedHours = hoursAvailable
+    ? hoursOrder
+        .map((day) => {
+          const matchKey = Object.keys(hoursRecord).find((key) => key.toLowerCase() === day.toLowerCase());
+          if (!matchKey) return null;
+          return { day, value: hoursRecord[matchKey] };
+        })
+        .filter((entry): entry is { day: string; value: string } => Boolean(entry))
+    : [];
+  const currentDayHours = hoursAvailable ? getCurrentDayHours(hoursRecord) : 'Hours not available';
+  const priceLevelLabel = formatPriceLevelLabel(restaurant.priceLevel);
+  const phoneLink = restaurant.phone ? restaurant.phone.replace(/[^\d+]/g, '') : null;
+  let websiteHost: string | null = null;
+  if (restaurant.website) {
+    try {
+      websiteHost = new URL(restaurant.website).hostname.replace(/^www\./, '');
+    } catch {
+      websiteHost = restaurant.website;
+    }
+  }
   return <div className="min-h-screen bg-light-gray pb-16">
-      <div className="relative h-64">
-        <img src="https://source.unsplash.com/800x400/food" alt={restaurant.name} className="w-full h-full object-cover" />
-        <div className="absolute top-0 left-0 right-0 bg-gradient-to-b from-black/50 to-transparent p-4">
+      <div className="relative h-64 overflow-hidden">
+        {headerPhoto ? (
+          <img src={headerPhoto} alt={restaurant.name} className="w-full h-full object-cover" />
+        ) : (
+          <div className="w-full h-full bg-gradient-to-br from-gray-200 to-gray-300" />
+        )}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/80" />
+        <div className="absolute top-0 left-0 right-0 p-4 z-10">
           <Link to="/" className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-md">
             <ArrowLeftIcon size={20} />
           </Link>
         </div>
-        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-4">
-          <div className="bg-white px-3 py-1 rounded-full inline-flex items-center">
-            <div className="w-3 h-3 rounded-full mr-2" style={{ backgroundColor: qualityScore ? getQualityColor(qualityScore) : '#6b7280' }}></div>
-            <span className="font-medium text-sm">
-              {qualityScore}% Quality
-            </span>
+        <div className="absolute bottom-0 left-0 right-0 p-4 z-10">
+          <div className="bg-white/95 px-3 py-1 rounded-full inline-flex items-center gap-2">
+            {hasReviews ? (
+              <>
+                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: qualityScore ? getQualityColor(qualityScore) : '#6b7280' }}></div>
+                <span className="font-medium text-sm">
+                  {qualityScore}% Quality
+                </span>
+              </>
+            ) : isGoogleOnlyListing ? (
+              <span className="text-sm font-semibold text-gray-800">New</span>
+            ) : (
+              <span className="text-sm text-gray-600">No reviews yet</span>
+            )}
           </div>
         </div>
       </div>
@@ -383,13 +446,54 @@ const RestaurantDetail: React.FC = () => {
           </div>
           <div className="flex items-center">
             <PhoneIcon size={18} className="text-dark-gray mr-3" />
-            <p>{restaurant.phone || 'Phone not available'}</p>
+            {restaurant.phone ? (
+              <a href={`tel:${phoneLink || restaurant.phone}`} className="text-primary hover:underline">
+                {restaurant.phone}
+              </a>
+            ) : (
+              <p className="text-gray-600">Phone not available</p>
+            )}
           </div>
-          <div className="flex items-center">
-            <ClockIcon size={18} className="text-dark-gray mr-3" />
+          {restaurant.website ? (
+            <div className="flex items-center">
+              <Globe size={18} className="text-dark-gray mr-3" />
+              <a href={restaurant.website} target="_blank" rel="noreferrer" className="text-primary hover:underline">
+                {websiteHost || 'Visit website'}
+              </a>
+            </div>
+          ) : null}
+          {priceLevelLabel ? (
+            <div className="flex items-center">
+              <DollarSign size={18} className="text-dark-gray mr-3" />
+              <p className="text-gray-700">{priceLevelLabel}</p>
+            </div>
+          ) : null}
+          <div className="flex items-start">
+            <ClockIcon size={18} className="text-dark-gray mr-3 mt-1" />
             <div>
-              <p>Hours not available</p>
-              <p className="text-sm text-dark-gray">Contact restaurant for hours</p>
+              <p>{currentDayHours}</p>
+              {hoursAvailable ? (
+                <>
+                  <button
+                    onClick={() => setShowAllHours((prev) => !prev)}
+                    className="mt-1 text-sm text-secondary hover:underline"
+                  >
+                    {showAllHours ? 'Hide hours' : 'See all hours'}
+                  </button>
+                  {showAllHours && orderedHours.length > 0 && (
+                    <div className="mt-2 space-y-1 text-sm text-gray-700">
+                      {orderedHours.map(({ day, value }) => (
+                        <div key={day} className="flex justify-between gap-6">
+                          <span className="font-medium">{day}</span>
+                          <span>{value}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </>
+              ) : (
+                <p className="text-sm text-dark-gray">Contact restaurant for hours</p>
+              )}
             </div>
           </div>
         </div>
