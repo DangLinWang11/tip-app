@@ -324,8 +324,8 @@ const DiscoverList: React.FC = () => {
       const km =
         coords && lat != null && lng != null
           ? haversine(coords, { lat, lng })
-          : 0.8 + Math.random() * 3;
-      const distanceMiles = km * 0.621371;
+          : null;
+      const distanceMiles = km != null ? km * 0.621371 : null;
 
       return {
         ...restaurant,
@@ -423,22 +423,10 @@ const DiscoverList: React.FC = () => {
 
   const isLoading = viewMode === 'restaurant' ? loadingRestaurants : loadingRestaurants || loadingDishes;
 
-  const restaurantsForRender = selectedCategory === 'nearme' && coords
+  const restaurantsForRender = coords
     ? [...filteredRestaurants].sort((a, b) => {
-      const aLat = a.location.lat;
-      const aLng = a.location.lng;
-      const bLat = b.location.lat;
-      const bLng = b.location.lng;
-
-      const da =
-        aLat != null && aLng != null
-          ? haversine(coords, { lat: aLat, lng: aLng })
-          : Number.POSITIVE_INFINITY;
-      const db =
-        bLat != null && bLng != null
-          ? haversine(coords, { lat: bLat, lng: bLng })
-          : Number.POSITIVE_INFINITY;
-
+      const da = a.distanceMiles ?? Number.POSITIVE_INFINITY;
+      const db = b.distanceMiles ?? Number.POSITIVE_INFINITY;
       return da - db;
     })
     : filteredRestaurants;
