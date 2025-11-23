@@ -76,6 +76,13 @@ const getCategories = (mode: 'restaurant' | 'dish') => {
   return ['All', 'Near Me', ...DISH_TYPES.map((dish) => capitalizeWords(dish))];
 };
 
+const TAG_FILTERS = [
+  { label: 'Great Value', tags: ['fair', 'bargain'], emoji: '💰' },
+  { label: 'Spicy', tags: ['nice_warmth', 'overwhelms'], emoji: '🌶️' },
+  { label: 'Date Night', tags: ['date_night'], emoji: '💕' },
+  { label: 'Generous Portions', tags: ['generous'], emoji: '🍽️' },
+];
+
 const toRad = (n: number) => (n * Math.PI) / 180;
 
 const haversine = (a: { lat: number; lng: number }, b: { lat: number; lng: number }) => {
@@ -113,15 +120,22 @@ const DiscoverList: React.FC = () => {
   const [viewMode, setViewMode] = useState<'restaurant' | 'dish'>('restaurant');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedTagFilter, setSelectedTagFilter] = useState<string | null>(null);
   const [restaurants, setRestaurants] = useState<RestaurantWithExtras[]>([]);
   const [dishes, setDishes] = useState<DiscoverDish[]>([]);
   const [loadingRestaurants, setLoadingRestaurants] = useState<boolean>(true);
   const [loadingDishes, setLoadingDishes] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [loadingTagFilter, setLoadingTagFilter] = useState<boolean>(false);
+  const [tagFilteredRestaurantIds, setTagFilteredRestaurantIds] = useState<string[]>([]);
 
   const categories = useMemo(() => getCategories(viewMode), [viewMode]);
   const parsed = useMemo(() => inferFacetsFromText(searchQuery), [searchQuery]);
   const queryTokens = useMemo(() => normalizeToken(searchQuery).split(' ').filter(Boolean), [searchQuery]);
+  const activeTagFilter = useMemo(
+    () => TAG_FILTERS.find((filter) => filter.label === selectedTagFilter) ?? null,
+    [selectedTagFilter]
+  );
 
   const handleCategorySelect = async (value: string) => {
     setSelectedCategory(value);
@@ -132,6 +146,15 @@ const DiscoverList: React.FC = () => {
         console.warn('Location permission request failed', err);
       }
     }
+  };
+
+  const handleTagFilterSelect = (label: string) => {
+    setSelectedTagFilter((prev) => (prev === label ? null : label));
+  };
+
+  const handleClearFilters = () => {
+    setSelectedTagFilter(null);
+    setSelectedCategory('all');
   };
 
   const fetchRestaurantReviews = async (restaurantId: string): Promise<ReviewWithCategory[]> => {
@@ -214,6 +237,48 @@ const DiscoverList: React.FC = () => {
       isCancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    if (viewMode !== 'restaurant' || !activeTagFilter) {
+      setTagFilteredRestaurantIds([]);
+      setLoadingTagFilter(false);
+      return;
+    }
+    let isCancelled = false;
+    const fetchTagFilteredRestaurants = async () => {
+      try {
+        setLoadingTagFilter(true);
+        const reviewsQueryRef = query(
+          collection(db, 'reviews'),
+          where('tags', 'array-contains-any', activeTagFilter.tags)
+        );
+        const snapshot = await getDocs(reviewsQueryRef);
+        const ids = new Set<string>();
+        snapshot.docs.forEach((docSnap) => {
+          const data = docSnap.data() as { restaurantId?: string };
+          if (data.restaurantId) {
+            ids.add(data.restaurantId);
+          }
+        });
+        if (!isCancelled) {
+          setTagFilteredRestaurantIds(Array.from(ids));
+        }
+      } catch (err) {
+        console.error('Error fetching tag-filtered reviews:', err);
+        if (!isCancelled) {
+          setTagFilteredRestaurantIds([]);
+        }
+      } finally {
+        if (!isCancelled) {
+          setLoadingTagFilter(false);
+        }
+      }
+    };
+    fetchTagFilteredRestaurants();
+    return () => {
+      isCancelled = true;
+    };
+  }, [viewMode, activeTagFilter]);
 
   useEffect(() => {
     if (viewMode !== 'dish') {
@@ -353,10 +418,12 @@ const DiscoverList: React.FC = () => {
     });
   }, [dishes, coords]);
 
+  const tagFilterIdSet = useMemo(() => new Set(tagFilteredRestaurantIds), [tagFilteredRestaurantIds]);
+
   const filteredRestaurants = useMemo(() => {
     const trimmedQuery = searchQuery.trim();
 
-    return restaurantsWithDerived
+    const base = restaurantsWithDerived
       .filter((restaurant) => {
         if (selectedCategory === 'all' || selectedCategory === 'nearme') return true;
         const normalizedCategory = selectedCategory;
@@ -391,7 +458,26 @@ const DiscoverList: React.FC = () => {
 
         return hitCuisine || hitTokens;
       });
-  }, [restaurantsWithDerived, selectedCategory, searchQuery, parsed, queryTokens]);
+
+    if (viewMode !== 'restaurant' || !activeTagFilter || loadingTagFilter) {
+      return base;
+    }
+    if (!tagFilterIdSet.size) {
+      return [];
+    }
+
+    return base.filter((restaurant) => tagFilterIdSet.has(restaurant.id));
+  }, [
+    restaurantsWithDerived,
+    selectedCategory,
+    searchQuery,
+    parsed,
+    queryTokens,
+    viewMode,
+    activeTagFilter,
+    loadingTagFilter,
+    tagFilterIdSet
+  ]);
 
   const filteredDishes = useMemo(() => {
     return dishesWithDerived.filter((dish) => {
@@ -421,7 +507,7 @@ const DiscoverList: React.FC = () => {
 
   const dishesForRender = filteredDishes;
 
-  const isLoading = viewMode === 'restaurant' ? loadingRestaurants : loadingRestaurants || loadingDishes;
+  const isLoading = viewMode === 'restaurant' ? (loadingRestaurants || loadingTagFilter) : loadingRestaurants || loadingDishes;
 
   const restaurantsForRender = coords
     ? [...filteredRestaurants].sort((a, b) => {
@@ -430,6 +516,8 @@ const DiscoverList: React.FC = () => {
       return da - db;
     })
     : filteredRestaurants;
+  const noTagFilterResults =
+    viewMode === 'restaurant' && Boolean(selectedTagFilter) && !loadingTagFilter && restaurantsForRender.length === 0;
 
   return (
     <div className="min-h-screen bg-light-gray pb-16">
@@ -476,7 +564,7 @@ const DiscoverList: React.FC = () => {
             placeholder={viewMode === 'restaurant' ? 'Search restaurants...' : 'Search dishes...'}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="flex-1 bg-transparent focus:outline-none text-gray-900 placeholder-gray-500"
+            className="flex-1 bg-transparent focus:outline-none text-base text-gray-900 placeholder-gray-500"
             aria-label="Search"
           />
         </div>
@@ -501,6 +589,36 @@ const DiscoverList: React.FC = () => {
         </div>
       </div>
 
+      {viewMode === 'restaurant' && (
+        <div className="bg-white px-4 py-3 border-b">
+          {loadingTagFilter && selectedTagFilter ? (
+            <div className="flex items-center text-sm text-gray-500 mb-3">
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-400 mr-2"></div>
+              <span>Finding {selectedTagFilter} spots...</span>
+            </div>
+          ) : null}
+          <div className="flex overflow-x-auto no-scrollbar space-x-2">
+            {TAG_FILTERS.map((filter) => {
+              const isActive = selectedTagFilter === filter.label;
+              return (
+                <button
+                  key={filter.label}
+                  type="button"
+                  disabled={loadingTagFilter}
+                  onClick={() => handleTagFilterSelect(filter.label)}
+                  className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-colors flex items-center gap-2 ${
+                    isActive ? 'bg-gray-300 text-gray-900' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  } ${loadingTagFilter ? 'opacity-60 cursor-not-allowed' : ''}`}
+                >
+                  <span>{filter.emoji}</span>
+                  <span>{filter.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       <div className="px-4 py-4">
         {error ? (
           <div className="text-center py-8">
@@ -521,6 +639,18 @@ const DiscoverList: React.FC = () => {
             </div>
           </div>
         ) : viewMode === 'restaurant' ? (
+          noTagFilterResults ? (
+            <div className="text-center py-8 text-gray-500 space-y-3">
+              <p>No restaurants found with {selectedTagFilter}</p>
+              <button
+                type="button"
+                onClick={handleClearFilters}
+                className="inline-flex items-center px-4 py-2 rounded-full border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-100"
+              >
+                Clear Filters
+              </button>
+            </div>
+          ) :
           restaurantsForRender.length ? (
             restaurantsForRender.map((restaurant) => {
               const q = (restaurant as any).qualityScore ?? restaurant.qualityPercentage ?? null;
@@ -570,10 +700,31 @@ const DiscoverList: React.FC = () => {
                 </div>
               );
             })
+          ) : noTagFilterResults ? (
+            <div className="text-center py-8 text-gray-500">
+              <p className="font-medium">No restaurants found with {selectedTagFilter}</p>
+              <p className="text-sm">Try broadening your filters.</p>
+              <button
+                type="button"
+                onClick={handleClearFilters}
+                className="mt-3 inline-flex items-center px-4 py-2 rounded-full bg-primary text-white text-sm font-semibold"
+              >
+                Clear Filters
+              </button>
+            </div>
           ) : (
             <div className="text-center py-8 text-gray-500">
               <p>No restaurants found</p>
               <p className="text-sm">Try selecting a different category</p>
+              {selectedTagFilter ? (
+                <button
+                  type="button"
+                  onClick={handleClearFilters}
+                  className="mt-3 inline-flex items-center px-4 py-2 rounded-full border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-100"
+                >
+                  Clear Tag Filter
+                </button>
+              ) : null}
             </div>
           )
         ) : dishesForRender.length ? (
@@ -623,5 +774,3 @@ const DiscoverList: React.FC = () => {
 };
 
 export default DiscoverList;
-
-

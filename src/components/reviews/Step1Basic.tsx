@@ -11,6 +11,7 @@ import CreateRestaurantModal from './CreateRestaurantModal';
 import AddDishInline from './AddDishInline';
 import DishCategorySelect from './DishCategorySelect';
 import { CUISINES, normalizeToken } from '../../utils/taxonomy';
+import { saveGooglePlaceToFirestore } from '../../services/googlePlacesService';
 
 const CATEGORY_SLUGS = ['appetizer', 'entree', 'handheld', 'side', 'dessert', 'drink'] as const;
 const libraries: ('places')[] = ['places'];
@@ -348,7 +349,19 @@ const Step1Basic: React.FC = () => {
     service.getDetails(
       {
         placeId,
-        fields: ['name', 'formatted_address', 'geometry', 'place_id', 'types']
+        fields: [
+          'name',
+          'formatted_address',
+          'formatted_phone_number',
+          'geometry',
+          'place_id',
+          'types',
+          'photos',
+          'opening_hours',
+          'website',
+          'price_level',
+          'rating'
+        ]
       },
       async (place, status) => {
         if (status === google.maps.places.PlacesServiceStatus.OK && place) {
@@ -373,7 +386,7 @@ const Step1Basic: React.FC = () => {
               const distance = userLocation ? calculateDistance(userLocation.lat, userLocation.lng, lat, lng) : undefined;
 
               const newRestaurant: RestaurantOption = {
-                id: `google_${placeId}`,
+                id: placeId,
                 name: place.name || predictionMatch?.structured_formatting?.main_text || description,
                 location: { formatted: place.formatted_address || '' },
                 coordinates: {
@@ -384,9 +397,15 @@ const Step1Basic: React.FC = () => {
                 },
                 googlePlaceId: placeId,
                 cuisines: [],
-                distance
+                distance,
+                source: 'google_places'
               };
               onRestaurantSelected(newRestaurant);
+
+              // Save to Firestore in background (fire-and-forget)
+              saveGooglePlaceToFirestore(place).catch((error) => {
+                console.warn('Failed to save Google place to Firestore:', error);
+              });
             }
 
             setRestaurantQuery(place.name || predictionMatch?.description || description);
@@ -816,7 +835,7 @@ const Step1Basic: React.FC = () => {
               onChange={(event) => setCustomCuisineInput(event.target.value)}
               onKeyDown={handleCustomCuisineKeyDown}
               placeholder="Add custom cuisine"
-              className="flex-1 rounded-2xl border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:border-red-400 focus:outline-none focus:ring-2 focus:ring-red-100"
+              className="flex-1 rounded-2xl border border-slate-200 px-3 py-2 text-base text-slate-700 focus:border-red-400 focus:outline-none focus:ring-2 focus:ring-red-100"
             />
             <button
               type="button"

@@ -14,6 +14,9 @@ export interface RestaurantRecord {
     latitude: number;
     longitude: number;
   };
+  googlePlaceId?: string;
+  source?: 'manual' | 'google_places';
+  qualityScore?: number | null;
 }
 
 interface CreateRestaurantModalProps {
@@ -74,6 +77,7 @@ const CreateRestaurantModal: React.FC<CreateRestaurantModalProps> = ({
               longitude: coordinates.longitude
             }
           : null,
+        source: 'manual',
         createdBy: userId,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()

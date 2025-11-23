@@ -16,7 +16,7 @@ export default function RestaurantSwitcher({
     <div className="w-full max-w-md">
       <label className="block text-sm font-medium text-slate-700 mb-1">Restaurant</label>
       <select
-        className="w-full rounded-xl border border-slate-300 bg-white p-2 text-sm"
+        className="w-full rounded-xl border border-slate-300 bg-white p-2 text-base"
         value={value || options[0]?.id}
         onChange={(e) => onChange(e.target.value)}
       >

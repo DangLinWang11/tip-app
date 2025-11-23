@@ -93,7 +93,7 @@ export default function ClaimsReview() {
       <div className="max-w-5xl mx-auto">
         <div className="text-2xl font-bold text-slate-900 mb-4">Claims</div>
         <div className="flex items-center gap-3 mb-3">
-          <select className="rounded-lg border border-slate-300 p-2 text-sm" value={statusFilter} onChange={e=>setStatusFilter(e.target.value as any)}>
+          <select className="rounded-lg border border-slate-300 p-2 text-base" value={statusFilter} onChange={e=>setStatusFilter(e.target.value as any)}>
             <option value="pending">Pending</option>
             <option value="approved">Approved</option>
             <option value="rejected">Rejected</option>
