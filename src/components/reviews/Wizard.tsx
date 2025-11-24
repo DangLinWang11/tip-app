@@ -6,7 +6,7 @@ import { db, getCurrentUser } from '../../lib/firebase';
 import { useI18n } from '../../lib/i18n/useI18n';
 import ProgressBar from './ProgressBar';
 import Step1Basic from './Step1Basic';
-import Step2Taste from './Step2Taste';
+import Step2DishTagging from './Step2DishTagging';
 import Step3Compare from './Step3Compare';
 import Step3Caption from './Step3Caption';
 import Step4Outcome from './Step4Outcome';
@@ -16,6 +16,7 @@ import { ReviewDraft } from '../../dev/types/review';
 import { DishOption, LocalMediaItem, RestaurantOption, WizardContextValue, WizardStepKey } from './types';
 import { WizardContext } from './WizardContext';
 import { useFeature } from '../../utils/features';
+import { buildExplicitTags, buildDerivedTags } from '../../data/tagDefinitions';
 
 const buildStorageKey = (uid: string, restaurantId?: string | null) => `review-draft:${uid}:${restaurantId || 'new'}`;
 
@@ -49,65 +50,52 @@ const extractRestaurantCuisines = (restaurant?: Partial<RestaurantOption> | null
   return sanitizeCuisinesInput((restaurant as any).cuisines ?? (restaurant as any).cuisine);
 };
 
-const mapLegacyLevel = (attribute: string, level?: string): string | undefined => {
-  if (!level) return undefined;
-  const normalized = level.toLowerCase();
-  switch (attribute) {
-    case 'portion':
-      if (normalized === 'right') return 'just_right';
-      if (normalized === 'big') return 'generous';
-      return normalized;
-    case 'freshness':
-      if (normalized === 'low') return 'not_fresh';
-      if (normalized === 'balanced') return 'just_right';
-      if (normalized === 'high') return 'very_fresh';
-      return normalized;
-    case 'saltiness':
-      if (normalized === 'low') return 'needs_more_salt';
-      if (normalized === 'balanced') return 'balanced';
-      if (normalized === 'high') return 'too_salty';
-      return normalized;
-    case 'temperature':
-      if (normalized === 'low') return 'needs_reheating';
-      if (normalized === 'balanced') return 'ideal';
-      if (normalized === 'high') return 'too_hot';
-      return normalized;
-    case 'texture':
-      if (normalized === 'low') return 'mushy';
-      if (normalized === 'balanced') return 'great_bite';
-      if (normalized === 'high') return 'tough';
-      return normalized;
-    case 'spiciness':
-      if (normalized === 'low') return 'lacked_kick';
-      if (normalized === 'balanced') return 'nice_warmth';
-      if (normalized === 'high') return 'too_spicy';
-      return normalized;
-    default:
-      return normalized;
+const normalizeStringArray = (value?: unknown): string[] => {
+  if (!value) return [];
+  const toArray = Array.isArray(value) ? value : [value];
+  const normalized = toArray
+    .map((entry) => (typeof entry === 'string' ? entry : String(entry || '')))
+    .map((entry) => entry.trim().toLowerCase())
+    .filter(Boolean);
+  return Array.from(new Set(normalized));
+};
+
+const normalizeExplicitSelections = (input?: ReviewDraft['explicit']): ReviewDraft['explicit'] | undefined => {
+  if (!input) return undefined;
+  const normalized = {
+    dishType: typeof input.dishType === 'string' && input.dishType.trim() ? input.dishType.trim().toLowerCase() : null,
+    dishStyle: typeof input.dishStyle === 'string' && input.dishStyle.trim() ? input.dishStyle.trim().toLowerCase() : null,
+    cuisine: typeof input.cuisine === 'string' && input.cuisine.trim() ? input.cuisine.trim().toLowerCase() : null,
+    attributes: normalizeStringArray(input.attributes),
+    occasions: normalizeStringArray(input.occasions),
+    dietary: normalizeStringArray(input.dietary)
+  };
+
+  const hasData = Boolean(
+    normalized.dishType ||
+    normalized.dishStyle ||
+    normalized.cuisine ||
+    normalized.attributes.length ||
+    normalized.occasions.length ||
+    normalized.dietary.length
+  );
+
+  return hasData ? normalized : undefined;
+};
+
+const normalizeSentimentSelection = (input?: ReviewDraft['sentiment']): ReviewDraft['sentiment'] | undefined => {
+  if (!input) return undefined;
+  const value = typeof input.pricePerception === 'string' ? input.pricePerception.trim().toLowerCase() : null;
+  if (value === 'bargain' || value === 'fair' || value === 'overpriced') {
+    return { pricePerception: value };
   }
-};
-
-const ensureAttribute = <L extends string>(attribute: string, input: any, fallback: L): { level: L; note?: string } => {
-  const mapped = mapLegacyLevel(attribute, input?.level) as L | undefined;
-  return {
-    level: mapped ?? fallback,
-    note: typeof input?.note === 'string' ? input.note : undefined
-  };
-};
-
-const ensureOptionalAttribute = <L extends string>(attribute: string, input: any): { level: L; note?: string } | undefined => {
-  if (!input || !(typeof input === 'object')) return undefined;
-  const mapped = mapLegacyLevel(attribute, (input as any).level) as L | undefined;
-  if (!mapped) return undefined;
-  return {
-    level: mapped,
-    note: typeof (input as any).note === 'string' ? (input as any).note : undefined
-  };
+  return undefined;
 };
 
 const ensureDraftShape = (draft: ReviewDraft): ReviewDraft => {
-  const taste = draft.taste || ({} as ReviewDraft['taste']);
   const cuisines = sanitizeCuisinesInput(draft.cuisines) ?? sanitizeCuisinesInput(draft.restaurantCuisines);
+  const explicit = normalizeExplicitSelections(draft.explicit);
+  const sentiment = normalizeSentimentSelection(draft.sentiment);
 
   const normalized: ReviewDraft = {
     userId: draft.userId,
@@ -125,16 +113,6 @@ const ensureDraftShape = (draft: ReviewDraft): ReviewDraft => {
       videos: draft.media?.videos || [],
       thumbnails: draft.media?.thumbnails || []
     },
-    taste: {
-      portion: ensureAttribute('portion', taste.portion, 'just_right'),
-      value: ensureAttribute('value', taste.value, 'fair'),
-      presentation: ensureAttribute('presentation', taste.presentation, 'clean'),
-      freshness: ensureAttribute('freshness', taste.freshness, 'just_right'),
-      saltiness: ensureOptionalAttribute('saltiness', taste.saltiness),
-      temperature: ensureOptionalAttribute('temperature', taste.temperature),
-      texture: ensureOptionalAttribute('texture', taste.texture),
-      spiciness: ensureOptionalAttribute('spiciness', taste.spiciness)
-    },
     comparison: draft.comparison,
     outcome: {
       orderAgain: draft.outcome?.orderAgain ?? true,
@@ -147,6 +125,14 @@ const ensureDraftShape = (draft: ReviewDraft): ReviewDraft => {
     isDeleted: draft.isDeleted
   };
 
+  if (explicit) {
+    normalized.explicit = explicit;
+  }
+
+  if (sentiment) {
+    normalized.sentiment = sentiment;
+  }
+
   return normalized;
 };
 
@@ -155,12 +141,6 @@ const buildInitialDraft = (userId: string): ReviewDraft => ensureDraftShape({
   dishName: '',
   rating: 7.5,
   media: { photos: [], videos: [], thumbnails: [] },
-  taste: {
-    portion: { level: 'just_right' },
-    value: { level: 'fair' },
-    presentation: { level: 'clean' },
-    freshness: { level: 'just_right' }
-  },
   outcome: {
     orderAgain: true,
     recommend: true,
@@ -171,7 +151,7 @@ const buildInitialDraft = (userId: string): ReviewDraft => ensureDraftShape({
 
 const STEP_COMPONENTS: Record<WizardStepKey, React.ComponentType> = {
   basic: Step1Basic,
-  taste: Step2Taste,
+  taste: Step2DishTagging,
   compare: Step3Compare,
   caption: Step3Caption,
   outcome: Step4Outcome
@@ -470,72 +450,13 @@ const Wizard: React.FC = () => {
       throw new Error('Dish category is required');
     }
 
-    const { comparison, caption, restaurantCuisines, cuisines: draftCuisines, outcome, ...restDraft } = normalizedDraft;
+    const { caption, restaurantCuisines, cuisines: draftCuisines, ...restDraft } = normalizedDraft;
     const sanitizedCaption = typeof caption === 'string' ? caption.trim() : undefined;
     const cuisines = sanitizeCuisinesInput(draftCuisines) ?? sanitizeCuisinesInput(restaurantCuisines);
-
-    // Derive tag slugs from existing Taste selections and Outcome audience (no UI changes)
-    const deriveTagsFromDraft = (draft: typeof normalizedDraft): string[] => {
-      const tags = new Set<string>();
-      const taste = draft.taste || {} as any;
-
-      // Value
-      switch (taste.value?.level) {
-        case 'overpriced':
-          tags.add('overpriced');
-          break;
-        case 'bargain':
-          tags.add('good_value');
-          break;
-        default:
-          break; // 'fair' -> no tag
-      }
-
-      // Freshness
-      switch (taste.freshness?.level) {
-        case 'very_fresh':
-          tags.add('very_fresh');
-          break;
-        case 'not_fresh':
-          tags.add('not_fresh');
-          break;
-        default:
-          break; // 'just_right' -> no tag
-      }
-
-      // Spiciness
-      switch (taste.spiciness?.level) {
-        case 'too_spicy':
-          tags.add('too_spicy');
-          break;
-        case 'lacked_kick':
-        case 'nice_warmth':
-          tags.add('mild');
-          break;
-        default:
-          break;
-      }
-
-      // Temperature (serving temp)
-      switch (taste.temperature?.level) {
-        case 'ideal':
-          tags.add('served_hot');
-          break;
-        case 'needs_reheating':
-          tags.add('lukewarm');
-          break;
-        default:
-          break; // no mapping for 'too_hot' here
-      }
-
-      // Audience (keep only spicy_lovers if selected)
-      if (Array.isArray(outcome?.audience) && outcome!.audience!.includes('spicy_lovers')) {
-        tags.add('spicy_lovers');
-      }
-
-      return Array.from(tags);
-    };
-    const derivedTags = deriveTagsFromDraft(normalizedDraft);
+    const explicitTags = buildExplicitTags(restDraft.explicit);
+    const derivedTags = buildDerivedTags(restDraft.sentiment);
+    const legacyTags = Array.isArray(restDraft.tags) ? restDraft.tags : [];
+    const mergedTags = Array.from(new Set([...legacyTags, ...explicitTags, ...derivedTags]));
 
     // Build ReviewData payload for saveReview so we get proper menuItemId linkage
     // Build base payload, omitting undefined fields
@@ -550,21 +471,25 @@ const Wizard: React.FC = () => {
       price: (restDraft as any).price ?? null,
       images: Array.isArray(restDraft.media?.photos) ? restDraft.media!.photos : [],
       isPublic: true,
+      explicit: restDraft.explicit || null,
+      sentiment: restDraft.sentiment || null,
+      explicitTags,
+      derivedTags,
+      tags: mergedTags,
     };
     if (Array.isArray(cuisines) && cuisines.length) {
       base.restaurantCuisines = cuisines;
       base.cuisines = cuisines;
     }
-    if (derivedTags.length) {
-      base.tags = derivedTags;
-    }
     if (typeof sanitizedCaption === 'string' && sanitizedCaption.length > 0) {
       base.caption = sanitizedCaption;
     }
 
-    // Log raw taste and derived tags prior to build
+    // Log structured tagging output prior to build
     try {
-      console.log('[Wizard.submit] taste selections (raw):', normalizedDraft.taste);
+      console.log('[Wizard.submit] explicit selections:', restDraft.explicit);
+      console.log('[Wizard.submit] sentiment selections:', restDraft.sentiment);
+      console.log('[Wizard.submit] explicit tags:', explicitTags);
       console.log('[Wizard.submit] derived tags:', derivedTags);
       console.log('[Wizard.submit] review payload (pre-build, no undefined):', base);
     } catch {}
@@ -581,7 +506,7 @@ const Wizard: React.FC = () => {
     }
     showReward('submit');
     return reviewId;
-  }, [draft, showReward, userId, useCaptionStep, selectedRestaurant, selectedDish]);
+  }, [draft, showReward, userId, selectedRestaurant, selectedDish]);
 
   const contextValue = useMemo<WizardContextValue>(() => ({
     draft,
@@ -674,14 +599,6 @@ const Wizard: React.FC = () => {
 };
 
 export default Wizard;
-
-
-
-
-
-
-
-
 
 
 

@@ -3,6 +3,7 @@ import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage, getUserProfile, getCurrentUser, updateUserStats } from '../lib/firebase';
 import { inferFacetsFromText, tokenizeForSearch, normalizeToken } from '../utils/taxonomy';
 import { getAvatarUrl } from '../utils/avatarUtils';
+import type { ExplicitSelection, SentimentSelection } from '../dev/types/review';
 
 // Category weights for quality score calculation
 const CATEGORY_WEIGHTS: Record<string, number> = {
@@ -141,6 +142,10 @@ export interface ReviewData {
   negativeNote: string;
   serverRating?: 'bad' | 'okay' | 'good' | null;
   price?: string | null;
+  explicit?: ExplicitSelection | null;
+  sentiment?: SentimentSelection | null;
+  explicitTags?: string[];
+  derivedTags?: string[];
   tags: string[];
   restaurantCuisines?: string[];
   cuisines?: string[];
@@ -173,6 +178,10 @@ export function buildReviewCreatePayload(input: ReviewData & { caption?: string 
   const payload: ReviewCreatePayload & { caption?: string } = {
     ...input,
     dishName,
+    explicit: input.explicit ?? null,
+    sentiment: input.sentiment ?? null,
+    explicitTags: Array.isArray(input.explicitTags) ? input.explicitTags : [],
+    derivedTags: Array.isArray(input.derivedTags) ? input.derivedTags : [],
   } as any;
   return payload;
 }
@@ -465,6 +474,11 @@ export const saveReview = async (
     const nowMs = Date.now();
     const reviewDocumentPayload: Record<string, any> = {
       ...reviewDataRest,
+      explicit: reviewData.explicit ?? null,
+      sentiment: reviewData.sentiment ?? null,
+      explicitTags: Array.isArray(reviewData.explicitTags) ? reviewData.explicitTags : [],
+      derivedTags: Array.isArray(reviewData.derivedTags) ? reviewData.derivedTags : [],
+      tags: Array.isArray(reviewData.tags) ? reviewData.tags : [],
       restaurantId,
       menuItemId,
       // Add dishName to satisfy Firestore rules which require dishName (string)
@@ -628,6 +642,10 @@ export interface FirebaseReview {
   personalNotes?: PersonalNote[];
   serverRating?: 'bad' | 'okay' | 'good' | null;
   price?: string | null;
+  explicit?: ExplicitSelection | null;
+  sentiment?: SentimentSelection | null;
+  explicitTags?: string[];
+  derivedTags?: string[];
   tags: string[];
   restaurantCuisines?: string[];
   cuisines?: string[];

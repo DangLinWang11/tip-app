@@ -138,6 +138,7 @@ const FeedPost: React.FC<FeedPostProps> = ({
 
   // Tag labels and chip styling for slug-based tags
   const TAG_LABELS: Record<string, string> = {
+    // Legacy taste tags
     good_value: 'Good value',
     overpriced: 'Overpriced',
     very_fresh: 'Very fresh',
@@ -148,17 +149,132 @@ const FeedPost: React.FC<FeedPostProps> = ({
     served_hot: 'Served hot',
     served_cold: 'Served cold',
     lukewarm: 'Lukewarm',
+
+    // Attribute tags
+    attr_crispy: 'Crispy',
+    attr_fresh: 'Fresh',
+    attr_scratch_made: 'Scratch-made',
+    attr_juicy: 'Juicy',
+    attr_rich: 'Rich',
+    attr_light: 'Light',
+    attr_spicy: 'Spicy',
+    attr_saucy: 'Saucy',
+    attr_creamy: 'Creamy',
+    attr_tender: 'Tender',
+    attr_crunchy: 'Crunchy',
+    attr_sweet: 'Sweet',
+
+    // Occasions
+    occasion_date_night: 'Date Night',
+    occasion_family: 'Family-Friendly',
+    occasion_takeout: 'Takeout',
+    occasion_quick_lunch: 'Quick Lunch',
+    occasion_special_occasion: 'Special Occasion',
+    occasion_late_night: 'Late Night',
+    occasion_business: 'Business Meal',
+    occasion_group: 'Good for Groups',
+
+    // Dietary
+    dietary_vegetarian: 'Vegetarian',
+    dietary_vegan: 'Vegan',
+    dietary_gluten_free: 'Gluten-Free Friendly',
+    dietary_dairy_free: 'Dairy-Free',
+    dietary_nut_free: 'Nut-Free',
+
+    // Cuisines
+    cuisine_italian: 'Italian',
+    cuisine_japanese: 'Japanese',
+    cuisine_chinese: 'Chinese',
+    cuisine_mexican: 'Mexican',
+    cuisine_thai: 'Thai',
+    cuisine_american: 'American',
+    cuisine_french: 'French',
+    cuisine_indian: 'Indian',
+    cuisine_mediterranean: 'Mediterranean',
+    cuisine_latin: 'Latin',
+
+    // Dish types
+    type_pizza: 'Pizza',
+    type_taco: 'Taco',
+    type_burger: 'Burger',
+    type_sandwich: 'Sandwich',
+    type_pasta: 'Pasta',
+    type_sushi: 'Sushi',
+    type_bbq: 'BBQ',
+    type_soup: 'Soup',
+    type_steak: 'Steak',
+    type_dessert: 'Dessert',
+
+    // Dish styles
+    style_tavern_pizza: 'Tavern-Style Pizza',
+    style_ny_pizza: 'New York Pizza',
+    style_neapolitan_pizza: 'Neapolitan Pizza',
+    style_detroit_pizza: 'Detroit-Style Pizza',
+    style_chicago_pizza: 'Chicago Deep Dish',
+    style_basque_cheesecake: 'Basque Cheesecake',
+    style_smashburger: 'Smashburger',
+    style_birria_taco: 'Birria Taco',
+
+    // Sentiment-derived tags
+    val_good_value: 'Good value',
+    val_overpriced: 'Overpriced',
+    val_fair: 'Fair price',
   };
 
   const getTagChipClass = (slug: string): string => {
-    const positive = new Set(['good_value', 'very_fresh', 'spicy_lovers', 'served_hot']);
-    const negativeRed = new Set(['overpriced', 'too_spicy']);
+    const positive = new Set([
+      'good_value',
+      'very_fresh',
+      'spicy_lovers',
+      'served_hot',
+      'val_good_value',
+      'val_fair',
+      'attr_crispy',
+      'attr_fresh',
+      'attr_scratch_made',
+      'attr_juicy',
+      'attr_tender',
+      'attr_light'
+    ]);
+    const negativeRed = new Set(['overpriced', 'too_spicy', 'val_overpriced']);
     const negativeAmber = new Set(['lukewarm', 'not_fresh']);
-    if (positive.has(slug)) return 'bg-gradient-to-r from-green-50 to-emerald-50 text-emerald-700 border-emerald-300';
-    if (negativeRed.has(slug)) return 'bg-rose-50 text-rose-700 border-rose-200';
-    if (negativeAmber.has(slug)) return 'bg-amber-50 text-amber-700 border-amber-200';
-    if (slug === 'served_cold') return 'bg-sky-50 text-sky-700 border-sky-200';
-    return 'bg-gray-50 text-gray-700 border-gray-200';
+    const occasions = new Set([
+      'occasion_date_night',
+      'occasion_family',
+      'occasion_takeout',
+      'occasion_quick_lunch',
+      'occasion_special_occasion',
+      'occasion_late_night',
+      'occasion_business',
+      'occasion_group'
+    ]);
+    const dietary = new Set([
+      'dietary_vegetarian',
+      'dietary_vegan',
+      'dietary_gluten_free',
+      'dietary_dairy_free',
+      'dietary_nut_free'
+    ]);
+
+    if (positive.has(slug)) {
+      return 'bg-gradient-to-r from-green-50 to-emerald-50 text-emerald-700 border border-emerald-200';
+    }
+    if (negativeRed.has(slug)) {
+      return 'bg-rose-50 text-rose-700 border border-rose-200';
+    }
+    if (negativeAmber.has(slug)) {
+      return 'bg-amber-50 text-amber-700 border border-amber-200';
+    }
+    if (occasions.has(slug)) {
+      return 'bg-purple-50 text-purple-700 border border-purple-200';
+    }
+    if (dietary.has(slug)) {
+      return 'bg-blue-50 text-blue-700 border border-blue-200';
+    }
+    if (slug === 'served_cold') {
+      return 'bg-sky-50 text-sky-700 border border-sky-200';
+    }
+    return 'bg-gray-50 text-gray-700 border border-gray-200';
   };
 
   const getTagEmojiForSlug = (slug: string): string => {
@@ -645,10 +761,17 @@ const FeedPost: React.FC<FeedPostProps> = ({
               );
             })}
 
-            {/* Tag slugs (from review.tags) rendered with color/emoji logic */}
+            {/* Tag slugs rendered with color/emoji logic */}
             {(() => {
-              const tagList: string[] = isCarousel ? ((currentItem as any).tags || []) : (tags || []);
-              return tagList.map((slug, i) => {
+              const explicitTagList = Array.isArray(currentItem.review.explicitTags) ? currentItem.review.explicitTags : [];
+              const derivedTagList = Array.isArray(currentItem.review.derivedTags) ? currentItem.review.derivedTags : [];
+              const legacyTagList =
+                !explicitTagList.length && !derivedTagList.length
+                  ? (isCarousel ? ((currentItem as any).tags || []) : (tags || []))
+                  : [];
+              const displayTags = [...explicitTagList, ...derivedTagList, ...legacyTagList];
+
+              return displayTags.map((slug, i) => {
                 const label = TAG_LABELS[slug] || slug;
                 const chipClass = getTagChipClass(slug);
                 const emoji = getTagEmojiForSlug(slug);
