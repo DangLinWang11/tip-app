@@ -5,8 +5,21 @@ export const DISH_TYPES = [
 
 export const CUISINES = [
   'american','mexican','thai','japanese','korean','chinese','vietnamese',
-  'italian','indian','mediterranean','greek','middle eastern','french','spanish','latin','seafood','bbq'
+  'italian','indian','mediterranean','greek','middle eastern','french','german','spanish','latin','seafood','bbq'
 ];
+
+const CUISINE_LABEL_OVERRIDES: Record<string, string> = {
+  bbq: 'BBQ/Grill',
+  latin: 'Latin American'
+};
+
+export const getCuisineLabel = (slug: string): string => {
+  const key = slug.toLowerCase();
+  if (CUISINE_LABEL_OVERRIDES[key]) {
+    return CUISINE_LABEL_OVERRIDES[key];
+  }
+  return key.split(' ').map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+};
 
 export const normalizeToken = (s: string) =>
   s.toLowerCase().trim()

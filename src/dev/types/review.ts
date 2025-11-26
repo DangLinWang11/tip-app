@@ -42,6 +42,7 @@ export interface ReviewDraft {
   restaurantId?: string;
   restaurantCuisines?: string[];
   cuisines?: string[];
+  dishCuisine?: string;
   tags?: string[];
   dishId?: string;
   dishName: string;

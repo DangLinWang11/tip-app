@@ -1,5 +1,5 @@
 ﻿import React from 'react';
-import { CUISINES } from '../../utils/taxonomy';
+import { CUISINES, getCuisineLabel } from '../../utils/taxonomy';
 
 interface CuisineSelectProps {
   value?: string[];
@@ -9,11 +9,6 @@ interface CuisineSelectProps {
 
 const CuisineSelect: React.FC<CuisineSelectProps> = ({ value = [], onChange, options = CUISINES }) => {
   const normalizedValue = React.useMemo(() => new Set(value.map((entry) => entry.toLowerCase())), [value]);
-
-  const formatLabel = React.useCallback(
-    (slug: string) => slug.split(' ').map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join(' '),
-    []
-  );
 
   const handleToggle = (cuisine: string) => {
     const slug = cuisine.toLowerCase();
@@ -41,7 +36,7 @@ const CuisineSelect: React.FC<CuisineSelectProps> = ({ value = [], onChange, opt
               selected ? 'bg-red-500 text-white shadow-md shadow-red-200/60' : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
             }`}
           >
-            {formatLabel(slug)}
+            {getCuisineLabel(slug)}
           </button>
         );
       })}

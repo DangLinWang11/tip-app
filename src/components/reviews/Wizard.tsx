@@ -94,6 +94,7 @@ const normalizeSentimentSelection = (input?: ReviewDraft['sentiment']): ReviewDr
 
 const ensureDraftShape = (draft: ReviewDraft): ReviewDraft => {
   const cuisines = sanitizeCuisinesInput(draft.cuisines) ?? sanitizeCuisinesInput(draft.restaurantCuisines);
+  const dishCuisine = typeof draft.dishCuisine === 'string' ? draft.dishCuisine : '';
   const explicit = normalizeExplicitSelections(draft.explicit);
   const sentiment = normalizeSentimentSelection(draft.sentiment);
 
@@ -102,6 +103,7 @@ const ensureDraftShape = (draft: ReviewDraft): ReviewDraft => {
     restaurantId: draft.restaurantId,
     restaurantCuisines: cuisines,
     cuisines,
+    dishCuisine,
     dishId: draft.dishId,
     dishName: draft.dishName || '',
     dishCategory: draft.dishCategory,
@@ -139,6 +141,7 @@ const ensureDraftShape = (draft: ReviewDraft): ReviewDraft => {
 const buildInitialDraft = (userId: string): ReviewDraft => ensureDraftShape({
   userId,
   dishName: '',
+  dishCuisine: '',
   rating: 7.5,
   media: { photos: [], videos: [], thumbnails: [] },
   outcome: {
@@ -599,7 +602,6 @@ const Wizard: React.FC = () => {
 };
 
 export default Wizard;
-
 
 
 

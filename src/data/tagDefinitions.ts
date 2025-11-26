@@ -8,9 +8,10 @@ export const CUISINES = [
   { value: 'thai', label: 'Thai' },
   { value: 'american', label: 'American' },
   { value: 'french', label: 'French' },
+  { value: 'german', label: 'German' },
   { value: 'indian', label: 'Indian' },
   { value: 'mediterranean', label: 'Mediterranean' },
-  { value: 'latin', label: 'Latin' }
+  { value: 'latin', label: 'Latin American' }
 ] as const;
 
 export const DISH_TYPES = [
@@ -20,7 +21,7 @@ export const DISH_TYPES = [
   { value: 'sandwich', label: 'Sandwich' },
   { value: 'pasta', label: 'Pasta' },
   { value: 'sushi', label: 'Sushi' },
-  { value: 'bbq', label: 'BBQ' },
+  { value: 'bbq', label: 'BBQ/Grill' },
   { value: 'soup', label: 'Soup' },
   { value: 'steak', label: 'Steak' },
   { value: 'dessert', label: 'Dessert' }

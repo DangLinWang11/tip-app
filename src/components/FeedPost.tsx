@@ -191,7 +191,8 @@ const FeedPost: React.FC<FeedPostProps> = ({
     cuisine_french: 'French',
     cuisine_indian: 'Indian',
     cuisine_mediterranean: 'Mediterranean',
-    cuisine_latin: 'Latin',
+    cuisine_latin: 'Latin American',
+    cuisine_german: 'German',
 
     // Dish types
     type_pizza: 'Pizza',
@@ -200,7 +201,7 @@ const FeedPost: React.FC<FeedPostProps> = ({
     type_sandwich: 'Sandwich',
     type_pasta: 'Pasta',
     type_sushi: 'Sushi',
-    type_bbq: 'BBQ',
+    type_bbq: 'BBQ/Grill',
     type_soup: 'Soup',
     type_steak: 'Steak',
     type_dessert: 'Dessert',

@@ -10,7 +10,7 @@ import { useReviewWizard } from './WizardContext';
 import CreateRestaurantModal from './CreateRestaurantModal';
 import AddDishInline from './AddDishInline';
 import DishCategorySelect from './DishCategorySelect';
-import { CUISINES, normalizeToken } from '../../utils/taxonomy';
+import { CUISINES, getCuisineLabel } from '../../utils/taxonomy';
 import { saveGooglePlaceToFirestore } from '../../services/googlePlacesService';
 
 const CATEGORY_SLUGS = ['appetizer', 'entree', 'handheld', 'side', 'dessert', 'drink'] as const;
@@ -64,7 +64,8 @@ const Step1Basic: React.FC = () => {
   const [newDishMode, setNewDishMode] = useState(false);
   const [newDishPrice, setNewDishPrice] = useState('');
   const [mediaError, setMediaError] = useState<string | null>(null);
-  const [customCuisineInput, setCustomCuisineInput] = useState('');
+  const [dishCuisineOption, setDishCuisineOption] = useState('');
+  const [customDishCuisine, setCustomDishCuisine] = useState('');
   const { isLoaded: mapsLoaded } = useLoadScript({
     googleMapsApiKey: 'AIzaSyDH-MgeMBC3_yvge3yLz_gaCl_2x8Ra6PY',
     libraries
@@ -225,56 +226,39 @@ const Step1Basic: React.FC = () => {
     };
   }, [placePredictions, userLocation, mapsLoaded]);
 
-  const updateCuisineValues = (updater: (current: string[]) => string[]) => {
-    updateDraft((prev) => {
-      const current = prev.restaurantCuisines ?? prev.cuisines ?? [];
-      const next = updater(current);
-      const normalized = Array.from(new Set(next.map((entry) => normalizeToken(entry)).filter(Boolean)));
-      return {
-        ...prev,
-        restaurantCuisines: normalized.length ? normalized : undefined,
-        cuisines: normalized.length ? normalized : undefined
-      };
-    });
+  const formatCuisineLabel = (value: string) => getCuisineLabel(value);
+  useEffect(() => {
+    const current = typeof draft.dishCuisine === 'string' ? draft.dishCuisine : '';
+    if (current && CUISINES.includes(current)) {
+      setDishCuisineOption(current);
+      setCustomDishCuisine('');
+    } else if (current) {
+      setDishCuisineOption('custom');
+      setCustomDishCuisine(current);
+    } else {
+      setDishCuisineOption('');
+      setCustomDishCuisine('');
+    }
+  }, [draft.dishCuisine]);
+
+  const handleDishCuisineChange = (value: string) => {
+    setDishCuisineOption(value);
+    if (!value) {
+      setCustomDishCuisine('');
+      updateDraft((prev) => ({ ...prev, dishCuisine: undefined }));
+      return;
+    }
+    if (value === 'custom') {
+      updateDraft((prev) => ({ ...prev, dishCuisine: customDishCuisine.trim() }));
+      return;
+    }
+    setCustomDishCuisine('');
+    updateDraft((prev) => ({ ...prev, dishCuisine: value }));
   };
 
-  const toggleCuisine = (value: string) => {
-    const normalized = normalizeToken(value);
-    if (!normalized) return;
-    updateCuisineValues((current) => {
-      const set = new Set(current);
-      if (set.has(normalized)) {
-        set.delete(normalized);
-      } else {
-        set.add(normalized);
-      }
-      return Array.from(set);
-    });
-  };
-
-  const addCustomCuisine = () => {
-    const normalized = normalizeToken(customCuisineInput);
-    if (!normalized) return;
-    updateCuisineValues((current) => {
-      if (current.includes(normalized)) {
-        return current;
-      }
-      return [...current, normalized];
-    });
-    setCustomCuisineInput('');
-  };
-
-  const handleCustomCuisineKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
-    if (event.key !== 'Enter') return;
-    event.preventDefault();
-    addCustomCuisine();
-  };
-
-  const selectedCuisines = useMemo(() => draft.restaurantCuisines ?? draft.cuisines ?? [], [draft.restaurantCuisines, draft.cuisines]);
-  const customSelectedCuisines = useMemo(() => selectedCuisines.filter((value) => !CUISINES.includes(value)), [selectedCuisines]);
-
-  const formatCuisineLabel = (value: string) => {
-    return value.split(' ').map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+  const handleCustomDishCuisineChange = (value: string) => {
+    setCustomDishCuisine(value);
+    updateDraft((prev) => ({ ...prev, dishCuisine: value.trim() }));
   };
 
 
@@ -311,6 +295,7 @@ const Step1Basic: React.FC = () => {
     const lower = draft.dishName.toLowerCase();
     return dishes.filter((dish) => dish.name.toLowerCase().includes(lower)).slice(0, 6);
   }, [draft.dishName, dishes]);
+  const hasDishCuisine = typeof draft.dishCuisine === 'string' && draft.dishCuisine.trim().length > 0;
   const restaurantResults = filteredRestaurants;
 
   const handleFileInput = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -426,13 +411,14 @@ const Step1Basic: React.FC = () => {
     setNewDishPrice(dish.price != null ? String(dish.price) : '');
   };
 
-  const canProceed = !!selectedRestaurant && !!draft.dishName.trim() && !!draft.dishCategory && draft.rating >= 0.1 && draft.rating <= 10 && !pendingUploads;
+  const canProceed = !!selectedRestaurant && !!draft.dishName.trim() && !!draft.dishCategory && hasDishCuisine && draft.rating >= 0.1 && draft.rating <= 10 && !pendingUploads;
 
   const getMissingFields = () => {
     const missing: string[] = [];
     if (!selectedRestaurant) missing.push('restaurant');
     if (!draft.dishName.trim()) missing.push('dish name');
     if (!draft.dishCategory) missing.push('dish category');
+    if (!hasDishCuisine) missing.push('cuisine');
     if (pendingUploads) missing.push('wait for uploads to complete');
     return missing;
   };
@@ -514,30 +500,33 @@ const Step1Basic: React.FC = () => {
         </div>
 
         {showLocationBanner && !userLocation && (
-          <div className="rounded-2xl bg-gradient-to-r from-blue-50 to-blue-100/50 border border-blue-200 p-4 flex items-center gap-3">
-            <MapPin className="h-5 w-5 text-blue-600 flex-shrink-0" />
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-blue-900">
-                Enable location to see nearby restaurants first
-              </p>
-              <p className="text-xs text-blue-700 mt-1">
-                We'll show distance to each restaurant so you can find the closest ones
-              </p>
+          <div className="rounded-2xl border border-blue-200 bg-white px-4 py-3 text-slate-900 shadow-sm">
+            <div className="text-center text-sm font-semibold mb-3">
+              📍 Enable location for nearby restaurants
             </div>
-            <button
-              onClick={requestLocationPermission}
-              disabled={requestingLocation}
-              className="flex-shrink-0 px-4 py-2 bg-red-500 hover:bg-red-600 disabled:bg-red-400 text-white rounded-lg font-medium text-sm transition-colors"
-            >
-              {requestingLocation ? 'Enabling...' : 'Enable'}
-            </button>
-            <button
-              onClick={() => setShowLocationBanner(false)}
-              className="flex-shrink-0 p-2 hover:bg-blue-200 rounded transition-colors text-blue-600"
-              aria-label="Dismiss location banner"
-            >
-              <X className="h-4 w-4" />
-            </button>
+            <div className="grid grid-cols-5 items-center">
+              <div />
+              <div className="flex justify-center">
+                <button
+                  onClick={requestLocationPermission}
+                  disabled={requestingLocation}
+                  className="rounded-xl bg-red-500 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {requestingLocation ? 'Enabling...' : 'Enable'}
+                </button>
+              </div>
+              <div />
+              <div className="flex justify-center">
+                <button
+                  type="button"
+                  onClick={() => setShowLocationBanner(false)}
+                  className="text-sm font-semibold text-slate-500 transition-colors hover:text-slate-700"
+                >
+                  Maybe Later
+                </button>
+              </div>
+              <div />
+            </div>
           </div>
         )}
 
@@ -576,7 +565,7 @@ const Step1Basic: React.FC = () => {
             ) : (
               <>
                 {placePredictions.length > 0 && (
-                  <div className="space-y-2 mb-4">
+                  <div className="mb-4 space-y-1.5">
                     <p className="text-xs uppercase tracking-wide text-slate-400">From Google Places</p>
                     {placePredictions.map((prediction) => {
                       const existingRestaurant = restaurants.find((r) => r.googlePlaceId === prediction.place_id);
@@ -595,21 +584,21 @@ const Step1Basic: React.FC = () => {
                               handleGooglePlaceSelected(prediction.place_id, prediction.description);
                             }
                           }}
-                          className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-left transition hover:border-slate-300 hover:bg-slate-50"
+                          className="w-full rounded-2xl border border-slate-200 px-3 py-2 text-left transition hover:border-slate-300 hover:bg-slate-50"
                         >
-                              <div className="flex items-center justify-between gap-3">
+                              <div className="flex items-center justify-between gap-2">
                                 <div className="flex-1 min-w-0 pr-2">
-                                  <div className="flex items-center gap-2">
-                                    <span className="font-medium text-slate-900 truncate">{prediction.structured_formatting.main_text}</span>
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="text-sm font-medium text-slate-900 truncate">{prediction.structured_formatting.main_text}</span>
                                     {distance !== undefined && (
                                       <span className="text-xs text-slate-400 whitespace-nowrap flex-shrink-0">{distance.toFixed(1)} mi</span>
                                     )}
                                   </div>
-                                  <p className="text-sm text-slate-500 truncate">{prediction.structured_formatting.secondary_text}</p>
+                                  <p className="text-xs text-slate-500 truncate">{prediction.structured_formatting.secondary_text}</p>
                                 </div>
                             {existingRestaurant ? (
-                              <div className={`flex-shrink-0 flex items-center justify-center px-3 py-1.5 rounded-full ${getQualityColor(existingRestaurant.qualityScore)}`}>
-                                <span className="text-sm font-bold text-white">{existingRestaurant.qualityScore || 0}%</span>
+                              <div className={`flex-shrink-0 flex items-center justify-center rounded-full px-2.5 py-1 ${getQualityColor(existingRestaurant.qualityScore)}`}>
+                                <span className="text-xs font-semibold text-white">{existingRestaurant.qualityScore || 0}%</span>
                               </div>
                             ) : (
                               <span className="flex-shrink-0 text-xs font-medium text-amber-600 whitespace-nowrap">⭐ Be first</span>
@@ -622,7 +611,7 @@ const Step1Basic: React.FC = () => {
                 )}
 
                 {restaurantResults.length > 0 && placePredictions.length === 0 && (
-                  <div className="space-y-2">
+                  <div className="space-y-1.5">
                     <p className="text-xs uppercase tracking-wide text-slate-400">Your saved restaurants</p>
                     {restaurantResults
                       .map((restaurant) => ({
@@ -648,19 +637,19 @@ const Step1Basic: React.FC = () => {
                           key={restaurant.id}
                           type="button"
                           onClick={() => onRestaurantSelected(restaurant)}
-                          className={`w-full rounded-2xl border px-4 py-3 text-left transition ${
+                          className={`w-full rounded-2xl border px-3 py-2 text-left transition ${
                             selectedRestaurant?.id === restaurant.id ? 'border-red-300 bg-red-50' : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
                           }`}
                         >
-                          <div className="flex items-center justify-between gap-3">
+                          <div className="flex items-center justify-between gap-2">
                             <div className="flex-1 min-w-0 pr-2">
-                              <div className="flex items-center gap-2">
-                                <span className="font-medium text-slate-900 truncate">{restaurant.name}</span>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-sm font-medium text-slate-900 truncate">{restaurant.name}</span>
                                 {restaurant.distance !== undefined && (
                                   <span className="text-xs text-slate-400 whitespace-nowrap flex-shrink-0">{restaurant.distance.toFixed(1)} mi</span>
                                 )}
                               </div>
-                              <p className="text-sm text-slate-500 truncate">{restaurant.location?.formatted}</p>
+                              <p className="text-xs text-slate-500 truncate">{restaurant.location?.formatted}</p>
                               {restaurant.cuisines?.length ? (
                                 <div className="mt-1 flex flex-wrap gap-1">
                                   {restaurant.cuisines.slice(0, 3).map((cuisine) => (
@@ -672,11 +661,11 @@ const Step1Basic: React.FC = () => {
                               ) : null}
                             </div>
                             {restaurant.qualityScore !== null && restaurant.qualityScore !== undefined ? (
-                              <div className={`flex-shrink-0 flex items-center justify-center px-3 py-1.5 rounded-full ${getQualityColor(restaurant.qualityScore)}`}>
-                                <span className="text-sm font-bold text-white">{restaurant.qualityScore}%</span>
+                              <div className={`flex-shrink-0 flex items-center justify-center rounded-full px-2.5 py-1 ${getQualityColor(restaurant.qualityScore)}`}>
+                                <span className="text-xs font-semibold text-white">{restaurant.qualityScore}%</span>
                               </div>
                             ) : (
-                              <div className="flex-shrink-0 flex items-center justify-center px-3 py-1.5 rounded-full bg-slate-200">
+                              <div className="flex-shrink-0 flex items-center justify-center rounded-full bg-slate-200 px-2.5 py-1">
                                 <span className="text-xs font-medium text-slate-500">New</span>
                               </div>
                             )}
@@ -808,60 +797,38 @@ const Step1Basic: React.FC = () => {
             options={CATEGORY_SLUGS as unknown as string[]}
           />
         </div>
-        <div className="pt-2 space-y-3">
-          <h3 className="text-sm font-semibold text-slate-800">Cuisine (optional)</h3>
-          <div className="flex flex-wrap gap-2">
-            {CUISINES.map((cuisine) => {
-              const normalizedValue = normalizeToken(cuisine);
-              const isSelected = selectedCuisines.includes(normalizedValue);
-              return (
-                <button
-                  key={normalizedValue}
-                  type="button"
-                  onClick={() => toggleCuisine(cuisine)}
-                  className={`px-3 py-1 rounded-full text-xs font-medium transition ${
-                    isSelected ? 'bg-red-500 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  {formatCuisineLabel(cuisine)}
-                </button>
-              );
-            })}
-          </div>
-          <div className="flex items-center gap-2">
-            <input
-              type="text"
-              value={customCuisineInput}
-              onChange={(event) => setCustomCuisineInput(event.target.value)}
-              onKeyDown={handleCustomCuisineKeyDown}
-              placeholder="Add custom cuisine"
-              className="flex-1 rounded-2xl border border-slate-200 px-3 py-2 text-base text-slate-700 focus:border-red-400 focus:outline-none focus:ring-2 focus:ring-red-100"
-            />
-            <button
-              type="button"
-              onClick={addCustomCuisine}
-              disabled={!customCuisineInput.trim()}
-              className={`rounded-2xl px-3 py-2 text-sm font-semibold transition ${
-                customCuisineInput.trim() ? 'bg-red-500 text-white hover:bg-red-600' : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-              }`}
-            >
-              Add
-            </button>
-          </div>
-          {customSelectedCuisines.length ? (
-            <div className="flex flex-wrap gap-2">
-              {customSelectedCuisines.map((cuisine) => (
-                <button
-                  key={cuisine}
-                  type="button"
-                  onClick={() => toggleCuisine(cuisine)}
-                  className="px-3 py-1 rounded-full bg-slate-200 text-xs font-medium text-slate-700 hover:bg-slate-300 transition"
-                >
-                  {formatCuisineLabel(cuisine)}
-                </button>
-              ))}
+        <div className="pt-2">
+          {selectedRestaurant && draft.dishName.trim() ? (
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-slate-800">
+                Cuisine <span className="text-red-500">*</span>
+              </label>
+              <select
+                value={dishCuisineOption}
+                onChange={(event) => handleDishCuisineChange(event.target.value)}
+                className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-base focus:border-red-400 focus:outline-none focus:ring-2 focus:ring-red-100"
+              >
+                <option value="">Select cuisine...</option>
+                {CUISINES.map((cuisine) => (
+                  <option key={cuisine} value={cuisine}>
+                    {formatCuisineLabel(cuisine)}
+                  </option>
+                ))}
+                <option value="custom">Other (specify)</option>
+              </select>
+              {dishCuisineOption === 'custom' ? (
+                <input
+                  type="text"
+                  value={customDishCuisine}
+                  onChange={(event) => handleCustomDishCuisineChange(event.target.value)}
+                  placeholder="Enter cuisine type..."
+                  className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-base focus:border-red-400 focus:outline-none focus:ring-2 focus:ring-red-100"
+                />
+              ) : null}
             </div>
-          ) : null}
+          ) : (
+            <p className="text-xs text-slate-500">Select a restaurant and dish to choose a cuisine.</p>
+          )}
         </div>
       </section>
 
@@ -926,23 +893,6 @@ const Step1Basic: React.FC = () => {
 };
 
 export default Step1Basic;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

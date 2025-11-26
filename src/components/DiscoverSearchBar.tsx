@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { collection, getDocs } from 'firebase/firestore';
 import { Loader2, MapPin, Search } from 'lucide-react';
 import { db } from '../lib/firebase';
+import { getCuisineLabel } from '../utils/taxonomy';
 import {
   searchPlaces,
   getPlaceDetails,
@@ -64,12 +65,7 @@ const calculateDistance = (lat1: number, lng1: number, lat2: number, lng2: numbe
   return R * c;
 };
 
-const formatCuisineLabel = (value: string) => {
-  return value
-    .split(' ')
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ');
-};
+const formatCuisineLabel = (value: string) => getCuisineLabel(value);
 
 const DiscoverSearchBar: React.FC<DiscoverSearchBarProps> = ({ userLocation, onRestaurantSelect }) => {
   const navigate = useNavigate();

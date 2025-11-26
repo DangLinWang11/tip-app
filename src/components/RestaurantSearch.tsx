@@ -4,11 +4,10 @@ import { collection, getDocs, query as firestoreQuery, where } from 'firebase/fi
 import { useLoadScript } from '@react-google-maps/api';
 import { db } from '../lib/firebase';
 import LocationPickerModal from './LocationPickerModal';
-import { CUISINES } from '../utils/taxonomy';
+import { CUISINES, getCuisineLabel } from '../utils/taxonomy';
 import { saveGooglePlaceToFirestore } from '../services/googlePlacesService';
 
-const formatCuisineLabel = (value: string) =>
-  value.split(' ').map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+const formatCuisineLabel = (value: string) => getCuisineLabel(value);
 
 interface FirebaseRestaurant {
   id: string;
