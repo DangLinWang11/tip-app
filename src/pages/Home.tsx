@@ -6,6 +6,7 @@ import HamburgerMenu from '../components/HamburgerMenu';
 import FeedPost from '../components/FeedPost';
 import { fetchReviews, convertReviewsToFeedPosts, fetchUserReviews, FirebaseReview, listenHomeFeed } from '../services/reviewService';
 import { auth, getUserProfile, getCurrentUser } from '../lib/firebase';
+import mapPreview from "../assets/map-preview.png";
 // Defer heavy map code: code-split ExpandedMapModal and avoid inline map
 const ExpandedMapModal = React.lazy(() => import('../components/ExpandedMapModal'));
 
@@ -416,36 +417,28 @@ const Home: React.FC = () => {
       <div className="px-4 py-6">
 
         {/* Your Food Journey Section */}
-        <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
-          {/* Badge displaying total restaurants visited */}
-          <div className="mb-4">
-            <div className="inline-flex items-center gap-2 rounded-full px-1 py-0.5">
-              <Store size={16} className="text-primary" />
-              <span className="text-primary font-semibold">Restaurant Counter:</span>
-              <span className="text-black font-bold">{userStats.totalRestaurants}</span>
-            </div>
-          </div>
-          <div 
-            className="h-64 rounded-lg cursor-pointer hover:opacity-90 transition-opacity bg-gray-100 flex items-center justify-center"
+        <div className="bg-white rounded-xl shadow-sm p-5 mb-6">
+          <h2 className="text-2xl font-bold text-gray-900 mb-1">Your Food Journey</h2>
+          <p className="text-sm font-normal text-gray-500 mb-5">Tap to open your journey map</p>
+          <div
+            className="h-52 rounded-2xl border border-gray-100 overflow-hidden relative cursor-pointer hover:border-gray-200 hover:shadow-md transition-all duration-200"
             onClick={() => setShowExpandedMap(true)}
           >
-            {/* Lightweight placeholder instead of mounting Google Maps */}
-            <div className="text-center">
-              <div className="w-12 h-12 mx-auto mb-2 flex items-center justify-center rounded-full bg-white shadow">
-                <MapIcon size={24} className="text-primary" />
-              </div>
-              <div className="text-gray-600 text-sm">Tap to open your journey map</div>
-            </div>
+            <img
+              src={mapPreview}
+              alt="Map preview"
+              className="absolute inset-0 w-full h-full object-cover"
+            />
+            <div className="absolute inset-0 bg-white/5" />
           </div>
 
-          {/* List View Button */}
-          <div className="text-center mt-4">
+          <div className="text-center mt-5">
             <div 
-              className="inline-flex items-center bg-white rounded-2xl shadow-sm border border-gray-100 px-6 py-3 cursor-pointer hover:shadow-md transition-shadow"
+              className="inline-flex items-center gap-2 bg-white rounded-full border border-gray-200 px-5 py-2.5 shadow-sm cursor-pointer hover:border-gray-300 hover:shadow-md transition-all duration-200"
               onClick={() => navigate('/list-view')}
             >
-              <MapPinIcon size={20} className="text-secondary mr-3" />
-              <span className="text-black font-medium">Recent Visits</span>
+              <MapPinIcon size={18} className="text-secondary" />
+              <span className="text-sm font-medium text-gray-900">Recent Visits</span>
             </div>
           </div>
         </div>
