@@ -1,6 +1,6 @@
 import React from 'react';
 import { useReviewWizard } from './WizardContext';
-import { CUISINES, DISH_TYPES, DISH_STYLES, ATTRIBUTES, OCCASIONS, DIETARY } from '../../data/tagDefinitions';
+import { DISH_TYPES, DISH_STYLES, ATTRIBUTES, OCCASIONS, DIETARY } from '../../data/tagDefinitions';
 import type { ReviewDraft } from '../../dev/types/review';
 
 type ExplicitState = NonNullable<ReviewDraft['explicit']>;
@@ -63,7 +63,7 @@ const Step2DishTagging: React.FC = () => {
     });
   };
 
-  const canProceed = explicit.cuisine !== null;
+  const canProceed = true;
 
   const handleNext = () => {
     if (!canProceed) return;
@@ -89,24 +89,6 @@ const Step2DishTagging: React.FC = () => {
             </button>
           ))}
         </div>
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium mb-2">
-          Cuisine <span className="text-red-500">*</span>
-        </label>
-        <select
-          value={explicit.cuisine || ''}
-          onChange={(event) => updateExplicit('cuisine', event.target.value ? event.target.value : null)}
-          className="w-full p-2 border rounded-lg"
-        >
-          <option value="">Select cuisine...</option>
-          {CUISINES.map((cuisine) => (
-            <option key={cuisine.value} value={cuisine.value}>
-              {cuisine.label}
-            </option>
-          ))}
-        </select>
       </div>
 
       <div>
