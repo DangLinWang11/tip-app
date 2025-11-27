@@ -39,18 +39,15 @@ export const DISH_STYLES = [
 ] as const;
 
 export const ATTRIBUTES = [
-  { value: 'crispy', label: 'Crispy', emoji: '🥐' },
-  { value: 'fresh', label: 'Fresh', emoji: '🌿' },
-  { value: 'scratch_made', label: 'Scratch-made', emoji: '👨‍🍳' },
-  { value: 'juicy', label: 'Juicy', emoji: '💧' },
-  { value: 'rich', label: 'Rich', emoji: '🧈' },
-  { value: 'light', label: 'Light', emoji: '🪶' },
-  { value: 'spicy', label: 'Spicy', emoji: '🌶️' },
-  { value: 'saucy', label: 'Saucy', emoji: '🍝' },
-  { value: 'creamy', label: 'Creamy', emoji: '🥛' },
-  { value: 'tender', label: 'Tender', emoji: '🥩' },
-  { value: 'crunchy', label: 'Crunchy', emoji: '🥜' },
-  { value: 'sweet', label: 'Sweet', emoji: '🍯' }
+  { value: 'crispy', label: 'Crispy / Crunchy', emoji: '??' },
+  { value: 'saucy', label: 'Saucy', emoji: '??' },
+  { value: 'creamy', label: 'Creamy', emoji: '??' },
+  { value: 'light', label: 'Light', emoji: '??' },
+  { value: 'rich', label: 'Rich / Indulgent', emoji: '??' },
+  { value: 'spicy', label: 'Spicy', emoji: '???' },
+  { value: 'sweet', label: 'Sweet', emoji: '??' },
+  { value: 'fresh', label: 'Fresh', emoji: '??' },
+  { value: 'scratch_made', label: 'Scratch-made', emoji: '?????' }
 ] as const;
 
 export const OCCASIONS = [

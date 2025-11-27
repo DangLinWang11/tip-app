@@ -57,13 +57,12 @@ const Step3Caption: React.FC = () => {
     <div className="space-y-8">
       <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-md shadow-slate-200/60 space-y-4">
         <div>
-          <h2 className="text-lg font-semibold text-slate-900">{t('review.addCaption')}</h2>
-          <p className="text-sm text-slate-500">{t('review.addDetails')}</p>
+          <h2 className="text-lg font-semibold text-slate-900">Something specific you want to mention?</h2>
         </div>
         <textarea
           value={caption}
           onChange={(event) => setCaption(event.target.value)}
-          placeholder={t('review.addCaption')}
+          placeholder="Tap to start typing..."
           rows={4}
           className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-base focus:border-red-400 focus:outline-none focus:ring-2 focus:ring-red-100"
         />
