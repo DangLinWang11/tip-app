@@ -45,6 +45,19 @@ const sanitizeCuisinesInput = (value?: unknown): string[] | undefined => {
   return Array.from(new Set(cleaned));
 };
 
+const sanitizePriceInput = (value?: unknown): string | undefined => {
+  if (value === null || value === undefined) return undefined;
+  if (typeof value === 'number') {
+    if (Number.isNaN(value)) return undefined;
+    return String(value);
+  }
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    return trimmed.length ? trimmed : undefined;
+  }
+  return undefined;
+};
+
 const extractRestaurantCuisines = (restaurant?: Partial<RestaurantOption> | null): string[] | undefined => {
   if (!restaurant) return undefined;
   return sanitizeCuisinesInput((restaurant as any).cuisines ?? (restaurant as any).cuisine);
@@ -97,6 +110,7 @@ const ensureDraftShape = (draft: ReviewDraft): ReviewDraft => {
   const dishCuisine = typeof draft.dishCuisine === 'string' ? draft.dishCuisine : '';
   const explicit = normalizeExplicitSelections(draft.explicit);
   const sentiment = normalizeSentimentSelection(draft.sentiment);
+  const price = sanitizePriceInput(draft.price);
 
   const normalized: ReviewDraft = {
     userId: draft.userId,
@@ -109,6 +123,7 @@ const ensureDraftShape = (draft: ReviewDraft): ReviewDraft => {
     dishCategory: draft.dishCategory,
     rating: draft.rating || 7.5,
     dishTag: draft.dishTag,
+    price,
     caption: typeof draft.caption === 'string' ? draft.caption : undefined,
     media: {
       photos: draft.media?.photos || [],
@@ -602,7 +617,6 @@ const Wizard: React.FC = () => {
 };
 
 export default Wizard;
-
 
 
 

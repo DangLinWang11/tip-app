@@ -1,6 +1,6 @@
 import React from 'react';
 import { useReviewWizard } from './WizardContext';
-import { DISH_TYPES, DISH_STYLES, ATTRIBUTES, OCCASIONS, DIETARY } from '../../data/tagDefinitions';
+import { ATTRIBUTES, OCCASIONS, DIETARY } from '../../data/tagDefinitions';
 import type { ReviewDraft } from '../../dev/types/review';
 
 type ExplicitState = NonNullable<ReviewDraft['explicit']>;
@@ -24,19 +24,12 @@ const Step2DishTagging: React.FC = () => {
 
   const explicit = createExplicitState(draft.explicit);
   const sentiment = createSentimentState(draft.sentiment);
-
-  const updateExplicit = <K extends keyof ExplicitState>(field: K, value: ExplicitState[K]) => {
-    updateDraft((prev) => {
-      const next = createExplicitState(prev.explicit);
-      return {
-        ...prev,
-        explicit: {
-          ...next,
-          [field]: value
-        }
-      };
-    });
-  };
+  const priceValue =
+    typeof draft.price === 'string'
+      ? draft.price
+      : typeof draft.price === 'number'
+      ? String(draft.price)
+      : '';
 
   const updateSentiment = <K extends keyof SentimentState>(field: K, value: SentimentState[K]) => {
     updateDraft((prev) => ({
@@ -92,35 +85,21 @@ const Step2DishTagging: React.FC = () => {
       </div>
 
       <div>
-        <label className="block text-sm font-medium mb-2">Dish Type</label>
-        <select
-          value={explicit.dishType || ''}
-          onChange={(event) => updateExplicit('dishType', event.target.value ? event.target.value : null)}
+        <label className="block text-sm font-medium mb-2">Actual price (optional)</label>
+        <input
+          type="text"
+          inputMode="decimal"
+          value={priceValue}
+          onChange={(event) => {
+            const value = event.target.value;
+            updateDraft((prev) => ({
+              ...prev,
+              price: value
+            }));
+          }}
+          placeholder="12.00"
           className="w-full p-2 border rounded-lg"
-        >
-          <option value="">Select type...</option>
-          {DISH_TYPES.map((type) => (
-            <option key={type.value} value={type.value}>
-              {type.label}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium mb-2">Dish Style (optional)</label>
-        <select
-          value={explicit.dishStyle || ''}
-          onChange={(event) => updateExplicit('dishStyle', event.target.value ? event.target.value : null)}
-          className="w-full p-2 border rounded-lg"
-        >
-          <option value="">None</option>
-          {DISH_STYLES.map((style) => (
-            <option key={style.value} value={style.value}>
-              {style.label}
-            </option>
-          ))}
-        </select>
+        />
       </div>
 
       <div>
