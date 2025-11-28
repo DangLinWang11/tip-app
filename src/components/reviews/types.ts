@@ -2,7 +2,7 @@
 import { DishRecord } from './AddDishInline';
 import { ReviewDraft } from '../../dev/types/review';
 
-export type WizardStepKey = 'basic' | 'taste' | 'compare' | 'caption' | 'outcome';
+export type WizardStepKey = 'basic' | 'taste' | 'outcome';
 
 export interface RestaurantOption extends RestaurantRecord {
   distance?: number;

@@ -124,27 +124,6 @@ const Step2DishTagging: React.FC = () => {
       </div>
 
       <div>
-        <label className="block text-sm font-medium mb-2">Best for</label>
-        <div className="flex flex-wrap gap-2">
-          {OCCASIONS.map((occasion) => {
-            const active = explicit.occasions.includes(occasion.value);
-            return (
-              <button
-                key={occasion.value}
-                type="button"
-                onClick={() => toggleExplicitArray('occasions', occasion.value)}
-                className={`px-3 py-1.5 rounded-full text-sm ${
-                  active ? 'bg-emerald-500 text-white' : 'bg-gray-100 text-gray-700'
-                }`}
-              >
-                {occasion.emoji} {occasion.label}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      <div>
         <label className="block text-sm font-medium mb-2">Dietary</label>
         <div className="flex flex-wrap gap-2">
           {DIETARY.map((diet) => {

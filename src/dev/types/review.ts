@@ -1,5 +1,9 @@
 export type DishCategory = 'appetizer' | 'entree' | 'handheld' | 'side' | 'dessert' | 'drink';
 
+export type MealTimeTag = 'breakfast' | 'brunch' | 'lunch' | 'dinner' | 'late_night' | 'dessert' | 'snack';
+
+export type ServiceSpeed = 'fast' | 'normal' | 'slow';
+
 export interface MediaBundle {
   photos: string[];
   videos: string[];
@@ -59,6 +63,8 @@ export interface ReviewDraft {
   sentiment?: SentimentSelection;
   comparison?: ComparisonSelection;
   outcome: OutcomeSelection;
+  mealTimes?: MealTimeTag[]; // When this dish is best eaten
+  serviceSpeed?: ServiceSpeed | null; // Perceived service speed
   createdAt?: unknown;
   updatedAt?: unknown;
   isDeleted?: boolean;

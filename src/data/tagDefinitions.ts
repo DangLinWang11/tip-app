@@ -96,3 +96,25 @@ export function buildDerivedTags(sentiment: ReviewDraft['sentiment']): string[] 
 
   return tags;
 }
+
+export function buildMealTimeTags(mealTimes?: ReviewDraft['mealTimes']): string[] {
+  if (!Array.isArray(mealTimes) || mealTimes.length === 0) return [];
+
+  const tags: string[] = [];
+  for (const mealTime of mealTimes) {
+    tags.push(`meal_${mealTime}`);
+  }
+
+  return tags;
+}
+
+export function buildServiceSpeedTags(serviceSpeed?: ReviewDraft['serviceSpeed']): string[] {
+  if (!serviceSpeed) return [];
+
+  const tags: string[] = [];
+  if (serviceSpeed === 'fast') tags.push('service_fast');
+  if (serviceSpeed === 'normal') tags.push('service_normal');
+  if (serviceSpeed === 'slow') tags.push('service_slow');
+
+  return tags;
+}

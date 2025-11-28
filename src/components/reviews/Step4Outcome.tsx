@@ -4,6 +4,24 @@ import { useNavigate } from 'react-router-dom';
 import { useI18n } from '../../lib/i18n/useI18n';
 import { useReviewWizard } from './WizardContext';
 import { uploadReviewProofs, markReviewPendingProof } from '../../services/reviewVerificationService';
+import { BAD_WORDS } from './profanity';
+import type { MealTimeTag, ServiceSpeed } from '../../dev/types/review';
+
+const MEAL_TIME_OPTIONS: Array<{ value: MealTimeTag; labelKey: string; emoji: string }> = [
+  { value: 'breakfast', labelKey: 'mealTime.breakfast', emoji: '🌅' },
+  { value: 'brunch', labelKey: 'mealTime.brunch', emoji: '🥂' },
+  { value: 'lunch', labelKey: 'mealTime.lunch', emoji: '🌤️' },
+  { value: 'dinner', labelKey: 'mealTime.dinner', emoji: '🌙' },
+  { value: 'late_night', labelKey: 'mealTime.lateNight', emoji: '🌃' },
+  { value: 'dessert', labelKey: 'mealTime.dessert', emoji: '🍰' },
+  { value: 'snack', labelKey: 'mealTime.snack', emoji: '🍿' }
+];
+
+const SERVICE_SPEED_OPTIONS: Array<{ value: ServiceSpeed; labelKey: string }> = [
+  { value: 'fast', labelKey: 'service.fast' },
+  { value: 'normal', labelKey: 'service.normal' },
+  { value: 'slow', labelKey: 'service.slow' }
+];
 
 const AUDIENCE_OPTIONS = [
   { value: 'spicy_lovers', labelKey: 'audience.spicy' },
@@ -22,7 +40,7 @@ const RETURN_OPTIONS = [
 
 type AudienceOption = typeof AUDIENCE_OPTIONS[number]['value'];
 
-const Step4Outcome: React.FC = () => {
+const Step3Outcome: React.FC = () => {
   const { t } = useI18n();
   const navigate = useNavigate();
   const {
@@ -35,11 +53,24 @@ const Step4Outcome: React.FC = () => {
     resetDraft,
     selectedRestaurant
   } = useReviewWizard();
+  const [caption, setCaption] = useState(() => draft.caption || '');
+  const [captionError, setCaptionError] = useState<string | null>(null);
   const [successId, setSuccessId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [proofMessage, setProofMessage] = useState<string | null>(null);
+
+  const toggleMealTime = (mealTime: MealTimeTag) => {
+    updateDraft((prev) => {
+      const mealTimes = prev.mealTimes || [];
+      const exists = mealTimes.includes(mealTime);
+      return {
+        ...prev,
+        mealTimes: exists ? mealTimes.filter((item) => item !== mealTime) : [...mealTimes, mealTime]
+      };
+    });
+  };
 
   const toggleAudience = (option: AudienceOption) => {
     updateDraft((prev) => {
@@ -56,6 +87,20 @@ const Step4Outcome: React.FC = () => {
   };
 
   const handleSubmit = async () => {
+    // Validate caption for profanity if non-empty
+    const trimmedCaption = caption.trim();
+    if (trimmedCaption && BAD_WORDS.some((word) => trimmedCaption.toLowerCase().includes(word))) {
+      setCaptionError(t('validation.profanity'));
+      return;
+    }
+    setCaptionError(null);
+
+    // Update draft with caption before submitting
+    updateDraft((prev) => ({
+      ...prev,
+      caption: trimmedCaption || undefined
+    }));
+
     try {
       setIsSubmitting(true);
       setError(null);
@@ -83,9 +128,64 @@ const Step4Outcome: React.FC = () => {
           <p className="text-sm text-slate-500">{t('outcome.subtitle')}</p>
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-6">
+          {/* Meal Time Section */}
           <div>
-            <p className="text-sm font-semibold text-slate-800">{t('review.orderAgain')}</p>
+            <p className="text-sm font-semibold text-slate-800 mb-3">When is this dish best?</p>
+            <div className="flex flex-wrap gap-2">
+              {MEAL_TIME_OPTIONS.map((option) => {
+                const active = (draft.mealTimes || []).includes(option.value);
+                return (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => toggleMealTime(option.value)}
+                    className={`flex items-center gap-1 rounded-2xl px-3 py-2 text-xs font-semibold transition ${
+                      active
+                        ? 'bg-emerald-500 text-white shadow-md shadow-emerald-200/60'
+                        : 'bg-slate-100 text-slate-600 hover:bg-emerald-50 hover:text-emerald-600'
+                    }`}
+                  >
+                    <span>{option.emoji}</span>
+                    {t(option.labelKey)}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Service Speed Section */}
+          <div>
+            <p className="text-sm font-semibold text-slate-800 mb-3">How was the service?</p>
+            <div className="flex gap-2">
+              {SERVICE_SPEED_OPTIONS.map((option) => {
+                const active = draft.serviceSpeed === option.value;
+                return (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() =>
+                      updateDraft((prev) => ({
+                        ...prev,
+                        serviceSpeed: active ? null : option.value
+                      }))
+                    }
+                    className={`flex-1 rounded-2xl px-4 py-3 text-sm font-semibold transition ${
+                      active
+                        ? 'bg-blue-500 text-white shadow-md shadow-blue-200/60'
+                        : 'bg-slate-100 text-slate-600 hover:bg-blue-50 hover:text-blue-600'
+                    }`}
+                  >
+                    {t(option.labelKey)}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Order Again Section */}
+          <div>
+            <p className="text-sm font-semibold text-slate-800 mb-2">{t('review.orderAgain')}</p>
             <div className="mt-2 flex gap-2">
               {[true, false].map((value) => {
                 const active = draft.outcome.orderAgain === value;
@@ -176,6 +276,19 @@ const Step4Outcome: React.FC = () => {
                 );
               })}
             </div>
+          </div>
+
+          {/* Caption / Notes Section */}
+          <div className="pt-2">
+            <label className="block text-sm font-semibold text-slate-800 mb-3">Add any notes? (optional)</label>
+            <textarea
+              value={caption}
+              onChange={(event) => setCaption(event.target.value)}
+              placeholder="Share thoughts about the dish, presentation, flavor, etc..."
+              rows={3}
+              className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-base focus:border-red-400 focus:outline-none focus:ring-2 focus:ring-red-100"
+            />
+            {captionError ? <p className="text-sm text-red-500 mt-2">{captionError}</p> : null}
           </div>
         </div>
       </section>
@@ -269,4 +382,4 @@ const Step4Outcome: React.FC = () => {
   );
 };
 
-export default Step4Outcome;
+export default Step3Outcome;

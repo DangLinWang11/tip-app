@@ -7,16 +7,14 @@ import { useI18n } from '../../lib/i18n/useI18n';
 import ProgressBar from './ProgressBar';
 import Step1Basic from './Step1Basic';
 import Step2DishTagging from './Step2DishTagging';
-import Step3Compare from './Step3Compare';
-import Step3Caption from './Step3Caption';
-import Step4Outcome from './Step4Outcome';
+import Step3Outcome from './Step4Outcome';
 import RewardToast from './RewardToast';
 import { fileToPreview, processAndUploadImage, processAndUploadVideo, revokePreview } from '../../lib/media';
 import { ReviewDraft } from '../../dev/types/review';
 import { DishOption, LocalMediaItem, RestaurantOption, WizardContextValue, WizardStepKey } from './types';
 import { WizardContext } from './WizardContext';
 import { useFeature } from '../../utils/features';
-import { buildExplicitTags, buildDerivedTags } from '../../data/tagDefinitions';
+import { buildExplicitTags, buildDerivedTags, buildMealTimeTags, buildServiceSpeedTags } from '../../data/tagDefinitions';
 
 const buildStorageKey = (uid: string, restaurantId?: string | null) => `review-draft:${uid}:${restaurantId || 'new'}`;
 
@@ -96,6 +94,20 @@ const normalizeExplicitSelections = (input?: ReviewDraft['explicit']): ReviewDra
   return hasData ? normalized : undefined;
 };
 
+const normalizeMealTimes = (input?: ReviewDraft['mealTimes']): ReviewDraft['mealTimes'] | undefined => {
+  if (!Array.isArray(input) || input.length === 0) return undefined;
+  const valid = input.filter(v => typeof v === 'string' && v.length > 0);
+  return valid.length > 0 ? valid : undefined;
+};
+
+const normalizeServiceSpeed = (input?: ReviewDraft['serviceSpeed']): ReviewDraft['serviceSpeed'] | undefined => {
+  if (!input) return undefined;
+  if (typeof input === 'string' && ['fast', 'normal', 'slow'].includes(input)) {
+    return input as any;
+  }
+  return undefined;
+};
+
 const normalizeSentimentSelection = (input?: ReviewDraft['sentiment']): ReviewDraft['sentiment'] | undefined => {
   if (!input) return undefined;
   const value = typeof input.pricePerception === 'string' ? input.pricePerception.trim().toLowerCase() : null;
@@ -111,6 +123,8 @@ const ensureDraftShape = (draft: ReviewDraft): ReviewDraft => {
   const explicit = normalizeExplicitSelections(draft.explicit);
   const sentiment = normalizeSentimentSelection(draft.sentiment);
   const price = sanitizePriceInput(draft.price);
+  const mealTimes = normalizeMealTimes(draft.mealTimes);
+  const serviceSpeed = normalizeServiceSpeed(draft.serviceSpeed);
 
   const normalized: ReviewDraft = {
     userId: draft.userId,
@@ -150,6 +164,14 @@ const ensureDraftShape = (draft: ReviewDraft): ReviewDraft => {
     normalized.sentiment = sentiment;
   }
 
+  if (mealTimes) {
+    normalized.mealTimes = mealTimes;
+  }
+
+  if (serviceSpeed) {
+    normalized.serviceSpeed = serviceSpeed;
+  }
+
   return normalized;
 };
 
@@ -164,22 +186,19 @@ const buildInitialDraft = (userId: string): ReviewDraft => ensureDraftShape({
     recommend: true,
     audience: [],
     returnIntent: 'for_this'
-  }
+  },
+  mealTimes: [],
+  serviceSpeed: null
 } as ReviewDraft);
 
 const STEP_COMPONENTS: Record<WizardStepKey, React.ComponentType> = {
   basic: Step1Basic,
   taste: Step2DishTagging,
-  compare: Step3Compare,
-  caption: Step3Caption,
-  outcome: Step4Outcome
+  outcome: Step3Outcome
 };
 
 const Wizard: React.FC = () => {
   const { t, language } = useI18n();
-  const newCreateFlowEnabled = useFeature('NEW_CREATE_FLOW');
-  const newCreateV2Enabled = useFeature('NEW_CREATE_V2');
-  const useCaptionStep = newCreateFlowEnabled && newCreateV2Enabled;
 
   const [userId, setUserId] = useState<string>('');
   const [authChecked, setAuthChecked] = useState(false);
@@ -432,7 +451,7 @@ const Wizard: React.FC = () => {
   }, [showReward, updateDraft, userId]);
 
   const goNext = useCallback(() => {
-    setCurrentStep((step) => Math.min(step + 1, 3));
+    setCurrentStep((step) => Math.min(step + 1, 2));
   }, []);
 
   const goBack = useCallback(() => {
@@ -468,13 +487,15 @@ const Wizard: React.FC = () => {
       throw new Error('Dish category is required');
     }
 
-    const { caption, restaurantCuisines, cuisines: draftCuisines, ...restDraft } = normalizedDraft;
+    const { caption, restaurantCuisines, cuisines: draftCuisines, mealTimes, serviceSpeed, ...restDraft } = normalizedDraft;
     const sanitizedCaption = typeof caption === 'string' ? caption.trim() : undefined;
     const cuisines = sanitizeCuisinesInput(draftCuisines) ?? sanitizeCuisinesInput(restaurantCuisines);
     const explicitTags = buildExplicitTags(restDraft.explicit);
     const derivedTags = buildDerivedTags(restDraft.sentiment);
+    const mealTimeTags = buildMealTimeTags(mealTimes);
+    const serviceSpeedTags = buildServiceSpeedTags(serviceSpeed);
     const legacyTags = Array.isArray(restDraft.tags) ? restDraft.tags : [];
-    const mergedTags = Array.from(new Set([...legacyTags, ...explicitTags, ...derivedTags]));
+    const mergedTags = Array.from(new Set([...legacyTags, ...explicitTags, ...derivedTags, ...mealTimeTags, ...serviceSpeedTags]));
 
     // Build ReviewData payload for saveReview so we get proper menuItemId linkage
     // Build base payload, omitting undefined fields
@@ -507,8 +528,12 @@ const Wizard: React.FC = () => {
     try {
       console.log('[Wizard.submit] explicit selections:', restDraft.explicit);
       console.log('[Wizard.submit] sentiment selections:', restDraft.sentiment);
+      console.log('[Wizard.submit] meal times:', mealTimes);
+      console.log('[Wizard.submit] service speed:', serviceSpeed);
       console.log('[Wizard.submit] explicit tags:', explicitTags);
       console.log('[Wizard.submit] derived tags:', derivedTags);
+      console.log('[Wizard.submit] meal time tags:', mealTimeTags);
+      console.log('[Wizard.submit] service speed tags:', serviceSpeedTags);
       console.log('[Wizard.submit] review payload (pre-build, no undefined):', base);
     } catch {}
 
@@ -552,8 +577,8 @@ const Wizard: React.FC = () => {
   }), [draft, mediaItems, uploadMedia, removeMedia, pendingUploads, selectedRestaurant, selectRestaurant, selectedDish, selectDish, userId, currentStep, goNext, goBack, showReward, isSubmitting, resetDraft, submitReview, autosaveState]);
 
   const stepOrder = useMemo<WizardStepKey[]>(() => (
-    useCaptionStep ? ['basic', 'taste', 'caption', 'outcome'] : ['basic', 'taste', 'compare', 'outcome']
-  ), [useCaptionStep]);
+    ['basic', 'taste', 'outcome']
+  ), []);
 
   const steps = useMemo(() => stepOrder.map((key) => ({
     key,
