@@ -5,6 +5,18 @@
     "draftSaved": "Draft saved",
     "draftRestored": "Draft restored",
     "steps": {
+      "visit": {
+        "title": "Visit Details",
+        "description": "Share the essentials from this visit."
+      },
+      "dishes": {
+        "title": "Rate Your Dishes",
+        "description": "Add each dish and tell us how it tasted."
+      },
+      "wrapup": {
+        "title": "Final Review",
+        "description": "Wrap everything up before submitting."
+      },
       "basic": {
         "title": "Basics",
         "description": "Add the essentials: photos, place, dish, rating."

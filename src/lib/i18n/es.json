@@ -5,6 +5,18 @@
     "draftSaved": "Borrador guardado",
     "draftRestored": "Borrador recuperado",
     "steps": {
+      "visit": {
+        "title": "Detalles de la visita",
+        "description": "Comparte lo esencial de tu visita."
+      },
+      "dishes": {
+        "title": "Califica tus platos",
+        "description": "Agrega cada plato y describe su sabor."
+      },
+      "wrapup": {
+        "title": "Revision final",
+        "description": "Cierra todo antes de enviar."
+      },
       "basic": {
         "title": "BÃ¡sicos",
         "description": "Agrega lo esencial: fotos, lugar, plato, calificaciÃ³n."

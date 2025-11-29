@@ -1,28 +1,32 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { collection, doc, writeBatch, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { saveReview, type ReviewData, buildReviewCreatePayload } from '../../services/reviewService';
 import { db, getCurrentUser } from '../../lib/firebase';
 import { useI18n } from '../../lib/i18n/useI18n';
 import ProgressBar from './ProgressBar';
-import Step1Basic from './Step1Basic';
-import Step2DishTagging from './Step2DishTagging';
-import Step3Outcome from './Step4Outcome';
+import StepVisit from './StepVisit';
+import StepDishes from './StepDishes';
+import StepWrapUp from './StepWrapUp';
 import RewardToast from './RewardToast';
 import { fileToPreview, processAndUploadImage, processAndUploadVideo, revokePreview } from '../../lib/media';
-import { ReviewDraft } from '../../dev/types/review';
-import { DishOption, LocalMediaItem, RestaurantOption, WizardContextValue, WizardStepKey } from './types';
+import { ReviewDraft, VisitDraft, DishDraft, DishCategory, MealTimeTag } from '../../dev/types/review';
+import { LocalMediaItem, RestaurantOption, WizardContextValue, WizardStepKey, MultiDishCreateState } from './types';
 import { WizardContext } from './WizardContext';
 import { useFeature } from '../../utils/features';
 import { buildExplicitTags, buildDerivedTags, buildMealTimeTags, buildServiceSpeedTags } from '../../data/tagDefinitions';
 
-const buildStorageKey = (uid: string, restaurantId?: string | null) => `review-draft:${uid}:${restaurantId || 'new'}`;
+const buildStorageKey = (uid: string, restaurantId?: string | null) => `review-visit-draft:${uid}:${restaurantId || 'new'}`;
 
 const safeId = () => {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
     return crypto.randomUUID();
   }
   return Math.random().toString(36).slice(2);
+};
+
+const generateVisitId = (): string => {
+  return `visit_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
 };
 
 const sanitizeCuisinesInput = (value?: unknown): string[] | undefined => {
@@ -41,19 +45,6 @@ const sanitizeCuisinesInput = (value?: unknown): string[] | undefined => {
 
   if (!cleaned.length) return undefined;
   return Array.from(new Set(cleaned));
-};
-
-const sanitizePriceInput = (value?: unknown): string | undefined => {
-  if (value === null || value === undefined) return undefined;
-  if (typeof value === 'number') {
-    if (Number.isNaN(value)) return undefined;
-    return String(value);
-  }
-  if (typeof value === 'string') {
-    const trimmed = value.trim();
-    return trimmed.length ? trimmed : undefined;
-  }
-  return undefined;
 };
 
 const extractRestaurantCuisines = (restaurant?: Partial<RestaurantOption> | null): string[] | undefined => {
@@ -94,107 +85,75 @@ const normalizeExplicitSelections = (input?: ReviewDraft['explicit']): ReviewDra
   return hasData ? normalized : undefined;
 };
 
-const normalizeMealTimes = (input?: ReviewDraft['mealTimes']): ReviewDraft['mealTimes'] | undefined => {
+const normalizeMealTimes = (input?: MealTimeTag[] | string): MealTimeTag[] | undefined => {
+  if (!input) return undefined;
+  if (typeof input === 'string') {
+    return input && input !== 'unspecified' ? [input as MealTimeTag] : undefined;
+  }
   if (!Array.isArray(input) || input.length === 0) return undefined;
   const valid = input.filter(v => typeof v === 'string' && v.length > 0);
-  return valid.length > 0 ? valid : undefined;
+  return valid.length > 0 ? (valid as MealTimeTag[]) : undefined;
 };
 
-const normalizeServiceSpeed = (input?: ReviewDraft['serviceSpeed']): ReviewDraft['serviceSpeed'] | undefined => {
+const normalizeServiceSpeed = (input?: any): any => {
   if (!input) return undefined;
   if (typeof input === 'string' && ['fast', 'normal', 'slow'].includes(input)) {
-    return input as any;
+    return input;
   }
   return undefined;
 };
 
-const normalizeSentimentSelection = (input?: ReviewDraft['sentiment']): ReviewDraft['sentiment'] | undefined => {
-  if (!input) return undefined;
-  const value = typeof input.pricePerception === 'string' ? input.pricePerception.trim().toLowerCase() : null;
-  if (value === 'bargain' || value === 'fair' || value === 'overpriced') {
-    return { pricePerception: value };
-  }
-  return undefined;
-};
+const buildInitialVisitDraft = (): VisitDraft => ({
+  mealTime: undefined,
+  overallText: undefined,
+  serviceSpeed: null,
+});
 
-const ensureDraftShape = (draft: ReviewDraft): ReviewDraft => {
-  const cuisines = sanitizeCuisinesInput(draft.cuisines) ?? sanitizeCuisinesInput(draft.restaurantCuisines);
-  const dishCuisine = typeof draft.dishCuisine === 'string' ? draft.dishCuisine : '';
-  const explicit = normalizeExplicitSelections(draft.explicit);
-  const sentiment = normalizeSentimentSelection(draft.sentiment);
-  const price = sanitizePriceInput(draft.price);
-  const mealTimes = normalizeMealTimes(draft.mealTimes);
-  const serviceSpeed = normalizeServiceSpeed(draft.serviceSpeed);
-
-  const normalized: ReviewDraft = {
-    userId: draft.userId,
-    restaurantId: draft.restaurantId,
-    restaurantCuisines: cuisines,
-    cuisines,
-    dishCuisine,
-    dishId: draft.dishId,
-    dishName: draft.dishName || '',
-    dishCategory: draft.dishCategory,
-    rating: draft.rating || 7.5,
-    dishTag: draft.dishTag,
-    price,
-    caption: typeof draft.caption === 'string' ? draft.caption : undefined,
-    media: {
-      photos: draft.media?.photos || [],
-      videos: draft.media?.videos || [],
-      thumbnails: draft.media?.thumbnails || []
-    },
-    comparison: draft.comparison,
-    outcome: {
-      orderAgain: draft.outcome?.orderAgain ?? true,
-      recommend: draft.outcome?.recommend ?? true,
-      audience: draft.outcome?.audience || [],
-      returnIntent: draft.outcome?.returnIntent || 'for_this'
-    },
-    createdAt: draft.createdAt,
-    updatedAt: draft.updatedAt,
-    isDeleted: draft.isDeleted
-  };
-
-  if (explicit) {
-    normalized.explicit = explicit;
-  }
-
-  if (sentiment) {
-    normalized.sentiment = sentiment;
-  }
-
-  if (mealTimes) {
-    normalized.mealTimes = mealTimes;
-  }
-
-  if (serviceSpeed) {
-    normalized.serviceSpeed = serviceSpeed;
-  }
-
-  return normalized;
-};
-
-const buildInitialDraft = (userId: string): ReviewDraft => ensureDraftShape({
-  userId,
+const buildInitialDishDraft = (dishCuisine?: string): DishDraft => ({
+  id: safeId(),
+  mediaIds: [],
   dishName: '',
-  dishCuisine: '',
+  dishCategory: undefined,
+  dishCuisine: dishCuisine || undefined,
   rating: 7.5,
-  media: { photos: [], videos: [], thumbnails: [] },
+  explicit: undefined,
+  sentiment: undefined,
   outcome: {
     orderAgain: true,
     recommend: true,
     audience: [],
     returnIntent: 'for_this'
   },
-  mealTimes: [],
-  serviceSpeed: null
-} as ReviewDraft);
+  caption: undefined,
+});
+
+// Helper to build MediaBundle for a dish based on attached media
+const buildMediaBundleForDish = (dish: DishDraft, mediaItems: LocalMediaItem[]): ReviewDraft['media'] => {
+  const photos: string[] = [];
+  const videos: string[] = [];
+  const thumbnails: string[] = [];
+
+  dish.mediaIds.forEach(mediaId => {
+    const media = mediaItems.find(m => m.id === mediaId);
+    if (media && media.downloadURL) {
+      if (media.kind === 'photo') {
+        photos.push(media.downloadURL);
+      } else if (media.kind === 'video') {
+        videos.push(media.downloadURL);
+        if (media.thumbnailURL) {
+          thumbnails.push(media.thumbnailURL);
+        }
+      }
+    }
+  });
+
+  return { photos, videos, thumbnails };
+};
 
 const STEP_COMPONENTS: Record<WizardStepKey, React.ComponentType> = {
-  basic: Step1Basic,
-  taste: Step2DishTagging,
-  outcome: Step3Outcome
+  visit: StepVisit,
+  dishes: StepDishes,
+  wrapup: StepWrapUp,
 };
 
 const Wizard: React.FC = () => {
@@ -202,24 +161,30 @@ const Wizard: React.FC = () => {
 
   const [userId, setUserId] = useState<string>('');
   const [authChecked, setAuthChecked] = useState(false);
-  const [draft, setDraft] = useState<ReviewDraft>(() => buildInitialDraft(''));
+  const [visitDraft, setVisitDraft] = useState<VisitDraft>(buildInitialVisitDraft());
+  const [dishDrafts, setDishDrafts] = useState<DishDraft[]>([buildInitialDishDraft()]);
+  const [activeDishIndex, setActiveDishIndex] = useState(0);
   const [mediaItems, setMediaItems] = useState<LocalMediaItem[]>([]);
   const mediaItemsRef = useRef<LocalMediaItem[]>([]);
   const [selectedRestaurant, setSelectedRestaurant] = useState<RestaurantOption | null>(null);
-  const [selectedDish, setSelectedDish] = useState<DishOption | null>(null);
   const [currentStep, setCurrentStep] = useState<number>(0);
-  const [rewardToast, setRewardToast] = useState<{ key: 'taste' | 'compare' | 'submit' | 'media'; message: string } | null>(null);
+  const [rewardToast, setRewardToast] = useState<{ key: 'taste' | 'compare' | 'submit' | 'media' | 'dishes'; message: string } | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [autosaveState, setAutosaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const autosaveTimeout = useRef<number>();
   const lastStorageKeyRef = useRef<string | null>(null);
-  const rewardHistoryRef = useRef<Record<'taste' | 'compare' | 'submit' | 'media', boolean>>({ media: false, taste: false, compare: false, submit: false });
+  const rewardHistoryRef = useRef<Record<'taste' | 'compare' | 'submit' | 'media' | 'dishes', boolean>>({
+    media: false,
+    taste: false,
+    compare: false,
+    submit: false,
+    dishes: false,
+  });
 
   useEffect(() => {
     const user = getCurrentUser();
     if (user) {
       setUserId(user.uid);
-      setDraft((prev) => ensureDraftShape({ ...prev, userId: user.uid }));
     }
     setAuthChecked(true);
   }, []);
@@ -228,7 +193,8 @@ const Wizard: React.FC = () => {
     taste: t('reward.tasteBonus'),
     compare: t('reward.compareBonus'),
     submit: t('reward.submitBonus'),
-    media: t('reward.mediaBonus')
+    media: t('reward.mediaBonus'),
+    dishes: t('reward.dishBonus') || 'Great! Now describe what you ordered.',
   }), [t, language]);
 
   const pendingUploads = useMemo(() => mediaItems.some((item) => item.status === 'uploading'), [mediaItems]);
@@ -237,11 +203,7 @@ const Wizard: React.FC = () => {
     mediaItemsRef.current = mediaItems;
   }, [mediaItems]);
 
-  const updateDraft = useCallback((updater: (draftState: ReviewDraft) => ReviewDraft) => {
-    setDraft((prev) => ensureDraftShape(updater(ensureDraftShape(prev))));
-  }, []);
-
-  const showReward = useCallback((key: 'taste' | 'compare' | 'submit' | 'media') => {
+  const showReward = useCallback((key: 'taste' | 'compare' | 'submit' | 'media' | 'dishes') => {
     if (rewardHistoryRef.current[key]) return;
     rewardHistoryRef.current[key] = true;
     const message = rewardMessages[key];
@@ -250,20 +212,20 @@ const Wizard: React.FC = () => {
     }
   }, [rewardMessages]);
 
+  const updateDishDraft = useCallback((id: string, updater: (draft: DishDraft) => DishDraft) => {
+    setDishDrafts(prev =>
+      prev.map(dish => dish.id === id ? updater(dish) : dish)
+    );
+  }, []);
+
   const selectRestaurant = useCallback(
     (restaurant: RestaurantOption | null, options?: { restoreDraft?: boolean }) => {
       setSelectedRestaurant(restaurant);
-      setSelectedDish(null);
 
       if (!restaurant) {
-        updateDraft((prev) => ({
-          ...prev,
-          restaurantId: undefined,
-          restaurantCuisines: undefined,
-          cuisines: undefined,
-          dishId: undefined,
-          dishName: ''
-        }));
+        setVisitDraft(buildInitialVisitDraft());
+        setDishDrafts([buildInitialDishDraft()]);
+        setActiveDishIndex(0);
         return;
       }
 
@@ -273,12 +235,10 @@ const Wizard: React.FC = () => {
         try {
           const stored = localStorage.getItem(buildStorageKey(userId, restaurant.id));
           if (stored) {
-            const parsed = ensureDraftShape(JSON.parse(stored));
-            parsed.userId = userId;
-            parsed.restaurantId = restaurant.id;
-            parsed.restaurantCuisines = cuisines ?? parsed.restaurantCuisines;
-            parsed.cuisines = cuisines ?? parsed.cuisines;
-            setDraft(parsed);
+            const parsed = JSON.parse(stored) as MultiDishCreateState;
+            setVisitDraft({ ...parsed.visit, restaurantId: restaurant.id });
+            setDishDrafts(parsed.dishes);
+            setActiveDishIndex(0);
             return;
           }
         } catch (error) {
@@ -286,35 +246,29 @@ const Wizard: React.FC = () => {
         }
       }
 
-      updateDraft((prev) => ({
-        ...prev,
+      // Fresh state for new restaurant
+      setVisitDraft({
         restaurantId: restaurant.id,
-        restaurantCuisines: cuisines,
-        cuisines: cuisines,
-        dishId: undefined,
-        dishName: ''
-      }));
+        restaurantName: restaurant.name,
+        restaurantAddress: (restaurant as any).address,
+        mealTime: undefined,
+        overallText: undefined,
+        serviceSpeed: null,
+      });
+      setDishDrafts([buildInitialDishDraft(cuisines?.[0])]);
+      setActiveDishIndex(0);
     },
-    [updateDraft, userId]
+    [userId]
   );
-
-  const selectDish = useCallback((dish: DishOption | null) => {
-    setSelectedDish(dish);
-    updateDraft((prev) => ({
-      ...prev,
-      dishId: dish?.id,
-      dishName: dish?.name || prev.dishName
-    }));
-  }, [updateDraft]);
 
   useEffect(() => {
     if (!userId) return;
     try {
       const stored = localStorage.getItem(buildStorageKey(userId, null));
       if (stored) {
-        const parsed = ensureDraftShape(JSON.parse(stored));
-        parsed.userId = userId;
-        setDraft(parsed);
+        const parsed = JSON.parse(stored) as MultiDishCreateState;
+        setVisitDraft(parsed.visit);
+        setDishDrafts(parsed.dishes);
         setAutosaveState('saved');
       }
     } catch (error) {
@@ -324,7 +278,7 @@ const Wizard: React.FC = () => {
 
   useEffect(() => {
     if (!userId) return;
-    const key = buildStorageKey(userId, draft.restaurantId);
+    const key = buildStorageKey(userId, visitDraft.restaurantId);
     if (lastStorageKeyRef.current && lastStorageKeyRef.current !== key) {
       try {
         localStorage.removeItem(lastStorageKeyRef.current);
@@ -338,7 +292,8 @@ const Wizard: React.FC = () => {
     setAutosaveState('saving');
     autosaveTimeout.current = window.setTimeout(() => {
       try {
-        localStorage.setItem(key, JSON.stringify(draft));
+        const state: MultiDishCreateState = { visit: visitDraft, dishes: dishDrafts };
+        localStorage.setItem(key, JSON.stringify(state));
         setAutosaveState('saved');
       } catch (error) {
         console.warn('Failed to save draft', error);
@@ -347,7 +302,7 @@ const Wizard: React.FC = () => {
     }, 400);
 
     return () => window.clearTimeout(autosaveTimeout.current);
-  }, [draft, userId]);
+  }, [visitDraft, dishDrafts, userId]);
 
   useEffect(() => () => {
     mediaItemsRef.current.forEach((item) => revokePreview(item.previewUrl));
@@ -362,22 +317,17 @@ const Wizard: React.FC = () => {
       }
       return prev.filter((item) => item.id !== id);
     });
-    if (!removed) return;
-    updateDraft((prev) => ({
-      ...prev,
-      media: {
-        photos: removed?.kind === 'photo' && removed.storagePath
-          ? prev.media.photos.filter((path) => path !== removed?.storagePath)
-          : prev.media.photos,
-        videos: removed?.kind === 'video' && removed.storagePath
-          ? prev.media.videos.filter((path) => path !== removed?.storagePath)
-          : prev.media.videos,
-        thumbnails: removed?.thumbnailPath
-          ? prev.media.thumbnails.filter((path) => path !== removed?.thumbnailPath)
-          : prev.media.thumbnails
-      }
-    }));
-  }, [updateDraft]);
+
+    // Also remove from all dishes
+    if (removed) {
+      setDishDrafts(prev =>
+        prev.map(dish => ({
+          ...dish,
+          mediaIds: dish.mediaIds.filter(mid => mid !== removed!.id)
+        }))
+      );
+    }
+  }, []);
 
   const uploadMedia = useCallback(async (files: File[]) => {
     if (!userId) {
@@ -411,13 +361,6 @@ const Wizard: React.FC = () => {
               storagePath: upload.storagePath,
               downloadURL: upload.downloadURL
             } : item));
-            updateDraft((prev) => ({
-              ...prev,
-              media: {
-                ...prev.media,
-                photos: [...prev.media.photos, upload.downloadURL]
-              }
-            }));
             showReward('media');
           } else {
             const uploads = await processAndUploadVideo(file, userId);
@@ -429,14 +372,6 @@ const Wizard: React.FC = () => {
               thumbnailPath: uploads.thumbnail.storagePath,
               thumbnailURL: uploads.thumbnail.downloadURL
             } : item));
-            updateDraft((prev) => ({
-              ...prev,
-              media: {
-                photos: prev.media.photos,
-                videos: [...prev.media.videos, uploads.video.downloadURL],
-                thumbnails: [...prev.media.thumbnails, uploads.thumbnail.downloadURL]
-              }
-            }));
           }
         } catch (error) {
           console.error('Media upload failed', error);
@@ -448,7 +383,7 @@ const Wizard: React.FC = () => {
         }
       })
     );
-  }, [showReward, updateDraft, userId]);
+  }, [showReward, userId]);
 
   const goNext = useCallback(() => {
     setCurrentStep((step) => Math.min(step + 1, 2));
@@ -460,100 +395,112 @@ const Wizard: React.FC = () => {
 
   const resetDraft = useCallback((keepRestaurant?: boolean) => {
     if (!userId) return;
-    const fresh = buildInitialDraft(userId);
-    if (keepRestaurant && selectedRestaurant) {
-      fresh.restaurantId = selectedRestaurant.id;
-      const cuisines = extractRestaurantCuisines(selectedRestaurant);
-      fresh.restaurantCuisines = cuisines;
-      fresh.cuisines = cuisines;
-    }
-    setDraft(fresh);
+    setVisitDraft(prev => keepRestaurant && selectedRestaurant ? {
+      restaurantId: selectedRestaurant.id,
+      restaurantName: selectedRestaurant.name,
+      restaurantAddress: (selectedRestaurant as any).address,
+      mealTime: undefined,
+      overallText: undefined,
+      serviceSpeed: null,
+    } : buildInitialVisitDraft());
+
+    const cuisines = keepRestaurant ? extractRestaurantCuisines(selectedRestaurant) : undefined;
+    setDishDrafts([buildInitialDishDraft(cuisines?.[0])]);
+    setActiveDishIndex(0);
     setMediaItems((prev) => {
       prev.forEach((item) => revokePreview(item.previewUrl));
       return [];
     });
-    setSelectedDish(null);
-    if (!keepRestaurant) {
-      setSelectedRestaurant(null);
-    }
     setCurrentStep(0);
-    rewardHistoryRef.current = { media: false, taste: false, compare: false, submit: false };
+    rewardHistoryRef.current = { media: false, taste: false, compare: false, submit: false, dishes: false };
   }, [selectedRestaurant, userId]);
 
-  const submitReview = useCallback(async () => {
+  const submitReview = useCallback(async (): Promise<string[]> => {
     if (!userId) throw new Error('User must be signed in');
-    const normalizedDraft = ensureDraftShape(draft);
-    if (!normalizedDraft.dishCategory) {
-      throw new Error('Dish category is required');
-    }
+    if (!selectedRestaurant) throw new Error('Restaurant required');
+    if (!dishDrafts.length) throw new Error('At least one dish required');
 
-    const { caption, restaurantCuisines, cuisines: draftCuisines, mealTimes, serviceSpeed, ...restDraft } = normalizedDraft;
-    const sanitizedCaption = typeof caption === 'string' ? caption.trim() : undefined;
-    const cuisines = sanitizeCuisinesInput(draftCuisines) ?? sanitizeCuisinesInput(restaurantCuisines);
-    const explicitTags = buildExplicitTags(restDraft.explicit);
-    const derivedTags = buildDerivedTags(restDraft.sentiment);
-    const mealTimeTags = buildMealTimeTags(mealTimes);
-    const serviceSpeedTags = buildServiceSpeedTags(serviceSpeed);
-    const legacyTags = Array.isArray(restDraft.tags) ? restDraft.tags : [];
-    const mergedTags = Array.from(new Set([...legacyTags, ...explicitTags, ...derivedTags, ...mealTimeTags, ...serviceSpeedTags]));
+    const sharedVisitId = visitDraft.visitId ?? generateVisitId();
+    const reviewIds: string[] = [];
 
-    // Build ReviewData payload for saveReview so we get proper menuItemId linkage
-    // Build base payload, omitting undefined fields
-    const base: any = {
-      restaurant: selectedRestaurant?.name || (restDraft as any).restaurant || 'Unknown Restaurant',
-      location: (selectedRestaurant as any)?.address || (restDraft as any).location || '',
-      dish: restDraft.dishName || (selectedDish as any)?.name || 'Unknown Dish',
-      rating: restDraft.rating,
-      personalNote: (restDraft as any).personalNote || '',
-      negativeNote: (restDraft as any).negativeNote || '',
-      serverRating: (restDraft as any).serverRating ?? null,
-      price: (restDraft as any).price ?? null,
-      images: Array.isArray(restDraft.media?.photos) ? restDraft.media!.photos : [],
-      isPublic: true,
-      explicit: restDraft.explicit || null,
-      sentiment: restDraft.sentiment || null,
-      explicitTags,
-      derivedTags,
-      tags: mergedTags,
-    };
-    if (Array.isArray(cuisines) && cuisines.length) {
-      base.restaurantCuisines = cuisines;
-      base.cuisines = cuisines;
-    }
-    if (typeof sanitizedCaption === 'string' && sanitizedCaption.length > 0) {
-      base.caption = sanitizedCaption;
-    }
-
-    // Log structured tagging output prior to build
     try {
-      console.log('[Wizard.submit] explicit selections:', restDraft.explicit);
-      console.log('[Wizard.submit] sentiment selections:', restDraft.sentiment);
-      console.log('[Wizard.submit] meal times:', mealTimes);
-      console.log('[Wizard.submit] service speed:', serviceSpeed);
-      console.log('[Wizard.submit] explicit tags:', explicitTags);
-      console.log('[Wizard.submit] derived tags:', derivedTags);
-      console.log('[Wizard.submit] meal time tags:', mealTimeTags);
-      console.log('[Wizard.submit] service speed tags:', serviceSpeedTags);
-      console.log('[Wizard.submit] review payload (pre-build, no undefined):', base);
-    } catch {}
+      for (const dish of dishDrafts) {
+        if (!dish.dishName.trim()) {
+          throw new Error('All dishes must have a name');
+        }
+        if (!dish.dishCategory) {
+          throw new Error('All dishes must have a category');
+        }
+        if (!dish.dishCuisine) {
+          throw new Error('All dishes must have a cuisine');
+        }
 
-    const reviewData: ReviewData & { caption?: string } = base;
+        // Build media for this dish
+        const media = buildMediaBundleForDish(dish, mediaItems);
 
-    // Build canonical payload (ensures dishName is present)
-    const payload = buildReviewCreatePayload(reviewData);
-    const reviewId = await saveReview(payload, selectedRestaurant, selectedDish);
-    try {
-      localStorage.removeItem(buildStorageKey(userId, draft.restaurantId));
+        // Build tags
+        const mealTimesToUse = visitDraft.mealTime && visitDraft.mealTime !== 'unspecified'
+          ? [visitDraft.mealTime as MealTimeTag]
+          : undefined;
+        const explicitTags = buildExplicitTags(dish.explicit);
+        const derivedTags = buildDerivedTags(dish.sentiment);
+        const mealTimeTags = buildMealTimeTags(mealTimesToUse);
+        const serviceSpeedTags = buildServiceSpeedTags(visitDraft.serviceSpeed);
+        const mergedTags = Array.from(new Set([...explicitTags, ...derivedTags, ...mealTimeTags, ...serviceSpeedTags]));
+
+        // Build ReviewData payload
+        const reviewData: ReviewData & { caption?: string } = {
+          restaurant: selectedRestaurant.name || 'Unknown Restaurant',
+          location: (selectedRestaurant as any).address || '',
+          dish: dish.dishName,
+          rating: dish.rating,
+          personalNote: visitDraft.overallText || '',
+          negativeNote: '',
+          serverRating: null,
+          price: null,
+          images: media.photos,
+          isPublic: true,
+          explicit: dish.explicit || null,
+          sentiment: dish.sentiment || null,
+          explicitTags,
+          derivedTags,
+          tags: mergedTags,
+          restaurantCuisines: sanitizeCuisinesInput((selectedRestaurant as any).cuisines),
+          cuisines: sanitizeCuisinesInput((selectedRestaurant as any).cuisines),
+          caption: dish.caption,
+          visitId: sharedVisitId,
+          dishCategory: dish.dishCategory,
+        };
+
+        // Add to payload for saveReview
+        const payload = buildReviewCreatePayload(reviewData);
+        const reviewId = await saveReview(payload, selectedRestaurant, null);
+        reviewIds.push(reviewId);
+      }
+
+      // Clear autosave for this restaurant
+      try {
+        localStorage.removeItem(buildStorageKey(userId, visitDraft.restaurantId));
+      } catch (error) {
+        console.warn('Failed to clear draft storage', error);
+      }
+
+      showReward('submit');
+      return reviewIds;
     } catch (error) {
-      console.warn('Failed to clear draft storage', error);
+      console.error('Submission failed:', error);
+      throw error;
     }
-    showReward('submit');
-    return reviewId;
-  }, [draft, showReward, userId, selectedRestaurant, selectedDish]);
+  }, [userId, selectedRestaurant, dishDrafts, visitDraft, mediaItems, showReward]);
 
   const contextValue = useMemo<WizardContextValue>(() => ({
-    draft,
-    updateDraft,
+    visitDraft,
+    setVisitDraft,
+    dishDrafts,
+    setDishDrafts,
+    updateDishDraft,
+    activeDishIndex,
+    setActiveDishIndex,
     mediaItems,
     setMediaItems,
     uploadMedia,
@@ -561,8 +508,6 @@ const Wizard: React.FC = () => {
     pendingUploads,
     selectedRestaurant,
     selectRestaurant,
-    selectedDish,
-    selectDish,
     userId,
     setStep: setCurrentStep,
     currentStep,
@@ -574,10 +519,30 @@ const Wizard: React.FC = () => {
     resetDraft,
     submitReview,
     autosaveState
-  }), [draft, mediaItems, uploadMedia, removeMedia, pendingUploads, selectedRestaurant, selectRestaurant, selectedDish, selectDish, userId, currentStep, goNext, goBack, showReward, isSubmitting, resetDraft, submitReview, autosaveState]);
+  }), [
+    visitDraft,
+    dishDrafts,
+    updateDishDraft,
+    activeDishIndex,
+    mediaItems,
+    uploadMedia,
+    removeMedia,
+    pendingUploads,
+    selectedRestaurant,
+    selectRestaurant,
+    userId,
+    currentStep,
+    goNext,
+    goBack,
+    showReward,
+    isSubmitting,
+    resetDraft,
+    submitReview,
+    autosaveState
+  ]);
 
   const stepOrder = useMemo<WizardStepKey[]>(() => (
-    ['basic', 'taste', 'outcome']
+    ['visit', 'dishes', 'wrapup']
   ), []);
 
   const steps = useMemo(() => stepOrder.map((key) => ({
@@ -605,12 +570,12 @@ const Wizard: React.FC = () => {
 
   return (
     <WizardContext.Provider value={contextValue}>
-      <div className="mx-auto w-full max-w-3xl px-4 pt-16 pb-24">
-        <div className="sticky top-0 z-10 bg-white/90 backdrop-blur supports-[backdrop-filter]:bg-white/70">
+      <div className="mx-auto w-full max-w-3xl px-4 pt-6 pb-24">
+        <div className="sticky top-0 z-10 bg-white">
           <div className="flex items-center justify-between py-4">
             <div>
               <h1 className="text-2xl font-semibold text-slate-900">{t('createWizard.title')}</h1>
-              <p className="text-sm text-slate-500 mb-4">{t('createWizard.subtitle')}</p>
+              <p className="text-sm text-slate-500 mb-2">{t('createWizard.subtitle')}</p>
             </div>
             <span className={`text-xs font-medium ${autosaveState === 'saved' ? 'text-emerald-500' : autosaveState === 'error' ? 'text-red-500' : 'text-slate-400'}`}>
               {autosaveState === 'saving' && t('createWizard.status.autosaving')}
@@ -618,7 +583,7 @@ const Wizard: React.FC = () => {
               {autosaveState === 'error' && t('createWizard.status.error')}
             </span>
           </div>
-          <div className="mb-6"><ProgressBar steps={steps} currentStep={currentStep} /></div>
+          <div className="mb-3"><ProgressBar steps={steps} currentStep={currentStep} /></div>
         </div>
         <AnimatePresence mode="wait">
           <motion.div
@@ -642,20 +607,3 @@ const Wizard: React.FC = () => {
 };
 
 export default Wizard;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

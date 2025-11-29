@@ -65,7 +65,33 @@ export interface ReviewDraft {
   outcome: OutcomeSelection;
   mealTimes?: MealTimeTag[]; // When this dish is best eaten
   serviceSpeed?: ServiceSpeed | null; // Perceived service speed
+  visitId?: string; // For multi-dish visits
   createdAt?: unknown;
   updatedAt?: unknown;
   isDeleted?: boolean;
+}
+
+// Visit-level draft (multi-dish flow)
+export interface VisitDraft {
+  restaurantId?: string;
+  restaurantName?: string;
+  restaurantAddress?: string;
+  mealTime?: MealTimeTag | 'unspecified';
+  overallText?: string;
+  serviceSpeed?: ServiceSpeed | null;
+  visitId?: string;
+}
+
+// Per-dish draft (multi-dish flow)
+export interface DishDraft {
+  id: string;
+  mediaIds: string[];
+  dishName: string;
+  dishCategory?: DishCategory;
+  dishCuisine?: string;
+  rating: number;
+  explicit?: ExplicitSelection;
+  sentiment?: SentimentSelection;
+  outcome: OutcomeSelection;
+  caption?: string;
 }
