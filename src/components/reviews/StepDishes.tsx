@@ -1,11 +1,14 @@
-import React, { useMemo, useState } from 'react';
-import { Plus, X, ChevronDown, ChevronUp, Trash2, Camera, AlertCircle } from 'lucide-react';
+import React, { useMemo, useState, useEffect } from 'react';
+import { collection, getDocs, query, where, addDoc, serverTimestamp } from 'firebase/firestore';
+import { Plus, ChevronDown, ChevronUp, Trash2, Camera, AlertCircle, Loader2 } from 'lucide-react';
 import { useI18n } from '../../lib/i18n/useI18n';
 import { DishDraft, DishCategory } from '../../dev/types/review';
 import { useReviewWizard } from './WizardContext';
 import RatingSlider from '../RatingSlider';
-import { CUISINES } from '../../utils/taxonomy';
+import { CUISINES, getCuisineLabel } from '../../utils/taxonomy';
 import { ATTRIBUTES, OCCASIONS, DIETARY } from '../../data/tagDefinitions';
+import { db } from '../../lib/firebase';
+import { DishRecord } from './AddDishInline';
 
 const StepDishes: React.FC = () => {
   const { t } = useI18n();
@@ -16,14 +19,57 @@ const StepDishes: React.FC = () => {
     activeDishIndex,
     setActiveDishIndex,
     mediaItems,
-    removeMedia,
+    setMediaItems,
     goNext,
     goBack,
     showReward,
     selectedRestaurant,
   } = useReviewWizard();
 
-  const activeDish = dishDrafts[activeDishIndex];
+  const [menuItems, setMenuItems] = useState<DishRecord[]>([]);
+  const [loadingMenuItems, setLoadingMenuItems] = useState(false);
+  const [menuError, setMenuError] = useState<string | null>(null);
+  const [addingMenuItem, setAddingMenuItem] = useState(false);
+  const [customCuisineInputs, setCustomCuisineInputs] = useState<Record<string, string>>({});
+  const [customCuisineSelections, setCustomCuisineSelections] = useState<Record<string, boolean>>({});
+  const [expandedDishIds, setExpandedDishIds] = useState<string[]>(() => {
+    if (!dishDrafts.length) return [];
+    return [dishDrafts[0].id];
+  });
+
+  const toggleDishExpanded = (dishId: string) => {
+    setExpandedDishIds(prev => (
+      prev.includes(dishId)
+        ? prev.filter(id => id !== dishId)
+        : [...prev, dishId]
+    ));
+  };
+
+
+  useEffect(() => {
+    if (!selectedRestaurant) {
+      setMenuItems([]);
+      return;
+    }
+    const fetchMenuItems = async () => {
+      try {
+        setLoadingMenuItems(true);
+        const menuQuery = query(collection(db, 'menuItems'), where('restaurantId', '==', selectedRestaurant.id));
+        const snapshot = await getDocs(menuQuery);
+        const list: DishRecord[] = snapshot.docs.map((docSnap) => ({
+          id: docSnap.id,
+          ...(docSnap.data() as DishRecord)
+        }));
+        setMenuItems(list);
+      } catch (error) {
+        console.error('Failed to load menu items', error);
+        setMenuError('Unable to load menu items');
+      } finally {
+        setLoadingMenuItems(false);
+      }
+    };
+    fetchMenuItems();
+  }, [selectedRestaurant]);
 
   const addDish = () => {
     const cuisineDefault = (selectedRestaurant as any)?.cuisines?.[0];
@@ -45,34 +91,103 @@ const StepDishes: React.FC = () => {
       caption: undefined,
     };
     setDishDrafts(prev => [...prev, newDish]);
+    setExpandedDishIds(prev => [...prev, newDish.id]);
     setActiveDishIndex(dishDrafts.length);
   };
 
+  const getMatchingMenuItems = useMemo(() => {
+    const cache = new Map<string, DishRecord[]>();
+    return (name: string) => {
+      const term = name.trim().toLowerCase();
+      if (!term) return [];
+      if (cache.has(term)) return cache.get(term)!;
+      const matches = menuItems
+        .filter(item => item.name?.toLowerCase().includes(term))
+        .slice(0, 5);
+      cache.set(term, matches);
+      return matches;
+    };
+  }, [menuItems]);
+
+  const hasExactMenuMatch = useMemo(() => {
+    const set = new Set(menuItems.map(item => item.name?.trim().toLowerCase()).filter(Boolean) as string[]);
+    return (name: string) => {
+      const term = name.trim().toLowerCase();
+      if (!term) return false;
+      return set.has(term);
+    };
+  }, [menuItems]);
+
+  const handleSelectMenuItem = (dishId: string, item: DishRecord) => {
+    updateDishDraft(dishId, prev => ({
+      ...prev,
+      dishName: item.name,
+      dishCategory: prev.dishCategory || (item.category as DishCategory) || prev.dishCategory
+    }));
+  };
+
+  const handleAddMenuItem = async (dishId: string, name: string, category?: DishCategory) => {
+    if (!selectedRestaurant || !name.trim()) return;
+    try {
+      setAddingMenuItem(true);
+      const payload = {
+        name: name.trim(),
+        restaurantId: selectedRestaurant.id,
+        category: category || null,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      };
+      const docRef = await addDoc(collection(db, 'menuItems'), payload);
+      const newItem: DishRecord = {
+        id: docRef.id,
+        name: payload.name,
+        restaurantId: selectedRestaurant.id,
+        category: payload.category || undefined
+      };
+      setMenuItems(prev => [...prev, newItem]);
+      updateDishDraft(dishId, prev => ({ ...prev, dishName: newItem.name }));
+    } catch (error) {
+      console.error('Failed to add menu item', error);
+      setMenuError('Could not add dish to menu');
+    } finally {
+      setAddingMenuItem(false);
+    }
+  };
+
   const removeDish = (index: number) => {
+    const dishId = dishDrafts[index]?.id;
     setDishDrafts(prev => prev.filter((_, i) => i !== index));
+    if (dishId) {
+      setExpandedDishIds(prev => prev.filter(id => id !== dishId));
+    }
     if (activeDishIndex >= dishDrafts.length - 1) {
       setActiveDishIndex(Math.max(0, dishDrafts.length - 2));
     }
   };
 
-  const toggleMediaForDish = (mediaId: string) => {
-    if (!activeDish) return;
-    updateDishDraft(activeDish.id, prev => ({
-      ...prev,
-      mediaIds: prev.mediaIds.includes(mediaId)
-        ? prev.mediaIds.filter(id => id !== mediaId)
-        : [...prev.mediaIds, mediaId]
-    }));
+  const toggleMediaForDish = (dishId: string, mediaId: string) => {
+    setDishDrafts((prev) =>
+      prev.map((dish) => {
+        if (dish.id !== dishId) return dish;
+        const alreadyAttached = dish.mediaIds.includes(mediaId);
+        if (alreadyAttached) {
+          return {
+            ...dish,
+            mediaIds: dish.mediaIds.filter((id) => id !== mediaId),
+          };
+        }
+        const without = dish.mediaIds.filter((id) => id !== mediaId);
+        return {
+          ...dish,
+          mediaIds: [mediaId, ...without],
+        };
+      })
+    );
   };
 
   const getMediaCountText = (dishId: string): string => {
     const count = dishDrafts.find(d => d.id === dishId)?.mediaIds.length || 0;
     return count === 0 ? 'No photos' : `${count} photo${count !== 1 ? 's' : ''}`;
-  };
-
-  const getUnassignedMediaCount = (): number => {
-    const assignedIds = new Set(dishDrafts.flatMap(d => d.mediaIds));
-    return mediaItems.filter(m => m.downloadURL && !assignedIds.has(m.id)).length;
   };
 
   const validateDishes = (): string[] => {
@@ -103,7 +218,7 @@ const StepDishes: React.FC = () => {
     goNext();
   };
 
-  if (!activeDish) {
+  if (!dishDrafts.length) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <p className="text-slate-500">No dishes</p>
@@ -113,108 +228,79 @@ const StepDishes: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Media Gallery */}
-      {mediaItems.length > 0 && (
-        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-md shadow-slate-200/60">
-          <div className="mb-4">
-            <h2 className="text-lg font-semibold text-slate-900">Your Visit Photos</h2>
-            <p className="text-sm text-slate-500">Attach to dishes or keep as visit-only memories</p>
-          </div>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            {mediaItems.map((media) => {
-              if (!media.downloadURL) return null;
-              const attachedCount = dishDrafts.reduce((count, dish) =>
-                dish.mediaIds.includes(media.id) ? count + 1 : count, 0);
-
-              return (
-                <div key={media.id} className="relative group">
-                  {media.kind === 'photo' ? (
-                    <img src={media.downloadURL} alt="Visit" className="h-24 w-full object-cover rounded-lg border border-slate-200" />
-                  ) : (
-                    <div className="h-24 w-full bg-black/10 rounded-lg border border-slate-200 flex items-center justify-center">
-                      <div className="text-slate-400 text-xs">Video</div>
-                    </div>
-                  )}
-                  {attachedCount > 0 && (
-                    <span className="absolute top-1 right-1 bg-emerald-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full">
-                      {attachedCount}
-                    </span>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => removeMedia(media.id)}
-                    className="absolute top-0 right-0 p-1 bg-red-500 text-white rounded-bl-lg opacity-0 group-hover:opacity-100 transition"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                </div>
-              );
-            })}
-          </div>
-          {getUnassignedMediaCount() > 0 && (
-            <p className="text-xs text-slate-500 mt-3">
-              {getUnassignedMediaCount()} photo{getUnassignedMediaCount() !== 1 ? 's' : ''} not yet attached to any dish (visit-only)
-            </p>
-          )}
-        </section>
-      )}
-
       {/* Dishes List */}
       <div className="space-y-3">
-        {dishDrafts.map((dish, index) => (
-          <div key={dish.id} className="rounded-3xl border border-slate-200 bg-white overflow-hidden shadow-md shadow-slate-200/60">
+        {dishDrafts.map((dish, index) => {
+          const isExpanded = expandedDishIds.includes(dish.id);
+          const coverMediaId = dish.mediaIds?.[0];
+          const coverMedia = coverMediaId ? mediaItems.find((m) => m.id === coverMediaId) : undefined;
+          const coverImage = coverMedia?.downloadURL || coverMedia?.previewUrl || coverMedia?.thumbnailURL;
+
+          const handleHeaderToggle = () => {
+            setActiveDishIndex(index);
+            toggleDishExpanded(dish.id);
+          };
+
+          const handleHeaderKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault();
+              handleHeaderToggle();
+            }
+          };
+
+          return (
+            <div key={dish.id} className="rounded-3xl border border-slate-200 bg-white overflow-hidden shadow-md shadow-slate-200/60">
             {/* Dish Card Header */}
-            <button
-              type="button"
-              onClick={() => setActiveDishIndex(index)}
-              className={`w-full p-4 flex items-start gap-4 transition ${
-                activeDishIndex === index ? 'bg-red-50' : 'hover:bg-slate-50'
+            <div
+              role="button"
+              tabIndex={0}
+              onClick={handleHeaderToggle}
+              onKeyDown={handleHeaderKeyDown}
+              className={`w-full p-4 flex items-center gap-4 rounded-3xl border transition ${
+                isExpanded ? 'bg-rose-50/60 border-rose-100' : 'bg-rose-50/40 border-transparent hover:bg-rose-50/70'
               }`}
             >
-              {/* Dish Thumbnail */}
-              <div className="flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden bg-slate-100 border border-slate-200">
-                {dish.mediaIds.length > 0 ? (
-                  (() => {
-                    const firstMedia = mediaItems.find(m => m.id === dish.mediaIds[0]);
-                    return firstMedia?.downloadURL ? (
-                      <img src={firstMedia.downloadURL} alt="Dish" className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-slate-400">
-                        <Camera className="h-6 w-6" />
-                      </div>
-                    );
-                  })()
+              <div className="flex-shrink-0 w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center overflow-hidden">
+                {coverImage ? (
+                  <img
+                    src={coverImage}
+                    alt="Dish"
+                    className="w-full h-full object-cover"
+                  />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center text-slate-400">
-                    <Camera className="h-6 w-6" />
-                  </div>
+                  <Camera className="h-6 w-6 text-slate-400" />
                 )}
               </div>
 
-              {/* Dish Info */}
-              <div className="flex-1 text-left">
-                <h3 className="text-sm font-semibold text-slate-900">{dish.dishName || 'Unnamed dish'}</h3>
-                <div className="flex items-center gap-2 mt-1">
-                  <span className="text-xs bg-slate-100 px-2 py-0.5 rounded text-slate-600">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between gap-2">
+                  <h3 className="truncate text-sm font-semibold text-slate-900">
+                    {dish.dishName || 'Unnamed dish'}
+                  </h3>
+                  <div className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-amber-50 text-amber-700">
+                    <span className="leading-none">⭐</span>
+                    <span>{dish.rating.toFixed(1)}</span>
+                  </div>
+                </div>
+                <div className="mt-1 flex items-center gap-2 text-xs text-slate-500 flex-wrap">
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-slate-100 text-slate-700">
                     {dish.dishCategory || 'No category'}
                   </span>
-                  <span className="text-xs text-slate-500">⭐ {dish.rating.toFixed(1)}</span>
+                  <span>{getMediaCountText(dish.id)}</span>
                 </div>
-                <p className="text-xs text-slate-500 mt-1">{getMediaCountText(dish.id)}</p>
               </div>
 
-              {/* Actions */}
-              <div className="flex-shrink-0 flex items-center gap-2">
-                {activeDishIndex === index ? (
-                  <ChevronUp className="h-5 w-5 text-slate-400" />
+              <div className="flex-shrink-0 flex items-center">
+                {isExpanded ? (
+                  <ChevronUp className="h-4 w-4 text-slate-500" />
                 ) : (
-                  <ChevronDown className="h-5 w-5 text-slate-400" />
+                  <ChevronDown className="h-4 w-4 text-slate-500" />
                 )}
               </div>
-            </button>
+            </div>
 
             {/* Expanded Content */}
-            {activeDishIndex === index && (
+            {isExpanded && (
               <div className="border-t border-slate-200 p-4 space-y-4">
                 {/* Dish Name */}
                 <div>
@@ -226,6 +312,44 @@ const StepDishes: React.FC = () => {
                     placeholder="What did you order?"
                     className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-red-400 focus:outline-none focus:ring-1 focus:ring-red-100"
                   />
+                  {selectedRestaurant && dish.dishName.trim() ? (
+                    <div className="mt-2 space-y-1">
+                      {loadingMenuItems && (
+                        <div className="flex items-center gap-2 text-xs text-slate-500">
+                          <Loader2 className="h-3 w-3 animate-spin" /> Loading menu...
+                        </div>
+                      )}
+                      {!loadingMenuItems && getMatchingMenuItems(dish.dishName).map((item) => (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => handleSelectMenuItem(dish.id, item)}
+                          className="w-full rounded-2xl border border-slate-200 px-3 py-2 text-left text-xs font-medium text-slate-700 transition hover:border-red-300 hover:bg-red-50"
+                        >
+                          {item.name}
+                        </button>
+                      ))}
+                      {!loadingMenuItems && !hasExactMenuMatch(dish.dishName) && (
+                        <button
+                          type="button"
+                          onClick={() => handleAddMenuItem(dish.id, dish.dishName, dish.dishCategory)}
+                          disabled={addingMenuItem}
+                          className="w-full rounded-2xl border border-dashed border-slate-300 px-3 py-2 text-left text-xs font-medium text-slate-600 transition hover:border-red-300 hover:bg-red-50 disabled:opacity-60"
+                        >
+                          {addingMenuItem ? (
+                            <span className="flex items-center gap-2">
+                              <Loader2 className="h-3 w-3 animate-spin" /> Adding...
+                            </span>
+                          ) : (
+                            <>Add "{dish.dishName.trim()}" as a menu item</>
+                          )}
+                        </button>
+                      )}
+                      {menuError && (
+                        <p className="text-xs text-red-500">{menuError}</p>
+                      )}
+                    </div>
+                  ) : null}
                 </div>
 
                 {/* Category & Cuisine */}
@@ -252,15 +376,62 @@ const StepDishes: React.FC = () => {
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Cuisine *</label>
                     <select
-                      value={dish.dishCuisine || ''}
-                      onChange={(e) => updateDishDraft(dish.id, prev => ({ ...prev, dishCuisine: e.target.value || undefined }))}
+                      value={CUISINES.includes(dish.dishCuisine || '') ? dish.dishCuisine || '' : customCuisineSelections[dish.id] ? 'custom' : ''}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        if (!value) {
+                          setCustomCuisineSelections(prev => {
+                            const { [dish.id]: _omit, ...rest } = prev;
+                            return rest;
+                          });
+                          setCustomCuisineInputs(prev => {
+                            const { [dish.id]: _omit, ...rest } = prev;
+                            return rest;
+                          });
+                          updateDishDraft(dish.id, prev => ({ ...prev, dishCuisine: undefined }));
+                        } else if (value === 'custom') {
+                          const existing = customCuisineInputs[dish.id] || '';
+                          setCustomCuisineSelections(prev => ({ ...prev, [dish.id]: true }));
+                          setCustomCuisineInputs(prev => ({ ...prev, [dish.id]: existing }));
+                          updateDishDraft(dish.id, prev => ({ ...prev, dishCuisine: existing || undefined }));
+                        } else {
+                          setCustomCuisineSelections(prev => {
+                            const { [dish.id]: _omit, ...rest } = prev;
+                            return rest;
+                          });
+                          setCustomCuisineInputs(prev => {
+                            const { [dish.id]: _omit, ...rest } = prev;
+                            return rest;
+                          });
+                          updateDishDraft(dish.id, prev => ({ ...prev, dishCuisine: value }));
+                        }
+                      }}
                       className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-red-400 focus:outline-none focus:ring-1 focus:ring-red-100"
                     >
                       <option value="">Select...</option>
-                      {CUISINES.map(c => (
-                        <option key={c.value} value={c.value}>{c.label}</option>
+                      {CUISINES.map((cuisine) => (
+                        <option key={cuisine} value={cuisine}>
+                          {getCuisineLabel(cuisine)}
+                        </option>
                       ))}
+                      <option value="custom">Other (specify)</option>
                     </select>
+                    {customCuisineSelections[dish.id] && (
+                      <input
+                        type="text"
+                        value={customCuisineInputs[dish.id] || ''}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          setCustomCuisineInputs(prev => ({ ...prev, [dish.id]: value }));
+                          updateDishDraft(dish.id, prev => ({ ...prev, dishCuisine: value.trim() || undefined }));
+                          if (!value.trim()) {
+                            setCustomCuisineSelections(prev => ({ ...prev, [dish.id]: true }));
+                          }
+                        }}
+                        placeholder="Enter cuisine..."
+                        className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-red-400 focus:outline-none focus:ring-1 focus:ring-red-100"
+                      />
+                    )}
                   </div>
                 </div>
 
@@ -287,33 +458,35 @@ const StepDishes: React.FC = () => {
 
                 {/* Media Attachment */}
                 {mediaItems.length > 0 && (
-                  <div>
+                  <div className="mt-4">
                     <label className="block text-xs font-medium text-slate-600 mb-2">
-                      Attach Photos to This Dish
+                      Choose a photo for this dish
                     </label>
-                    <div className="grid grid-cols-3 gap-2">
+                    <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
                       {mediaItems.map((media) => {
-                        if (!media.downloadURL) return null;
+                        const src = media.downloadURL || media.previewUrl || media.thumbnailURL;
+                        if (!src && media.kind !== 'video') {
+                          return null;
+                        }
                         const isAttached = dish.mediaIds.includes(media.id);
                         return (
                           <button
                             key={media.id}
                             type="button"
-                            onClick={() => toggleMediaForDish(media.id)}
-                            className={`relative rounded-lg overflow-hidden border-2 transition ${
+                            onClick={() => toggleMediaForDish(dish.id, media.id)}
+                            className={`flex-shrink-0 w-24 h-24 rounded-xl overflow-hidden border-2 transition ${
                               isAttached ? 'border-emerald-500' : 'border-slate-200 hover:border-slate-300'
                             }`}
                           >
-                            {media.kind === 'photo' ? (
-                              <img src={media.downloadURL} alt="Media" className="w-full h-20 object-cover" />
+                            {media.kind === 'photo' && src ? (
+                              <img
+                                src={src}
+                                alt="Dish media"
+                                className="w-full h-full object-cover"
+                              />
                             ) : (
-                              <div className="w-full h-20 bg-black/10 flex items-center justify-center text-xs text-slate-500">Video</div>
-                            )}
-                            {isAttached && (
-                              <div className="absolute inset-0 bg-emerald-500/20 flex items-center justify-center">
-                                <div className="bg-emerald-500 text-white rounded-full p-1">
-                                  <X className="h-3 w-3" />
-                                </div>
+                              <div className="w-full h-full flex items-center justify-center text-[11px] text-slate-600 bg-slate-100">
+                                Video
                               </div>
                             )}
                           </button>
@@ -355,7 +528,7 @@ const StepDishes: React.FC = () => {
 
                   {/* Attributes */}
                   <div>
-                    <label className="block text-xs font-medium text-slate-600 mb-2">Describe it:</label>
+                    <label className="block text-xs font-medium text-slate-600 mb-2">How would you describe this dish?</label>
                     <div className="flex flex-wrap gap-1.5">
                       {ATTRIBUTES.map((attr) => {
                         const isSelected = dish.explicit?.attributes.includes(attr.value);
@@ -431,7 +604,8 @@ const StepDishes: React.FC = () => {
               </div>
             )}
           </div>
-        ))}
+        );
+        })}
       </div>
 
       {/* Add Dish Button */}

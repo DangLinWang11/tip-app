@@ -142,6 +142,7 @@ export interface ReviewData {
   negativeNote: string;
   serverRating?: 'bad' | 'okay' | 'good' | null;
   price?: string | null;
+  restaurantPriceLevel?: '$' | '$$' | '$$$' | null;
   explicit?: ExplicitSelection | null;
   sentiment?: SentimentSelection | null;
   explicitTags?: string[];
@@ -642,6 +643,7 @@ export interface FirebaseReview {
   personalNotes?: PersonalNote[];
   serverRating?: 'bad' | 'okay' | 'good' | null;
   price?: string | null;
+  restaurantPriceLevel?: '$' | '$$' | '$$$' | null;
   explicit?: ExplicitSelection | null;
   sentiment?: SentimentSelection | null;
   explicitTags?: string[];

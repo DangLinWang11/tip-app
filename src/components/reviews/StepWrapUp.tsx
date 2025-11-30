@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 import { useI18n } from '../../lib/i18n/useI18n';
@@ -21,6 +21,15 @@ const StepWrapUp: React.FC = () => {
 
   const [successIds, setSuccessIds] = useState<string[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const visitOnlyMediaItems = useMemo(() => {
+    return mediaItems.filter((media) => {
+      const mediaId = media.id;
+      if (!mediaId) return false;
+      const isAttachedToAnyDish = dishDrafts.some((dish) => dish.mediaIds?.includes(mediaId));
+      return !isAttachedToAnyDish;
+    });
+  }, [mediaItems, dishDrafts]);
 
   const handleSubmit = async () => {
     try {
@@ -88,6 +97,35 @@ const StepWrapUp: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      {visitOnlyMediaItems.length > 0 && (
+        <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+          <h2 className="text-sm font-semibold text-slate-900">Your Visit Photos</h2>
+          <p className="mt-1 text-xs text-slate-500">
+            These photos are for the place, decor, or vibes. They&apos;re not tied to one specific dish.
+          </p>
+          <div className="mt-3 flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+            {visitOnlyMediaItems.map((media) => {
+              const src = media.downloadURL || media.previewUrl || media.thumbnailURL;
+              if (!src) return null;
+              return (
+                <div
+                  key={media.id}
+                  className="flex-shrink-0 w-24 h-24 rounded-xl overflow-hidden border border-slate-200 bg-slate-50"
+                >
+                  {media.kind === 'photo' ? (
+                    <img src={src} alt="Visit photo" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-[11px] text-slate-600">
+                      Video
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Summary Card */}
       <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-md shadow-slate-200/60">
         <h2 className="text-lg font-semibold text-slate-900 mb-6">Review Summary</h2>

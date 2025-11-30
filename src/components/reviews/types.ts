@@ -27,6 +27,7 @@ export interface LocalMediaItem {
   thumbnailURL?: string;
   status: MediaStatus;
   error?: string;
+  role?: 'dish' | 'visit';
 }
 
 export interface WizardContextValue {

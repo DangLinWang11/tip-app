@@ -39,15 +39,21 @@ export const DISH_STYLES = [
 ] as const;
 
 export const ATTRIBUTES = [
-  { value: 'crispy', label: 'Crispy / Crunchy', emoji: '??' },
-  { value: 'saucy', label: 'Saucy', emoji: '??' },
-  { value: 'creamy', label: 'Creamy', emoji: '??' },
-  { value: 'light', label: 'Light', emoji: '??' },
-  { value: 'rich', label: 'Rich / Indulgent', emoji: '??' },
-  { value: 'spicy', label: 'Spicy', emoji: '???' },
-  { value: 'sweet', label: 'Sweet', emoji: '??' },
-  { value: 'fresh', label: 'Fresh', emoji: '??' },
-  { value: 'scratch_made', label: 'Scratch-made', emoji: '?????' }
+  { value: 'spicy', label: 'Spicy' },
+  { value: 'mild', label: 'Mild' },
+  { value: 'sweet', label: 'Sweet' },
+  { value: 'zesty', label: 'Zesty' },
+  { value: 'umami_rich', label: 'Umami-rich' },
+  { value: 'garlicky', label: 'Garlicky' },
+  { value: 'well_seasoned', label: 'Well-seasoned' },
+  { value: 'under_seasoned', label: 'Under-seasoned' },
+  { value: 'balanced', label: 'Balanced' },
+  { value: 'fresh', label: 'Fresh' },
+  { value: 'scratch_made', label: 'Scratch-made' },
+  { value: 'high_quality_ingredients', label: 'High-quality ingredients' },
+  { value: 'comfort_food', label: 'Comfort food' },
+  { value: 'beautiful_presentation', label: 'Beautiful presentation' },
+  { value: 'consistent', label: 'Consistent' },
 ] as const;
 
 export const OCCASIONS = [

@@ -4,13 +4,44 @@ export const DISH_TYPES = [
 ];
 
 export const CUISINES = [
-  'american','mexican','thai','japanese','korean','chinese','vietnamese',
-  'italian','indian','mediterranean','greek','middle eastern','french','german','spanish','latin','seafood','bbq'
+  'italian',
+  'japanese',
+  'chinese',
+  'mexican',
+  'thai',
+  'american',
+  'french',
+  'indian',
+  'mediterranean',
+  'latin american',
+  'spanish',
+  'greek',
+  'korean',
+  'vietnamese',
+  'middle eastern',
+  'caribbean',
+  'bbq/grill',
+  'seafood',
+  'breakfast / brunch',
+  'sandwiches / deli',
+  'pizza',
+  'european',
+  'african',
+  'peruvian',
+  'argentine',
+  'brazilian',
+  'filipino',
+  'hawaiian',
+  'turkish',
+  'lebanese'
 ];
 
 const CUISINE_LABEL_OVERRIDES: Record<string, string> = {
   bbq: 'BBQ/Grill',
-  latin: 'Latin American'
+  'bbq/grill': 'BBQ/Grill',
+  'breakfast / brunch': 'Breakfast / Brunch',
+  'sandwiches / deli': 'Sandwiches / Deli',
+  'latin american': 'Latin American'
 };
 
 export const getCuisineLabel = (slug: string): string => {

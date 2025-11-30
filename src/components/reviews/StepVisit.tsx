@@ -23,6 +23,8 @@ const MEAL_TIME_OPTIONS: Array<{ value: MealTimeTag; labelKey: string; emoji: st
   { value: 'snack', labelKey: 'mealTime.snack', emoji: '🍿', fallback: 'Snack' }
 ];
 
+const PRICE_LEVELS: Array<'$' | '$$' | '$$$'> = ['$', '$$', '$$$'];
+
 const calculateDistance = (lat1: number, lng1: number, lat2: number, lng2: number): number => {
   const R = 3959;
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
@@ -261,6 +263,12 @@ const StepVisit: React.FC = () => {
                 source: 'google_places'
               };
               onRestaurantSelected(newRestaurant);
+              setRestaurants((prev) => {
+                if (prev.some((r) => r.id === newRestaurant.id)) {
+                  return prev;
+                }
+                return [...prev, newRestaurant];
+              });
 
               saveGooglePlaceToFirestore(place).catch((error) => {
                 console.warn('Failed to save Google place to Firestore:', error);
@@ -401,6 +409,35 @@ const StepVisit: React.FC = () => {
         </div>
       </section>
 
+      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-md shadow-slate-200/60">
+        <div className="mb-3">
+          <h3 className="text-base font-semibold text-slate-900">How expensive is this restaurant?</h3>
+          <p className="text-sm text-slate-500">Select one</p>
+        </div>
+        <div className="flex gap-2">
+          {PRICE_LEVELS.map((level) => {
+            const active = visitDraft.restaurantPriceLevel === level;
+            return (
+              <button
+                key={level}
+                type="button"
+                onClick={() => setVisitDraft((prev) => ({
+                  ...prev,
+                  restaurantPriceLevel: prev.restaurantPriceLevel === level ? null : level
+                }))}
+                className={`px-4 py-2 rounded-full text-sm font-semibold transition ${
+                  active
+                    ? 'bg-red-500 text-white shadow-md shadow-red-200/60'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                }`}
+              >
+                {level}
+              </button>
+            );
+          })}
+        </div>
+      </section>
+
       {/* Restaurant Selection */}
       <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-md shadow-slate-200/60 space-y-6">
         <div>
@@ -497,7 +534,10 @@ const StepVisit: React.FC = () => {
                           <div className="flex items-center justify-between w-full gap-2">
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 min-w-0">
-                                <MapPin className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                                <MapPin
+                                  className="w-4 h-4 text-red-500 flex-shrink-0"
+                                  style={{ marginTop: '0.95rem' }}
+                                />
                                 <span className="text-sm truncate">{prediction.structured_formatting.main_text}</span>
                               </div>
                               <p className="text-xs text-slate-500 truncate pl-6">
@@ -530,7 +570,20 @@ const StepVisit: React.FC = () => {
                 <div className="mb-4 space-y-1.5">
                   <p className="text-xs uppercase tracking-wide text-slate-400">Saved Restaurants</p>
                   {filteredRestaurants.length > 0 ? (
-                    filteredRestaurants.map((restaurant) => (
+                    filteredRestaurants.map((restaurant) => {
+                      const distanceFromUser =
+                        typeof restaurant.distance === 'number'
+                          ? restaurant.distance
+                          : userLocation && restaurant.coordinates
+                            ? calculateDistance(
+                                userLocation.lat,
+                                userLocation.lng,
+                                restaurant.coordinates.lat || restaurant.coordinates.latitude || 0,
+                                restaurant.coordinates.lng || restaurant.coordinates.longitude || 0
+                              )
+                            : undefined;
+
+                      return (
                       <button
                         key={restaurant.id}
                         type="button"
@@ -538,9 +591,14 @@ const StepVisit: React.FC = () => {
                         className={`w-full rounded-2xl border px-3 py-2 text-left transition ${selectedRestaurant?.id === restaurant.id ? 'border-red-400 bg-red-50' : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'}`}
                       >
                         <div className="flex items-center justify-between w-full gap-2">
-                          <div className="flex items-center gap-2 flex-1 min-w-0">
-                            <MapPin className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                            <span className="text-sm truncate">{restaurant.name}</span>
+                          <div className="flex gap-2 flex-1 min-w-0 items-start">
+                            <MapPin className="w-4 h-4 text-gray-400 flex-shrink-0 mt-0.5" />
+                            <div className="min-w-0">
+                              <p className="text-sm font-semibold text-slate-900 truncate">{restaurant.name}</p>
+                              {restaurant.location?.formatted && (
+                                <p className="text-xs text-slate-500 truncate">{restaurant.location.formatted}</p>
+                              )}
+                            </div>
                           </div>
                           <div className="flex items-center gap-2 flex-shrink-0">
                             {restaurant.qualityScore != null ? (
@@ -554,15 +612,21 @@ const StepVisit: React.FC = () => {
                                 <span className="text-xs font-medium text-gray-600">New</span>
                               </div>
                             )}
+                            {typeof distanceFromUser === 'number' && (
+                              <span className="text-xs text-gray-500 whitespace-nowrap">
+                                {distanceFromUser.toFixed(1)} mi
+                              </span>
+                            )}
                           </div>
                         </div>
                       </button>
-                    ))
+                    );
+                  })
                   ) : (
                     <p className="text-xs text-slate-500 py-2">No restaurants found</p>
                   )}
                 </div>
-                {selectedRestaurant && restaurantQuery.trim() && !filteredRestaurants.find(r => r.id === selectedRestaurant.id) && (
+                {restaurantQuery.trim() && placePredictions.length === 0 && !filteredRestaurants.length && (
                   <button
                     type="button"
                     onClick={() => setShowCreateRestaurant(true)}
@@ -584,7 +648,7 @@ const StepVisit: React.FC = () => {
       {selectedRestaurant && (
         <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-md shadow-slate-200/60">
           <div className="mb-4">
-            <h2 className="text-lg font-semibold text-slate-900">When are you dining?</h2>
+            <h2 className="text-lg font-semibold text-slate-900">When did you dine?</h2>
           </div>
           <div className="flex flex-wrap gap-2">
             {MEAL_TIME_OPTIONS.map((option) => {

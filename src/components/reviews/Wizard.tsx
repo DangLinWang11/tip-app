@@ -107,6 +107,7 @@ const buildInitialVisitDraft = (): VisitDraft => ({
   mealTime: undefined,
   overallText: undefined,
   serviceSpeed: null,
+  restaurantPriceLevel: null,
 });
 
 const buildInitialDishDraft = (dishCuisine?: string): DishDraft => ({
@@ -251,6 +252,7 @@ const Wizard: React.FC = () => {
         restaurantId: restaurant.id,
         restaurantName: restaurant.name,
         restaurantAddress: (restaurant as any).address,
+        restaurantPriceLevel: null,
         mealTime: undefined,
         overallText: undefined,
         serviceSpeed: null,
@@ -399,6 +401,7 @@ const Wizard: React.FC = () => {
       restaurantId: selectedRestaurant.id,
       restaurantName: selectedRestaurant.name,
       restaurantAddress: (selectedRestaurant as any).address,
+      restaurantPriceLevel: prev.restaurantPriceLevel ?? null,
       mealTime: undefined,
       overallText: undefined,
       serviceSpeed: null,
@@ -458,6 +461,7 @@ const Wizard: React.FC = () => {
           negativeNote: '',
           serverRating: null,
           price: null,
+          restaurantPriceLevel: visitDraft.restaurantPriceLevel ?? null,
           images: media.photos,
           isPublic: true,
           explicit: dish.explicit || null,
