@@ -220,6 +220,19 @@ const FeedPost: React.FC<FeedPostProps> = ({
     val_good_value: 'Good value',
     val_overpriced: 'Overpriced',
     val_fair: 'Fair price',
+    price_overpriced: 'Overpriced',
+    price_fair: 'Fair price',
+    price_bargain: 'Bargain',
+    would_order_again: 'Would order again',
+    would_recommend: 'Would recommend',
+    meal_breakfast: 'Breakfast',
+    meal_brunch: 'Brunch',
+    meal_lunch: 'Lunch',
+    meal_dinner: 'Dinner',
+    service_fast: 'Fast service',
+    service_slow: 'Slow service',
+    vibe_cozy: 'Cozy',
+    vibe_lively: 'Lively',
   };
 
   const getTagChipClass = (slug: string): string => {
