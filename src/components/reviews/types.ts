@@ -49,6 +49,7 @@ export interface WizardContextValue {
   uploadMedia: (files: File[]) => Promise<void>;
   removeMedia: (id: string) => void;
   pendingUploads: boolean;
+  pendingUploadCount: number;
 
   // Restaurant at visit level
   selectedRestaurant: RestaurantOption | null;

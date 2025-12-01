@@ -60,3 +60,12 @@ body {
 .no-scrollbar::-webkit-scrollbar {
   display: none;            /* Chrome/Safari/Opera */
 }
+
+/* Prevent iOS Safari from zooming inputs inside the create wizard by ensuring 16px text on small screens */
+@media (max-width: 640px) {
+  .create-wizard input,
+  .create-wizard textarea,
+  .create-wizard select {
+    font-size: 16px;
+  }
+}

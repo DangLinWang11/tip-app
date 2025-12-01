@@ -162,7 +162,7 @@ const DiscoverList: React.FC = () => {
       const reviewsQuery = query(collection(db, 'reviews'), where('restaurantId', '==', restaurantId));
       const reviewsSnapshot = await getDocs(reviewsQuery);
       const reviews = reviewsSnapshot.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() } as FirebaseReview));
-      return reviews.map((review) => ({ ...review, category: review.category ?? 'custom' }));
+      return reviews.map((review) => ({ ...review, category: review.category ?? review.dishCategory ?? 'custom' }));
     } catch (err) {
       console.error(`Error fetching reviews for restaurant ${restaurantId}:`, err);
       return [];

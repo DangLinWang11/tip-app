@@ -17,6 +17,8 @@ const StepWrapUp: React.FC = () => {
     isSubmitting,
     setIsSubmitting,
     resetDraft,
+    pendingUploads,
+    pendingUploadCount,
   } = useReviewWizard();
 
   const [successIds, setSuccessIds] = useState<string[] | null>(null);
@@ -31,7 +33,13 @@ const StepWrapUp: React.FC = () => {
     });
   }, [mediaItems, dishDrafts]);
 
+  const disableSubmit = isSubmitting || pendingUploads;
+
   const handleSubmit = async () => {
+    if (pendingUploads) {
+      setError('Please wait for photo uploads to finish before posting.');
+      return;
+    }
     try {
       setIsSubmitting(true);
       setError(null);
@@ -93,7 +101,7 @@ const StepWrapUp: React.FC = () => {
   }
 
   const mediaCount = mediaItems.filter(m => m.downloadURL).length;
-  const attachedMediaCount = dishDrafts.reduce((total, dish) => total + dish.mediaIds.length, 0);
+  const attachedMediaCount = dishDrafts.reduce((total, dish) => total + new Set(dish.mediaIds).size, 0);
 
   return (
     <div className="space-y-6">
@@ -180,7 +188,7 @@ const StepWrapUp: React.FC = () => {
       <div className="space-y-3">
         <h3 className="text-lg font-semibold text-slate-900">Dishes ({dishDrafts.length})</h3>
         {dishDrafts.map((dish, idx) => {
-          const attachedCount = dish.mediaIds.length;
+          const attachedCount = new Set(dish.mediaIds).size;
           return (
             <div key={dish.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
               <div className="flex items-start gap-3">
@@ -214,6 +222,12 @@ const StepWrapUp: React.FC = () => {
           <p className="text-xs text-red-700">{error}</p>
         </div>
       )}
+      {pendingUploads && (
+        <div className="rounded-2xl bg-amber-50 border border-amber-200 p-3 text-xs font-medium text-amber-800 flex items-center gap-2">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          Uploading {pendingUploadCount} file{pendingUploadCount !== 1 ? 's' : ''} in the background
+        </div>
+      )}
 
       {/* Navigation */}
       <div className="flex gap-3 pt-4">
@@ -228,7 +242,7 @@ const StepWrapUp: React.FC = () => {
         <button
           type="button"
           onClick={handleSubmit}
-          disabled={isSubmitting}
+          disabled={disableSubmit}
           className="flex-1 rounded-2xl bg-red-500 py-3 text-center text-sm font-semibold text-white transition hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
           {isSubmitting ? (

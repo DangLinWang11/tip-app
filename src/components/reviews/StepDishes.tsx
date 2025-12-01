@@ -186,7 +186,8 @@ const StepDishes: React.FC = () => {
   };
 
   const getMediaCountText = (dishId: string): string => {
-    const count = dishDrafts.find(d => d.id === dishId)?.mediaIds.length || 0;
+    const dish = dishDrafts.find(d => d.id === dishId);
+    const count = dish ? new Set(dish.mediaIds).size : 0;
     return count === 0 ? 'No photos' : `${count} photo${count !== 1 ? 's' : ''}`;
   };
 

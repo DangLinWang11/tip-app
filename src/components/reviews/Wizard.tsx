@@ -128,6 +128,11 @@ const buildInitialDishDraft = (dishCuisine?: string): DishDraft => ({
   caption: undefined,
 });
 
+const normalizeDishDraft = (draft: DishDraft): DishDraft => ({
+  ...draft,
+  mediaIds: Array.from(new Set((draft.mediaIds || []).filter(Boolean))),
+});
+
 // Helper to build MediaBundle for a dish based on attached media
 const buildMediaBundleForDish = (dish: DishDraft, mediaItems: LocalMediaItem[]): ReviewDraft['media'] => {
   const photos: string[] = [];
@@ -163,7 +168,14 @@ const Wizard: React.FC = () => {
   const [userId, setUserId] = useState<string>('');
   const [authChecked, setAuthChecked] = useState(false);
   const [visitDraft, setVisitDraft] = useState<VisitDraft>(buildInitialVisitDraft());
-  const [dishDrafts, setDishDrafts] = useState<DishDraft[]>([buildInitialDishDraft()]);
+  const [dishDrafts, setDishDraftsState] = useState<DishDraft[]>([buildInitialDishDraft()]);
+  const setDishDrafts = useCallback((updater: React.SetStateAction<DishDraft[]>) => {
+    setDishDraftsState((prev) => {
+      const next = typeof updater === 'function' ? (updater as (state: DishDraft[]) => DishDraft[])(prev) : updater;
+      return next.map(normalizeDishDraft);
+    });
+  }, [setDishDraftsState]);
+
   const [activeDishIndex, setActiveDishIndex] = useState(0);
   const [mediaItems, setMediaItems] = useState<LocalMediaItem[]>([]);
   const mediaItemsRef = useRef<LocalMediaItem[]>([]);
@@ -198,7 +210,11 @@ const Wizard: React.FC = () => {
     dishes: t('reward.dishBonus') || 'Great! Now describe what you ordered.',
   }), [t, language]);
 
-  const pendingUploads = useMemo(() => mediaItems.some((item) => item.status === 'uploading'), [mediaItems]);
+  const pendingUploadCount = useMemo(
+    () => mediaItems.filter((item) => item.status === 'uploading').length,
+    [mediaItems]
+  );
+  const pendingUploads = pendingUploadCount > 0;
 
   useEffect(() => {
     mediaItemsRef.current = mediaItems;
@@ -217,7 +233,7 @@ const Wizard: React.FC = () => {
     setDishDrafts(prev =>
       prev.map(dish => dish.id === id ? updater(dish) : dish)
     );
-  }, []);
+  }, [setDishDrafts]);
 
   const selectRestaurant = useCallback(
     (restaurant: RestaurantOption | null, options?: { restoreDraft?: boolean }) => {
@@ -260,7 +276,7 @@ const Wizard: React.FC = () => {
       setDishDrafts([buildInitialDishDraft(cuisines?.[0])]);
       setActiveDishIndex(0);
     },
-    [userId]
+    [setDishDrafts, userId]
   );
 
   useEffect(() => {
@@ -276,7 +292,7 @@ const Wizard: React.FC = () => {
     } catch (error) {
       console.warn('Failed to load saved draft', error);
     }
-  }, [userId]);
+  }, [setDishDrafts, userId]);
 
   useEffect(() => {
     if (!userId) return;
@@ -329,7 +345,7 @@ const Wizard: React.FC = () => {
         }))
       );
     }
-  }, []);
+  }, [setDishDrafts]);
 
   const uploadMedia = useCallback(async (files: File[]) => {
     if (!userId) {
@@ -416,7 +432,7 @@ const Wizard: React.FC = () => {
     });
     setCurrentStep(0);
     rewardHistoryRef.current = { media: false, taste: false, compare: false, submit: false, dishes: false };
-  }, [selectedRestaurant, userId]);
+  }, [selectedRestaurant, setDishDrafts, userId]);
 
   const submitReview = useCallback(async (): Promise<string[]> => {
     if (!userId) throw new Error('User must be signed in');
@@ -510,6 +526,7 @@ const Wizard: React.FC = () => {
     uploadMedia,
     removeMedia,
     pendingUploads,
+    pendingUploadCount,
     selectedRestaurant,
     selectRestaurant,
     userId,
@@ -526,12 +543,14 @@ const Wizard: React.FC = () => {
   }), [
     visitDraft,
     dishDrafts,
+    setDishDrafts,
     updateDishDraft,
     activeDishIndex,
     mediaItems,
     uploadMedia,
     removeMedia,
     pendingUploads,
+    pendingUploadCount,
     selectedRestaurant,
     selectRestaurant,
     userId,
@@ -574,7 +593,7 @@ const Wizard: React.FC = () => {
 
   return (
     <WizardContext.Provider value={contextValue}>
-      <div className="mx-auto w-full max-w-3xl px-4 pt-6 pb-24">
+      <div className="create-wizard mx-auto w-full max-w-3xl px-4 pt-6 pb-24">
         <div className="sticky top-0 z-10 bg-white">
           <div className="flex items-center justify-between py-4">
             <div>

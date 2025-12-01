@@ -46,7 +46,7 @@ const StepVisit: React.FC = () => {
     mediaItems,
     uploadMedia,
     removeMedia,
-    pendingUploads,
+    pendingUploadCount,
     selectedRestaurant,
     selectRestaurant,
     goNext,
@@ -331,7 +331,7 @@ const StepVisit: React.FC = () => {
     };
   }, [placePredictions, mapsLoaded, userLocation]);
 
-  const canProceed = !!selectedRestaurant && !pendingUploads;
+  const canProceed = !!selectedRestaurant;
 
   const handleNext = () => {
     if (!canProceed) return;
@@ -352,6 +352,12 @@ const StepVisit: React.FC = () => {
         <div>
           <h2 className="text-lg font-semibold text-slate-900">{t('review.addMedia')}</h2>
           <p className="text-sm text-slate-500">{t('media.imageLimit')} / {t('media.videoLimit')}</p>
+          {pendingUploadCount > 0 ? (
+            <div className="mt-2 inline-flex items-center gap-2 rounded-full bg-amber-50 px-3 py-1 text-xs font-medium text-amber-700">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              Uploading {pendingUploadCount} file{pendingUploadCount !== 1 ? 's' : ''}...
+            </div>
+          ) : null}
         </div>
 
         <div className="mt-4 grid gap-4">
