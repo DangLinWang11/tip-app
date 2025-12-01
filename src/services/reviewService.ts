@@ -172,7 +172,7 @@ function assert(condition: any, message: string): asserts condition {
 export function buildReviewCreatePayload(input: ReviewData & { caption?: string }): ReviewCreatePayload & { caption?: string } {
   const dishName = (input as any).dishName || input.dish || 'Unknown Dish';
   if (!(input as any).dishName) {
-    // Log a warning if the caller didn’t pass dishName explicitly
+    // Log a warning if the caller didn't pass dishName explicitly
     // (we still populate it here to satisfy rules)
     try { console.warn('[buildReviewCreatePayload] dishName missing; deriving from dish'); } catch {}
   }
@@ -185,6 +185,12 @@ export function buildReviewCreatePayload(input: ReviewData & { caption?: string 
     explicitTags: Array.isArray(input.explicitTags) ? input.explicitTags : [],
     derivedTags: Array.isArray(input.derivedTags) ? input.derivedTags : [],
   } as any;
+
+  // Remove undefined caption to prevent Firestore validation errors
+  if (payload.caption === undefined) {
+    delete payload.caption;
+  }
+
   return payload;
 }
 
@@ -513,6 +519,13 @@ export const saveReview = async (
       reviewDocumentPayload.restaurantCuisines = cuisinesForReview;
       reviewDocumentPayload.cuisines = cuisinesForReview;
     }
+
+    // Remove any undefined values to prevent Firestore validation errors
+    Object.keys(reviewDocumentPayload).forEach(key => {
+      if (reviewDocumentPayload[key] === undefined) {
+        delete reviewDocumentPayload[key];
+      }
+    });
 
     const docRef = await addDoc(collection(db, 'reviews'), reviewDocumentPayload);
     
