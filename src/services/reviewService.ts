@@ -140,6 +140,7 @@ export interface ReviewData {
   rating: number;
   personalNote: string;
   visitCaption?: string;
+  visitMedia?: string[]; // NEW: Unassigned/"vibes" photos from the visit
   negativeNote: string;
   serverRating?: 'bad' | 'okay' | 'good' | null;
   price?: string | null;
@@ -481,17 +482,22 @@ export const saveReview = async (
       restaurantCuisines: _ignoredRestaurantCuisines,
       cuisines: _ignoredCuisines,
       visitCaption,
+      visitMedia,
       ...reviewDataRest
     } = reviewData as any;
     const normalizedVisitCaption =
       typeof visitCaption === 'string' && visitCaption.trim().length
         ? visitCaption.trim()
         : undefined;
+    const normalizedVisitMedia = Array.isArray(visitMedia)
+      ? visitMedia.filter((url) => typeof url === 'string' && url.trim().length)
+      : undefined;
 
     const nowMs = Date.now();
     const reviewDocumentPayload: Record<string, any> = {
       ...reviewDataRest,
       ...(normalizedVisitCaption ? { visitCaption: normalizedVisitCaption } : {}),
+      ...(normalizedVisitMedia && normalizedVisitMedia.length ? { visitMedia: normalizedVisitMedia } : {}),
       explicit: reviewData.explicit ?? null,
       sentiment: reviewData.sentiment ?? null,
       explicitTags: Array.isArray(reviewData.explicitTags) ? reviewData.explicitTags : [],
@@ -664,6 +670,7 @@ export interface FirebaseReview {
   rating: number;
   personalNote: string;
   visitCaption?: string;
+  visitMedia?: string[]; // NEW: Unassigned/"vibes" photos from the visit
   negativeNote: string;
   personalNotes?: PersonalNote[];
   serverRating?: 'bad' | 'okay' | 'good' | null;
@@ -1239,8 +1246,8 @@ export const convertVisitToCarouselFeedPost = async (reviews: FirebaseReview[]) 
   // Extract tags from main review for the carousel post summary
   const { tasteChips: mainTasteChips, audienceTags: mainAudienceTags } = extractReviewTags(mainReview);
 
-  // Create carousel data for all dishes in the visit
-  const carouselItems = sortedReviews.map(review => {
+  // Create carousel data for all dishes in the visit (preserve original order from wizard)
+  const carouselItems = reviews.map(review => {
     const { tasteChips, audienceTags } = extractReviewTags(review);
     const imgs = getReviewImages(review);
     return {
@@ -1267,28 +1274,33 @@ export const convertVisitToCarouselFeedPost = async (reviews: FirebaseReview[]) 
     };
   });
 
-  // Build richer media items: one or more visit-level images plus per-dish images
-  const mediaItems: FeedMediaItem[] = [];
+  // Build richer media items: explicit visit-level images first, then per-dish images
+  const visitMediaItems: FeedMediaItem[] = [];
+  const visitMediaUrls = new Set<string>();
 
-  // Visit-level image synthesized from the first review that has images
-  const visitImageSource = reviews.find((r) => getReviewImages(r).length > 0) || mainReview;
-  const visitImages = getReviewImages(visitImageSource);
-  if (visitImages.length > 0) {
-    mediaItems.push({
-      id: `visit-${visitImageSource.id}`,
-      imageUrl: visitImages[0],
-      kind: 'visit',
-      reviewId: visitImageSource.id,
-      dishName: visitImageSource.dish,
-      rating: visitImageSource.rating,
-    });
-  }
+  // Step 1: Collect explicit visit-level media from visitMedia field
+  reviews.forEach((review) => {
+    if (Array.isArray(review.visitMedia)) {
+      review.visitMedia.forEach((url) => {
+        if (typeof url === 'string' && url.trim().length && !visitMediaUrls.has(url)) {
+          visitMediaUrls.add(url);
+          visitMediaItems.push({
+            id: `visit-${visitMediaItems.length}`,
+            imageUrl: url,
+            kind: 'visit',
+            // No reviewId needed for pure visit images
+          });
+        }
+      });
+    }
+  });
 
-  // One dish-level media item per review (primary image)
-  sortedReviews.forEach((review) => {
+  // Step 2: Build dish media items in original review order (preserve wizard order)
+  const dishMediaItems: FeedMediaItem[] = [];
+  reviews.forEach((review) => {
     const imgs = getReviewImages(review);
     if (!imgs.length) return;
-    mediaItems.push({
+    dishMediaItems.push({
       id: `dish-${review.id}`,
       imageUrl: imgs[0],
       kind: 'dish',
@@ -1297,6 +1309,28 @@ export const convertVisitToCarouselFeedPost = async (reviews: FirebaseReview[]) 
       rating: review.rating,
     });
   });
+
+  // Step 3: Fallback when no visitMedia photos exist
+  if (visitMediaItems.length === 0) {
+    const fallbackSource = reviews.find((r) => getReviewImages(r).length > 0) || mainReview;
+    const fallbackImages = getReviewImages(fallbackSource);
+    if (fallbackImages.length) {
+      visitMediaItems.push({
+        id: `visit-fallback-${fallbackSource.id}`,
+        imageUrl: fallbackImages[0],
+        kind: 'visit',
+        reviewId: fallbackSource.id,
+        dishName: fallbackSource.dish,
+        rating: fallbackSource.rating,
+      });
+    }
+  }
+
+  // Step 4: Combine in proper order: visit items first, then dish items
+  const mediaItems: FeedMediaItem[] = [
+    ...visitMediaItems,
+    ...dishMediaItems,
+  ];
 
   return {
     id: mainReview.visitId || mainReview.id,

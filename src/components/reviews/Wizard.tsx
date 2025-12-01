@@ -443,6 +443,17 @@ const Wizard: React.FC = () => {
     const visitLevelCaption = typeof visitDraft.overallText === 'string' && visitDraft.overallText.trim().length
       ? visitDraft.overallText.trim()
       : undefined;
+
+    // Collect unassigned photos (vibes/visit-level media)
+    const usedMediaIds = new Set<string>();
+    dishDrafts.forEach(d => {
+      d.mediaIds.forEach(id => usedMediaIds.add(id));
+    });
+    const visitMediaUrls = mediaItems
+      .filter(item => !usedMediaIds.has(item.id) && item.kind === 'photo')
+      .map(item => item.downloadURL)
+      .filter(Boolean);
+
     const reviewIds: string[] = [];
 
     try {
@@ -494,6 +505,7 @@ const Wizard: React.FC = () => {
           visitId: sharedVisitId,
           dishCategory: dish.dishCategory,
           ...(visitLevelCaption ? { visitCaption: visitLevelCaption } : {}),
+          ...(visitMediaUrls.length ? { visitMedia: visitMediaUrls } : {}),
         };
 
         // Add to payload for saveReview
