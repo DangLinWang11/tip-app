@@ -55,6 +55,7 @@ export interface ReviewDraft {
   rating: number; // 0.1..10.0
   dishTag?: string;
   caption?: string;
+  visitCaption?: string;
   personalNote?: string;
   negativeNote?: string;
   serverRating?: string | number | null;
@@ -79,7 +80,7 @@ export interface VisitDraft {
   restaurantAddress?: string;
   restaurantPriceLevel?: '$' | '$$' | '$$$' | null;
   mealTime?: MealTimeTag | 'unspecified';
-  overallText?: string;
+  overallText?: string; // Visit-level caption that applies to every dish review
   serviceSpeed?: ServiceSpeed | null;
   visitId?: string;
 }

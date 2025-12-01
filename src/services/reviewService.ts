@@ -139,6 +139,7 @@ export interface ReviewData {
   // and ensure dishName is populated in the builder.
   rating: number;
   personalNote: string;
+  visitCaption?: string;
   negativeNote: string;
   serverRating?: 'bad' | 'okay' | 'good' | null;
   price?: string | null;
@@ -470,11 +471,21 @@ export const saveReview = async (
 
     // Step 3: Create review document with proper linking
     console.log('dY", Saving review with links - restaurantId:', restaurantId, 'menuItemId:', menuItemId);
-    const { restaurantCuisines: _ignoredRestaurantCuisines, cuisines: _ignoredCuisines, ...reviewDataRest } = reviewData as any;
+    const {
+      restaurantCuisines: _ignoredRestaurantCuisines,
+      cuisines: _ignoredCuisines,
+      visitCaption,
+      ...reviewDataRest
+    } = reviewData as any;
+    const normalizedVisitCaption =
+      typeof visitCaption === 'string' && visitCaption.trim().length
+        ? visitCaption.trim()
+        : undefined;
 
     const nowMs = Date.now();
     const reviewDocumentPayload: Record<string, any> = {
       ...reviewDataRest,
+      ...(normalizedVisitCaption ? { visitCaption: normalizedVisitCaption } : {}),
       explicit: reviewData.explicit ?? null,
       sentiment: reviewData.sentiment ?? null,
       explicitTags: Array.isArray(reviewData.explicitTags) ? reviewData.explicitTags : [],
@@ -639,6 +650,7 @@ export interface FirebaseReview {
   dish: string;
   rating: number;
   personalNote: string;
+  visitCaption?: string;
   negativeNote: string;
   personalNotes?: PersonalNote[];
   serverRating?: 'bad' | 'okay' | 'good' | null;
@@ -1123,6 +1135,17 @@ interface FeedPostAuthor {
   isVerified: boolean;
 }
 
+export type FeedMediaItemKind = 'dish' | 'visit';
+
+export interface FeedMediaItem {
+  id: string;
+  imageUrl: string;
+  kind: FeedMediaItemKind;
+  reviewId?: string;
+  dishName?: string;
+  rating?: number;
+}
+
 // Cache for user profiles to avoid redundant fetches
 const userProfileCache = new Map<string, FeedPostAuthor>();
 
@@ -1152,6 +1175,15 @@ export const convertVisitToCarouselFeedPost = async (reviews: FirebaseReview[]) 
   // Sort reviews by rating (highest first) for main image selection
   const sortedReviews = [...reviews].sort((a, b) => b.rating - a.rating);
   const mainReview = sortedReviews[0]; // Highest rated dish as main
+
+  // Derive visit-level caption and tags from the group
+  const visitCaption =
+    reviews
+      .map((r) => (r as any).visitCaption)
+      .find((value) => typeof value === 'string' && value.trim().length) || undefined;
+  const visitTags = Array.isArray(mainReview.tags) && mainReview.tags.length
+    ? mainReview.tags
+    : undefined;
 
   // Fetch lightweight restaurant data (use precomputed qualityScore if present)
   const restaurantData = await getRestaurantById(mainReview.restaurantId);
@@ -1212,6 +1244,7 @@ export const convertVisitToCarouselFeedPost = async (reviews: FirebaseReview[]) 
         createdAt: review.createdAt,
         createdAtMs: review.createdAtMs,
         caption: (review as any).caption || undefined,
+        visitCaption: (review as any).visitCaption || undefined,
         tasteChips: tasteChips.length > 0 ? tasteChips : undefined,
         audienceTags: audienceTags.length > 0 ? audienceTags : undefined
       },
@@ -1219,6 +1252,37 @@ export const convertVisitToCarouselFeedPost = async (reviews: FirebaseReview[]) 
       price: review.price,
       personalNotes: review.personalNotes || []
     };
+  });
+
+  // Build richer media items: one or more visit-level images plus per-dish images
+  const mediaItems: FeedMediaItem[] = [];
+
+  // Visit-level image synthesized from the first review that has images
+  const visitImageSource = reviews.find((r) => getReviewImages(r).length > 0) || mainReview;
+  const visitImages = getReviewImages(visitImageSource);
+  if (visitImages.length > 0) {
+    mediaItems.push({
+      id: `visit-${visitImageSource.id}`,
+      imageUrl: visitImages[0],
+      kind: 'visit',
+      reviewId: visitImageSource.id,
+      dishName: visitImageSource.dish,
+      rating: visitImageSource.rating,
+    });
+  }
+
+  // One dish-level media item per review (primary image)
+  sortedReviews.forEach((review) => {
+    const imgs = getReviewImages(review);
+    if (!imgs.length) return;
+    mediaItems.push({
+      id: `dish-${review.id}`,
+      imageUrl: imgs[0],
+      kind: 'dish',
+      reviewId: review.id,
+      dishName: review.dish,
+      rating: review.rating,
+    });
   });
 
   return {
@@ -1229,6 +1293,9 @@ export const convertVisitToCarouselFeedPost = async (reviews: FirebaseReview[]) 
     dishId: mainReview.menuItemId,
     isCarousel: true, // Flag to indicate this is a carousel post
     carouselItems, // Array of all dishes in the visit
+    visitCaption,
+    visitTags,
+    mediaItems,
     author, // NOW includes author.id for follow functionality
     restaurant: {
       name: restaurantData?.name || mainReview.restaurant || 'Unknown Restaurant',
@@ -1246,6 +1313,7 @@ export const convertVisitToCarouselFeedPost = async (reviews: FirebaseReview[]) 
       createdAt: mainReview.createdAt,
       createdAtMs: mainReview.createdAtMs,
       caption: (mainReview as any).caption || undefined,
+      visitCaption: (mainReview as any).visitCaption || undefined,
       tasteChips: mainTasteChips.length > 0 ? mainTasteChips : undefined,
       audienceTags: mainAudienceTags.length > 0 ? mainAudienceTags : undefined
     },
@@ -1454,6 +1522,19 @@ export const convertReviewToFeedPost = async (review: FirebaseReview) => {
     restaurantId: review.restaurantId,
     dishId: review.menuItemId,
     isCarousel: false, // Single dish post
+    mediaItems: (() => {
+      const imgs = getReviewImages(review);
+      if (!imgs.length) return undefined;
+      const item: FeedMediaItem = {
+        id: `dish-${review.id}`,
+        imageUrl: imgs[0],
+        kind: 'dish',
+        reviewId: review.id,
+        dishName: review.dish || (review as any).dishName,
+        rating: review.rating,
+      };
+      return [item];
+    })(),
     author, // NOW includes author.id for follow functionality
     restaurant: {
       name: restaurantData?.name || review.restaurant || (review as any).restaurantName || 'Unknown Restaurant',
@@ -1471,6 +1552,7 @@ export const convertReviewToFeedPost = async (review: FirebaseReview) => {
       createdAt: review.createdAt,
       createdAtMs: review.createdAtMs,
       caption: (review as any).caption || undefined,
+      visitCaption: (review as any).visitCaption || undefined,
       tasteChips: tasteChips.length > 0 ? tasteChips : undefined,
       audienceTags: audienceTags.length > 0 ? audienceTags : undefined,
       verification: (review as any).verification
@@ -1532,6 +1614,19 @@ export const convertUserReviewToFeedPost = async (review: FirebaseReview) => {
     restaurantId: review.restaurantId,
     dishId: review.menuItemId,
     isCarousel: false, // Profile page shows individual reviews
+    mediaItems: (() => {
+      const imgs = getReviewImages(review);
+      if (!imgs.length) return undefined;
+      const item: FeedMediaItem = {
+        id: `dish-${review.id}`,
+        imageUrl: imgs[0],
+        kind: 'dish',
+        reviewId: review.id,
+        dishName: review.dish || (review as any).dishName,
+        rating: review.rating,
+      };
+      return [item];
+    })(),
     author, // NOW includes author.id for follow functionality
     restaurant: {
       name: restaurantData?.name || review.restaurant || (review as any).restaurantName || 'Unknown Restaurant',
@@ -1549,6 +1644,7 @@ export const convertUserReviewToFeedPost = async (review: FirebaseReview) => {
       createdAt: review.createdAt,
       createdAtMs: review.createdAtMs,
       caption: (review as any).caption || undefined,
+      visitCaption: (review as any).visitCaption || undefined,
       tasteChips: tasteChips.length > 0 ? tasteChips : undefined,
       audienceTags: audienceTags.length > 0 ? audienceTags : undefined,
       verification: (review as any).verification
@@ -1644,18 +1740,31 @@ export const convertReviewsToFeedPosts = async (reviews: FirebaseReview[]) => {
   } catch (error) {
     console.error('Error converting reviews to carousel feed posts:', error);
     // Fallback to individual posts
-    return reviews.map(review => {
-      const { tasteChips, audienceTags } = extractReviewTags(review);
-      return {
-        id: review.id,
-        visitId: review.visitId,
-        userId: review.userId,
-        restaurantId: review.restaurantId,
-        dishId: review.menuItemId,
-        isCarousel: false,
-        author: {
-          id: review.userId || "anonymous", // NEW: Include userId in fallback
-          name: review.userId || "Anonymous User",
+      return reviews.map(review => {
+        const { tasteChips, audienceTags } = extractReviewTags(review);
+        return {
+          id: review.id,
+          visitId: review.visitId,
+          userId: review.userId,
+          restaurantId: review.restaurantId,
+          dishId: review.menuItemId,
+          isCarousel: false,
+          mediaItems: (() => {
+            const imgs = getReviewImages(review);
+            if (!imgs.length) return undefined;
+            const item: FeedMediaItem = {
+              id: `dish-${review.id}`,
+              imageUrl: imgs[0],
+              kind: 'dish',
+              reviewId: review.id,
+              dishName: review.dish,
+              rating: review.rating,
+            };
+            return [item];
+          })(),
+          author: {
+            id: review.userId || "anonymous", // NEW: Include userId in fallback
+            name: review.userId || "Anonymous User",
           username: review.userId || "anonymous",
           image: getAvatarUrl({ username: review.userId || "anonymous" }),
           isVerified: false
@@ -1674,6 +1783,7 @@ export const convertReviewsToFeedPosts = async (reviews: FirebaseReview[]) => {
         review: {
           date: safeToISOString(review.createdAt),
           caption: (review as any).caption || undefined,
+          visitCaption: (review as any).visitCaption || undefined,
           tasteChips: tasteChips.length > 0 ? tasteChips : undefined,
           audienceTags: audienceTags.length > 0 ? audienceTags : undefined,
           verification: (review as any).verification

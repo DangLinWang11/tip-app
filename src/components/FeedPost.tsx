@@ -16,7 +16,7 @@ import SaveToListModal from './SaveToListModal';
 import ReceiptUploadModal from './ReceiptUploadModal';
 import { isFollowing, followUser, unfollowUser } from '../services/followService';
 import { getCurrentUser } from '../lib/firebase';
-import { deleteReview, reportReview } from '../services/reviewService';
+import { deleteReview, reportReview, type FeedMediaItem } from '../services/reviewService';
 import { uploadReviewProofs, markReviewPendingProof } from '../services/reviewVerificationService';
 import { collection, query, where, limit, getDocs } from 'firebase/firestore';
 import { db } from '../lib/firebase';
@@ -27,6 +27,7 @@ interface FeedPostReview {
   createdAt?: any;
   createdAtMs?: number;
   caption?: string;
+  visitCaption?: string;
   tasteChips?: string[];
   audienceTags?: string[];
 }
@@ -76,6 +77,11 @@ interface FeedPostProps {
     likes: number;
     comments: number;
   };
+  // Optional visit-level metadata for multi-dish posts
+  visitCaption?: string;
+  visitTags?: string[];
+  // Flattened media items for visit and dish imagery
+  mediaItems?: FeedMediaItem[];
   topComment?: {
     author: string;
     text: string;
@@ -100,6 +106,9 @@ const FeedPost: React.FC<FeedPostProps> = ({
   review,
   engagement,
   tags,
+  visitCaption,
+  visitTags,
+  mediaItems,
   showPendingVerification = false
 }) => {
   // Log all IDs received by FeedPost component
@@ -163,6 +172,8 @@ const FeedPost: React.FC<FeedPostProps> = ({
     attr_tender: 'Tender',
     attr_crunchy: 'Crunchy',
     attr_sweet: 'Sweet',
+    attr_zesty: 'Zesty',
+    attr__zesty: 'Zesty',
 
     // Occasions
     occasion_date_night: 'Date Night',
@@ -350,6 +361,25 @@ const FeedPost: React.FC<FeedPostProps> = ({
         tags: [], 
         price: undefined 
       };
+  const isVisitPost = Boolean(visitId) && isCarousel && (carouselItems?.length ?? 0) > 1;
+  const hasMediaItems = Array.isArray(mediaItems) && mediaItems.length > 0;
+  const activeMediaIndex = hasMediaItems && mediaItems[currentIndex] ? currentIndex : 0;
+  const activeMediaItem = hasMediaItems ? mediaItems[activeMediaIndex] : undefined;
+
+  const resolveDishItemForActiveMedia = (): CarouselItem | undefined => {
+    if (!isVisitPost || !hasMediaItems || !activeMediaItem || activeMediaItem.kind !== 'dish') {
+      return undefined;
+    }
+    if (activeMediaItem.reviewId) {
+      const byId = carouselItems.find(
+        (item) => item.id === activeMediaItem.reviewId || item.reviewId === activeMediaItem.reviewId
+      );
+      if (byId) return byId;
+    }
+    return carouselItems[activeMediaIndex] || carouselItems[0];
+  };
+
+  const dishContextItem = resolveDishItemForActiveMedia();
 
   // Function to get quality circle color based on percentage
   const getQualityColor = (percentage: number): string => {
@@ -400,24 +430,27 @@ const FeedPost: React.FC<FeedPostProps> = ({
 
   // Handle touch events for swipe
   const handleTouchStart = (e: React.TouchEvent) => {
-    if (!isCarousel || carouselItems.length <= 1) return;
+    const mediaLength = isVisitPost && hasMediaItems ? mediaItems!.length : carouselItems.length;
+    if (!isCarousel || mediaLength <= 1) return;
     setTouchStart(e.targetTouches[0].clientX);
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
-    if (!isCarousel || carouselItems.length <= 1) return;
+    const mediaLength = isVisitPost && hasMediaItems ? mediaItems!.length : carouselItems.length;
+    if (!isCarousel || mediaLength <= 1) return;
     setTouchEnd(e.targetTouches[0].clientX);
   };
 
   const handleTouchEnd = () => {
-    if (!isCarousel || carouselItems.length <= 1) return;
+    const mediaLength = isVisitPost && hasMediaItems ? mediaItems!.length : carouselItems.length;
+    if (!isCarousel || mediaLength <= 1) return;
     if (!touchStart || !touchEnd) return;
     
     const distance = touchStart - touchEnd;
     const isLeftSwipe = distance > 50;
     const isRightSwipe = distance < -50;
 
-    if (isLeftSwipe && currentIndex < carouselItems.length - 1) {
+    if (isLeftSwipe && currentIndex < mediaLength - 1) {
       setCurrentIndex(currentIndex + 1);
     }
     if (isRightSwipe && currentIndex > 0) {
@@ -501,7 +534,7 @@ const FeedPost: React.FC<FeedPostProps> = ({
   };
 
 
-  return (
+  const legacyLayout = (
     <div className="relative bg-white rounded-2xl overflow-hidden shadow-sm mb-4">
       {/* Absolute rating (bigger, nudged down & left) */}
       <div className="pointer-events-none absolute top-5 right-5 z-10">
@@ -528,7 +561,7 @@ const FeedPost: React.FC<FeedPostProps> = ({
                   disabled={followLoading}
                   className={`ml-0.5 -mt-1 w-5 h-5 rounded-full border flex items-center justify-center transition-all duration-200 ${
                     isFollowingUser 
-                      ? 'bg-green-100 border-green-300 text-green-600 hover:bg-green-200' 
+                      ? 'bg-green-100 border-green-300 text-green-600 hover:bg-green-200'
                       : 'border-gray-300 text-gray-500 hover:border-primary hover:text-primary'
                   } ${followLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                 >
@@ -631,6 +664,590 @@ const FeedPost: React.FC<FeedPostProps> = ({
           ))}
         </div>
       )}
+
+      {/* Dish / Visit Title Below Image */}
+      <div className="px-4 pt-3 pb-2">
+        <div className="flex items-center justify-between">
+          <h3 className="font-semibold text-xl">
+            <span
+              onClick={handleDishClickEnhanced}
+              className={(currentItem.dishId || restaurantId) ? "hover:text-primary cursor-pointer" : ""}
+            >
+              {hasMediaItems && activeMediaItem?.kind === 'visit'
+                ? (restaurant?.name || currentItem.dish.name)
+                : isCarousel && carouselItems.length > 1
+                  ? `${(dishContextItem || currentItem).dish.name} (${currentIndex + 1}/${carouselItems.length})`
+                  : (dishContextItem || currentItem).dish.name}
+            </span>
+          </h3>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-400">
+              {(() => {
+                const when = formatRelativeTime(
+                  (currentItem.review as any).createdAt ??
+                  (currentItem.review as any).createdAtMs ??
+                  currentItem.review.date
+                );
+                return when;
+              })()}
+            </span>
+            <button
+              onClick={() => setIsActionSheetOpen(true)}
+              className="text-gray-500 hover:text-gray-800 p-1 rounded-md"
+              aria-label="More options"
+            >
+              <DotsIcon size={18} />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="px-4 pb-4">
+        {/* Verification badge (if present)
+            Only show "Pending verification" on a user's own profile view.
+        */}
+        {(() => {
+          const state = (currentItem.review as any)?.verification?.state as string | undefined;
+          if (!state) return null;
+          const map: Record<string, { label: string; cls: string }> = {
+            verified: { label: 'Verified', cls: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+            pending_proof: { label: 'Pending verification', cls: 'bg-amber-50 text-amber-700 border-amber-200' },
+            pending_review: { label: 'Pending verification', cls: 'bg-amber-50 text-amber-700 border-amber-200' },
+            unverified: { label: 'Unverified', cls: 'bg-slate-50 text-slate-600 border-slate-200' },
+            rejected: { label: 'Rejected', cls: 'bg-rose-50 text-rose-700 border-rose-200' },
+          };
+          const isPending = state === 'pending_proof' || state === 'pending_review';
+          // Hide pending badges unless the caller (Profile page) opts in
+          if (isPending && !showPendingVerification) return null;
+          const meta = map[state] || map['unverified'];
+          return (
+            <div className="flex items-center gap-2 mb-2">
+              <div className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium ${meta.cls}`}>
+                {meta.label}
+              </div>
+              {isOwnPost && (state === 'unverified' || state === 'rejected') && (
+                <button
+                  onClick={() => setShowReceiptModal(true)}
+                  className="text-xs text-primary hover:underline cursor-pointer font-medium"
+                >
+                  Add receipt
+                </button>
+              )}
+            </div>
+          );
+        })()}
+        {/* Caption (visit-level or dish-level, if present) */}
+        {(() => {
+          // Visit context: prefer visitCaption
+          if (hasMediaItems && activeMediaItem?.kind === 'visit') {
+            const visitText =
+              typeof visitCaption === 'string' && visitCaption.trim().length
+                ? visitCaption.trim()
+                : (currentItem.review.visitCaption ||
+                   currentItem.review.caption ||
+                   '');
+            if (!visitText) return null;
+            return (
+              <p className="text-sm text-gray-700 mb-2">
+                {visitText}
+              </p>
+            );
+          }
+
+          // Dish context
+          const source = dishContextItem || currentItem;
+          if (source.review.caption) {
+            return (
+              <p className="text-sm text-gray-700 mb-2">
+                {source.review.caption}
+              </p>
+            );
+          }
+          return null;
+        })()}
+
+        {/* Taste chips and audience tags */}
+        {(currentItem.review.tasteChips || currentItem.review.audienceTags || (isCarousel ? (currentItem as any).tags?.length : tags?.length)) && (
+          <div className="flex flex-wrap gap-1.5 mb-2">
+            {/* Taste attribute chips with color coding */}
+            {currentItem.review.tasteChips?.map((chip, i) => {
+              // Determine chip color based on content
+              let chipClass = "inline-flex items-center rounded-full border px-3 py-1.5 text-xs font-medium shadow-sm";
+
+              // Value-related chips (blue)
+              if (chip.includes('Bargain') || chip.includes('Fair') || chip.includes('Overpriced')) {
+                chipClass += chip.includes('Bargain')
+                  ? " bg-blue-50 text-blue-700 border-blue-200"
+                  : chip.includes('Fair')
+                  ? " bg-sky-50 text-sky-700 border-sky-200"
+                  : " bg-slate-100 text-slate-700 border-slate-300";
+              }
+              // Freshness-related chips (green gradient)
+              else if (chip.includes('fresh') || chip.includes('Fresh')) {
+                chipClass += chip.includes('Very')
+                  ? " bg-gradient-to-r from-green-50 to-emerald-50 text-green-700 border-green-200"
+                  : chip === 'Fresh'
+                  ? " bg-green-50 text-green-700 border-green-200"
+                  : " bg-orange-50 text-orange-700 border-orange-200";
+              }
+              // Saltiness-related chips (yellow/orange)
+              else if (chip.includes('salt') || chip.includes('Balanced')) {
+                chipClass += chip.includes('Balanced')
+                  ? " bg-amber-50 text-amber-700 border-amber-200"
+                  : chip.includes('Too')
+                  ? " bg-orange-100 text-orange-700 border-orange-300"
+                  : " bg-yellow-50 text-yellow-700 border-yellow-200";
+              }
+              // Default neutral
+              else {
+                chipClass += " bg-gray-50 text-gray-700 border-gray-200";
+              }
+
+              return (
+                <span key={`taste-${i}`} className={chipClass}>
+                  {chip}
+                </span>
+              );
+            })}
+
+            {/* Audience tags with enhanced emerald/green styling and emojis */}
+            {currentItem.review.audienceTags?.map((tag, i) => {
+              // Add emoji prefix based on tag type
+              const getTagEmoji = (tagText: string): string => {
+                if (tagText.includes('Spicy')) return '🌶️ ';
+                if (tagText.includes('Date')) return '❤️ ';
+                if (tagText.includes('Family')) return '👨‍👩‍👧‍👦 ';
+                if (tagText.includes('Quick')) return '⚡ ';
+                if (tagText.includes('Solo')) return '🧘 ';
+                if (tagText.includes('Group')) return '👥 ';
+                return '';
+              };
+
+              return (
+                <span
+                  key={`audience-${i}`}
+                  className="inline-flex items-center rounded-full border px-3 py-1.5 text-xs font-semibold bg-gradient-to-r from-emerald-50 to-green-50 text-emerald-700 border-emerald-300 shadow-sm"
+                >
+                  {getTagEmoji(tag)}{tag}
+                </span>
+              );
+            })}
+
+            {/* Tag slugs rendered with color/emoji logic */}
+            {(() => {
+              const explicitTagList = Array.isArray(currentItem.review.explicitTags) ? currentItem.review.explicitTags : [];
+              const derivedTagList = Array.isArray(currentItem.review.derivedTags) ? currentItem.review.derivedTags : [];
+              const legacyTagList =
+                !explicitTagList.length && !derivedTagList.length
+                  ? (isCarousel ? ((currentItem as any).tags || []) : (tags || []))
+                  : [];
+              const displayTags = [...explicitTagList, ...derivedTagList, ...legacyTagList];
+
+              return displayTags.map((slug, i) => {
+                const label = TAG_LABELS[slug] || slug;
+                const chipClass = getTagChipClass(slug);
+                const emoji = getTagEmojiForSlug(slug);
+                return (
+                  <span
+                    key={`tag-${slug}-${i}`}
+                    className={`inline-flex items-center rounded-full border px-3 py-1.5 text-xs font-semibold shadow-sm ${chipClass}`}
+                  >
+                    {emoji}{label}
+                  </span>
+                );
+              });
+            })()}
+          </div>
+        )}
+
+        {/* Engagement */}
+        <div className="flex justify-between items-center pt-2 border-t border-light-gray">
+          {showLikesComments ? (
+            <>
+              <div className="flex items-center space-x-4">
+                <button className="flex items-center">
+                  <HeartIcon size={22} className="text-dark-gray" />
+                  <span className="ml-1 text-sm">{engagement.likes}</span>
+                </button>
+                <button onClick={() => navigate(`/post/${id}`)} className="flex items-center">
+                  <MessageCircleIcon size={22} className="text-dark-gray" />
+                  <span className="ml-1 text-sm">{engagement.comments}</span>
+                </button>
+              </div>
+              <div className="flex items-center space-x-4">
+                <button onClick={() => setSaved(!saved)}>
+                  <BookmarkIcon size={22} className={saved ? 'text-secondary fill-secondary' : 'text-dark-gray'} />
+                </button>
+                {showSocialSharing && (
+                  <button>
+                    <ShareIcon size={22} className="text-dark-gray" />
+                  </button>
+                )}
+              </div>
+            </>
+          ) : (
+            <div className="flex items-center justify-between w-full">
+              <div className="flex items-center space-x-4">
+                <button 
+                  onClick={() => {
+                    setLiked(!liked);
+                    setLikeCount(prev => liked ? prev - 1 : prev + 1);
+                  }}
+                  className="flex items-center text-gray-600 hover:text-red-500 transition-colors"
+                >
+                  <HeartIcon 
+                    size={20} 
+                    className={`mr-1 ${liked ? 'fill-red-500 text-red-500' : ''}`} 
+                  />
+                  <span className="text-sm">{likeCount}</span>
+                </button>
+                <button
+                  onClick={() => navigate(`/post/${id}`)}
+                  className="flex items-center text-gray-600 hover:text-primary transition-colors"
+                >
+                  <MessageCircleIcon size={20} className="mr-1" />
+                  <span className="text-sm">{engagement.comments}</span>
+                </button>
+              </div>
+              <div className="flex items-center space-x-3">
+                <button 
+                  onClick={() => {
+                    console.log('ðŸ’¾ [FeedPost] Opening SaveToListModal with IDs:', {
+                      id: id,
+                      dishId: dishId,
+                      currentItemDishId: currentItem.dishId,
+                      visitId: visitId,
+                      restaurantId: restaurantId,
+                      restaurantName: restaurant?.name,
+                      dishName: currentItem.dish.name,
+                      isCarousel: isCarousel,
+                      currentIndex: currentIndex
+                    });
+                    setShowSaveModal(true);
+                  }}
+                  className="flex items-center text-sm text-gray-600 hover:text-primary"
+                >
+                  <BookmarkIcon size={18} className={saved ? 'text-primary fill-primary mr-1' : 'text-gray-600 mr-1'} />
+                  {saved ? 'Saved' : 'Save'}
+                </button>
+                <button 
+                  onClick={() => {
+                    if (navigator.share) {
+                      navigator.share({
+                        title: `${currentItem.dish.name} at ${restaurant?.name}`,
+                        text: `Check out this ${currentItem.dish.rating}/10 rated dish!`,
+                        url: window.location.href
+                      });
+                    }
+                  }}
+                  className="text-gray-600 hover:text-blue-500 transition-colors"
+                >
+                  <ShareIcon size={18} />
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {isActionSheetOpen && (
+        <div
+          className="fixed inset-0 z-[60] flex items-end justify-center bg-black/40"
+          onClick={() => setIsActionSheetOpen(false)}
+        >
+          {/* Sheet */}
+          <div
+            className="w-full max-w-md rounded-t-2xl bg-white shadow-lg p-2 pb-4 animate-[slideUp_160ms_ease-out] mx-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mx-auto mb-2 mt-1 h-1.5 w-10 rounded-full bg-neutral-200" />
+            <div className="divide-y divide-neutral-100">
+              {/* Share (everyone) */}
+              <button
+                className="w-full px-4 py-3 text-left text-[15px] hover:bg-neutral-50"
+                onClick={() => {
+                  setIsActionSheetOpen(false);
+                  const shareData = {
+                    title: `${currentItem.dish.name} at ${restaurant?.name}`,
+                    text: `Check out this ${currentItem.dish.rating}/10 rated dish!`,
+                    url: window.location.origin + `/post/${id}`,
+                  };
+                  if (navigator.share) {
+                    navigator.share(shareData).catch(() => {});
+                  } else {
+                    navigator.clipboard?.writeText(shareData.url).then(() => {
+                      alert('Link copied to clipboard');
+                    });
+                  }
+                }}
+              >
+                Share
+              </button>
+
+              {/* Report (everyone) */}
+              <button
+                className="w-full px-4 py-3 text-left text-[15px] hover:bg-neutral-50"
+                onClick={async () => {
+                  setIsActionSheetOpen(false);
+                  const reason = window.prompt('Report reason (spam, inappropriate, incorrect info):');
+                  if (!reason) return;
+                  const details = window.prompt('Optional details for our team:') || '';
+                  try {
+                    await reportReview(id, reason.trim(), details.trim());
+                    alert('Thanks! This post has been flagged for review.');
+                  } catch {
+                    alert('Failed to submit report. Please try again.');
+                  }
+                }}
+              >
+                Report
+              </button>
+
+              {/* Delete (owner only) */}
+              {isOwnPost && (
+                <button
+                  className="w-full px-4 py-3 text-left text-[15px] text-red-600 hover:bg-red-50"
+                  onClick={() => {
+                    setIsActionSheetOpen(false);
+                    handleDeletePost();
+                  }}
+                >
+                  Delete Post
+                </button>
+              )}
+            </div>
+
+            {/* Cancel */}
+            <button
+              className="mt-2 w-full rounded-xl bg-neutral-100 px-4 py-3 text-[15px] font-medium hover:bg-neutral-200"
+              onClick={() => setIsActionSheetOpen(false)}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {showSaveModal && (() => {
+        const modalProps = {
+          isOpen: showSaveModal,
+          restaurantId: restaurantId,
+          restaurantName: restaurant?.name,
+          dishId: currentItem.dishId,
+          dishName: currentItem.dish.name,
+          postId: id
+        };
+        
+        console.log('ðŸ’¾ [FeedPost] Rendering SaveToListModal with props:', modalProps);
+        
+        return (
+          <SaveToListModal
+            {...modalProps}
+            onClose={() => {
+              console.log('ðŸ’¾ [FeedPost] Closing SaveToListModal');
+              setShowSaveModal(false);
+            }}
+          />
+        );
+      })()}
+
+      <ReceiptUploadModal
+        isOpen={showReceiptModal}
+        onClose={() => setShowReceiptModal(false)}
+        onUpload={async (files) => {
+          const urls = await uploadReviewProofs(id, files);
+          await markReviewPendingProof(id, urls);
+        }}
+      />
+    </div>
+  );
+
+  const visitLayout = (
+    <div className="relative bg-white rounded-2xl overflow-hidden shadow-sm mb-4">
+      {/* Absolute rating (bigger, nudged down & left) */}
+      <div className="pointer-events-none absolute top-5 right-5 z-10">
+        <RatingBadge rating={currentItem.dish.rating} size="xl" />
+      </div>
+
+      {/* Header */}
+      <div className="p-4 flex items-center gap-4">
+        <img src={author.image} alt={author.name} className="w-10 h-10 rounded-full object-cover" />
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1.5">
+            {/* NEW: Username area with follow button */}
+            <div className="relative flex items-center">
+              <span 
+                onClick={handleUsernameClick}
+                className="font-medium cursor-pointer hover:text-primary"
+              >
+                {author.name}
+              </span>
+              {/* NEW: Follow button (+ icon in top-right of username area) */}
+              {!isOwnPost && (
+                <button
+                  onClick={handleFollowToggle}
+                  disabled={followLoading}
+                  className={`ml-0.5 -mt-1 w-5 h-5 rounded-full border flex items-center justify-center transition-all duration-200 ${
+                    isFollowingUser 
+                      ? 'bg-green-100 border-green-300 text-green-600 hover:bg-green-200' 
+                      : 'border-gray-300 text-gray-500 hover:border-primary hover:text-primary'
+                  } ${followLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                >
+                  {isFollowingUser ? (
+                    <CheckCircleIcon size={12} className="text-green-600" />
+                  ) : (
+                    <PlusIcon size={12} />
+                  )}
+                </button>
+              )}
+            </div>
+            {/* NEW: Checkmark that changes color based on follow status */}
+            {author.isVerified && (
+              <CheckCircleIcon 
+                size={16} 
+                className={isFollowingUser ? 'text-green-500' : 'text-gray-400'} 
+              />
+            )}
+          </div>
+          {restaurant && (
+            <div className="text-sm text-dark-gray flex items-center gap-1.5 mt-0.5">
+              <MapPinIcon size={14} className="text-red-500" />
+              <span
+                onClick={() => {
+                  if (restaurantId) {
+                    navigate(`/restaurant/${restaurantId}`);
+                  } else {
+                    console.warn('Restaurant ID missing for:', restaurant.name, 'Review ID:', id);
+                  }
+                }}
+                className={`max-w-32 truncate ${restaurantId ? "hover:text-primary cursor-pointer" : "text-gray-500"}`}
+              >
+                {restaurant.name}
+              </span>
+              {restaurant.isVerified && <CheckCircleIcon size={14} className="text-secondary" />}
+              {restaurant.qualityScore !== undefined && (
+                <div 
+                  className="w-8 h-5 flex items-center justify-center rounded-full"
+                  style={{ backgroundColor: getQualityColor(restaurant.qualityScore) }}
+                >
+                  <span className="text-xs font-medium text-white">
+                    {restaurant.qualityScore}%
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+      
+      {/* Media section - hero + right column (visit posts only) */}
+      <div className="flex flex-col md:flex-row">
+        {/* Left: hero image driven by mediaItems when available */}
+        <div className="relative flex-1">
+          <div
+            ref={imageRef}
+            className="relative overflow-hidden"
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+          >
+            {hasMediaItems && activeMediaItem ? (
+              <img
+                src={activeMediaItem.imageUrl}
+                alt={activeMediaItem.dishName || currentItem.dish.name}
+                className="w-full aspect-square object-cover flex-shrink-0"
+              />
+            ) : (
+              <div className="flex transition-transform duration-300 ease-out" style={{ transform: `translateX(-${currentIndex * 100}%)` }}>
+                {isCarousel && carouselItems.length > 1 ? (
+                  carouselItems.map((item) => (
+                    <img
+                      key={item.id}
+                      src={item.dish.image}
+                      alt={item.dish.name}
+                      className="w-full aspect-square object-cover flex-shrink-0"
+                    />
+                  ))
+                ) : (
+                  <img
+                    src={currentItem.dish.image}
+                    alt={currentItem.dish.name}
+                    className="w-full aspect-square object-cover flex-shrink-0"
+                  />
+                )}
+              </div>
+            )}
+            {currentItem.dish.visitCount && (
+              <div className="absolute top-4 right-4 bg-black bg-opacity-50 text-white px-3 py-1 rounded-full text-sm">
+                Visited {currentItem.dish.visitCount}x
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Right: thumbnails column for visit media */}
+        <div className="mt-2 md:mt-0 md:ml-2 md:w-24 lg:w-28 flex-shrink-0 border-t md:border-t-0 md:border-l border-gray-100 bg-gray-50">
+          <div className="flex md:flex-col gap-1.5 p-1.5 overflow-x-auto md:overflow-y-auto">
+            {hasMediaItems ? (
+              mediaItems!.map((item, index) => {
+                const isActive = index === activeMediaIndex;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => setCurrentIndex(index)}
+                    className={`relative flex-shrink-0 rounded-xl overflow-hidden border ${
+                      isActive
+                        ? 'border-red-500 ring-2 ring-red-100'
+                        : 'border-transparent opacity-80 hover:opacity-100'
+                    }`}
+                  >
+                    <img
+                      src={item.imageUrl}
+                      alt={item.dishName || currentItem.dish.name}
+                      className="h-12 w-12 md:h-14 md:w-14 object-cover"
+                    />
+                  </button>
+                );
+              })
+            ) : (
+              <>
+                {isCarousel && carouselItems.length > 1 ? (
+                  carouselItems.map((item, index) => {
+                    if (!item?.dish?.image) return null;
+                    const isActive = index === currentIndex;
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => setCurrentIndex(index)}
+                        className={`relative flex-shrink-0 rounded-xl overflow-hidden border ${
+                          isActive
+                            ? 'border-red-500 ring-2 ring-red-100'
+                            : 'border-transparent opacity-80 hover:opacity-100'
+                        }`}
+                      >
+                        <img
+                          src={item.dish.image}
+                          alt={item.dish.name}
+                          className="h-12 w-12 md:h-14 md:w-14 object-cover"
+                        />
+                      </button>
+                    );
+                  })
+                ) : (
+                  <div className="flex h-full items-center justify-center w-full">
+                    <span className="text-[11px] text-gray-400 md:-rotate-90 md:whitespace-nowrap">
+                      More dishes coming soon
+                    </span>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+      </div>
 
       {/* Dish Name Below Image */}
       <div className="px-4 pt-3 pb-2">
@@ -1003,6 +1620,14 @@ const FeedPost: React.FC<FeedPostProps> = ({
       />
     </div>
   );
+
+  const renderVisitLayout = () => visitLayout;
+
+  if (isVisitPost) {
+    return renderVisitLayout();
+  }
+
+  return legacyLayout;
 };
 
 export default FeedPost;

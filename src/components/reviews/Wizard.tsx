@@ -440,6 +440,9 @@ const Wizard: React.FC = () => {
     if (!dishDrafts.length) throw new Error('At least one dish required');
 
     const sharedVisitId = visitDraft.visitId ?? generateVisitId();
+    const visitLevelCaption = typeof visitDraft.overallText === 'string' && visitDraft.overallText.trim().length
+      ? visitDraft.overallText.trim()
+      : undefined;
     const reviewIds: string[] = [];
 
     try {
@@ -490,6 +493,7 @@ const Wizard: React.FC = () => {
           caption: dish.caption,
           visitId: sharedVisitId,
           dishCategory: dish.dishCategory,
+          ...(visitLevelCaption ? { visitCaption: visitLevelCaption } : {}),
         };
 
         // Add to payload for saveReview
