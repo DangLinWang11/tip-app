@@ -1,4 +1,4 @@
-﻿import React, { useState, useRef, useEffect } from 'react';
+﻿import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   HeartIcon,
@@ -350,21 +350,25 @@ const FeedPost: React.FC<FeedPostProps> = ({
   };
 
   // Get current item to display (carousel or single)
-  const currentItem = isCarousel && carouselItems.length > 0 
-    ? carouselItems[currentIndex] 
-    : { 
-        id,
-        reviewId: id,
-        dishId, 
-        dish, 
-        review, 
-        tags: [], 
-        price: undefined 
-      };
+  const currentItem = useMemo(() => {
+    if (isCarousel && carouselItems.length > 0) {
+      return carouselItems[currentIndex];
+    }
+    return {
+      id,
+      reviewId: id,
+      dishId,
+      dish,
+      review,
+      tags: [],
+      price: undefined,
+    };
+  }, [isCarousel, carouselItems, currentIndex, id, dishId, dish, review]);
   const isVisitPost = Boolean(visitId) && isCarousel && (carouselItems?.length ?? 0) > 1;
   const hasMediaItems = Array.isArray(mediaItems) && mediaItems.length > 0;
-  const activeMediaIndex = hasMediaItems && mediaItems[currentIndex] ? currentIndex : 0;
-  const activeMediaItem = hasMediaItems ? mediaItems[activeMediaIndex] : undefined;
+  const activeMediaItem = (hasMediaItems && currentIndex < mediaItems.length)
+    ? mediaItems[currentIndex]
+    : undefined;
 
   const resolveDishItemForActiveMedia = (): CarouselItem | undefined => {
     if (!isVisitPost || !hasMediaItems || !activeMediaItem || activeMediaItem.kind !== 'dish') {
@@ -376,7 +380,7 @@ const FeedPost: React.FC<FeedPostProps> = ({
       );
       if (byId) return byId;
     }
-    return carouselItems[activeMediaIndex] || carouselItems[0];
+    return carouselItems[currentIndex] || carouselItems[0];
   };
 
   const dishContextItem = resolveDishItemForActiveMedia();
@@ -1152,12 +1156,17 @@ const FeedPost: React.FC<FeedPostProps> = ({
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
           >
-            {hasMediaItems && activeMediaItem ? (
-              <img
-                src={activeMediaItem.imageUrl}
-                alt={activeMediaItem.dishName || currentItem.dish.name}
-                className="w-full aspect-square object-cover flex-shrink-0"
-              />
+            {hasMediaItems && mediaItems.length > 0 ? (
+              <div className="flex transition-transform duration-300 ease-out" style={{ transform: `translateX(-${currentIndex * 100}%)` }}>
+                {mediaItems.map((item) => (
+                  <img
+                    key={item.id}
+                    src={item.imageUrl}
+                    alt={item.dishName || 'Visit photo'}
+                    className="w-full aspect-square object-cover flex-shrink-0"
+                  />
+                ))}
+              </div>
             ) : (
               <div className="flex transition-transform duration-300 ease-out" style={{ transform: `translateX(-${currentIndex * 100}%)` }}>
                 {isCarousel && carouselItems.length > 1 ? (
@@ -1191,7 +1200,7 @@ const FeedPost: React.FC<FeedPostProps> = ({
           <div className="flex md:flex-col gap-1.5 p-1.5 overflow-x-auto md:overflow-y-auto">
             {hasMediaItems ? (
               mediaItems!.map((item, index) => {
-                const isActive = index === activeMediaIndex;
+                const isActive = index === currentIndex;
                 return (
                   <button
                     key={item.id}
@@ -1320,10 +1329,64 @@ const FeedPost: React.FC<FeedPostProps> = ({
             </div>
           );
         })()}
-        {/* Caption (if present) */}
-        {currentItem.review.caption && (
-          <p className="text-sm text-gray-700 mb-2">{currentItem.review.caption}</p>
-        )}
+        {/* Caption - Changes Based on Active Media Kind */}
+        {(() => {
+          const isVisitActive = activeMediaItem?.kind === 'visit';
+
+          if (isVisitActive) {
+            return (
+              <>
+                {/* Visit Caption */}
+                {visitCaption && (
+                  <p className="text-sm text-gray-700 mb-2">{visitCaption}</p>
+                )}
+
+                {/* Visit Tags */}
+                {visitTags && visitTags.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mb-3">
+                    {visitTags.map((slug, i) => {
+                      const label = TAG_LABELS[slug] || slug;
+                      const chipClass = getTagChipClass(slug);
+                      const emoji = getTagEmojiForSlug(slug);
+                      return (
+                        <span
+                          key={`visit-tag-${slug}-${i}`}
+                          className={`inline-flex items-center rounded-full border px-3 py-1.5 text-xs font-semibold shadow-sm ${chipClass}`}
+                        >
+                          {emoji}{label}
+                        </span>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* Compact Dish List for Visit */}
+                {carouselItems.length > 1 && (
+                  <div className="mt-3 mb-3 bg-gray-50 rounded-lg p-3">
+                    <p className="text-xs font-semibold text-gray-600 mb-2">Dishes in this visit:</p>
+                    <div className="space-y-1.5">
+                      {carouselItems.map((item) => (
+                        <div key={item.id} className="text-sm text-gray-700">
+                          <span className="font-medium">{item.dish.name}</span>
+                          <span className="text-gray-500"> • {item.dish.rating}/10</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            );
+          }
+
+          // Dish content (default)
+          return (
+            <>
+              {currentItem.review.caption && (
+                <p className="text-sm text-gray-700 mb-2">{currentItem.review.caption}</p>
+              )}
+            </>
+          );
+        })()}
 
         {/* Taste chips and audience tags */}
         {(currentItem.review.tasteChips || currentItem.review.audienceTags || (isCarousel ? (currentItem as any).tags?.length : tags?.length)) && (
