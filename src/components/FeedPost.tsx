@@ -444,37 +444,43 @@ const FeedPost: React.FC<FeedPostProps> = ({
   }, []);
 
   // Handle touch events for swipe
+  const getMediaLength = () => {
+    if (isVisitPost && hasMediaItems) return mediaItems!.length;
+    if (isCarousel) return carouselItems.length;
+    return 1;
+  };
+
   const handleTouchStart = (e: React.TouchEvent) => {
-    const mediaLength = isVisitPost && hasMediaItems ? mediaItems!.length : carouselItems.length;
+    const mediaLength = getMediaLength();
     if (!isCarousel || mediaLength <= 1) return;
     setTouchStart(e.targetTouches[0].clientX);
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
-    const mediaLength = isVisitPost && hasMediaItems ? mediaItems!.length : carouselItems.length;
+    const mediaLength = getMediaLength();
     if (!isCarousel || mediaLength <= 1) return;
     setTouchEnd(e.targetTouches[0].clientX);
   };
 
   const handleTouchEnd = () => {
-    const mediaLength = isVisitPost && hasMediaItems ? mediaItems!.length : carouselItems.length;
+    const mediaLength = getMediaLength();
     if (!isCarousel || mediaLength <= 1) return;
     if (!touchStart || !touchEnd) return;
-    
+
     const distance = touchStart - touchEnd;
     const isLeftSwipe = distance > 50;
     const isRightSwipe = distance < -50;
 
     if (isLeftSwipe && currentIndex < mediaLength - 1) {
-      setCurrentIndex(currentIndex + 1);
-    }
-    if (isRightSwipe && currentIndex > 0) {
-      setCurrentIndex(currentIndex - 1);
+      setCurrentIndex(Math.min(currentIndex + 1, mediaLength - 1));
+    } else if (isRightSwipe && currentIndex > 0) {
+      setCurrentIndex(Math.max(currentIndex - 1, 0));
     }
   };
 
   const handleDotClick = (index: number) => {
-    setCurrentIndex(index);
+    const mediaLength = getMediaLength();
+    setCurrentIndex(Math.min(Math.max(index, 0), mediaLength - 1));
   };
 
   const handleDishClick = () => {
@@ -1236,7 +1242,10 @@ const FeedPost: React.FC<FeedPostProps> = ({
                   <button
                     key={item.id}
                     type="button"
-                    onClick={() => setCurrentIndex(index)}
+                    onClick={() => {
+                      const safeIndex = Math.min(Math.max(index, 0), mediaItems!.length - 1);
+                      setCurrentIndex(safeIndex);
+                    }}
                     className={`relative flex-shrink-0 rounded-xl overflow-hidden border ${
                       isActive
                         ? 'border-red-500 ring-2 ring-red-100'
@@ -1261,7 +1270,10 @@ const FeedPost: React.FC<FeedPostProps> = ({
                       <button
                         key={item.id}
                         type="button"
-                        onClick={() => setCurrentIndex(index)}
+                        onClick={() => {
+                          const safeIndex = Math.min(Math.max(index, 0), carouselItems.length - 1);
+                          setCurrentIndex(safeIndex);
+                        }}
                         className={`relative flex-shrink-0 rounded-xl overflow-hidden border ${
                           isActive
                             ? 'border-red-500 ring-2 ring-red-100'
