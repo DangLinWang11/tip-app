@@ -1176,49 +1176,6 @@ const FeedPost: React.FC<FeedPostProps> = ({
         </div>
       </div>
 
-      {/* NEW: Dishes in this visit section */}
-      {isVisitPost && visitDishes && visitDishes.length > 0 && (
-        <div className="px-4 pt-3 pb-3 border-b border-light-gray">
-          <p className="text-xs font-semibold text-gray-600 mb-2">
-            {author.name} rated {restaurant?.name} · {(() => {
-              const when = formatRelativeTime(
-                (review as any).createdAt ??
-                (review as any).createdAtMs ??
-                review.date
-              );
-              return when;
-            })()}
-          </p>
-
-          <div className="space-y-3">
-            {groupDishesByCategory(visitDishes).map(([category, dishes]) => (
-              <div key={category}>
-                <p className="text-xs text-gray-500 font-medium mb-1.5">{category}</p>
-                <div className="space-y-1">
-                  {dishes.map((dish: any) => (
-                    <button
-                      key={dish.id}
-                      onClick={() => navigateToDishReview(dish.id)}
-                      className="w-full text-left py-1.5 px-2 hover:bg-gray-50 rounded text-sm"
-                    >
-                      <span className="font-medium">{dish.name}</span>
-                      <span className="text-gray-500"> · {dish.rating.toFixed(1)}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* NEW: Visit caption section */}
-      {isVisitPost && visitCaption && (
-        <div className="px-4 pb-4 border-b border-light-gray">
-          <p className="text-sm text-gray-700">{visitCaption}</p>
-        </div>
-      )}
-
       {/* Media section - hero + right column (visit posts only) */}
       <div className="flex flex-col md:flex-row">
         {/* Left: hero image driven by mediaItems when available */}
@@ -1331,6 +1288,49 @@ const FeedPost: React.FC<FeedPostProps> = ({
           </div>
         </div>
       </div>
+
+      {/* NEW: Dishes in this visit section */}
+      {isVisitPost && visitDishes && visitDishes.length > 0 && (
+        <div className="px-4 pt-3 pb-3 border-b border-light-gray">
+          <p className="text-xs font-semibold text-gray-600 mb-2">
+            {author.name} rated {restaurant?.name} · {(() => {
+              const when = formatRelativeTime(
+                (review as any).createdAt ??
+                (review as any).createdAtMs ??
+                review.date
+              );
+              return when;
+            })()}
+          </p>
+
+          <div className="space-y-3">
+            {groupDishesByCategory(visitDishes).map(([category, dishes]) => (
+              <div key={category}>
+                <p className="text-xs text-gray-500 font-medium mb-1.5">{category}</p>
+                <div className="space-y-1">
+                  {dishes.map((dish: any) => (
+                    <button
+                      key={dish.id}
+                      onClick={() => navigateToDishReview(dish.id)}
+                      className="w-full text-left py-1.5 px-2 hover:bg-gray-50 rounded text-sm"
+                    >
+                      <span className="font-medium">{dish.name}</span>
+                      <span className="text-gray-500"> · {dish.rating.toFixed(1)}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* NEW: Visit caption section */}
+      {isVisitPost && visitCaption && (
+        <div className="px-4 pb-4 border-b border-light-gray">
+          <p className="text-sm text-gray-700">{visitCaption}</p>
+        </div>
+      )}
 
       {/* Dish Name Below Image */}
       <div className="px-4 pt-3 pb-2">
