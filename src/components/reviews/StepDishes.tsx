@@ -442,6 +442,7 @@ const StepDishes: React.FC = () => {
                   <RatingSlider
                     value={dish.rating}
                     onChange={(value) => updateDishDraft(dish.id, prev => ({ ...prev, rating: value }))}
+                    step={0.1}
                   />
                 </div>
 

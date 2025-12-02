@@ -563,9 +563,6 @@ const StepVisit: React.FC = () => {
                               ) : existingRestaurant ? (
                                 <span className="text-xs text-gray-500">⭐ Be first</span>
                               ) : null}
-                              {existingRestaurant ? (
-                                <Bookmark className="w-4 h-4 text-primary" />
-                              ) : null}
                             </div>
                           </div>
                         </button>
