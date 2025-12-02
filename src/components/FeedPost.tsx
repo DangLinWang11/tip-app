@@ -80,6 +80,14 @@ interface FeedPostProps {
   // Optional visit-level metadata for multi-dish posts
   visitCaption?: string;
   visitTags?: string[];
+  visitAverageRating?: number; // NEW: Average rating for the entire visit
+  visitDishes?: Array<{ // NEW: Structured list of dishes with ratings
+    id: string;
+    name: string;
+    rating: number;
+    dishCategory?: string;
+    wizardOrder: number;
+  }>;
   // Flattened media items for visit and dish imagery
   mediaItems?: FeedMediaItem[];
   topComment?: {
@@ -108,6 +116,8 @@ const FeedPost: React.FC<FeedPostProps> = ({
   tags,
   visitCaption,
   visitTags,
+  visitAverageRating,
+  visitDishes,
   mediaItems,
   showPendingVerification = false
 }) => {
@@ -380,7 +390,8 @@ const FeedPost: React.FC<FeedPostProps> = ({
       );
       if (byId) return byId;
     }
-    return carouselItems[currentIndex] || carouselItems[0];
+    // FIXED: Bounds-safe fallback to prevent undefined access
+    return carouselItems[Math.min(currentIndex, carouselItems.length - 1)] || carouselItems[0];
   };
 
   const dishContextItem = resolveDishItemForActiveMedia();
@@ -534,6 +545,26 @@ const FeedPost: React.FC<FeedPostProps> = ({
     } catch (error) {
       console.error('Error deleting post:', error);
       alert('Failed to delete post. Please try again.');
+    }
+  };
+
+  // NEW: Helper to group dishes by category for visit posts
+  const groupDishesByCategory = (dishes: Array<any>) => {
+    const map = new Map<string, typeof dishes>();
+    dishes.forEach(d => {
+      const cat = d.dishCategory || "Other";
+      if (!map.has(cat)) map.set(cat, []);
+      map.get(cat)!.push(d);
+    });
+    return Array.from(map.entries());
+  };
+
+  // NEW: Helper to navigate to dish detail page
+  const navigateToDishReview = (dishId: string) => {
+    if (dishId) {
+      navigate(`/dish/${dishId}`);
+    } else if (restaurantId) {
+      navigate(`/restaurant/${restaurantId}`);
     }
   };
 
@@ -1071,7 +1102,7 @@ const FeedPost: React.FC<FeedPostProps> = ({
     <div className="relative bg-white rounded-2xl overflow-hidden shadow-sm mb-4">
       {/* Absolute rating (bigger, nudged down & left) */}
       <div className="pointer-events-none absolute top-5 right-5 z-10">
-        <RatingBadge rating={currentItem.dish.rating} size="xl" />
+        <RatingBadge rating={isVisitPost && visitAverageRating !== undefined ? visitAverageRating : currentItem.dish.rating} size="xl" />
       </div>
 
       {/* Header */}
@@ -1144,7 +1175,50 @@ const FeedPost: React.FC<FeedPostProps> = ({
           )}
         </div>
       </div>
-      
+
+      {/* NEW: Dishes in this visit section */}
+      {isVisitPost && visitDishes && visitDishes.length > 0 && (
+        <div className="px-4 pt-3 pb-3 border-b border-light-gray">
+          <p className="text-xs font-semibold text-gray-600 mb-2">
+            {author.name} rated {restaurant?.name} · {(() => {
+              const when = formatRelativeTime(
+                (review as any).createdAt ??
+                (review as any).createdAtMs ??
+                review.date
+              );
+              return when;
+            })()}
+          </p>
+
+          <div className="space-y-3">
+            {groupDishesByCategory(visitDishes).map(([category, dishes]) => (
+              <div key={category}>
+                <p className="text-xs text-gray-500 font-medium mb-1.5">{category}</p>
+                <div className="space-y-1">
+                  {dishes.map((dish: any) => (
+                    <button
+                      key={dish.id}
+                      onClick={() => navigateToDishReview(dish.id)}
+                      className="w-full text-left py-1.5 px-2 hover:bg-gray-50 rounded text-sm"
+                    >
+                      <span className="font-medium">{dish.name}</span>
+                      <span className="text-gray-500"> · {dish.rating.toFixed(1)}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* NEW: Visit caption section */}
+      {isVisitPost && visitCaption && (
+        <div className="px-4 pb-4 border-b border-light-gray">
+          <p className="text-sm text-gray-700">{visitCaption}</p>
+        </div>
+      )}
+
       {/* Media section - hero + right column (visit posts only) */}
       <div className="flex flex-col md:flex-row">
         {/* Left: hero image driven by mediaItems when available */}
@@ -1262,13 +1336,12 @@ const FeedPost: React.FC<FeedPostProps> = ({
       <div className="px-4 pt-3 pb-2">
         <div className="flex items-center justify-between">
           <h3 className="font-semibold text-xl">
-            <span
-              onClick={handleDishClickEnhanced}
-              className={(currentItem.dishId || restaurantId) ? "hover:text-primary cursor-pointer" : ""}
-            >
-              {isCarousel && carouselItems.length > 1
-                ? `${currentItem.dish.name} (${currentIndex + 1}/${carouselItems.length})`
-                : currentItem.dish.name
+            <span className="">
+              {isVisitPost
+                ? (restaurant?.name || "Visit")
+                : (isCarousel && carouselItems.length > 1
+                  ? `${currentItem.dish.name} (${currentIndex + 1}/${carouselItems.length})`
+                  : currentItem.dish.name)
               }
             </span>
           </h3>
@@ -1329,67 +1402,13 @@ const FeedPost: React.FC<FeedPostProps> = ({
             </div>
           );
         })()}
-        {/* Caption - Changes Based on Active Media Kind */}
-        {(() => {
-          const isVisitActive = activeMediaItem?.kind === 'visit';
+        {/* Caption - Only for legacy/single-dish layout */}
+        {!isVisitPost && currentItem.review.caption && (
+          <p className="text-sm text-gray-700 mb-2">{currentItem.review.caption}</p>
+        )}
 
-          if (isVisitActive) {
-            return (
-              <>
-                {/* Visit Caption */}
-                {visitCaption && (
-                  <p className="text-sm text-gray-700 mb-2">{visitCaption}</p>
-                )}
-
-                {/* Visit Tags */}
-                {visitTags && visitTags.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5 mb-3">
-                    {visitTags.map((slug, i) => {
-                      const label = TAG_LABELS[slug] || slug;
-                      const chipClass = getTagChipClass(slug);
-                      const emoji = getTagEmojiForSlug(slug);
-                      return (
-                        <span
-                          key={`visit-tag-${slug}-${i}`}
-                          className={`inline-flex items-center rounded-full border px-3 py-1.5 text-xs font-semibold shadow-sm ${chipClass}`}
-                        >
-                          {emoji}{label}
-                        </span>
-                      );
-                    })}
-                  </div>
-                )}
-
-                {/* Compact Dish List for Visit */}
-                {carouselItems.length > 1 && (
-                  <div className="mt-3 mb-3 bg-gray-50 rounded-lg p-3">
-                    <p className="text-xs font-semibold text-gray-600 mb-2">Dishes in this visit:</p>
-                    <div className="space-y-1.5">
-                      {carouselItems.map((item) => (
-                        <div key={item.id} className="text-sm text-gray-700">
-                          <span className="font-medium">{item.dish.name}</span>
-                          <span className="text-gray-500"> • {item.dish.rating}/10</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </>
-            );
-          }
-
-          // Dish content (default)
-          return (
-            <>
-              {currentItem.review.caption && (
-                <p className="text-sm text-gray-700 mb-2">{currentItem.review.caption}</p>
-              )}
-            </>
-          );
-        })()}
-
-        {/* Taste chips and audience tags */}
-        {(currentItem.review.tasteChips || currentItem.review.audienceTags || (isCarousel ? (currentItem as any).tags?.length : tags?.length)) && (
+        {/* Taste chips and audience tags - Only for legacy/single-dish layout */}
+        {!isVisitPost && (currentItem.review.tasteChips || currentItem.review.audienceTags || (isCarousel ? (currentItem as any).tags?.length : tags?.length)) && (
           <div className="flex flex-wrap gap-1.5 mb-2">
             {/* Taste attribute chips with color coding */}
             {currentItem.review.tasteChips?.map((chip, i) => {

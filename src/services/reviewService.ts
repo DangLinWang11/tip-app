@@ -1166,6 +1166,14 @@ export interface FeedMediaItem {
   rating?: number;
 }
 
+export interface VisitDish {
+  id: string;            // review doc ID (same as carouselItem.id)
+  name: string;          // dish name
+  rating: number;        // per-dish rating
+  dishCategory?: string; // appetizer/entree/dessert/etc.
+  wizardOrder: number;   // original index in the reviews array
+}
+
 // Cache for user profiles to avoid redundant fetches
 const userProfileCache = new Map<string, FeedPostAuthor>();
 
@@ -1242,9 +1250,27 @@ export const convertVisitToCarouselFeedPost = async (reviews: FirebaseReview[]) 
 
   // Calculate average rating for the visit
   const averageRating = reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length;
+  const visitAverageRating = parseFloat(averageRating.toFixed(1));
 
   // Extract tags from main review for the carousel post summary
   const { tasteChips: mainTasteChips, audienceTags: mainAudienceTags } = extractReviewTags(mainReview);
+
+  // Build visitDishes array with proper sorting
+  const visitDishes: VisitDish[] = reviews
+    .map((review, wizardOrder) => ({
+      id: review.id,
+      name: review.dish,
+      rating: review.rating,
+      dishCategory: (review as any).dishCategory,
+      wizardOrder
+    }))
+    // Sort by rating DESC, then wizardOrder ASC
+    .sort((a, b) => {
+      if (b.rating !== a.rating) {
+        return b.rating - a.rating; // Higher rating first
+      }
+      return a.wizardOrder - b.wizardOrder; // Preserve wizard order as tiebreaker
+    });
 
   // Create carousel data for all dishes in the visit (preserve original order from wizard)
   const carouselItems = reviews.map(review => {
@@ -1342,6 +1368,8 @@ export const convertVisitToCarouselFeedPost = async (reviews: FirebaseReview[]) 
     carouselItems, // Array of all dishes in the visit
     visitCaption,
     visitTags,
+    visitAverageRating, // NEW: Average rating for the entire visit
+    visitDishes, // NEW: Structured list of dishes with ratings
     mediaItems,
     author, // NOW includes author.id for follow functionality
     restaurant: {
@@ -1352,7 +1380,7 @@ export const convertVisitToCarouselFeedPost = async (reviews: FirebaseReview[]) 
     dish: {
       name: reviews.length > 1 ? `${reviews.length} dishes` : mainReview.dish,
       image: (() => { const imgs = getReviewImages(mainReview); return imgs && imgs.length > 0 ? imgs[0] : `https://source.unsplash.com/500x500/?food,${encodeURIComponent(mainReview.dish)}`; })(),
-      rating: parseFloat(averageRating.toFixed(1)),
+      rating: visitAverageRating,
       visitCount: mainReview.visitedTimes
     },
     review: {
@@ -1569,6 +1597,7 @@ export const convertReviewToFeedPost = async (review: FirebaseReview) => {
     restaurantId: review.restaurantId,
     dishId: review.menuItemId,
     isCarousel: false, // Single dish post
+    visitAverageRating: review.rating, // NEW: For single-dish, average = that dish's rating
     mediaItems: (() => {
       const imgs = getReviewImages(review);
       if (!imgs.length) return undefined;
