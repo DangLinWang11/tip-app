@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { db, getUserProfile } from '../lib/firebase';
 import { ArrowLeftIcon, MapPinIcon, BookmarkIcon, ShareIcon, ChefHatIcon } from 'lucide-react';
@@ -39,6 +39,16 @@ interface Review {
   images: string[];
   createdAt: any;
   location: string;
+  // Tag fields for aggregation
+  explicitTags?: string[];
+  outcome?: {
+    audience?: string[];
+  };
+  taste?: {
+    value?: { level: string };
+    freshness?: { level: string };
+    saltiness?: { level: string };
+  };
 }
 
 interface ReviewAuthor {
@@ -51,6 +61,8 @@ interface ReviewAuthor {
 const MenuDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
+  const originReviewId = (location.state as any)?.originReviewId;
   const [menuItem, setMenuItem] = useState<MenuItem | null>(null);
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
   const [reviews, setReviews] = useState<Review[]>([]);
@@ -60,6 +72,7 @@ const MenuDetail: React.FC = () => {
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
   const [authors, setAuthors] = useState<Record<string, ReviewAuthor>>({});
+  const [showBackButton, setShowBackButton] = useState(false);
 
   // Calculate average rating from reviews
   const calculateAverageRating = (reviewsArray: Review[]) => {
@@ -82,6 +95,111 @@ const MenuDetail: React.FC = () => {
 
   const averageRating = calculateAverageRating(reviews);
   const reviewImages = getAllReviewImages(reviews);
+
+  // Aggregate top tags from reviews
+  const { topTasteTags, topBestForTags } = useMemo(() => {
+    if (reviews.length === 0) {
+      return { topTasteTags: [], topBestForTags: [] };
+    }
+
+    // Build label maps for tag translation
+    const attributeLabels: Record<string, string> = {
+      spicy: 'Spicy',
+      mild: 'Mild',
+      sweet: 'Sweet',
+      zesty: 'Zesty',
+      umami_rich: 'Umami-rich',
+      garlicky: 'Garlicky',
+      well_seasoned: 'Well-seasoned',
+      under_seasoned: 'Under-seasoned',
+      balanced: 'Balanced',
+      fresh: 'Fresh',
+      scratch_made: 'Scratch-made',
+      high_quality_ingredients: 'High-quality ingredients',
+      comfort_food: 'Comfort food',
+      beautiful_presentation: 'Beautiful presentation',
+      consistent: 'Consistent',
+    };
+
+    const occasionLabels: Record<string, string> = {
+      date_night: 'Date Night',
+      family: 'Family-Friendly',
+      takeout: 'Takeout',
+      quick_lunch: 'Quick Lunch',
+      special_occasion: 'Special Occasion',
+      late_night: 'Late Night',
+      business: 'Business Meal',
+      group: 'Good for Groups',
+    };
+
+    const audienceLabels: Record<string, string> = {
+      spicy_lovers: 'Spicy lovers',
+      date_night: 'Date night',
+      family: 'Family meal',
+      quick_bite: 'Quick bite',
+      solo: 'Solo treat',
+      group: 'Group hang',
+    };
+
+    // Aggregate taste tags (from attr_* explicit tags)
+    const tasteFreq = new Map<string, number>();
+    reviews.forEach((review) => {
+      if (Array.isArray(review.explicitTags)) {
+        review.explicitTags.forEach((tag) => {
+          if (tag.startsWith('attr_')) {
+            const slug = tag.substring(5); // Remove 'attr_' prefix
+            const label = attributeLabels[slug];
+            if (label) {
+              tasteFreq.set(label, (tasteFreq.get(label) ?? 0) + 1);
+            }
+          }
+        });
+      }
+    });
+
+    // Aggregate best-for tags (from outcome.audience + occasion_* explicit tags)
+    const bestForFreq = new Map<string, number>();
+    reviews.forEach((review) => {
+      // From outcome.audience
+      if (review.outcome?.audience && Array.isArray(review.outcome.audience)) {
+        review.outcome.audience.forEach((tag) => {
+          const label = audienceLabels[tag];
+          if (label) {
+            bestForFreq.set(label, (bestForFreq.get(label) ?? 0) + 1);
+          }
+        });
+      }
+
+      // From occasion_* explicit tags
+      if (Array.isArray(review.explicitTags)) {
+        review.explicitTags.forEach((tag) => {
+          if (tag.startsWith('occasion_')) {
+            const slug = tag.substring(9); // Remove 'occasion_' prefix
+            const label = occasionLabels[slug];
+            if (label) {
+              bestForFreq.set(label, (bestForFreq.get(label) ?? 0) + 1);
+            }
+          }
+        });
+      }
+    });
+
+    // Convert maps to sorted arrays (freq desc, then alpha asc)
+    const sortByFreqAndLabel = (freq: Map<string, number>) => {
+      return Array.from(freq.entries())
+        .sort((a, b) => {
+          if (b[1] !== a[1]) return b[1] - a[1]; // Sort by frequency desc
+          return a[0].localeCompare(b[0]); // Then alphabetically asc
+        })
+        .slice(0, 6) // Top 6 per family
+        .map(([label]) => label);
+    };
+
+    return {
+      topTasteTags: sortByFreqAndLabel(tasteFreq),
+      topBestForTags: sortByFreqAndLabel(bestForFreq),
+    };
+  }, [reviews]);
 
   // Extract taste chips and audience tags
   const extractReviewTags = (review: any): { tasteChips: string[]; audienceTags: string[] } => {
@@ -253,6 +371,36 @@ const MenuDetail: React.FC = () => {
     loadAuthors();
   }, [reviews]);
 
+  // Scroll to origin review if provided
+  useEffect(() => {
+    if (!originReviewId || reviews.length === 0) return;
+
+    const timer = setTimeout(() => {
+      const reviewEl = document.querySelector(`[data-review-id="${originReviewId}"]`);
+      if (reviewEl) {
+        reviewEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 100);
+
+    return () => clearTimeout(timer);
+  }, [originReviewId, reviews]);
+
+  // Show back button when scrolled past hero
+  useEffect(() => {
+    const handleScroll = () => {
+      const heroEnd = document.querySelector('[data-hero-end]');
+      if (!heroEnd) {
+        setShowBackButton(false);
+        return;
+      }
+      const rect = heroEnd.getBoundingClientRect();
+      setShowBackButton(rect.bottom < 0);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-light-gray flex items-center justify-center pb-16">
@@ -383,6 +531,50 @@ const MenuDetail: React.FC = () => {
         </div>
       </div>
 
+      {/* Marker for hero section end (used for back button scroll detection) */}
+      <div data-hero-end />
+
+      {/* Top Tags Section */}
+      {(topTasteTags.length > 0 || topBestForTags.length > 0) && (
+        <div className="bg-white mt-2 p-4 shadow-sm">
+          {topTasteTags.length > 0 && (
+            <div className="mb-4">
+              <p className="text-xs font-semibold text-gray-700 mb-2 uppercase tracking-wide">
+                Taste profile
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {topTasteTags.map((tag) => (
+                  <span
+                    key={tag}
+                    className="inline-flex items-center rounded-full border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm"
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {topBestForTags.length > 0 && (
+            <div>
+              <p className="text-xs font-semibold text-gray-700 mb-2 uppercase tracking-wide">
+                Best for
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {topBestForTags.map((tag) => (
+                  <span
+                    key={tag}
+                    className="inline-flex items-center rounded-full border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm"
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Photos Section */}
       {reviewImages.length > 0 && (
         <div className="bg-white mt-2 p-4 shadow-sm">
@@ -427,6 +619,7 @@ const MenuDetail: React.FC = () => {
             return (
               <div
                 key={review.id}
+                data-review-id={review.id}
                 className="border-b border-light-gray pb-4 last:border-0"
               >
                 <div className="flex items-start">
@@ -586,6 +779,18 @@ const MenuDetail: React.FC = () => {
             ))}
           </div>
         </div>
+      )}
+
+      {/* Back to Details Button */}
+      {showBackButton && (
+        <button
+          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          className="fixed bottom-20 right-4 bg-primary text-white rounded-full w-12 h-12 flex items-center justify-center shadow-lg hover:bg-primary/90 z-50 transition-opacity"
+          aria-label="Back to details"
+          title="Back to dish details"
+        >
+          ↑
+        </button>
       )}
 
       <BottomNavigation />

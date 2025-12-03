@@ -1172,6 +1172,8 @@ export interface VisitDish {
   rating: number;        // per-dish rating
   dishCategory?: string; // appetizer/entree/dessert/etc.
   wizardOrder: number;   // original index in the reviews array
+  dishId?: string;       // NEW: menuItemId for navigation
+  restaurantId?: string; // NEW: restaurant ID for context
 }
 
 // Cache for user profiles to avoid redundant fetches
@@ -1262,7 +1264,9 @@ export const convertVisitToCarouselFeedPost = async (reviews: FirebaseReview[]) 
       name: review.dish,
       rating: review.rating,
       dishCategory: (review as any).dishCategory,
-      wizardOrder
+      wizardOrder,
+      dishId: review.menuItemId,           // NEW: menuItemId for navigation
+      restaurantId: mainReview.restaurantId // NEW: restaurant ID for context
     }))
     // Sort by rating DESC, then wizardOrder ASC
     .sort((a, b) => {

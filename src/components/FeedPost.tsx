@@ -20,6 +20,7 @@ import { deleteReview, reportReview, type FeedMediaItem } from '../services/revi
 import { uploadReviewProofs, markReviewPendingProof } from '../services/reviewVerificationService';
 import { collection, query, where, limit, getDocs } from 'firebase/firestore';
 import { db } from '../lib/firebase';
+import { navigateToDish, navigateToRestaurant } from '../utils/navigationHelpers';
 
 interface FeedPostReview {
   date: string;
@@ -495,9 +496,14 @@ const FeedPost: React.FC<FeedPostProps> = ({
     });
 
     if (currentItem.dishId) {
-      navigate(`/dish/${currentItem.dishId}`);
+      navigateToDish(navigate, {
+        restaurantId,
+        dishId: currentItem.dishId,
+        reviewId: currentItem.id,
+        visitId
+      });
     } else if (restaurantId) {
-      navigate(`/restaurant/${restaurantId}`);
+      navigateToRestaurant(navigate, restaurantId);
     } else {
       console.warn('⚠️ [FeedPost] No dishId or restaurantId available for navigation');
     }
@@ -506,7 +512,12 @@ const FeedPost: React.FC<FeedPostProps> = ({
   // Enhanced click handler: if dishId missing, try to lookup by name under restaurant
   const handleDishClickEnhanced = async () => {
     if (currentItem.dishId) {
-      navigate(`/dish/${currentItem.dishId}`);
+      navigateToDish(navigate, {
+        restaurantId,
+        dishId: currentItem.dishId,
+        reviewId: currentItem.id,
+        visitId
+      });
       return;
     }
     try {
@@ -520,14 +531,21 @@ const FeedPost: React.FC<FeedPostProps> = ({
         const snap = await getDocs(q);
         if (!snap.empty) {
           const docSnap = snap.docs[0];
-          navigate(`/dish/${docSnap.id}`);
+          navigateToDish(navigate, {
+            restaurantId,
+            dishId: docSnap.id,
+            reviewId: currentItem.id,
+            visitId
+          });
           return;
         }
       }
     } catch (e) {
       console.warn('[FeedPost] Fallback dish lookup failed', e);
     }
-    if (restaurantId) navigate(`/restaurant/${restaurantId}`);
+    if (restaurantId) {
+      navigateToRestaurant(navigate, restaurantId);
+    }
   };
 
   const handleDeletePost = async () => {
@@ -568,13 +586,14 @@ const FeedPost: React.FC<FeedPostProps> = ({
     return Array.from(map.entries());
   };
 
-  // NEW: Helper to navigate to dish detail page
-  const navigateToDishReview = (dishId: string) => {
-    if (dishId) {
-      navigate(`/dish/${dishId}`);
-    } else if (restaurantId) {
-      navigate(`/restaurant/${restaurantId}`);
-    }
+  // NEW: Helper to navigate to dish detail page with full context
+  const navigateToDishReview = (reviewId: string, dishId?: string) => {
+    navigateToDish(navigate, {
+      restaurantId,
+      dishId,
+      reviewId,
+      visitId
+    });
   };
 
 
@@ -1352,7 +1371,7 @@ const FeedPost: React.FC<FeedPostProps> = ({
                       {visible.map((dish: any) => (
                         <button
                           key={dish.id}
-                          onClick={() => navigateToDishReview(dish.id)}
+                          onClick={() => navigateToDishReview(dish.id, dish.dishId)}
                           className="flex items-center justify-between w-full py-1.5 px-0 text-sm hover:bg-gray-50 rounded"
                         >
                           <span className="font-medium text-gray-900 truncate">{dish.name}</span>
@@ -1363,7 +1382,7 @@ const FeedPost: React.FC<FeedPostProps> = ({
                       ))}
                       {remaining > 0 && (
                         <button
-                          onClick={() => navigateToDishReview(visible[0]?.id || '')}
+                          onClick={() => navigateToDishReview(visible[0]?.id || '', visible[0]?.dishId)}
                           className="w-full text-left text-xs text-gray-500 mt-1 hover:text-gray-700"
                         >
                           + {remaining} more {remaining === 1 ? 'dish' : 'dishes'}
