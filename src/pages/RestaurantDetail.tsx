@@ -3,7 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { db, getUserProfile } from '../lib/firebase';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeftIcon, StarIcon, MapPinIcon, PhoneIcon, ClockIcon, BookmarkIcon, ShareIcon, ChevronRightIcon, Utensils, Soup, Salad, Coffee, Cake, Fish, Pizza, Sandwich, ChefHat, ChevronDown, Globe, DollarSign } from 'lucide-react';
+import { ArrowLeftIcon, StarIcon, MapPinIcon, PhoneIcon, ClockIcon, BookmarkIcon, ShareIcon, ChevronRightIcon, ChevronLeftIcon, Utensils, Soup, Salad, Coffee, Cake, Fish, Pizza, Sandwich, ChefHat, ChevronDown, Globe, DollarSign } from 'lucide-react';
 import BottomNavigation from '../components/BottomNavigation';
 import SaveToListModal from '../components/SaveToListModal';
 import { calculateRestaurantQualityScore } from '../services/reviewService';
@@ -73,6 +73,32 @@ const RestaurantDetail: React.FC = () => {
   const initializedRef = useRef(false);
   const [authors, setAuthors] = useState<Record<string, ReviewAuthor>>({});
   const [showAllHours, setShowAllHours] = useState(false);
+  const [heroImageIndex, setHeroImageIndex] = useState(0);
+
+  // Helper to collect visit photos from all reviews (both legacy and new structures)
+  const getVisitPhotosFromReviews = (reviewsList: Review[] | undefined | null): string[] => {
+    if (!reviewsList || reviewsList.length === 0) return [];
+
+    const photoUrls = new Set<string>();
+
+    reviewsList.forEach(review => {
+      // Collect from legacy structure
+      if (review.images && Array.isArray(review.images)) {
+        review.images.forEach(url => {
+          if (url) photoUrls.add(url);
+        });
+      }
+
+      // Collect from newer structure
+      if (review.media?.photos && Array.isArray(review.media.photos)) {
+        review.media.photos.forEach(url => {
+          if (url) photoUrls.add(url);
+        });
+      }
+    });
+
+    return Array.from(photoUrls);
+  };
 
   // Helper function to group menu items by category
   const groupMenuByCategory = (items: MenuItem[]) => {
@@ -302,7 +328,28 @@ const getCurrentDayHours = (hours: Record<string, string>) => {
     );
   }
 
-  const headerPhoto = restaurant.googlePhotos?.[0];
+  // Build hero images slideshow
+  const visitPhotos = getVisitPhotosFromReviews(reviews);
+  const limitedVisitPhotos = visitPhotos.slice(0, 10);
+
+  const heroImages: string[] = [];
+  if (restaurant?.googlePhotos && restaurant.googlePhotos.length > 0) {
+    heroImages.push(restaurant.googlePhotos[0]);
+  }
+  heroImages.push(...limitedVisitPhotos);
+
+  const hasHeroImages = heroImages.length > 0;
+  const currentImage = hasHeroImages ? heroImages[heroImageIndex] : null;
+  const hasMultipleImages = heroImages.length > 1;
+
+  const goPrevImage = () => {
+    setHeroImageIndex((prev) => (prev === 0 ? heroImages.length - 1 : prev - 1));
+  };
+
+  const goNextImage = () => {
+    setHeroImageIndex((prev) => (prev === heroImages.length - 1 ? 0 : prev + 1));
+  };
+
   const hasReviews = reviews.length > 0;
   const isGoogleOnlyListing = !hasReviews && restaurant.source === 'google_places';
   const hoursRecord = restaurant.hours || {};
@@ -330,12 +377,55 @@ const getCurrentDayHours = (hours: Record<string, string>) => {
   }
   return <div className="min-h-screen bg-light-gray pb-16">
       <div className="relative h-64 overflow-hidden">
-        {headerPhoto ? (
-          <img src={headerPhoto} alt={restaurant.name} className="w-full h-full object-cover" />
+        {/* Hero image or gradient fallback */}
+        {hasHeroImages ? (
+          <img src={currentImage} alt={restaurant?.name ?? 'Restaurant'} className="w-full h-full object-cover" />
         ) : (
           <div className="w-full h-full bg-gradient-to-br from-gray-200 to-gray-300" />
         )}
+
+        {/* Gradient overlay on top of image */}
         <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/80" />
+
+        {/* Left arrow control (shown if multiple images) */}
+        {hasMultipleImages && (
+          <button
+            onClick={goPrevImage}
+            className="absolute left-3 top-1/2 -translate-y-1/2 z-20 bg-white/70 hover:bg-white/90 rounded-full p-2 transition-colors"
+            aria-label="Previous image"
+          >
+            <ChevronLeftIcon size={20} className="text-gray-900" />
+          </button>
+        )}
+
+        {/* Right arrow control (shown if multiple images) */}
+        {hasMultipleImages && (
+          <button
+            onClick={goNextImage}
+            className="absolute right-3 top-1/2 -translate-y-1/2 z-20 bg-white/70 hover:bg-white/90 rounded-full p-2 transition-colors"
+            aria-label="Next image"
+          >
+            <ChevronRightIcon size={20} className="text-gray-900" />
+          </button>
+        )}
+
+        {/* Dot indicators (shown if multiple images) */}
+        {hasMultipleImages && (
+          <div className="absolute bottom-16 left-1/2 -translate-x-1/2 z-20 flex gap-1.5">
+            {heroImages.map((_, idx) => (
+              <button
+                key={idx}
+                onClick={() => setHeroImageIndex(idx)}
+                className={`w-2 h-2 rounded-full transition-all ${
+                  idx === heroImageIndex ? 'bg-white w-4' : 'bg-white/60 hover:bg-white/80'
+                }`}
+                aria-label={`Go to image ${idx + 1}`}
+              />
+            ))}
+          </div>
+        )}
+
+        {/* Back button and quality badge */}
         <div className="absolute top-0 left-0 right-0 p-4 z-10">
           <Link to="/" className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-md">
             <ArrowLeftIcon size={20} />

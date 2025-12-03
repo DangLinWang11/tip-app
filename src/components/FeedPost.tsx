@@ -1418,10 +1418,10 @@ const FeedPost: React.FC<FeedPostProps> = ({
                         <button
                           key={dish.id}
                           onClick={() => navigateToDishReview(dish.id, dish.dishId)}
-                          className="flex items-center justify-between w-full py-1.5 px-0 text-sm hover:bg-gray-50 rounded"
+                          className="flex items-center gap-2 w-full py-1.5 px-0 text-sm hover:bg-gray-50 rounded"
                         >
-                          <span className="font-medium text-gray-900 truncate">{dish.name}</span>
-                          <span className="ml-2 text-xs font-semibold text-white bg-red-500 rounded-full px-2.5 py-[2px]">
+                          <span className="font-medium text-gray-900 truncate min-w-0 flex-1">{dish.name}</span>
+                          <span className="flex-shrink-0 text-xs font-semibold text-white bg-red-500 rounded-full px-2.5 py-[2px]">
                             {dish.rating.toFixed(1)}
                           </span>
                         </button>
