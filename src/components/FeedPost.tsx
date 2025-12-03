@@ -1067,6 +1067,7 @@ const FeedPost: React.FC<FeedPostProps> = ({
               Cancel
             </button>
           </div>
+          )}
         </div>
       )}
 
@@ -1301,10 +1302,11 @@ const FeedPost: React.FC<FeedPostProps> = ({
         </div>
       </div>
 
-      {/* NEW: Dishes in this visit section */}
-      {isVisitPost && visitDishes && visitDishes.length > 0 && (
+      {/* NEW: Visit meta, caption, and dishes section */}
+      {isVisitPost && (visitCaption || (visitDishes && visitDishes.length > 0)) && (
         <div className="px-4 pt-3 pb-3 border-b border-light-gray">
-          <p className="text-xs font-semibold text-gray-600 mb-2">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs font-semibold text-gray-600 mb-2">
             {author.name} rated {restaurant?.name} · {(() => {
               const when = formatRelativeTime(
                 (review as any).createdAt ??
@@ -1314,7 +1316,23 @@ const FeedPost: React.FC<FeedPostProps> = ({
               return when;
             })()}
           </p>
+            <button
+              type="button"
+              onClick={() => setIsActionSheetOpen(true)}
+              className="text-gray-500 hover:text-gray-800 p-1 rounded-md"
+              aria-label="More options"
+            >
+              <DotsIcon size={18} />
+            </button>
+          </div>
 
+          {visitCaption && (
+            <p className="text-sm text-gray-700 mb-2">
+              {visitCaption}
+            </p>
+          )}
+
+          {visitDishes && visitDishes.length > 0 && (
           <div className="space-y-3">
             {groupDishesByCategory(visitDishes).map(([category, dishes]) => (
               <div key={category}>
@@ -1336,48 +1354,6 @@ const FeedPost: React.FC<FeedPostProps> = ({
           </div>
         </div>
       )}
-
-      {/* NEW: Visit caption section */}
-      {isVisitPost && visitCaption && (
-        <div className="px-4 pb-4 border-b border-light-gray">
-          <p className="text-sm text-gray-700">{visitCaption}</p>
-        </div>
-      )}
-
-      {/* Dish Name Below Image */}
-      <div className="px-4 pt-3 pb-2">
-        <div className="flex items-center justify-between">
-          <h3 className="font-semibold text-xl">
-            <span className="">
-              {isVisitPost
-                ? (restaurant?.name || "Visit")
-                : (isCarousel && carouselItems.length > 1
-                  ? `${currentItem.dish.name} (${currentIndex + 1}/${carouselItems.length})`
-                  : currentItem.dish.name)
-              }
-            </span>
-          </h3>
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-400">
-              {(() => {
-                const when = formatRelativeTime(
-                  (currentItem.review as any).createdAt ??
-                  (currentItem.review as any).createdAtMs ??
-                  currentItem.review.date
-                );
-                return when;
-              })()}
-            </span>
-            <button
-              onClick={() => setIsActionSheetOpen(true)}
-              className="text-gray-500 hover:text-gray-800 p-1 rounded-md"
-              aria-label="More options"
-            >
-              <DotsIcon size={18} />
-            </button>
-          </div>
-        </div>
-      </div>
 
       {/* Content */}
       <div className="px-4 pb-4">
