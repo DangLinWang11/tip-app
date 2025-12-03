@@ -1304,53 +1304,73 @@ const FeedPost: React.FC<FeedPostProps> = ({
       {/* NEW: Visit meta, caption, and dishes section */}
       {isVisitPost && (visitCaption || (visitDishes && visitDishes.length > 0)) && (
         <div className="px-4 pt-3 pb-3 border-b border-light-gray">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-xs font-semibold text-gray-600 mb-2">
-            {author.name} rated {restaurant?.name} · {(() => {
-              const when = formatRelativeTime(
-                (review as any).createdAt ??
-                (review as any).createdAtMs ??
-                review.date
-              );
-              return when;
-            })()}
-          </p>
+          {/* 2-line header with hierarchy + dots button */}
+          <div className="flex items-start justify-between mb-2">
+            <div>
+              <p className="text-sm font-semibold text-gray-900">{author.name}</p>
+              <p className="text-xs text-gray-500">
+                rated <span className="font-medium text-gray-800">{restaurant?.name}</span> · {(() => {
+                  const when = formatRelativeTime(
+                    (review as any).createdAt ??
+                    (review as any).createdAtMs ??
+                    review.date
+                  );
+                  return when;
+                })()}
+              </p>
+            </div>
             <button
               type="button"
               onClick={() => setIsActionSheetOpen(true)}
-              className="text-gray-500 hover:text-gray-800 p-1 rounded-md"
+              className="p-1 text-gray-400 hover:text-gray-600"
               aria-label="More options"
             >
-              <DotsIcon size={18} />
+              <DotsIcon size={20} />
             </button>
           </div>
 
           {visitCaption && (
-            <p className="text-sm text-gray-700 mb-2">
+            <p className="mt-1 mb-3 text-sm text-gray-900 leading-snug border-l-2 border-gray-100 pl-3">
               {visitCaption}
             </p>
           )}
 
           {visitDishes && visitDishes.length > 0 && (
-          <div className="space-y-3">
-            {groupDishesByCategory(visitDishes).map(([category, dishes]) => (
-              <div key={category}>
-                <p className="text-xs text-gray-500 font-medium mb-1.5">{category}</p>
-                <div className="space-y-1">
-                  {dishes.map((dish: any) => (
-                    <button
-                      key={dish.id}
-                      onClick={() => navigateToDishReview(dish.id)}
-                      className="w-full text-left py-1.5 px-2 hover:bg-gray-50 rounded text-sm"
-                    >
-                      <span className="font-medium">{dish.name}</span>
-                      <span className="text-gray-500"> · {dish.rating.toFixed(1)}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
+            <div className="space-y-3">
+              {groupDishesByCategory(visitDishes).map(([category, dishes]) => {
+                const MAX_DISHES_PER_CATEGORY = 3;
+                const visible = dishes.slice(0, MAX_DISHES_PER_CATEGORY);
+                const remaining = dishes.length - visible.length;
+
+                return (
+                  <div key={category}>
+                    <p className="mt-2 text-[11px] tracking-wide text-gray-500 uppercase">{category}</p>
+                    <div className="space-y-1">
+                      {visible.map((dish: any) => (
+                        <button
+                          key={dish.id}
+                          onClick={() => navigateToDishReview(dish.id)}
+                          className="flex items-center justify-between w-full py-1.5 px-0 text-sm hover:bg-gray-50 rounded"
+                        >
+                          <span className="font-medium text-gray-900 truncate">{dish.name}</span>
+                          <span className="ml-2 text-xs font-semibold text-gray-700 bg-gray-100 rounded-full px-2 py-0.5">
+                            {dish.rating.toFixed(1)}
+                          </span>
+                        </button>
+                      ))}
+                      {remaining > 0 && (
+                        <button
+                          onClick={() => navigateToDishReview(visible[0]?.id || '')}
+                          className="w-full text-left text-xs text-gray-500 mt-1 hover:text-gray-700"
+                        >
+                          + {remaining} more {remaining === 1 ? 'dish' : 'dishes'}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           )}
         </div>
       )}
