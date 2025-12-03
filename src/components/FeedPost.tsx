@@ -1352,6 +1352,7 @@ const FeedPost: React.FC<FeedPostProps> = ({
               </div>
             ))}
           </div>
+          )}
         </div>
       )}
 
