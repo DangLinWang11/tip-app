@@ -425,9 +425,12 @@ const FeedPost: React.FC<FeedPostProps> = ({
     const diffMs = Math.max(0, now - then);
     const diffMin = Math.floor(diffMs / 60000);
     const diffHrs = Math.floor(diffMin / 60);
+    const diffDays = Math.floor(diffHrs / 24);
 
-    if (diffHrs < 1) return `${Math.max(1, diffMin)}m`; // 1–59m
-    if (diffHrs < 24) return `${diffHrs}h`;             // 1–23h
+    if (diffMin < 1) return '0m';                       // 0m
+    if (diffMin < 60) return `${diffMin}m`;            // 1–59m
+    if (diffHrs < 24) return `${diffHrs}h`;            // 1–23h
+    if (diffDays < 30) return `${diffDays}d`;          // 1–29d
 
     const d = new Date(then);
     const mm = d.getMonth() + 1;
@@ -1353,7 +1356,7 @@ const FeedPost: React.FC<FeedPostProps> = ({
                           className="flex items-center justify-between w-full py-1.5 px-0 text-sm hover:bg-gray-50 rounded"
                         >
                           <span className="font-medium text-gray-900 truncate">{dish.name}</span>
-                          <span className="ml-2 text-xs font-semibold text-gray-700 bg-gray-100 rounded-full px-2 py-0.5">
+                          <span className="ml-2 text-xs font-semibold text-white bg-red-500 rounded-full px-2.5 py-[2px]">
                             {dish.rating.toFixed(1)}
                           </span>
                         </button>
