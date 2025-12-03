@@ -377,22 +377,38 @@ const FeedPost: React.FC<FeedPostProps> = ({
   }, [isCarousel, carouselItems, currentIndex, id, dishId, dish, review]);
   const isVisitPost = Boolean(visitId) && isCarousel && (carouselItems?.length ?? 0) > 1;
   const hasMediaItems = Array.isArray(mediaItems) && mediaItems.length > 0;
-  const activeMediaItem = (hasMediaItems && currentIndex < mediaItems.length)
-    ? mediaItems[currentIndex]
-    : undefined;
+  const activeMediaItem =
+    hasMediaItems &&
+    Array.isArray(mediaItems) &&
+    currentIndex >= 0 &&
+    currentIndex < mediaItems.length
+      ? mediaItems[currentIndex]
+      : undefined;
 
   const resolveDishItemForActiveMedia = (): CarouselItem | undefined => {
-    if (!isVisitPost || !hasMediaItems || !activeMediaItem || activeMediaItem.kind !== 'dish') {
+    // Guard against missing or incorrect conditions
+    if (
+      !isVisitPost ||
+      !hasMediaItems ||
+      !activeMediaItem ||
+      activeMediaItem.kind !== 'dish' ||
+      !Array.isArray(carouselItems) ||
+      carouselItems.length === 0
+    ) {
       return undefined;
     }
+
+    // Try to find by reviewId first
     if (activeMediaItem.reviewId) {
       const byId = carouselItems.find(
         (item) => item.id === activeMediaItem.reviewId || item.reviewId === activeMediaItem.reviewId
       );
       if (byId) return byId;
     }
-    // FIXED: Bounds-safe fallback to prevent undefined access
-    return carouselItems[Math.min(currentIndex, carouselItems.length - 1)] || carouselItems[0];
+
+    // Bounds-safe fallback: use currentIndex but cap it to carouselItems length
+    const safeIndex = Math.min(Math.max(currentIndex, 0), carouselItems.length - 1);
+    return carouselItems[safeIndex] || carouselItems[0];
   };
 
   const dishContextItem = resolveDishItemForActiveMedia();
@@ -449,8 +465,12 @@ const FeedPost: React.FC<FeedPostProps> = ({
 
   // Handle touch events for swipe
   const getMediaLength = () => {
-    if (isVisitPost && hasMediaItems) return mediaItems!.length;
-    if (isCarousel) return carouselItems.length;
+    if (isVisitPost && hasMediaItems && Array.isArray(mediaItems)) {
+      return Math.max(0, mediaItems.length); // Ensure non-negative
+    }
+    if (isCarousel && Array.isArray(carouselItems)) {
+      return Math.max(0, carouselItems.length); // Ensure non-negative
+    }
     return 1;
   };
 
@@ -687,20 +707,36 @@ const FeedPost: React.FC<FeedPostProps> = ({
         >
           <div className="flex transition-transform duration-300 ease-out" style={{ transform: `translateX(-${currentIndex * 100}%)` }}>
             {isCarousel && carouselItems.length > 1 ? (
-              carouselItems.map((item, index) => (
-                <img 
-                  key={item.id}
-                  src={item.dish.image} 
-                  alt={item.dish.name} 
-                  className="w-full aspect-square object-cover flex-shrink-0" 
-                />
+              carouselItems.map((item) => (
+                // Defensive: ensure image URL exists before rendering
+                item.dish.image && typeof item.dish.image === 'string' ? (
+                  <img
+                    key={item.id}
+                    src={item.dish.image}
+                    alt={item.dish.name}
+                    className="w-full aspect-square object-cover flex-shrink-0"
+                  />
+                ) : (
+                  <div
+                    key={item.id}
+                    className="w-full aspect-square bg-gray-200 flex-shrink-0 flex items-center justify-center"
+                  >
+                    <span className="text-gray-400">Image unavailable</span>
+                  </div>
+                )
               ))
             ) : (
-              <img 
-                src={currentItem.dish.image} 
-                alt={currentItem.dish.name} 
-                className="w-full aspect-square object-cover flex-shrink-0" 
-              />
+              currentItem.dish.image && typeof currentItem.dish.image === 'string' ? (
+                <img
+                  src={currentItem.dish.image}
+                  alt={currentItem.dish.name}
+                  className="w-full aspect-square object-cover flex-shrink-0"
+                />
+              ) : (
+                <div className="w-full aspect-square bg-gray-200 flex items-center justify-center">
+                  <span className="text-gray-400">Image unavailable</span>
+                </div>
+              )
             )}
           </div>
           {currentItem.dish.visitCount && (
@@ -1218,12 +1254,22 @@ const FeedPost: React.FC<FeedPostProps> = ({
             {hasMediaItems && mediaItems.length > 0 ? (
               <div className="flex transition-transform duration-300 ease-out" style={{ transform: `translateX(-${currentIndex * 100}%)` }}>
                 {mediaItems.map((item) => (
-                  <img
-                    key={item.id}
-                    src={item.imageUrl}
-                    alt={item.dishName || 'Visit photo'}
-                    className="w-full aspect-square object-cover flex-shrink-0"
-                  />
+                  // Defensive: ensure imageUrl is valid before rendering
+                  item.imageUrl && typeof item.imageUrl === 'string' ? (
+                    <img
+                      key={item.id}
+                      src={item.imageUrl}
+                      alt={item.dishName || 'Visit photo'}
+                      className="w-full aspect-square object-cover flex-shrink-0"
+                    />
+                  ) : (
+                    <div
+                      key={item.id}
+                      className="w-full aspect-square bg-gray-200 flex-shrink-0 flex items-center justify-center"
+                    >
+                      <span className="text-gray-400">Image unavailable</span>
+                    </div>
+                  )
                 ))}
               </div>
             ) : (

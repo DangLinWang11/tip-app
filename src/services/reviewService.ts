@@ -1330,37 +1330,46 @@ export const convertVisitToCarouselFeedPost = async (reviews: FirebaseReview[]) 
   reviews.forEach((review) => {
     const imgs = getReviewImages(review);
     if (!imgs.length) return;
-    dishMediaItems.push({
-      id: `dish-${review.id}`,
-      imageUrl: imgs[0],
-      kind: 'dish',
-      reviewId: review.id,
-      dishName: review.dish,
-      rating: review.rating,
-    });
+    // Ensure the first image is valid (getReviewImages already filters, but be defensive)
+    const firstImage = imgs[0];
+    if (typeof firstImage === 'string' && firstImage.trim().length > 0) {
+      dishMediaItems.push({
+        id: `dish-${review.id}`,
+        imageUrl: firstImage,
+        kind: 'dish',
+        reviewId: review.id,
+        dishName: review.dish,
+        rating: review.rating,
+      });
+    }
   });
 
   // Step 3: Fallback when no visitMedia photos exist
   if (visitMediaItems.length === 0) {
     const fallbackSource = reviews.find((r) => getReviewImages(r).length > 0) || mainReview;
     const fallbackImages = getReviewImages(fallbackSource);
-    if (fallbackImages.length) {
-      visitMediaItems.push({
-        id: `visit-fallback-${fallbackSource.id}`,
-        imageUrl: fallbackImages[0],
-        kind: 'visit',
-        reviewId: fallbackSource.id,
-        dishName: fallbackSource.dish,
-        rating: fallbackSource.rating,
-      });
+    if (fallbackImages.length > 0) {
+      const fallbackUrl = fallbackImages[0];
+      // Ensure fallback URL is valid before adding
+      if (typeof fallbackUrl === 'string' && fallbackUrl.trim().length > 0) {
+        visitMediaItems.push({
+          id: `visit-fallback-${fallbackSource.id}`,
+          imageUrl: fallbackUrl,
+          kind: 'visit',
+          reviewId: fallbackSource.id,
+          dishName: fallbackSource.dish,
+          rating: fallbackSource.rating,
+        });
+      }
     }
   }
 
   // Step 4: Combine in proper order: visit items first, then dish items
+  // Final safety filter: ensure no entries with falsy/empty imageUrl sneak through
   const mediaItems: FeedMediaItem[] = [
     ...visitMediaItems,
     ...dishMediaItems,
-  ];
+  ].filter((item) => typeof item.imageUrl === 'string' && item.imageUrl.trim().length > 0);
 
   return {
     id: mainReview.visitId || mainReview.id,
@@ -1534,9 +1543,17 @@ const getReviewImages = (review: any): string[] => {
   try {
     const photos = Array.isArray(review?.media?.photos) ? review.media.photos : [];
     const images = Array.isArray(review?.images) ? review.images : [];
-    return photos.length > 0 ? photos : images;
+
+    // Prefer photos, but ensure all returned URLs are valid non-empty strings
+    const candidateUrls = photos.length > 0 ? photos : images;
+    return candidateUrls.filter((url): url is string =>
+      typeof url === 'string' && url.trim().length > 0
+    );
   } catch {
-    return Array.isArray(review?.images) ? review.images : [];
+    const fallbackUrls = Array.isArray(review?.images) ? review.images : [];
+    return fallbackUrls.filter((url): url is string =>
+      typeof url === 'string' && url.trim().length > 0
+    );
   }
 };
 
