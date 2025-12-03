@@ -1067,7 +1067,6 @@ const FeedPost: React.FC<FeedPostProps> = ({
               Cancel
             </button>
           </div>
-          )}
         </div>
       )}
 
