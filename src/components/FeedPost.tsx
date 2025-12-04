@@ -1412,16 +1412,17 @@ const FeedPost: React.FC<FeedPostProps> = ({
 
                 return (
                   <div key={category}>
-                    <p className="mt-2 text-[11px] tracking-wide text-gray-500 uppercase">{category}</p>
+                    {/* Category label: left-aligned with left padding to match dish column */}
+                    <p className="mt-2 text-[11px] tracking-wide text-gray-500 uppercase pl-4">{category}</p>
                     <div className="space-y-1">
                       {visible.map((dish: any) => (
                         <button
                           key={dish.id}
                           onClick={() => navigateToDishReview(dish.id, dish.dishId)}
-                          className="flex items-center gap-2 w-full py-1.5 px-0 text-sm hover:bg-gray-50 rounded"
+                          className="flex items-center justify-between w-full py-1.5 px-4 text-sm hover:bg-gray-50 rounded"
                         >
-                          <span className="font-medium text-gray-900 truncate min-w-0 flex-1">{dish.name}</span>
-                          <span className="flex-shrink-0 text-xs font-semibold text-white bg-red-500 rounded-full px-2.5 py-[2px]">
+                          <span className="font-medium text-gray-900 truncate text-left">{dish.name}</span>
+                          <span className="flex-shrink-0 ml-3 text-xs font-semibold text-white bg-red-500 rounded-full px-2.5 py-[2px]">
                             {dish.rating.toFixed(1)}
                           </span>
                         </button>
@@ -1429,7 +1430,7 @@ const FeedPost: React.FC<FeedPostProps> = ({
                       {remaining > 0 && (
                         <button
                           onClick={() => navigateToDishReview(visible[0]?.id || '', visible[0]?.dishId)}
-                          className="w-full text-left text-xs text-gray-500 mt-1 hover:text-gray-700"
+                          className="w-full text-left text-xs text-gray-500 mt-1 hover:text-gray-700 pl-4"
                         >
                           + {remaining} more {remaining === 1 ? 'dish' : 'dishes'}
                         </button>
