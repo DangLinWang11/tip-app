@@ -1321,7 +1321,7 @@ const FeedPost: React.FC<FeedPostProps> = ({
     <div className="relative bg-white rounded-2xl overflow-hidden shadow-sm mb-4">
       {/* Absolute rating (bigger, nudged down & left) */}
       <div className="pointer-events-none absolute top-5 right-5 z-10">
-        <RatingBadge rating={isVisitPost && visitAverageRating !== undefined ? visitAverageRating : currentItem.dish.rating} size="xl" />
+        <RatingBadge rating={heroRating} size="xl" />
       </div>
 
       {/* Header */}
@@ -1640,14 +1640,14 @@ const FeedPost: React.FC<FeedPostProps> = ({
         )}
 
         {/* Dish details - Only for legacy/single-dish layout */}
-        {!isVisitPost && currentItem.dish && legacyRating !== null && (
+        {!isVisitPost && currentItem.dish && displayRating !== null && (
           <div className="mb-2">
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium text-gray-900 truncate text-left">
                 {currentItem.dish.name}
               </span>
               <span className="flex-shrink-0 ml-3 text-xs font-semibold text-white bg-red-500 rounded-full px-2.5 py-[2px]">
-                {legacyRating.toFixed(1)}
+                {displayRating.toFixed(1)}
               </span>
             </div>
           </div>
@@ -1868,3 +1868,4 @@ const FeedPost: React.FC<FeedPostProps> = ({
 };
 
 export default FeedPost;
+
