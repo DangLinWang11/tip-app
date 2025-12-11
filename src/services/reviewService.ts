@@ -1619,6 +1619,16 @@ export const convertReviewToFeedPost = async (review: FirebaseReview) => {
     dishId: review.menuItemId,
     isCarousel: false, // Single dish post
     visitAverageRating: review.rating, // NEW: For single-dish, average = that dish's rating
+    // NEW: Add visitDishes array with single entry for unified layout
+    visitDishes: [{
+      id: review.id,
+      name: review.dish || (review as any).dishName || 'Unknown Dish',
+      rating: review.rating,
+      dishCategory: (review as any).dishCategory || 'Other', // Fallback to 'Other' if missing
+      wizardOrder: 0,
+      dishId: review.menuItemId,
+      restaurantId: review.restaurantId
+    }],
     mediaItems: (() => {
       const imgs = getReviewImages(review);
       if (!imgs.length) return undefined;
