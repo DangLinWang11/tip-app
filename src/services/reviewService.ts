@@ -1642,7 +1642,8 @@ export const convertReviewToFeedPost = async (review: FirebaseReview) => {
       name: review.dish || (review as any).dishName || 'Unknown Dish',
       image: (() => { const imgs = getReviewImages(review); return imgs && imgs.length > 0 ? imgs[0] : `https://source.unsplash.com/500x500/?food,${encodeURIComponent(review.dish || (review as any).dishName || 'food')}`; })(),
       rating: review.rating,
-      visitCount: review.visitedTimes
+      visitCount: review.visitedTimes,
+      dishCategory: (review as any).dishCategory
     },
     review: {
       date: safeToISOString(review.createdAt),
