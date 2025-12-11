@@ -238,6 +238,17 @@ const FeedPost: React.FC<FeedPostProps> = ({
     style_smashburger: 'Smashburger',
     style_birria_taco: 'Birria Taco',
 
+    // Newer attribute tags (attr_ prefix)
+    attr_umami_rich: 'Umami-rich',
+    attr_garlicky: 'Garlicky',
+    attr_well_seasoned: 'Well-seasoned',
+    attr_under_seasoned: 'Under-seasoned',
+    attr_balanced: 'Balanced',
+    attr_high_quality_ingredients: 'High-quality ingredients',
+    attr_comfort_food: 'Comfort food',
+    attr_beautiful_presentation: 'Beautiful presentation',
+    attr_consistent: 'Consistent',
+
     // Sentiment-derived tags
     val_good_value: 'Good value',
     val_overpriced: 'Overpriced',
@@ -255,6 +266,10 @@ const FeedPost: React.FC<FeedPostProps> = ({
     service_slow: 'Slow service',
     vibe_cozy: 'Cozy',
     vibe_lively: 'Lively',
+  };
+
+  const getTagLabel = (slugOrLabel: string): string => {
+    return TAG_LABELS[slugOrLabel] || slugOrLabel;
   };
 
   const getTagChipClass = (slug: string): string => {
@@ -412,6 +427,13 @@ const FeedPost: React.FC<FeedPostProps> = ({
   };
 
   const dishContextItem = resolveDishItemForActiveMedia();
+
+  const legacyRating =
+    typeof (currentItem.dish as any)?.rating === 'number'
+      ? (currentItem.dish as any).rating
+      : typeof (currentItem.review as any)?.rating === 'number'
+      ? (currentItem.review as any).rating
+      : null;
 
   // Function to get quality circle color based on percentage
   const getQualityColor = (percentage: number): string => {
@@ -871,30 +893,31 @@ const FeedPost: React.FC<FeedPostProps> = ({
           <div className="flex flex-wrap gap-1.5 mb-2">
             {/* Taste attribute chips with color coding */}
             {currentItem.review.tasteChips?.map((chip, i) => {
+              const label = getTagLabel(chip);
               // Determine chip color based on content
               let chipClass = "inline-flex items-center rounded-full border px-3 py-1.5 text-xs font-medium shadow-sm";
 
               // Value-related chips (blue)
-              if (chip.includes('Bargain') || chip.includes('Fair') || chip.includes('Overpriced')) {
-                chipClass += chip.includes('Bargain')
+              if (label.includes('Bargain') || label.includes('Fair') || label.includes('Overpriced')) {
+                chipClass += label.includes('Bargain')
                   ? " bg-blue-50 text-blue-700 border-blue-200"
-                  : chip.includes('Fair')
+                  : label.includes('Fair')
                   ? " bg-sky-50 text-sky-700 border-sky-200"
                   : " bg-slate-100 text-slate-700 border-slate-300";
               }
               // Freshness-related chips (green gradient)
-              else if (chip.includes('fresh') || chip.includes('Fresh')) {
-                chipClass += chip.includes('Very')
+              else if (label.includes('fresh') || label.includes('Fresh')) {
+                chipClass += label.includes('Very')
                   ? " bg-gradient-to-r from-green-50 to-emerald-50 text-green-700 border-green-200"
-                  : chip === 'Fresh'
+                  : label === 'Fresh'
                   ? " bg-green-50 text-green-700 border-green-200"
                   : " bg-orange-50 text-orange-700 border-orange-200";
               }
               // Saltiness-related chips (yellow/orange)
-              else if (chip.includes('salt') || chip.includes('Balanced')) {
-                chipClass += chip.includes('Balanced')
+              else if (label.includes('salt') || label.includes('Balanced')) {
+                chipClass += label.includes('Balanced')
                   ? " bg-amber-50 text-amber-700 border-amber-200"
-                  : chip.includes('Too')
+                  : label.includes('Too')
                   ? " bg-orange-100 text-orange-700 border-orange-300"
                   : " bg-yellow-50 text-yellow-700 border-yellow-200";
               }
@@ -905,13 +928,14 @@ const FeedPost: React.FC<FeedPostProps> = ({
 
               return (
                 <span key={`taste-${i}`} className={chipClass}>
-                  {chip}
+                  {label}
                 </span>
               );
             })}
 
             {/* Audience tags with enhanced emerald/green styling and emojis */}
             {currentItem.review.audienceTags?.map((tag, i) => {
+              const label = getTagLabel(tag);
               // Add emoji prefix based on tag type
               const getTagEmoji = (tagText: string): string => {
                 if (tagText.includes('Spicy')) return '🌶️ ';
@@ -928,7 +952,7 @@ const FeedPost: React.FC<FeedPostProps> = ({
                   key={`audience-${i}`}
                   className="inline-flex items-center rounded-full border px-3 py-1.5 text-xs font-semibold bg-gradient-to-r from-emerald-50 to-green-50 text-emerald-700 border-emerald-300 shadow-sm"
                 >
-                  {getTagEmoji(tag)}{tag}
+                  {getTagEmoji(label)}{label}
                 </span>
               );
             })}
@@ -944,7 +968,7 @@ const FeedPost: React.FC<FeedPostProps> = ({
               const displayTags = [...explicitTagList, ...derivedTagList, ...legacyTagList];
 
               return displayTags.map((slug, i) => {
-                const label = TAG_LABELS[slug] || slug;
+                const label = getTagLabel(slug);
                 const chipClass = getTagChipClass(slug);
                 const emoji = getTagEmojiForSlug(slug);
                 return (
@@ -1484,35 +1508,50 @@ const FeedPost: React.FC<FeedPostProps> = ({
           <p className="text-sm text-gray-700 mb-2">{currentItem.review.caption}</p>
         )}
 
+        {/* Dish details - Only for legacy/single-dish layout */}
+        {!isVisitPost && currentItem.dish && legacyRating !== null && (
+          <div className="mb-2">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium text-gray-900 truncate text-left">
+                {currentItem.dish.name}
+              </span>
+              <span className="flex-shrink-0 ml-3 text-xs font-semibold text-white bg-red-500 rounded-full px-2.5 py-[2px]">
+                {legacyRating.toFixed(1)}
+              </span>
+            </div>
+          </div>
+        )}
+
         {/* Taste chips and audience tags - Only for legacy/single-dish layout */}
         {!isVisitPost && (currentItem.review.tasteChips || currentItem.review.audienceTags || (isCarousel ? (currentItem as any).tags?.length : tags?.length)) && (
           <div className="flex flex-wrap gap-1.5 mb-2">
             {/* Taste attribute chips with color coding */}
             {currentItem.review.tasteChips?.map((chip, i) => {
+              const label = getTagLabel(chip);
               // Determine chip color based on content
               let chipClass = "inline-flex items-center rounded-full border px-3 py-1.5 text-xs font-medium shadow-sm";
 
               // Value-related chips (blue)
-              if (chip.includes('Bargain') || chip.includes('Fair') || chip.includes('Overpriced')) {
-                chipClass += chip.includes('Bargain')
+              if (label.includes('Bargain') || label.includes('Fair') || label.includes('Overpriced')) {
+                chipClass += label.includes('Bargain')
                   ? " bg-blue-50 text-blue-700 border-blue-200"
-                  : chip.includes('Fair')
+                  : label.includes('Fair')
                   ? " bg-sky-50 text-sky-700 border-sky-200"
                   : " bg-slate-100 text-slate-700 border-slate-300";
               }
               // Freshness-related chips (green gradient)
-              else if (chip.includes('fresh') || chip.includes('Fresh')) {
-                chipClass += chip.includes('Very')
+              else if (label.includes('fresh') || label.includes('Fresh')) {
+                chipClass += label.includes('Very')
                   ? " bg-gradient-to-r from-green-50 to-emerald-50 text-green-700 border-green-200"
-                  : chip === 'Fresh'
+                  : label === 'Fresh'
                   ? " bg-green-50 text-green-700 border-green-200"
                   : " bg-orange-50 text-orange-700 border-orange-200";
               }
               // Saltiness-related chips (yellow/orange)
-              else if (chip.includes('salt') || chip.includes('Balanced')) {
-                chipClass += chip.includes('Balanced')
+              else if (label.includes('salt') || label.includes('Balanced')) {
+                chipClass += label.includes('Balanced')
                   ? " bg-amber-50 text-amber-700 border-amber-200"
-                  : chip.includes('Too')
+                  : label.includes('Too')
                   ? " bg-orange-100 text-orange-700 border-orange-300"
                   : " bg-yellow-50 text-yellow-700 border-yellow-200";
               }
@@ -1523,13 +1562,14 @@ const FeedPost: React.FC<FeedPostProps> = ({
 
               return (
                 <span key={`taste-${i}`} className={chipClass}>
-                  {chip}
+                  {label}
                 </span>
               );
             })}
 
             {/* Audience tags with enhanced emerald/green styling and emojis */}
             {currentItem.review.audienceTags?.map((tag, i) => {
+              const label = getTagLabel(tag);
               // Add emoji prefix based on tag type
               const getTagEmoji = (tagText: string): string => {
                 if (tagText.includes('Spicy')) return '🌶️ ';
@@ -1546,7 +1586,7 @@ const FeedPost: React.FC<FeedPostProps> = ({
                   key={`audience-${i}`}
                   className="inline-flex items-center rounded-full border px-3 py-1.5 text-xs font-semibold bg-gradient-to-r from-emerald-50 to-green-50 text-emerald-700 border-emerald-300 shadow-sm"
                 >
-                  {getTagEmoji(tag)}{tag}
+                  {getTagEmoji(label)}{label}
                 </span>
               );
             })}
@@ -1562,7 +1602,7 @@ const FeedPost: React.FC<FeedPostProps> = ({
               const displayTags = [...explicitTagList, ...derivedTagList, ...legacyTagList];
 
               return displayTags.map((slug, i) => {
-                const label = TAG_LABELS[slug] || slug;
+                const label = getTagLabel(slug);
                 const chipClass = getTagChipClass(slug);
                 const emoji = getTagEmojiForSlug(slug);
                 return (
