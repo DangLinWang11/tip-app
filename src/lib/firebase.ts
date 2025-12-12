@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, User, updatePassword, reauthenticateWithCredential, EmailAuthProvider, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
-import { getFirestore, doc, setDoc, getDoc, updateDoc, deleteDoc, serverTimestamp, collection, query, where, getDocs } from 'firebase/firestore';import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { getFirestore, doc, setDoc, getDoc, updateDoc, deleteDoc, serverTimestamp, collection, query, where, getDocs, enableIndexedDbPersistence } from 'firebase/firestore';import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { getAnalytics } from 'firebase/analytics';
 
 
@@ -49,6 +49,19 @@ try {
 } catch (error) {
   console.error('❌ Firebase Firestore initialization failed:', error);
   throw new Error(`Firebase Firestore initialization failed: ${error.message}`);
+}
+
+// Enable offline persistence for better background handling
+if (db) {
+  enableIndexedDbPersistence(db).catch((err) => {
+    if (err.code === 'failed-precondition') {
+      console.warn('⚠️ Multiple tabs open - persistence only enabled in first tab');
+    } else if (err.code === 'unimplemented') {
+      console.warn('⚠️ Browser doesn\'t support offline persistence');
+    } else {
+      console.error('❌ Failed to enable persistence:', err);
+    }
+  });
 }
 
 // Initialize Cloud Storage with error handling

@@ -235,7 +235,7 @@ const Home: React.FC = () => {
       console.log('[Home] Cleaning up feed listener');
       unsub();
     };
-  }, [userReviews, userProfile, authUser?.uid]);
+  }, []); // ✅ Create once on mount, clean up on unmount
 
   // Calculate user stats from their own reviews and profile data
   const currentUser = authUser;

@@ -1908,7 +1908,7 @@ export function listenHomeFeed(onChange: (items: FirebaseReview[]) => void) {
     limit(50) // Fetch extra to account for filtering
   );
 
-  const unsub = onSnapshot(qRef, { includeMetadataChanges: true }, (snap) => {
+  const unsub = onSnapshot(qRef, { includeMetadataChanges: false }, (snap) => {
     const raw = snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) }));
 
     // Filter out malformed documents (those with _methodName, missing dishName, etc.)
