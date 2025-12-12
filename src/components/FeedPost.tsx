@@ -900,7 +900,7 @@ const FeedPost: React.FC<FeedPostProps> = ({
       )}
 
       {/* Content */}
-      <div className="px-4 pb-4">
+      <div className="px-4 pt-3 pb-4">
         {/* Verification badge (if present)
             Only show "Pending verification" on a user's own profile view.
         */}
@@ -978,7 +978,7 @@ const FeedPost: React.FC<FeedPostProps> = ({
                    '');
             if (!visitText) return null;
             return (
-              <p className="text-sm text-gray-700 mb-2">
+              <p className="mt-1 mb-3 text-sm text-gray-900 leading-snug border-l-2 border-gray-100 pl-3">
                 {visitText}
               </p>
             );
@@ -988,7 +988,7 @@ const FeedPost: React.FC<FeedPostProps> = ({
           const source = dishContextItem || currentItem;
           if (source.review.caption) {
             return (
-              <p className="text-sm text-gray-700 mb-2">
+              <p className="mt-1 mb-3 text-sm text-gray-900 leading-snug border-l-2 border-gray-100 pl-3">
                 {source.review.caption}
               </p>
             );
@@ -1785,4 +1785,3 @@ const FeedPost: React.FC<FeedPostProps> = ({
 };
 
 export default FeedPost;
-
