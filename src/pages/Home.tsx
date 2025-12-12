@@ -6,6 +6,7 @@ import HamburgerMenu from '../components/HamburgerMenu';
 import FeedPost from '../components/FeedPost';
 import { fetchReviews, convertReviewsToFeedPosts, fetchUserReviews, FirebaseReview, listenHomeFeed } from '../services/reviewService';
 import { auth, getUserProfile, getCurrentUser } from '../lib/firebase';
+import { getFollowing } from '../services/followService';
 import mapPreview from "../assets/map-preview.png";
 // Defer heavy map code: code-split ExpandedMapModal and avoid inline map
 const ExpandedMapModal = React.lazy(() => import('../components/ExpandedMapModal'));
@@ -23,42 +24,44 @@ let __homeCacheUserId: string | null = null;
 const HOME_CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
 
 // Helper to check if cache is valid for the given user
-const isCacheValid = (userId?: string | null) => {
+const isCacheValid = (userId: string | null | undefined) => {
   if (!__homeCache) {
     return false;
   }
-  const activeUserId = userId ?? getCurrentUser()?.uid ?? null;
-  if (!activeUserId) {
+  if (!userId) {
     return false;
   }
-  if (__homeCacheUserId !== activeUserId) {
+  if (__homeCacheUserId !== userId) {
     return false;
   }
   return Date.now() - __homeCache.ts < HOME_CACHE_TTL_MS;
 };
 
-const resolveInitialCache = (): HomeCache | null => {
-  const userId = getCurrentUser()?.uid ?? null;
-  if (!userId) {
-    return null;
-  }
-  return isCacheValid(userId) ? __homeCache : null;
-};
-
 const Home: React.FC = () => {
+  const mountStart = performance.now?.() ?? Date.now();
+  console.log(
+    '[Home][render-start]',
+    'ts=',
+    new Date().toISOString(),
+    'perfMs=',
+    mountStart
+  );
+
   const navigate = useNavigate();
-  const initialCache = useMemo(() => resolveInitialCache(), []);
-  // Initialize state from cache if available, preventing loading screen flash
-  const [firebaseReviews, setFirebaseReviews] = useState<FirebaseReview[]>(initialCache?.firebaseReviews || []);
-  const [userReviews, setUserReviews] = useState<FirebaseReview[]>(initialCache?.userReviews || []);
-  const [feedPosts, setFeedPosts] = useState<any[]>(initialCache?.feedPosts || []);
-  const [userProfile, setUserProfile] = useState<any>(initialCache?.userProfile || null);
-  // Only show loading if we don't have valid cache
-  const [loading, setLoading] = useState(!initialCache);
-  const [profileLoading, setProfileLoading] = useState(!initialCache);
+
+  // Seed initial state from any existing module-level cache without invalidating it.
+  const initialCachedState = __homeCache;
+  const [firebaseReviews, setFirebaseReviews] = useState<FirebaseReview[]>(initialCachedState?.firebaseReviews || []);
+  const [userReviews, setUserReviews] = useState<FirebaseReview[]>(initialCachedState?.userReviews || []);
+  const [feedPosts, setFeedPosts] = useState<any[]>(initialCachedState?.feedPosts || []);
+  const [userProfile, setUserProfile] = useState<any>(initialCachedState?.userProfile || null);
+  // If we have any cached feed posts, treat as not loading to avoid blank screen.
+  const [loading, setLoading] = useState(!initialCachedState || (initialCachedState.feedPosts || []).length === 0);
+  const [profileLoading, setProfileLoading] = useState(!initialCachedState);
   const [error, setError] = useState<string | null>(null);
   const [showExpandedMap, setShowExpandedMap] = useState(false);
   const [authUser, setAuthUser] = useState(() => getCurrentUser());
+  const [followingIds, setFollowingIds] = useState<Set<string>>(new Set());
 
   // Pull-to-refresh state
   const [refreshing, setRefreshing] = useState(false);
@@ -73,6 +76,16 @@ const Home: React.FC = () => {
 
   useEffect(() => {
     isFirstLoad.current = false;
+    const mountEnd = performance.now?.() ?? Date.now();
+    console.log(
+      '[Home][mount-effect] component did mount',
+      'ts=',
+      new Date().toISOString(),
+      'perfMs=',
+      mountEnd,
+      'sinceRenderMs=',
+      mountEnd - mountStart
+    );
   }, []);
 
   useEffect(() => {
@@ -84,6 +97,7 @@ const Home: React.FC = () => {
         setUserReviews([]);
         setFirebaseReviews([]);
         setFeedPosts([]);
+        setFollowingIds(new Set());
       }
       setAuthUser(user);
     });
@@ -93,59 +107,119 @@ const Home: React.FC = () => {
   
   // Initialize data on mount: load from network only if cache is stale or missing
   useEffect(() => {
-    if (!authUser) {
-      console.log('[Home] No authenticated user yet, skipping initialization');
-      return;
-    }
-
     const initializeData = async () => {
+      if (!authUser) {
+        console.log(
+          '[Home][init] No authenticated user yet, skipping initialization',
+          'ts=',
+          new Date().toISOString()
+        );
+        return;
+      }
+
       // Check for force refresh flag
       const url = new URL(window.location.href);
       const forceRefresh = url.searchParams.get('refresh') === '1';
 
-      console.log(
-        '[Home] Initialization: cache valid?',
-        isCacheValid(authUser.uid),
-        'force refresh?',
-        forceRefresh
-      );
+      const tInitStart = performance.now?.() ?? Date.now();
+      const cacheValid = isCacheValid(authUser.uid);
+      console.log('[Home][init] start', {
+        ts: new Date().toISOString(),
+        perfMs: tInitStart,
+        cacheValid,
+        forceRefresh,
+      });
 
       // If we have valid cache and no force refresh, we're done (state already initialized)
-      if (!forceRefresh && isCacheValid(authUser.uid)) {
-        console.log('[Home] Using cached data, skipping fetch');
+      if (!forceRefresh && cacheValid) {
+        console.log(
+          '[Home][init] Using cached data, skipping fetch',
+          'ts=',
+          new Date().toISOString()
+        );
+        // Hydrate state from cache if we haven't already.
+        if (__homeCache) {
+          setFirebaseReviews(__homeCache.firebaseReviews);
+          setUserReviews(__homeCache.userReviews);
+          setFeedPosts(__homeCache.feedPosts);
+          setUserProfile(__homeCache.userProfile);
+          setLoading(false);
+          setProfileLoading(false);
+        }
         return;
       }
 
       // Otherwise, fetch fresh data
       try {
-        console.log('[Home] Fetching fresh data...');
+        const tFetchStart = performance.now?.() ?? Date.now();
+        console.log('[Home][init] Fetching fresh data...', {
+          ts: new Date().toISOString(),
+          perfMs: tFetchStart,
+        });
         setLoading(true);
         setProfileLoading(true);
 
         const currentUser = authUser;
         let loadedProfile = null;
+        let followingSet: Set<string> = new Set();
 
         // Load user profile
         if (currentUser) {
+          const tProfileStart = performance.now?.() ?? Date.now();
           const profileResult = await getUserProfile(currentUser.uid);
+          const tProfileEnd = performance.now?.() ?? Date.now();
+          console.log('[Home][init] getUserProfile completed', {
+            ts: new Date().toISOString(),
+            durationMs: tProfileEnd - tProfileStart,
+            success: profileResult.success,
+          });
           if (profileResult.success && profileResult.profile) {
             setUserProfile(profileResult.profile);
             loadedProfile = profileResult.profile;
+            // If profile has following info, hydrate following set here in future.
+          }
+
+          // Load following relationships once for Home and pass into FeedPost components.
+          try {
+            const followingList = await getFollowing(currentUser.uid);
+            followingSet = new Set(followingList.map((f) => f.followingId));
+            setFollowingIds(followingSet);
+          } catch (followErr) {
+            console.error('[Home][init] Failed to load following list', followErr);
           }
         }
         setProfileLoading(false);
 
         // Load user's reviews for stats
+        const tUserReviewsStart = performance.now?.() ?? Date.now();
         const reviews = await fetchUserReviews(50);
-        console.log('[Home] Fetched user reviews:', reviews.length);
+        const tUserReviewsEnd = performance.now?.() ?? Date.now();
+        console.log('[Home][init] Fetched user reviews', {
+          ts: new Date().toISOString(),
+          count: reviews.length,
+          durationMs: tUserReviewsEnd - tUserReviewsStart,
+        });
         setFirebaseReviews(reviews);
         setUserReviews(currentUser ? reviews : []);
 
         // Load public feed (the listener will take over after initial load)
+        const tFeedFetchStart = performance.now?.() ?? Date.now();
         const publicFeed = await fetchReviews(12);
-        console.log('[Home] Fetched public feed:', publicFeed.length);
+        const tFeedFetchEnd = performance.now?.() ?? Date.now();
+        console.log('[Home][init] Fetched public feed', {
+          ts: new Date().toISOString(),
+          count: publicFeed.length,
+          durationMs: tFeedFetchEnd - tFeedFetchStart,
+        });
+
+        const tConvertStart = performance.now?.() ?? Date.now();
         const posts = await convertReviewsToFeedPosts(publicFeed);
-        console.log('[Home] Converted to feed posts:', posts.length);
+        const tConvertEnd = performance.now?.() ?? Date.now();
+        console.log('[Home][init] Converted reviews to feed posts', {
+          ts: new Date().toISOString(),
+          count: posts.length,
+          durationMs: tConvertEnd - tConvertStart,
+        });
         setFeedPosts(posts);
 
         // Update cache
@@ -158,10 +232,14 @@ const Home: React.FC = () => {
         };
         __homeCacheUserId = currentUser?.uid || null;
 
-        console.log('[Home] Initialization complete, cache updated');
+        const tInitEnd = performance.now?.() ?? Date.now();
+        console.log('[Home][init] complete, cache updated', {
+          ts: new Date().toISOString(),
+          totalDurationMs: tInitEnd - tInitStart,
+        });
         setLoading(false);
       } catch (err) {
-        console.error('Failed to initialize home data:', err);
+        console.error('[Home][init] Failed to initialize home data:', err);
         setError('Failed to load data');
         setLoading(false);
         setProfileLoading(false);
@@ -175,16 +253,35 @@ const Home: React.FC = () => {
   // Fetch reviews from Firebase (used for first load and manual refresh)
   const loadReviews = async () => {
     try {
+      const tLoadStart = performance.now?.() ?? Date.now();
+      console.log('[Home][refresh] loadReviews start', {
+        ts: new Date().toISOString(),
+        perfMs: tLoadStart,
+      });
       setLoading(true);
       const currentUser = authUser;
 
       // Load current user's reviews once and reuse for state + stats
+      const tUserReviewsStart = performance.now?.() ?? Date.now();
       const reviews = await fetchUserReviews(50);
+      const tUserReviewsEnd = performance.now?.() ?? Date.now();
+      console.log('[Home][refresh] Fetched user reviews', {
+        ts: new Date().toISOString(),
+        count: reviews.length,
+        durationMs: tUserReviewsEnd - tUserReviewsStart,
+      });
       setFirebaseReviews(reviews);
       setUserReviews(currentUser ? reviews : []);
 
       // Convert Firebase reviews to feed post format for initial render
+      const tConvertStart = performance.now?.() ?? Date.now();
       const posts = await convertReviewsToFeedPosts(reviews);
+      const tConvertEnd = performance.now?.() ?? Date.now();
+      console.log('[Home][refresh] Converted reviews to feed posts', {
+        ts: new Date().toISOString(),
+        count: posts.length,
+        durationMs: tConvertEnd - tConvertStart,
+      });
       setFeedPosts(posts);
       setError(null);
 
@@ -213,9 +310,19 @@ const Home: React.FC = () => {
     console.log('[Home] Setting up real-time feed listener');
     const unsub = listenHomeFeed(async (items: FirebaseReview[]) => {
       try {
-        console.log('[Home] Listener received items:', items.length);
+        const tListenerStart = performance.now?.() ?? Date.now();
+        console.log('[Home][listener] received items', {
+          ts: new Date().toISOString(),
+          rawCount: items.length,
+        });
+        const tConvertStart = performance.now?.() ?? Date.now();
         const posts = await convertReviewsToFeedPosts(items);
-        console.log('[Home] Converted to posts:', posts.length);
+        const tConvertEnd = performance.now?.() ?? Date.now();
+        console.log('[Home][listener] Converted items to posts', {
+          ts: new Date().toISOString(),
+          count: posts.length,
+          durationMs: tConvertEnd - tConvertStart,
+        });
         setFeedPosts(posts);
         // update cache
         __homeCache = {
@@ -227,8 +334,13 @@ const Home: React.FC = () => {
         };
         __homeCacheUserId = authUser?.uid || null;
         setLoading(false);
+        const tListenerEnd = performance.now?.() ?? Date.now();
+        console.log('[Home][listener] complete', {
+          ts: new Date().toISOString(),
+          totalDurationMs: tListenerEnd - tListenerStart,
+        });
       } catch (e) {
-        console.error('Failed converting live feed posts', e);
+        console.error('[Home][listener] Failed converting live feed posts', e);
       }
     });
     return () => {
@@ -263,6 +375,11 @@ const Home: React.FC = () => {
 
   // Get user's recent reviews for personal section (use actual user reviews)
   const userRecentReviews = userReviews.slice(0, 3);
+
+  // Stable map of follow status keyed by authorId, for FeedPost components.
+  const followingMap = useMemo(() => {
+    return followingIds;
+  }, [followingIds]);
 
   const handleVisitClick = (visitId: number) => {
     console.log(`Navigate to post ${visitId}`);
@@ -303,8 +420,21 @@ const Home: React.FC = () => {
     </div>
   );
 
-  if (isFirstLoad.current && loading && feedPosts.length === 0) {
-    return <div>Loading...</div>;
+  const hasAnyContent =
+    (feedPosts && feedPosts.length > 0) ||
+    (firebaseReviews && firebaseReviews.length > 0) ||
+    (userReviews && userReviews.length > 0);
+
+  // Only show a full-screen loader on a true cold start where we have no cached content at all.
+  if (isFirstLoad.current && loading && !hasAnyContent && !__homeCache) {
+    console.log('[Home][render] showing cold-start loading state', {
+      ts: new Date().toISOString(),
+    });
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 text-gray-500 text-sm">
+        Loading your feed...
+      </div>
+    );
   }
 
   // Always show the full Home dashboard (stats, map, community feed)
@@ -415,6 +545,12 @@ const Home: React.FC = () => {
       </div>
 
       <div className="px-4 py-6">
+        {/* Inline refresh indicator when updating but showing cached content */}
+        {loading && hasAnyContent && (
+          <div className="flex justify-center mb-3">
+            <span className="text-xs text-gray-400">Refreshing...</span>
+          </div>
+        )}
 
         {/* Your Food Journey Section */}
         <div className="bg-white rounded-xl shadow-sm p-5 mb-6">
@@ -427,6 +563,8 @@ const Home: React.FC = () => {
             <img
               src={mapPreview}
               alt="Map preview"
+              loading="lazy"
+              decoding="async"
               className="absolute inset-0 w-full h-full object-cover"
             />
             <div className="absolute inset-0 bg-white/5" />
@@ -474,9 +612,23 @@ const Home: React.FC = () => {
           {/* Feed Posts */}
           {feedPosts.length > 0 ? (
             <div className="space-y-4">
-              {feedPosts.map(post => (
-                <FeedPost key={post.id} {...post} />
-              ))}
+              {(() => {
+                console.log('[Home][render] Rendering feed posts', {
+                  ts: new Date().toISOString(),
+                  count: feedPosts.length,
+                });
+                return feedPosts.map((post) => {
+                  const isFollowingAuthor =
+                    !!(post.author && followingMap.has && followingMap.has(post.author.id));
+                  return (
+                    <FeedPost
+                      key={post.id}
+                      {...post}
+                      isFollowingAuthor={isFollowingAuthor}
+                    />
+                  );
+                });
+              })()}
             </div>
           ) : !loading && !error && (
             <div className="text-center py-12 px-4">

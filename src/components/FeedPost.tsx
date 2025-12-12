@@ -14,7 +14,7 @@ import RatingBadge from './RatingBadge';
 import { useFeature } from '../utils/features';
 import SaveToListModal from './SaveToListModal';
 import ReceiptUploadModal from './ReceiptUploadModal';
-import { isFollowing, followUser, unfollowUser } from '../services/followService';
+import { followUser, unfollowUser } from '../services/followService';
 import { getCurrentUser } from '../lib/firebase';
 import { deleteReview, reportReview, type FeedMediaItem } from '../services/reviewService';
 import { uploadReviewProofs, markReviewPendingProof } from '../services/reviewVerificationService';
@@ -100,9 +100,11 @@ interface FeedPostProps {
   // When true, show the "Pending verification" badge.
   // Used for a user's own profile page only.
   showPendingVerification?: boolean;
+  // Precomputed follow status for author, provided by parent (Home).
+  isFollowingAuthor?: boolean;
 }
 
-const FeedPost: React.FC<FeedPostProps> = ({
+const FeedPostComponent: React.FC<FeedPostProps> = ({
   id, // Review document ID from Firebase
   visitId,
   restaurantId,
@@ -120,7 +122,8 @@ const FeedPost: React.FC<FeedPostProps> = ({
   visitAverageRating,
   visitDishes,
   mediaItems,
-  showPendingVerification = false
+  showPendingVerification = false,
+  isFollowingAuthor = false
 }) => {
   // Log all IDs received by FeedPost component
   console.log('📝 [FeedPost] Component initialized with IDs:', {
@@ -147,7 +150,7 @@ const FeedPost: React.FC<FeedPostProps> = ({
   const [showReceiptModal, setShowReceiptModal] = useState(false);
 
   // NEW: Follow state management
-  const [isFollowingUser, setIsFollowingUser] = useState(false);
+  const [isFollowingUser, setIsFollowingUser] = useState(isFollowingAuthor);
   const [followLoading, setFollowLoading] = useState(false);
   const currentUser = getCurrentUser();
   const isOwnPost = currentUser?.uid === author.id;
@@ -347,16 +350,10 @@ const FeedPost: React.FC<FeedPostProps> = ({
     return '';
   };
 
-  // NEW: Check follow status on component mount
+  // Keep local follow state in sync with parent-provided value.
   useEffect(() => {
-    const checkFollowStatus = async () => {
-      if (!isOwnPost && author.id) {
-        const following = await isFollowing(author.id);
-        setIsFollowingUser(following);
-      }
-    };
-    checkFollowStatus();
-  }, [author.id, isOwnPost]);
+    setIsFollowingUser(isFollowingAuthor);
+  }, [isFollowingAuthor]);
 
   // NEW: Handle follow/unfollow
   const handleFollowToggle = async (e: React.MouseEvent) => {
@@ -761,7 +758,13 @@ const FeedPost: React.FC<FeedPostProps> = ({
 
       {/* Header */}
       <div className="p-4 flex items-center gap-4">
-        <img src={author.image} alt={author.name} className="w-10 h-10 rounded-full object-cover" />
+        <img
+          src={author.image}
+          alt={author.name}
+          loading="lazy"
+          decoding="async"
+          className="w-10 h-10 rounded-full object-cover"
+        />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5">
             {/* NEW: Username area with follow button */}
@@ -849,6 +852,8 @@ const FeedPost: React.FC<FeedPostProps> = ({
                     key={item.id}
                     src={item.dish.image}
                     alt={item.dish.name}
+                    loading="lazy"
+                    decoding="async"
                     className="w-full aspect-square object-cover flex-shrink-0"
                   />
                 ) : (
@@ -865,6 +870,8 @@ const FeedPost: React.FC<FeedPostProps> = ({
                 <img
                   src={currentItem.dish.image}
                   alt={currentItem.dish.name}
+                  loading="lazy"
+                  decoding="async"
                   className="w-full aspect-square object-cover flex-shrink-0"
                 />
               ) : (
@@ -1783,5 +1790,7 @@ const FeedPost: React.FC<FeedPostProps> = ({
 
   return legacyLayout;
 };
+
+const FeedPost = React.memo(FeedPostComponent);
 
 export default FeedPost;
