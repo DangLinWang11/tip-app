@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useLayoutEffect } from 'react';
 import { MapIcon, PlusIcon, MapPinIcon, Star, ChevronRight, Store } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -86,7 +86,32 @@ const Home: React.FC = () => {
       'sinceRenderMs=',
       mountEnd - mountStart
     );
+    if (typeof requestAnimationFrame === 'function') {
+      requestAnimationFrame(() => {
+        console.log('[Home][raf] painted', {
+          ts: new Date().toISOString(),
+          perfNow: performance.now?.(),
+        });
+      });
+    }
   }, []);
+
+  useLayoutEffect(() => {
+    const ts = new Date().toISOString();
+    console.log('[Home][layout-effect]', {
+      ts,
+      authUserId: authUser?.uid || null,
+    });
+    if (typeof requestAnimationFrame === 'function') {
+      requestAnimationFrame(() => {
+        console.log('[Home][layout-raf]', {
+          ts: new Date().toISOString(),
+          authUserId: authUser?.uid || null,
+          perfNow: performance.now?.(),
+        });
+      });
+    }
+  }, [authUser?.uid]);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -94,6 +119,7 @@ const Home: React.FC = () => {
         __homeCache = null;
         __homeCacheUserId = null;
         setUserProfile(null);
+        console.trace('[Home][auth] clearing userReviews/firebaseReviews/feedPosts due to sign-out');
         setUserReviews([]);
         setFirebaseReviews([]);
         setFeedPosts([]);
@@ -375,6 +401,19 @@ const Home: React.FC = () => {
 
   // Get user's recent reviews for personal section (use actual user reviews)
   const userRecentReviews = userReviews.slice(0, 3);
+
+  useEffect(() => {
+    console.log('[Home][state] feedPosts length changed', {
+      ts: new Date().toISOString(),
+      length: feedPosts.length,
+      loading,
+      hasAnyContent:
+        (feedPosts && feedPosts.length > 0) ||
+        (firebaseReviews && firebaseReviews.length > 0) ||
+        (userReviews && userReviews.length > 0),
+      authUserId: authUser?.uid || null,
+    });
+  }, [feedPosts.length]);
 
   // Stable map of follow status keyed by authorId, for FeedPost components.
   const followingMap = useMemo(() => {

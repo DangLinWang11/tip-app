@@ -1,6 +1,6 @@
 ﻿// File: src/App.tsx
-import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import React, { useState, useEffect, useLayoutEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth, getUserProfile } from './lib/firebase';
 import { ensureUserProfile } from './services/userService';
@@ -48,14 +48,68 @@ const ComingSoon: React.FC<{ feature: string }> = ({ feature }) => (
 );
 
 // Loading screen component
-const LoadingScreen: React.FC = () => (
-  <div className="min-h-screen bg-white flex items-center justify-center">
-    <div className="text-center">
-      <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-      <p className="text-gray-600">Loading...</p>
+const LoadingScreen: React.FC<{ label?: string }> = ({ label = 'Loading...' }) => {
+  const ts = new Date().toISOString();
+  console.log('[NAV][LoadingScreen][render]', { ts, label });
+  if (performance && performance.mark) {
+    performance.mark(`LoadingScreen-render-${label}-${ts}`);
+  }
+  return (
+    <div className="min-h-screen bg-white flex items-center justify-center">
+      <div className="text-center">
+        <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+        <p className="text-gray-600">{label}</p>
+      </div>
     </div>
-  </div>
-);
+  );
+};
+
+// Top-level route shell that never unmounts and provides a stable background.
+const RouteShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const location = useLocation();
+  const renderStart = performance.now?.() ?? Date.now();
+  console.log('[NAV][RouteShell][render]', {
+    ts: new Date().toISOString(),
+    path: location.pathname,
+    renderStart,
+  });
+
+  useLayoutEffect(() => {
+    const ts = new Date().toISOString();
+    console.log('[NAV][RouteShell][layout-effect]', {
+      ts,
+      path: location.pathname,
+    });
+    if (typeof requestAnimationFrame === 'function') {
+      requestAnimationFrame(() => {
+        console.log('[NAV][RouteShell][raf]', {
+          ts: new Date().toISOString(),
+          path: location.pathname,
+          perfNow: performance.now?.(),
+        });
+      });
+    }
+  }, [location.pathname]);
+
+  return (
+    <div className="min-h-screen" style={{ backgroundColor: '#ffffff' }}>
+      {children}
+    </div>
+  );
+};
+
+// Helper to log route location changes
+const RouteLogger: React.FC = () => {
+  const location = useLocation();
+  useEffect(() => {
+    const ts = new Date().toISOString();
+    console.log('[NAV][location]', location.pathname + location.search, 'ts=', ts);
+    if (performance && performance.mark) {
+      performance.mark(`NAV-location-${location.pathname}-${ts}`);
+    }
+  }, [location.pathname, location.search]);
+  return null;
+};
 
 export function App() {
   const [authState, setAuthState] = useState<{
@@ -124,7 +178,7 @@ export function App() {
   
   // Show loading screen while checking auth state
   if (authState.isLoading) {
-    return <LoadingScreen />;
+    return <LoadingScreen label="Auth state" />;
   }
   
   // Show onboarding if not authenticated or needs username
@@ -155,41 +209,45 @@ export function App() {
       <LocationProvider>
         <Router>
         <RedirectAfterLogin />
-        <React.Suspense fallback={<LoadingScreen />}> 
-        <Routes>
-          <Route path="/" element={<Layout />}>
-            <Route index element={<Home />} />
-            <Route path="discover" element={<Discover />} />
-            <Route path="discover/list" element={<DiscoverList />} />
-            <Route path="create" element={<Create />} />
-            <Route 
-              path="notifications" 
-              element={
-                useFeature('NOTIFICATIONS') ? 
-                <Notifications /> : 
-                <ComingSoon feature="Notifications" />
-              } 
-            />
-            <Route path="recent-activity" element={<RecentActivity />} />
-            <Route path="profile" element={<Profile />} />
-            <Route path="user/:username" element={<PublicProfile />} />
-            <Route path="rewards" element={<RewardsComingSoon />} />
-            <Route path="list/:id" element={<ListDetail />} />
-            <Route path="/food-map" element={<FoodMap />} />
-            <Route path="/list-view" element={<FoodMap />} />
-          </Route>
-          <Route path="/profile/edit" element={<EditProfile />} />
-          <Route path="/profile/change-password" element={<ChangePassword />} />
-          <Route path="/restaurant/:id" element={<RestaurantDetail />} />
-          <Route path="/restaurant/:id/menu" element={<MenuDetail />} />
-          <Route path="/dish/:id" element={<MenuDetail />} />
-          <Route path="/post/:postId" element={<PostDetail />} />
-          <Route path="/admin-upload" element={<AdminUpload />} />
-          <Route path="/admin/claims" element={<ClaimsReview />} />
-          <Route path="/admin/reviews" element={<ReviewVerification />} />
-          <Route path="/owner/*" element={<OwnerPortalLazy />} />
-        </Routes>
-        </React.Suspense>
+        <RouteLogger />
+        <RouteShell>
+          {/* Keep Suspense, but remove full-screen fallback to avoid white flash */}
+          <React.Suspense fallback={null}>
+            <Routes>
+              <Route path="/" element={<Layout />}>
+                <Route index element={<Home />} />
+                <Route path="discover" element={<Discover />} />
+                <Route path="discover/list" element={<DiscoverList />} />
+                <Route path="create" element={<Create />} />
+                <Route 
+                  path="notifications" 
+                  element={
+                    useFeature('NOTIFICATIONS') ? 
+                    <Notifications /> : 
+                    <ComingSoon feature="Notifications" />
+                  } 
+                />
+                <Route path="recent-activity" element={<RecentActivity />} />
+                <Route path="profile" element={<Profile />} />
+                <Route path="user/:username" element={<PublicProfile />} />
+                <Route path="rewards" element={<RewardsComingSoon />} />
+                <Route path="list/:id" element={<ListDetail />} />
+                <Route path="/food-map" element={<FoodMap />} />
+                <Route path="/list-view" element={<FoodMap />} />
+              </Route>
+              <Route path="/profile/edit" element={<EditProfile />} />
+              <Route path="/profile/change-password" element={<ChangePassword />} />
+              <Route path="/restaurant/:id" element={<RestaurantDetail />} />
+              <Route path="/restaurant/:id/menu" element={<MenuDetail />} />
+              <Route path="/dish/:id" element={<MenuDetail />} />
+              <Route path="/post/:postId" element={<PostDetail />} />
+              <Route path="/admin-upload" element={<AdminUpload />} />
+              <Route path="/admin/claims" element={<ClaimsReview />} />
+              <Route path="/admin/reviews" element={<ReviewVerification />} />
+              <Route path="/owner/*" element={<OwnerPortalLazy />} />
+            </Routes>
+          </React.Suspense>
+        </RouteShell>
         </Router>
       </LocationProvider>
     </I18nProvider>

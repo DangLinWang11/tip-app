@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useLayoutEffect } from 'react';
 import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { db, getUserProfile } from '../lib/firebase';
@@ -59,6 +59,11 @@ interface ReviewAuthor {
 }
 
 const MenuDetail: React.FC = () => {
+  const renderStart = performance.now?.() ?? Date.now();
+  console.log('[Dish][render-start]', {
+    ts: new Date().toISOString(),
+    renderStart,
+  });
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const location = useLocation();
@@ -73,6 +78,31 @@ const MenuDetail: React.FC = () => {
   const [toastMsg, setToastMsg] = useState<string | null>(null);
   const [authors, setAuthors] = useState<Record<string, ReviewAuthor>>({});
   const [showBackButton, setShowBackButton] = useState(false);
+
+  useLayoutEffect(() => {
+    const ts = new Date().toISOString();
+    console.log('[Dish][layout-effect]', { ts, path: location.pathname });
+    if (typeof requestAnimationFrame === 'function') {
+      requestAnimationFrame(() => {
+        console.log('[Dish][layout-raf]', {
+          ts: new Date().toISOString(),
+          path: location.pathname,
+          perfNow: performance.now?.(),
+        });
+      });
+    }
+  }, [location.pathname]);
+
+  useEffect(() => {
+    if (typeof requestAnimationFrame === 'function') {
+      requestAnimationFrame(() => {
+        console.log('[Dish][raf] painted', {
+          ts: new Date().toISOString(),
+          perfNow: performance.now?.(),
+        });
+      });
+    }
+  }, []);
 
   // Calculate average rating from reviews
   const calculateAverageRating = (reviewsArray: Review[]) => {

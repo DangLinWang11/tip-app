@@ -109,12 +109,12 @@ export const getFollowing = async (userId?: string): Promise<Follow[]> => {
     if (!targetUserId) return [];
 
     const followsRef = collection(db, 'follows');
+    // Simple single-field where query to avoid composite index requirements.
     const q = query(
       followsRef,
-      where('followerId', '==', targetUserId),
-      orderBy('timestamp', 'desc')
+      where('followerId', '==', targetUserId)
     );
-    
+
     const snapshot = await getDocs(q);
     return snapshot.docs.map(doc => ({
       id: doc.id,

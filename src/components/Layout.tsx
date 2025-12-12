@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useLayoutEffect } from 'react';
 import { Outlet } from 'react-router-dom';
 import BottomNavigation from './BottomNavigation';
 const Layout: React.FC = () => {
@@ -8,11 +8,26 @@ const Layout: React.FC = () => {
     document.documentElement.style.overflow = '';
   }, []);
 
-  return <div className="app-container">
+  useLayoutEffect(() => {
+    const ts = new Date().toISOString();
+    console.log('[Layout][layout-effect]', { ts });
+    if (typeof requestAnimationFrame === 'function') {
+      requestAnimationFrame(() => {
+        console.log('[Layout][raf]', {
+          ts: new Date().toISOString(),
+          perfNow: performance.now?.(),
+        });
+      });
+    }
+  }, []);
+
+  return (
+    <div className="app-container">
       <main className="pb-20 touch-pan-y">
         <Outlet />
       </main>
       <BottomNavigation />
-    </div>;
+    </div>
+  );
 };
 export default Layout;

@@ -1809,7 +1809,8 @@ export const convertUserReviewsToFeedPosts = async (reviews: FirebaseReview[]) =
 // Convert all reviews to carousel feed posts (for general feed)
 export const convertReviewsToFeedPosts = async (reviews: FirebaseReview[]) => {
   try {
-    console.log('Converting reviews to feed posts. Total reviews:', reviews.length);
+    const tStart = performance.now?.() ?? Date.now();
+    console.log('Converting reviews to feed posts. Total reviews:', reviews.length, 'tStart=', tStart);
 
     const { visitGroups, individualReviews } = groupReviewsByVisit(reviews);
     const feedPosts = [];
@@ -1833,7 +1834,8 @@ export const convertReviewsToFeedPosts = async (reviews: FirebaseReview[]) => {
     feedPosts.sort((a, b) => new Date(b.review.date).getTime() - new Date(a.review.date).getTime());
 
     const missingQuality = feedPosts.reduce((acc, p: any) => acc + (p?.restaurant?.qualityScore === undefined ? 1 : 0), 0);
-    console.log(`Converted to feed posts: ${feedPosts.length} (missing qualityScore but kept: ${missingQuality})`);
+    const tEnd = performance.now?.() ?? Date.now();
+    console.log(`Converted to feed posts: ${feedPosts.length} (missing qualityScore but kept: ${missingQuality}) durationMs=${tEnd - tStart}`);
     return feedPosts;
   } catch (error) {
     console.error('Error converting reviews to carousel feed posts:', error);

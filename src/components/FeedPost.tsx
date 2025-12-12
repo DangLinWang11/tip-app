@@ -125,6 +125,13 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
   showPendingVerification = false,
   isFollowingAuthor = false
 }) => {
+  const renderStart = performance.now?.() ?? Date.now();
+  console.log('[FeedPost][render-start]', {
+    ts: new Date().toISOString(),
+    renderStart,
+    id,
+    authorId: author.id,
+  });
   // Log all IDs received by FeedPost component
   console.log('📝 [FeedPost] Component initialized with IDs:', {
     id: id,
@@ -1785,9 +1792,23 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
   const renderVisitLayout = () => visitLayout;
 
   if (isVisitPost) {
+    const tEnd = performance.now?.() ?? Date.now();
+    console.log('[FeedPost][render-end]', {
+      ts: new Date().toISOString(),
+      id,
+      layout: 'visit',
+      durationMs: tEnd - renderStart,
+    });
     return renderVisitLayout();
   }
 
+  const tEnd = performance.now?.() ?? Date.now();
+  console.log('[FeedPost][render-end]', {
+    ts: new Date().toISOString(),
+    id,
+    layout: 'legacy',
+    durationMs: tEnd - renderStart,
+  });
   return legacyLayout;
 };
 
