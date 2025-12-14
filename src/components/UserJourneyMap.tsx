@@ -69,6 +69,7 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({ className = '', showLeg
     cuisine: restaurant.cuisine,
     rating: restaurant.averageRating,
     priceRange: '$', // Default since we don't track this per user visit
+    visitCount: restaurant.visitCount,
   }));
 
   // Loading state

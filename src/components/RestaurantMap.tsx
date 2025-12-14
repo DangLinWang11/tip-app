@@ -45,6 +45,7 @@ interface Restaurant {
   cuisine: string;
   rating: number;
   priceRange: string;
+  visitCount?: number;
 }
 
 interface Dish {
@@ -95,29 +96,31 @@ const getRatingColor = (rating: number): string => {
 
 const createPinIcon = (text: string, backgroundColor: string, showQualityPercentages: boolean = true): string => {
   const airyColor = '#ff3131';
+  // Adjust width based on text length to accommodate "X Visits"
+  const width = text.length > 3 ? 90 : 60;
   const svg = showQualityPercentages
     ? `
-      <svg width="60" height="40" viewBox="0 0 60 40" xmlns="http://www.w3.org/2000/svg">
+      <svg width="${width}" height="40" viewBox="0 0 ${width} 40" xmlns="http://www.w3.org/2000/svg">
         <defs>
           <filter id="shadow">
             <feDropShadow dx="0" dy="3" stdDeviation="4" flood-opacity="0.15"/>
           </filter>
         </defs>
-        <rect x="0" y="0" width="60" height="32" rx="16" fill="white" stroke="${backgroundColor}" stroke-width="2" filter="url(#shadow)"/>
-        ${text ? `<text x="30" y="21" font-family="Arial, sans-serif" font-size="14" font-weight="bold" text-anchor="middle" fill="${backgroundColor}">${text}</text>` : ''}
-        <path d="M 26 32 L 30 40 L 34 32 Z" fill="${backgroundColor}"/>
+        <rect x="0" y="0" width="${width}" height="32" rx="16" fill="white" stroke="${backgroundColor}" stroke-width="2" filter="url(#shadow)"/>
+        ${text ? `<text x="${width/2}" y="21" font-family="Arial, sans-serif" font-size="12" font-weight="bold" text-anchor="middle" fill="${backgroundColor}">${text}</text>` : ''}
+        <path d="M ${width/2 - 4} 32 L ${width/2} 40 L ${width/2 + 4} 32 Z" fill="${backgroundColor}"/>
       </svg>
     `
     : `
-      <svg width="60" height="40" viewBox="0 0 60 40" xmlns="http://www.w3.org/2000/svg">
+      <svg width="${width}" height="40" viewBox="0 0 ${width} 40" xmlns="http://www.w3.org/2000/svg">
         <defs>
           <filter id="shadow">
             <feDropShadow dx="0" dy="3" stdDeviation="4" flood-opacity="0.15"/>
           </filter>
         </defs>
-        <rect x="0" y="0" width="60" height="32" rx="16" fill="white" stroke="${airyColor}" stroke-width="2" filter="url(#shadow)"/>
-        ${text ? `<text x="30" y="21" font-family="Arial, sans-serif" font-size="14" font-weight="bold" text-anchor="middle" fill="${airyColor}">${text}</text>` : ''}
-        <path d="M 26 32 L 30 40 L 34 32 Z" fill="${airyColor}"/>
+        <rect x="0" y="0" width="${width}" height="32" rx="16" fill="white" stroke="${airyColor}" stroke-width="2" filter="url(#shadow)"/>
+        ${text ? `<text x="${width/2}" y="21" font-family="Arial, sans-serif" font-size="12" font-weight="bold" text-anchor="middle" fill="${airyColor}">${text}</text>` : ''}
+        <path d="M ${width/2 - 4} 32 L ${width/2} 40 L ${width/2 + 4} 32 Z" fill="${airyColor}"/>
       </svg>
     `;
   return 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg);
@@ -299,16 +302,26 @@ const Map: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishes, u
         // Show restaurant pins
         restaurants.forEach((restaurant) => {
           const qualityColor = getQualityColor(restaurant.qualityPercentage);
-          
+
+          // Determine what text to show in the pin
+          let pinText = '';
+          let pinWidth = 60;
+          if (showQualityPercentages === false && restaurant.visitCount) {
+            // Show visit count for user journey maps
+            pinText = `${restaurant.visitCount} Visit${restaurant.visitCount !== 1 ? 's' : ''}`;
+            pinWidth = 90;
+          } else if (showQualityPercentages !== false) {
+            // Show quality percentage for regular restaurant maps
+            pinText = `${restaurant.qualityPercentage}%`;
+          }
+
           const marker = new window.google.maps.Marker({
             position: restaurant.location,
             map,
             icon: {
-              url: showQualityPercentages === false
-                ? createPinIcon('', '#ff3131', false)
-                : createPinIcon(`${restaurant.qualityPercentage}%`, qualityColor, true),
-              scaledSize: new window.google.maps.Size(60, 40),
-              anchor: new window.google.maps.Point(30, 40)
+              url: createPinIcon(pinText, showQualityPercentages === false ? '#ff3131' : qualityColor, showQualityPercentages),
+              scaledSize: new window.google.maps.Size(pinWidth, 40),
+              anchor: new window.google.maps.Point(pinWidth / 2, 40)
             },
             title: restaurant.name,
             zIndex: restaurant.qualityPercentage
@@ -323,6 +336,9 @@ const Map: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishes, u
                   <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
                     ${showQualityPercentages !== false ? `<span style="background: ${qualityColor}; color: white; padding: 2px 8px; border-radius: 12px; font-size: 12px; font-weight: bold;">
                       ${restaurant.qualityPercentage}%
+                    </span>` : ''}
+                    ${restaurant.visitCount ? `<span style="background: #ff3131; color: white; padding: 2px 8px; border-radius: 12px; font-size: 12px; font-weight: bold;">
+                      ${restaurant.visitCount} Visit${restaurant.visitCount !== 1 ? 's' : ''}
                     </span>` : ''}
                     <span style="color: #666; font-size: 14px;">${restaurant.cuisine} ${getCuisineIcon(restaurant.cuisine)}</span>
                   </div>
