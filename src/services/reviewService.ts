@@ -1089,18 +1089,24 @@ export const fetchReviews = async (limitCount = 20): Promise<FirebaseReview[]> =
 };
 
 // Fetch current user's reviews from Firestore
-export const fetchUserReviews = async (limitCount = 50): Promise<FirebaseReview[]> => {
+export const fetchUserReviews = async (limitCount = 50, userId?: string): Promise<FirebaseReview[]> => {
   try {
-    const currentUser = getCurrentUser();
-    if (!currentUser) {
-      console.log('No authenticated user found, returning empty reviews array');
-      return [];
+    // If userId is provided, use it; otherwise use current user's uid
+    let targetUserId = userId;
+
+    if (!targetUserId) {
+      const currentUser = getCurrentUser();
+      if (!currentUser) {
+        console.log('No authenticated user found, returning empty reviews array');
+        return [];
+      }
+      targetUserId = currentUser.uid;
     }
 
     const reviewsRef = collection(db, 'reviews');
     const q = query(
       reviewsRef,
-      where('userId', '==', currentUser.uid),
+      where('userId', '==', targetUserId),
       orderBy('createdAt', 'desc'),
       limit(limitCount)
     );
