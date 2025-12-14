@@ -96,54 +96,60 @@ const getRatingColor = (rating: number): string => {
 
 const createPinIcon = (text: string, backgroundColor: string, showQualityPercentages: boolean = true): string => {
   const airyColor = '#ff3131';
-  // Adjust width based on text length to accommodate "X Visits"
   const width = text.length > 3 ? 90 : 60;
-  const svg = showQualityPercentages
-    ? `
-      <svg width="${width}" height="40" viewBox="0 0 ${width} 40" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <filter id="shadow">
-            <feDropShadow dx="0" dy="3" stdDeviation="4" flood-opacity="0.15"/>
-          </filter>
-        </defs>
-        <rect x="0" y="0" width="${width}" height="32" rx="16" fill="white" stroke="${backgroundColor}" stroke-width="2" filter="url(#shadow)"/>
-        ${text ? `<text x="${width/2}" y="21" font-family="Arial, sans-serif" font-size="12" font-weight="bold" text-anchor="middle" fill="${backgroundColor}">${text}</text>` : ''}
-        <path d="M ${width/2 - 4} 32 L ${width/2} 40 L ${width/2 + 4} 32 Z" fill="${backgroundColor}"/>
-      </svg>
-    `
-    : `
-      <svg width="${width}" height="40" viewBox="0 0 ${width} 40" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <filter id="shadow">
-            <feDropShadow dx="0" dy="3" stdDeviation="4" flood-opacity="0.15"/>
-          </filter>
-        </defs>
-        <rect x="0" y="0" width="${width}" height="32" rx="16" fill="white" stroke="${airyColor}" stroke-width="2" filter="url(#shadow)"/>
-        ${text ? `<text x="${width/2}" y="21" font-family="Arial, sans-serif" font-size="12" font-weight="bold" text-anchor="middle" fill="${airyColor}">${text}</text>` : ''}
-        <path d="M ${width/2 - 4} 32 L ${width/2} 40 L ${width/2 + 4} 32 Z" fill="${airyColor}"/>
-      </svg>
-    `;
+  const canvasHeight = 44;
+  const pillStrokeColor = showQualityPercentages ? backgroundColor : airyColor;
+  const textColor = pillStrokeColor;
+  const triangleFill = pillStrokeColor;
+
+  const svg = `
+    <svg width="${width}" height="${canvasHeight}" viewBox="0 0 ${width} ${canvasHeight}" xmlns="http://www.w3.org/2000/svg">
+      <!-- Faux shadow pill -->
+      <rect x="0" y="4" width="${width}" height="32" rx="16" fill="black" opacity="0.12" />
+      <!-- Main pill -->
+      <rect x="0" y="2" width="${width}" height="32" rx="16" fill="white" stroke="${pillStrokeColor}" stroke-width="2" />
+      ${
+        text
+          ? `<text x="${width / 2}" y="23" font-family="Arial, sans-serif" font-size="12" font-weight="bold" text-anchor="middle" fill="${textColor}">${text}</text>`
+          : ''
+      }
+      <!-- Pointer shadow -->
+      <path d="M ${width / 2 - 4} 36 L ${width / 2} 44 L ${width / 2 + 4} 36 Z" fill="black" opacity="0.12" />
+      <!-- Pointer -->
+      <path d="M ${width / 2 - 4} 34 L ${width / 2} 42 L ${width / 2 + 4} 34 Z" fill="${triangleFill}" />
+    </svg>
+  `;
+
   return 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg);
 };
 
 const createDishPinIcon = (rating: string, backgroundColor: string): string => {
   const airyColor = '#ff3131';
   const goldColor = '#FFD700';
+  const canvasWidth = 60;
+  const canvasHeight = 44;
+
+  // Star is drawn using the same path, positioned via transform
   const svg = `
-    <svg width="60" height="40" viewBox="0 0 60 40" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <filter id="shadow-dish">
-          <feDropShadow dx="0" dy="3" stdDeviation="4" flood-opacity="0.15"/>
-        </filter>
-      </defs>
-      <rect x="0" y="0" width="60" height="32" rx="16" fill="white" stroke="${airyColor}" stroke-width="2" filter="url(#shadow-dish)"/>
-      <text x="19" y="22" font-family="Arial, sans-serif" font-size="16" font-weight="bold" text-anchor="middle" fill="${airyColor}">${rating}</text>
-      <svg x="32" y="6" width="20" height="20" viewBox="0 0 24 24">
-        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill="${goldColor}"/>
-      </svg>
-      <path d="M 26 32 L 30 40 L 34 32 Z" fill="${airyColor}"/>
+    <svg width="${canvasWidth}" height="${canvasHeight}" viewBox="0 0 ${canvasWidth} ${canvasHeight}" xmlns="http://www.w3.org/2000/svg">
+      <!-- Faux shadow pill -->
+      <rect x="0" y="4" width="60" height="32" rx="16" fill="black" opacity="0.12" />
+      <!-- Main pill -->
+      <rect x="0" y="2" width="60" height="32" rx="16" fill="white" stroke="${airyColor}" stroke-width="2" />
+      <text x="19" y="23" font-family="Arial, sans-serif" font-size="16" font-weight="bold" text-anchor="middle" fill="${airyColor}">${rating}</text>
+      <!-- Star icon -->
+      <path
+        d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
+        fill="${goldColor}"
+        transform="translate(32 6) scale(0.8333)"
+      />
+      <!-- Pointer shadow -->
+      <path d="M 26 36 L 30 44 L 34 36 Z" fill="black" opacity="0.12" />
+      <!-- Pointer -->
+      <path d="M 26 34 L 30 42 L 34 34 Z" fill="${airyColor}" />
     </svg>
   `;
+
   return 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg);
 };
 
@@ -320,8 +326,8 @@ const Map: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishes, u
             map,
             icon: {
               url: createPinIcon(pinText, showQualityPercentages === false ? '#ff3131' : qualityColor, showQualityPercentages),
-              scaledSize: new window.google.maps.Size(pinWidth, 40),
-              anchor: new window.google.maps.Point(pinWidth / 2, 40)
+              scaledSize: new window.google.maps.Size(pinWidth, 44),
+              anchor: new window.google.maps.Point(pinWidth / 2, 44)
             },
             title: restaurant.name,
             zIndex: restaurant.qualityPercentage
@@ -378,8 +384,8 @@ const Map: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishes, u
             map,
             icon: {
               url: createDishPinIcon(dish.rating.toFixed(1), ratingColor),
-              scaledSize: new window.google.maps.Size(60, 40),
-              anchor: new window.google.maps.Point(30, 40)
+              scaledSize: new window.google.maps.Size(60, 44),
+              anchor: new window.google.maps.Point(30, 44)
             },
             title: dish.name,
             zIndex: dish.rating * 10

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeftIcon, MapPinIcon } from 'lucide-react';
+import { ArrowLeftIcon, MapIcon } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import UserJourneyMap from '../components/UserJourneyMap';
 import { getUserByUsername } from '../lib/firebase';
@@ -76,8 +76,8 @@ const UserFoodMapPage: React.FC = () => {
           >
             <ArrowLeftIcon size={20} className="text-gray-600" />
           </button>
-          <MapPinIcon size={20} className="text-primary mr-2" />
-          <h1 className="text-lg font-semibold text-black">@{username}'s Food Map</h1>
+          <MapIcon size={20} className="text-primary mr-2" />
+          <h1 className="text-lg font-semibold text-black">{username} Map</h1>
         </div>
       </div>
 

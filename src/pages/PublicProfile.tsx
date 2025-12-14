@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeftIcon, MapPinIcon, SearchIcon, PlusIcon, CheckIcon, EditIcon, Share, User, Star, Users, TrendingUp, Store } from 'lucide-react';
+import { ArrowLeftIcon, MapIcon, SearchIcon, PlusIcon, CheckIcon, EditIcon, Share, User, Star, Users, TrendingUp, Store } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import FeedPost from '../components/FeedPost';
 import { fetchUserReviews, convertReviewsToFeedPosts, FirebaseReview } from '../services/reviewService';
@@ -361,16 +361,18 @@ const PublicProfile: React.FC = () => {
           </div>
         </div>
 
-        {/* Food Map Button */}
-        <div className="mb-6">
-          <button
-            onClick={() => navigate(`/profile/${username}/map`)}
-            className="w-full bg-gradient-to-r from-primary to-red-500 text-white py-3.5 px-6 rounded-xl font-medium shadow-sm hover:shadow-md transition-all duration-200 flex items-center justify-center"
-          >
-            <MapPinIcon size={18} className="mr-2" />
-            View @{username}'s Food Map
-          </button>
-        </div>
+        {/* Food Map Button - only show when viewing someone else's profile */}
+        {!isOwnProfile && (
+          <div className="mb-6">
+            <button
+              onClick={() => navigate(`/profile/${username}/map`)}
+              className="w-full bg-gradient-to-r from-primary to-red-500 text-white py-3.5 px-6 rounded-xl font-medium shadow-sm hover:shadow-md transition-all duration-200 flex items-center justify-center"
+            >
+              <MapIcon size={18} className="mr-2" />
+              View their Food Map
+            </button>
+          </div>
+        )}
 
         {/* Tabs */}
         <div className="bg-white rounded-xl shadow-sm mb-4">
