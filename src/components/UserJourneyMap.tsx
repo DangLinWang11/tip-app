@@ -144,20 +144,15 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({ className = '', showLeg
         {showLegend && (
           <div className="absolute bottom-4 left-4 z-10">
             <div className="bg-white rounded-lg shadow-lg px-4 py-3 flex items-center space-x-3">
-              <div className="w-6 h-7 flex items-center justify-center">
-                <svg width="24" height="30" viewBox="0 0 40 50" xmlns="http://www.w3.org/2000/svg">
+              <div className="flex items-center justify-center">
+                <svg width="40" height="28" viewBox="0 0 60 40" xmlns="http://www.w3.org/2000/svg">
                   <defs>
-                    <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
-                      <feGaussianBlur in="SourceAlpha" stdDeviation="1.5" result="blur" />
-                      <feOffset dy="1" result="offset" />
-                      <feMerge>
-                        <feMergeNode in="offset" />
-                        <feMergeNode in="SourceGraphic" />
-                      </feMerge>
+                    <filter id="shadow-legend">
+                      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.15"/>
                     </filter>
                   </defs>
-                  <path d="M20 2C11.5 2 4.5 9 4.5 17.5C4.5 30 20 45.5 20 45.5C20 45.5 35.5 30 35.5 17.5C35.5 9 28.5 2 20 2Z" fill="#ff5a5f" filter="url(#shadow)"/>
-                  <circle cx="20" cy="18" r="6" fill="white" />
+                  <rect x="0" y="0" width="60" height="32" rx="16" fill="white" stroke="#ff3131" stroke-width="2" filter="url(#shadow-legend)"/>
+                  <path d="M 26 32 L 30 40 L 34 32 Z" fill="#ff3131"/>
                 </svg>
               </div>
               <span className="text-gray-800 font-medium text-sm">Visited Restaurants</span>

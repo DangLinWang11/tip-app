@@ -95,52 +95,50 @@ const getRatingColor = (rating: number): string => {
 
 const createPinIcon = (text: string, backgroundColor: string, showQualityPercentages: boolean = true): string => {
   const airyColor = '#ff3131';
-  const svg = showQualityPercentages 
+  const svg = showQualityPercentages
     ? `
-      <svg width="40" height="50" viewBox="0 0 40 50" xmlns="http://www.w3.org/2000/svg">
+      <svg width="60" height="40" viewBox="0 0 60 40" xmlns="http://www.w3.org/2000/svg">
         <defs>
-          <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
-            <feGaussianBlur in="SourceAlpha" stdDeviation="1.5" result="blur" />
-            <feOffset dy="1" result="offset" />
-            <feMerge>
-              <feMergeNode in="offset" />
-              <feMergeNode in="SourceGraphic" />
-            </feMerge>
+          <filter id="shadow">
+            <feDropShadow dx="0" dy="3" stdDeviation="4" flood-opacity="0.15"/>
           </filter>
         </defs>
-        <path d="M20 2C11.5 2 4.5 9 4.5 17.5C4.5 30 20 45.5 20 45.5C20 45.5 35.5 30 35.5 17.5C35.5 9 28.5 2 20 2Z" fill="${backgroundColor}" filter="url(#shadow)"/>
-        ${text ? `<text x="20" y="22" font-family="Arial, sans-serif" font-size="10" font-weight="bold" 
-              text-anchor="middle" fill="white">${text}</text>` : ''}
+        <rect x="0" y="0" width="60" height="32" rx="16" fill="white" stroke="${backgroundColor}" stroke-width="2" filter="url(#shadow)"/>
+        ${text ? `<text x="30" y="21" font-family="Arial, sans-serif" font-size="14" font-weight="bold" text-anchor="middle" fill="${backgroundColor}">${text}</text>` : ''}
+        <path d="M 26 32 L 30 40 L 34 32 Z" fill="${backgroundColor}"/>
       </svg>
     `
     : `
-      <svg width="40" height="50" viewBox="0 0 40 50" xmlns="http://www.w3.org/2000/svg">
+      <svg width="60" height="40" viewBox="0 0 60 40" xmlns="http://www.w3.org/2000/svg">
         <defs>
-          <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
-            <feGaussianBlur in="SourceAlpha" stdDeviation="1.5" result="blur" />
-            <feOffset dy="1" result="offset" />
-            <feMerge>
-              <feMergeNode in="offset" />
-              <feMergeNode in="SourceGraphic" />
-            </feMerge>
+          <filter id="shadow">
+            <feDropShadow dx="0" dy="3" stdDeviation="4" flood-opacity="0.15"/>
           </filter>
         </defs>
-        <path d="M20 2C11.5 2 4.5 9 4.5 17.5C4.5 30 20 45.5 20 45.5C20 45.5 35.5 30 35.5 17.5C35.5 9 28.5 2 20 2Z" fill="${airyColor}" filter="url(#shadow)"/>
-        <circle cx="20" cy="18" r="6" fill="white" />
-        ${text ? `<text x="20" y="22" font-family="Arial, sans-serif" font-size="10" font-weight="bold" 
-              text-anchor="middle" fill="${airyColor}">${text}</text>` : ''}
+        <rect x="0" y="0" width="60" height="32" rx="16" fill="white" stroke="${airyColor}" stroke-width="2" filter="url(#shadow)"/>
+        ${text ? `<text x="30" y="21" font-family="Arial, sans-serif" font-size="14" font-weight="bold" text-anchor="middle" fill="${airyColor}">${text}</text>` : ''}
+        <path d="M 26 32 L 30 40 L 34 32 Z" fill="${airyColor}"/>
       </svg>
     `;
   return 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg);
 };
 
 const createDishPinIcon = (rating: string, backgroundColor: string): string => {
+  const airyColor = '#ff3131';
+  const goldColor = '#FFD700';
   const svg = `
-    <svg width="40" height="50" viewBox="0 0 40 50" xmlns="http://www.w3.org/2000/svg">
-      <path d="M20 2C11.16 2 4 9.16 4 18c0 13.5 16 28 16 28s16-14.5 16-28c0-8.84-7.16-16-16-16z" 
-            fill="${backgroundColor}"/>
-      <text x="20" y="22" font-family="Arial, sans-serif" font-size="12" font-weight="bold" 
-            text-anchor="middle" fill="white">${rating}</text>
+    <svg width="60" height="40" viewBox="0 0 60 40" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <filter id="shadow-dish">
+          <feDropShadow dx="0" dy="3" stdDeviation="4" flood-opacity="0.15"/>
+        </filter>
+      </defs>
+      <rect x="0" y="0" width="60" height="32" rx="16" fill="white" stroke="${airyColor}" stroke-width="2" filter="url(#shadow-dish)"/>
+      <text x="19" y="22" font-family="Arial, sans-serif" font-size="16" font-weight="bold" text-anchor="middle" fill="${airyColor}">${rating}</text>
+      <svg x="32" y="6" width="20" height="20" viewBox="0 0 24 24">
+        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill="${goldColor}"/>
+      </svg>
+      <path d="M 26 32 L 30 40 L 34 32 Z" fill="${airyColor}"/>
     </svg>
   `;
   return 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg);
@@ -306,11 +304,11 @@ const Map: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishes, u
             position: restaurant.location,
             map,
             icon: {
-              url: showQualityPercentages === false 
+              url: showQualityPercentages === false
                 ? createPinIcon('', '#ff3131', false)
                 : createPinIcon(`${restaurant.qualityPercentage}%`, qualityColor, true),
-              scaledSize: new window.google.maps.Size(40, 50),
-              anchor: new window.google.maps.Point(20, 50)
+              scaledSize: new window.google.maps.Size(60, 40),
+              anchor: new window.google.maps.Point(30, 40)
             },
             title: restaurant.name,
             zIndex: restaurant.qualityPercentage
@@ -364,8 +362,8 @@ const Map: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishes, u
             map,
             icon: {
               url: createDishPinIcon(dish.rating.toFixed(1), ratingColor),
-              scaledSize: new window.google.maps.Size(40, 50),
-              anchor: new window.google.maps.Point(20, 50)
+              scaledSize: new window.google.maps.Size(60, 40),
+              anchor: new window.google.maps.Point(30, 40)
             },
             title: dish.name,
             zIndex: dish.rating * 10

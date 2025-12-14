@@ -24,17 +24,22 @@ import MenuDetail from './pages/MenuDetail';
 import FoodMap from './pages/FoodMap';
 import AdminUpload from './pages/AdminUpload';
 import PostDetail from './pages/PostDetail';
+import FixRestaurants from './pages/FixRestaurants';
 import { LocationProvider } from './contexts/LocationContext';
 import { useFeature } from './utils/features';
 import { getRandomLoadingMessage } from './utils/loadingMessages';
 import { runBackfillSoftDelete } from './dev/backfillSoftDelete';
 import { runBackfillCuisines } from './dev/backfillCuisines';
 import { undeleteAllReviews } from './utils/undeleteReviews';
+import { debugRinglingGrill } from './utils/debugRinglingGrill';
+import { fixRinglingGrillSimple } from './utils/fixRinglingGrillSimple';
 
 if (import.meta.env.DEV) {
   (window as any).runBackfillSoftDelete = runBackfillSoftDelete;
   (window as any).runBackfillCuisines = runBackfillCuisines;
   (window as any).undeleteAllReviews = undeleteAllReviews;
+  (window as any).debugRinglingGrill = debugRinglingGrill;
+  (window as any).fixRinglingGrillSimple = fixRinglingGrillSimple;
 }
 
 // MVP Coming Soon component for disabled features
@@ -243,6 +248,7 @@ export function App() {
               <Route path="/dish/:id" element={<MenuDetail />} />
               <Route path="/post/:postId" element={<PostDetail />} />
               <Route path="/admin-upload" element={<AdminUpload />} />
+              <Route path="/admin/fix-restaurants" element={<FixRestaurants />} />
               <Route path="/admin/claims" element={<ClaimsReview />} />
               <Route path="/admin/reviews" element={<ReviewVerification />} />
               <Route path="/owner/*" element={<OwnerPortalLazy />} />

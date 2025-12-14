@@ -230,7 +230,7 @@ const Home: React.FC = () => {
 
         // Load public feed (the listener will take over after initial load)
         const tFeedFetchStart = performance.now?.() ?? Date.now();
-        const publicFeed = await fetchReviews(12);
+        const publicFeed = await fetchReviews(50);
         const tFeedFetchEnd = performance.now?.() ?? Date.now();
         console.log('[Home][init] Fetched public feed', {
           ts: new Date().toISOString(),

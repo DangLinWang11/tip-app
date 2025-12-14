@@ -1944,12 +1944,12 @@ export const convertReviewsToFeedPosts = async (reviews: FirebaseReview[]) => {
 
 // Real-time listener for the home feed (public, not deleted), newest first
 export function listenHomeFeed(onChange: (items: FirebaseReview[]) => void) {
-  // Fetch more than needed (50) and filter client-side to exclude malformed docs
+  // Fetch more than needed (100) and filter client-side to exclude malformed docs
   // This avoids needing a composite index for where + multiple orderBy
   const qRef = query(
     collection(db, 'reviews'),
     orderBy('createdAt', 'desc'),
-    limit(50) // Fetch extra to account for filtering
+    limit(100) // Fetch extra to account for filtering
   );
 
   const unsub = onSnapshot(qRef, { includeMetadataChanges: false }, (snap) => {
@@ -1966,7 +1966,7 @@ export function listenHomeFeed(onChange: (items: FirebaseReview[]) => void) {
 
     const deletedCount = validDocs.filter((it: any) => asTrue(it?.isDeleted) === true).length;
     const privateCount = validDocs.filter((it: any) => it?.visibility === 'private').length;
-    const items = validDocs.filter((it) => safeReview(it)).slice(0, 12) as FirebaseReview[]; // Take top 12 after filtering
+    const items = validDocs.filter((it) => safeReview(it)).slice(0, 50) as FirebaseReview[]; // Take top 50 after filtering
     const sample = items.slice(0, 3).map((r: any) => ({ id: r.id, isDeleted: r.isDeleted, visibility: r.visibility, dishName: r.dish || r.dishName }));
     console.log(`Live feed snapshot: total=${raw.length}, valid=${validDocs.length}, dropped(deleted=${deletedCount}, private=${privateCount}), emitted=${items.length}, sample=`, sample);
     onChange(items);
@@ -2101,31 +2101,70 @@ export const deleteReview = async (reviewInput: string | { id?: string | null; r
       throw new Error('Not authorized to delete this review');
     }
 
-    await updateDoc(reviewRef, {
-      isDeleted: true,
-      deletedAt: serverTimestamp(),
-      updatedAt: serverTimestamp()
-    });
+    // Check if this review is part of a multi-dish visit
+    const visitId = reviewData.visitId;
+    let reviewsToDelete: Array<{ id: string; data: FirebaseReview & { pointsEarned?: number } }> = [];
 
+    if (visitId) {
+      // This is a multi-dish visit - find all reviews with the same visitId
+      console.log('[deleteReview] Multi-dish visit detected, finding all reviews with visitId:', visitId);
+
+      const visitReviewsQuery = query(
+        collection(db, 'reviews'),
+        where('visitId', '==', visitId),
+        where('userId', '==', currentUser.uid)
+      );
+
+      const visitReviewsSnapshot = await getDocs(visitReviewsQuery);
+
+      visitReviewsSnapshot.forEach((doc) => {
+        const data = doc.data() as (FirebaseReview & { pointsEarned?: number });
+        reviewsToDelete.push({ id: doc.id, data });
+      });
+
+      console.log(`[deleteReview] Found ${reviewsToDelete.length} reviews to delete for visitId: ${visitId}`);
+    } else {
+      // Single review, not part of a visit
+      reviewsToDelete = [{ id: reviewId, data: reviewData }];
+    }
+
+    // Delete all reviews
+    const deletePromises = reviewsToDelete.map(({ id }) =>
+      updateDoc(reviewDoc(id), {
+        isDeleted: true,
+        deletedAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      })
+    );
+
+    await Promise.all(deletePromises);
+
+    // Update user stats - subtract points and review count for ALL deleted reviews
     try {
       const currentStats = await getUserProfile();
       if (currentStats.success && currentStats.profile) {
-        const pointsToSubtract = reviewData.pointsEarned || 20;
-        const newTotalPoints = Math.max(0, (currentStats.profile.stats?.pointsEarned || 0) - pointsToSubtract);
-        const newTotalReviews = Math.max(0, (currentStats.profile.stats?.totalReviews || 0) - 1);
+        const totalPointsToSubtract = reviewsToDelete.reduce((sum, { data }) => sum + (data.pointsEarned || 20), 0);
+        const totalReviewsDeleted = reviewsToDelete.length;
+
+        const newTotalPoints = Math.max(0, (currentStats.profile.stats?.pointsEarned || 0) - totalPointsToSubtract);
+        const newTotalReviews = Math.max(0, (currentStats.profile.stats?.totalReviews || 0) - totalReviewsDeleted);
 
         await updateUserStats({
           pointsEarned: newTotalPoints,
           totalReviews: newTotalReviews
         });
 
-        console.log('User stats updated after deletion:', { pointsEarned: newTotalPoints, totalReviews: newTotalReviews });
+        console.log(`[deleteReview] User stats updated after deleting ${totalReviewsDeleted} review(s):`, {
+          pointsEarned: newTotalPoints,
+          totalReviews: newTotalReviews,
+          pointsSubtracted: totalPointsToSubtract
+        });
       }
     } catch (error) {
       console.warn('Failed to update user stats after deletion (non-critical):', error);
     }
 
-    console.log('Review soft deleted successfully');
+    console.log(`[deleteReview] Successfully soft deleted ${reviewsToDelete.length} review(s)`);
   } catch (error) {
     console.error('Error deleting review:', error);
     throw error;
