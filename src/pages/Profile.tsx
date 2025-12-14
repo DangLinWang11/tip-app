@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { EditIcon, GridIcon, BookmarkIcon, SearchIcon, PlusIcon, Star, Users, TrendingUp, Award, Share, User } from 'lucide-react';
+import { EditIcon, GridIcon, BookmarkIcon, SearchIcon, PlusIcon, Star, Users, TrendingUp, Award, Share, User, MapPinIcon } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Store as StoreIcon } from 'lucide-react';
 import { useOwnedRestaurants } from '../hooks/useOwnedRestaurants';
@@ -680,6 +680,16 @@ const Profile: React.FC = () => {
           </div>
         </div>
 
+        {/* Food Map Button */}
+        <div className="px-6 mt-4 mb-4">
+          <button
+            onClick={() => navigate(`/profile/${userProfile.username}/map`)}
+            className="w-full bg-gradient-to-r from-primary to-red-500 text-white py-3.5 px-6 rounded-xl font-medium shadow-sm hover:shadow-md transition-all duration-200 flex items-center justify-center"
+          >
+            <MapPinIcon size={18} className="mr-2" />
+            View My Food Map
+          </button>
+        </div>
 
         {/* Tier Rankings Section - Coming Soon */}
         {showTierRankings && (

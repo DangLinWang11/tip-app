@@ -721,18 +721,24 @@ export interface UserVisitedRestaurant {
 }
 
 // NEW: Get restaurants the user has visited
-export const getUserVisitedRestaurants = async (): Promise<UserVisitedRestaurant[]> => {
+export const getUserVisitedRestaurants = async (userId?: string): Promise<UserVisitedRestaurant[]> => {
   try {
-    const currentUser = getCurrentUser();
-    if (!currentUser) {
-      console.log('No authenticated user found for visited restaurants');
-      return [];
+    // If userId is provided, use it; otherwise use current user's uid
+    let targetUserId = userId;
+
+    if (!targetUserId) {
+      const currentUser = getCurrentUser();
+      if (!currentUser) {
+        console.log('No authenticated user found for visited restaurants');
+        return [];
+      }
+      targetUserId = currentUser.uid;
     }
 
     console.log('🗺️ Fetching user visited restaurants...');
 
     // Get all user's reviews
-    const userReviews = await fetchUserReviews(200); // Get more reviews for complete data
+    const userReviews = await fetchUserReviews(200, targetUserId); // Get more reviews for complete data
     
     if (userReviews.length === 0) {
       console.log('👤 User has no reviews yet');

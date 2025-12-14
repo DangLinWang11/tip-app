@@ -13,6 +13,7 @@ import Create from './pages/Create';
 import Notifications from './pages/Notifications';
 import Profile from './pages/Profile';
 import PublicProfile from './pages/PublicProfile';
+import UserFoodMapPage from './pages/UserFoodMapPage';
 import RecentActivity from './pages/RecentActivity';
 import EditProfile from './pages/EditProfile';
 import ListDetail from './pages/ListDetail';
@@ -236,6 +237,7 @@ export function App() {
                 <Route path="recent-activity" element={<RecentActivity />} />
                 <Route path="profile" element={<Profile />} />
                 <Route path="user/:username" element={<PublicProfile />} />
+                <Route path="profile/:username/map" element={<UserFoodMapPage />} />
                 <Route path="rewards" element={<RewardsComingSoon />} />
                 <Route path="list/:id" element={<ListDetail />} />
                 <Route path="/food-map" element={<FoodMap />} />

@@ -8,9 +8,10 @@ interface UserJourneyMapProps {
   className?: string;
   showLegend?: boolean;
   showControls?: boolean; // show fullscreen + my-location controls
+  userId?: string; // optional userId to view other users' maps
 }
 
-const UserJourneyMap: React.FC<UserJourneyMapProps> = ({ className = '', showLegend = false, showControls = true }) => {
+const UserJourneyMap: React.FC<UserJourneyMapProps> = ({ className = '', showLegend = false, showControls = true, userId }) => {
   const navigate = useNavigate();
   const [visitedRestaurants, setVisitedRestaurants] = useState<UserVisitedRestaurant[]>([]);
   const [loading, setLoading] = useState(true);
@@ -24,8 +25,8 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({ className = '', showLeg
       try {
         setLoading(true);
         setError(null);
-        
-        const restaurants = await getUserVisitedRestaurants();
+
+        const restaurants = await getUserVisitedRestaurants(userId);
         setVisitedRestaurants(restaurants);
         
         console.log(`✅ Loaded ${restaurants.length} visited restaurants for user journey map`);

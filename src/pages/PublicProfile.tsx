@@ -361,6 +361,17 @@ const PublicProfile: React.FC = () => {
           </div>
         </div>
 
+        {/* Food Map Button */}
+        <div className="mb-6">
+          <button
+            onClick={() => navigate(`/profile/${username}/map`)}
+            className="w-full bg-gradient-to-r from-primary to-red-500 text-white py-3.5 px-6 rounded-xl font-medium shadow-sm hover:shadow-md transition-all duration-200 flex items-center justify-center"
+          >
+            <MapPinIcon size={18} className="mr-2" />
+            View @{username}'s Food Map
+          </button>
+        </div>
+
         {/* Tabs */}
         <div className="bg-white rounded-xl shadow-sm mb-4">
           <div className="flex border-b border-gray-200">
