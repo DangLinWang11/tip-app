@@ -164,6 +164,7 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
   const [followLoading, setFollowLoading] = useState(false);
   const currentUser = getCurrentUser();
   const isOwnPost = currentUser?.uid === author.id;
+  const displayAuthorName = isOwnPost ? 'You' : author.name;
 
   // Feature flags
   const showLikesComments = useFeature('LIKES_COMMENTS');
@@ -780,7 +781,7 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
       <div className="p-4 flex items-center gap-4">
         <img
           src={author.image}
-          alt={author.name}
+          alt={displayAuthorName}
           loading="lazy"
           decoding="async"
           className="w-10 h-10 rounded-full object-cover"
@@ -793,7 +794,7 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
                 onClick={handleUsernameClick}
                 className="font-medium cursor-pointer hover:text-primary"
               >
-                {author.name}
+                {displayAuthorName}
               </span>
               {/* Follow button: small pill like Instagram-style */}
               {!isOwnPost && (
@@ -827,7 +828,7 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
           </div>
           {/* Restaurant line under header (legacy layout) */}
           {restaurant && (
-            <div className="mt-1 text-sm text-dark-gray flex items-center gap-1.5">
+            <div className="mt-1 text-sm text-dark-gray flex items-center gap-0.5">
               <MapPinIcon size={14} className="text-red-500" />
               <span
                 onClick={() => {
@@ -843,7 +844,7 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
               </span>
               {restaurant.qualityScore !== undefined && (
                 <div
-                  className="w-8 h-5 flex items-center justify-center rounded-full"
+                  className="ml-1 w-8 h-5 flex items-center justify-center rounded-full flex-shrink-0"
                   style={{ backgroundColor: getQualityColor(restaurant.qualityScore) }}
                 >
                   <span className="text-xs font-medium text-white">
@@ -970,7 +971,7 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
           <div className="flex items-start justify-between mb-2">
             <div>
               <p className="text-sm font-semibold text-gray-900">
-                {author.name}
+                {displayAuthorName}
               </p>
               <p className="text-xs text-gray-500">
                 rated{' '}
@@ -1273,7 +1274,7 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
 
       {/* Header */}
       <div className="p-4 flex items-center gap-4">
-        <img src={author.image} alt={author.name} className="w-10 h-10 rounded-full object-cover" />
+        <img src={author.image} alt={displayAuthorName} className="w-10 h-10 rounded-full object-cover" />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5">
             {/* NEW: Username area with follow button */}
@@ -1282,7 +1283,7 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
                 onClick={handleUsernameClick}
                 className="font-medium cursor-pointer hover:text-primary"
               >
-                {author.name}
+                {displayAuthorName}
               </span>
               {/* Follow button: small pill like Instagram-style */}
               {!isOwnPost && (
@@ -1316,7 +1317,7 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
           </div>
           {/* Restaurant line under header (visit layout) */}
           {restaurant && (
-            <div className="mt-1 text-sm text-dark-gray flex items-center gap-1.5">
+            <div className="mt-1 text-sm text-dark-gray flex items-center gap-0.5">
               <MapPinIcon size={14} className="text-red-500" />
               <span
                 onClick={() => {
@@ -1332,7 +1333,7 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
               </span>
               {restaurant.qualityScore !== undefined && (
                 <div
-                  className="w-8 h-5 flex items-center justify-center rounded-full"
+                  className="ml-1 w-8 h-5 flex items-center justify-center rounded-full flex-shrink-0"
                   style={{ backgroundColor: getQualityColor(restaurant.qualityScore) }}
                 >
                   <span className="text-xs font-medium text-white">
