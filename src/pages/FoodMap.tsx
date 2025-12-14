@@ -330,7 +330,8 @@ const FoodMap: React.FC = () => {
                                           type="text"
                                           defaultValue={note.text}
                                           autoFocus
-                                          className="flex-1 bg-transparent text-sm text-gray-600 border-none outline-none"
+                                          className="flex-1 bg-transparent text-gray-600 border-none outline-none"
+                                          style={{ fontSize: '16px' }}
                                           onBlur={async (e) => {
                                             try {
                                               if (e.target.value.trim() !== note.text) {
@@ -396,7 +397,8 @@ const FoodMap: React.FC = () => {
                                 <input
                                   type="text"
                                   placeholder="Add personal note..."
-                                  className="flex-1 bg-transparent text-sm text-gray-600 placeholder-gray-400 border-none outline-none"
+                                  className="flex-1 bg-transparent text-gray-600 placeholder-gray-400 border-none outline-none"
+                                  style={{ fontSize: '16px' }}
                                   onBlur={async (e) => {
                                     const noteText = e.target.value.trim();
                                     if (noteText) {
@@ -435,7 +437,8 @@ const FoodMap: React.FC = () => {
                                       type="text"
                                       defaultValue={note.text}
                                       autoFocus
-                                      className="flex-1 bg-transparent text-sm text-gray-600 border-none outline-none"
+                                      className="flex-1 bg-transparent text-gray-600 border-none outline-none"
+                                      style={{ fontSize: '16px' }}
                                       onBlur={async (e) => {
                                         try {
                                           if (e.target.value.trim() !== note.text) {
@@ -501,7 +504,8 @@ const FoodMap: React.FC = () => {
                             <input
                               type="text"
                               placeholder="Add personal note..."
-                              className="flex-1 bg-transparent text-sm text-gray-600 placeholder-gray-400 border-none outline-none"
+                              className="flex-1 bg-transparent text-gray-600 placeholder-gray-400 border-none outline-none"
+                              style={{ fontSize: '16px' }}
                               onBlur={async (e) => {
                                 const noteText = e.target.value.trim();
                                 if (noteText) {

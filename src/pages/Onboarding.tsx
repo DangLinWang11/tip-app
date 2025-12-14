@@ -126,17 +126,33 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, needsUsernameOnly =
         } catch (profileError) {
           console.error('Failed to fetch profile after Google auth:', profileError);
         }
-        
+
         if (!userProfile?.username) {
           // Move to username step; main app + RedirectAfterLogin will handle redirect.
           setStep(2);
         }
       } else {
-        setAuthError(result.error || 'Google sign-in failed');
+        // Check if user just closed the popup - don't show error in that case
+        const errorLower = (result.error || '').toLowerCase();
+        if (errorLower.includes('popup') && (errorLower.includes('closed') || errorLower.includes('cancel'))) {
+          // User cancelled - just reset state without showing error
+          console.log('Google sign-in cancelled by user');
+        } else {
+          // Show error for actual failures
+          setAuthError(result.error || 'Google sign-in failed');
+        }
       }
     } catch (error: any) {
       console.error('Google sign-in error:', error);
-      setAuthError('An unexpected error occurred. Please try again.');
+      // Check if it's a user cancellation
+      const errorMsg = error?.message || '';
+      const errorCode = error?.code || '';
+      if (errorCode.includes('popup') || errorMsg.toLowerCase().includes('popup')) {
+        // User cancelled - just reset state
+        console.log('Google sign-in cancelled by user');
+      } else {
+        setAuthError('An unexpected error occurred. Please try again.');
+      }
     } finally {
       setIsAuthenticating(false);
     }
