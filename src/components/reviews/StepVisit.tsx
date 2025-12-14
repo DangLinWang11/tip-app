@@ -23,7 +23,7 @@ const MEAL_TIME_OPTIONS: Array<{ value: MealTimeTag; labelKey: string; emoji: st
   { value: 'snack', labelKey: 'mealTime.snack', emoji: '🍿', fallback: 'Snack' }
 ];
 
-const PRICE_LEVELS: Array<'$' | '$$' | '$$$'> = ['$', '$$', '$$$'];
+const PRICE_LEVELS: Array<'$' | '$$' | '$$$' | '$$$$'> = ['$', '$$', '$$$', '$$$$'];
 
 const calculateDistance = (lat1: number, lng1: number, lat2: number, lng2: number): number => {
   const R = 3959;

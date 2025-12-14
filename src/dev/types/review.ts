@@ -44,7 +44,7 @@ export interface SentimentSelection {
 export interface ReviewDraft {
   userId: string;
   restaurantId?: string;
-  restaurantPriceLevel?: '$' | '$$' | '$$$' | null;
+  restaurantPriceLevel?: '$' | '$$' | '$$$' | '$$$$' | null;
   restaurantCuisines?: string[];
   cuisines?: string[];
   dishCuisine?: string;
@@ -78,7 +78,7 @@ export interface VisitDraft {
   restaurantId?: string;
   restaurantName?: string;
   restaurantAddress?: string;
-  restaurantPriceLevel?: '$' | '$$' | '$$$' | null;
+  restaurantPriceLevel?: '$' | '$$' | '$$$' | '$$$$' | null;
   mealTime?: MealTimeTag | 'unspecified';
   overallText?: string; // Visit-level caption that applies to every dish review
   serviceSpeed?: ServiceSpeed | null;

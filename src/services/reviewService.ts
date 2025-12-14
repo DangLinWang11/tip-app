@@ -144,7 +144,7 @@ export interface ReviewData {
   negativeNote: string;
   serverRating?: 'bad' | 'okay' | 'good' | null;
   price?: string | null;
-  restaurantPriceLevel?: '$' | '$$' | '$$$' | null;
+  restaurantPriceLevel?: '$' | '$$' | '$$$' | '$$$$' | null;
   explicit?: ExplicitSelection | null;
   sentiment?: SentimentSelection | null;
   explicitTags?: string[];
@@ -631,6 +631,12 @@ export const saveReview = async (
         restaurantUpdatePayload.cuisines = cuisinesForRestaurantDoc;
       }
 
+      // Calculate and update modal price level from user reviews
+      const modalPriceLevel = calculateModalPriceLevel(restaurantReviews);
+      if (modalPriceLevel !== null) {
+        restaurantUpdatePayload.priceLevel = modalPriceLevel;
+      }
+
       await updateDoc(restaurantDocRef, restaurantUpdatePayload);
       console.log('✅ Restaurant quality score updated:', newQualityScore);
     } catch (error) {
@@ -675,7 +681,7 @@ export interface FirebaseReview {
   personalNotes?: PersonalNote[];
   serverRating?: 'bad' | 'okay' | 'good' | null;
   price?: string | null;
-  restaurantPriceLevel?: '$' | '$$' | '$$$' | null;
+  restaurantPriceLevel?: '$' | '$$' | '$$$' | '$$$$' | null;
   explicit?: ExplicitSelection | null;
   sentiment?: SentimentSelection | null;
   explicitTags?: string[];
@@ -906,6 +912,42 @@ export const calculateRestaurantQualityScore = (reviews: ReviewWithCategory[]): 
 
   const qualityPercentage = Math.round((adjustedAverage / 10) * 100);
   return Math.max(0, Math.min(100, qualityPercentage));
+};
+
+/**
+ * Calculate modal (most common) price level from user reviews
+ * @param reviews Array of reviews with restaurantPriceLevel
+ * @returns Number 1-4 representing modal price, or null if no data
+ */
+export const calculateModalPriceLevel = (reviews: any[]): number | null => {
+  // Filter reviews that have price data
+  const pricesWithData = reviews
+    .map(r => r.restaurantPriceLevel)
+    .filter(p => p && typeof p === 'string');
+
+  if (pricesWithData.length === 0) return null;
+
+  // Convert strings to numbers: '$' -> 1, '$$' -> 2, '$$$' -> 3, '$$$$' -> 4
+  const priceNumbers = pricesWithData.map(p => p.length);
+
+  // Count frequency of each price level
+  const frequencyMap: Record<number, number> = {};
+  priceNumbers.forEach(price => {
+    frequencyMap[price] = (frequencyMap[price] || 0) + 1;
+  });
+
+  // Find modal (most frequent) price level
+  let modalPrice = null;
+  let maxFrequency = 0;
+
+  Object.entries(frequencyMap).forEach(([price, frequency]) => {
+    if (frequency > maxFrequency) {
+      maxFrequency = frequency;
+      modalPrice = parseInt(price);
+    }
+  });
+
+  return modalPrice;
 };
 
 // In-memory cache for restaurant docs to avoid repeated reads per session
