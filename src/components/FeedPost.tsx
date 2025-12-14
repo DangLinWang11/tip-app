@@ -796,22 +796,19 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
               >
                 {displayAuthorName}
               </span>
-              {/* Follow button: small pill like Instagram-style */}
+              {/* Follow button: gray pill when not following, simple check icon when following */}
               {!isOwnPost && (
                 <button
                   onClick={handleFollowToggle}
                   disabled={followLoading}
-                  className={`ml-2 -mt-0.5 px-2.5 py-0.5 rounded-full border text-xs font-medium flex items-center justify-center transition-all duration-200 ${
+                  className={`ml-2 -mt-0.5 flex items-center justify-center transition-all duration-200 ${
                     isFollowingUser
-                      ? 'border-green-500 text-green-600 bg-green-50'
-                      : 'border-gray-300 text-gray-600 bg-white hover:border-gray-400'
+                      ? 'text-green-600'
+                      : 'px-2.5 py-0.5 rounded-full border text-xs font-medium border-gray-300 text-gray-600 bg-white hover:border-gray-400'
                   } ${followLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                 >
                   {isFollowingUser ? (
-                    <>
-                      <CheckCircleIcon size={12} className="mr-1" />
-                      Following
-                    </>
+                    <CheckCircleIcon size={14} />
                   ) : (
                     'Follow'
                   )}
@@ -1285,22 +1282,19 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
               >
                 {displayAuthorName}
               </span>
-              {/* Follow button: small pill like Instagram-style */}
+              {/* Follow button: gray pill when not following, simple check icon when following */}
               {!isOwnPost && (
                 <button
                   onClick={handleFollowToggle}
                   disabled={followLoading}
-                  className={`ml-2 -mt-0.5 px-2.5 py-0.5 rounded-full border text-xs font-medium flex items-center justify-center transition-all duration-200 ${
+                  className={`ml-2 -mt-0.5 flex items-center justify-center transition-all duration-200 ${
                     isFollowingUser
-                      ? 'border-green-500 text-green-600 bg-green-50'
-                      : 'border-gray-300 text-gray-600 bg-white hover:border-gray-400'
+                      ? 'text-green-600'
+                      : 'px-2.5 py-0.5 rounded-full border text-xs font-medium border-gray-300 text-gray-600 bg-white hover:border-gray-400'
                   } ${followLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                 >
                   {isFollowingUser ? (
-                    <>
-                      <CheckCircleIcon size={12} className="mr-1" />
-                      Following
-                    </>
+                    <CheckCircleIcon size={14} />
                   ) : (
                     'Follow'
                   )}
