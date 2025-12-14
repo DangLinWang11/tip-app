@@ -98,6 +98,9 @@ const createPinIcon = (text: string, backgroundColor: string, showQualityPercent
   const airyColor = '#ff3131';
   const width = text.length > 3 ? 90 : 60;
   const canvasHeight = 44;
+  const horizontalPadding = 2;
+  const pillX = horizontalPadding;
+  const pillWidth = width - horizontalPadding * 2;
   const pillStrokeColor = showQualityPercentages ? backgroundColor : airyColor;
   const textColor = pillStrokeColor;
   const triangleFill = pillStrokeColor;
@@ -105,9 +108,9 @@ const createPinIcon = (text: string, backgroundColor: string, showQualityPercent
   const svg = `
     <svg width="${width}" height="${canvasHeight}" viewBox="0 0 ${width} ${canvasHeight}" xmlns="http://www.w3.org/2000/svg">
       <!-- Faux shadow pill -->
-      <rect x="0" y="4" width="${width}" height="32" rx="16" fill="black" opacity="0.12" />
+      <rect x="${pillX}" y="4" width="${pillWidth}" height="32" rx="16" fill="black" opacity="0.12" />
       <!-- Main pill -->
-      <rect x="0" y="2" width="${width}" height="32" rx="16" fill="white" stroke="${pillStrokeColor}" stroke-width="2" />
+      <rect x="${pillX}" y="2" width="${pillWidth}" height="32" rx="16" fill="white" stroke="${pillStrokeColor}" stroke-width="2" />
       ${
         text
           ? `<text x="${width / 2}" y="23" font-family="Arial, sans-serif" font-size="12" font-weight="bold" text-anchor="middle" fill="${textColor}">${text}</text>`
@@ -128,14 +131,17 @@ const createDishPinIcon = (rating: string, backgroundColor: string): string => {
   const goldColor = '#FFD700';
   const canvasWidth = 60;
   const canvasHeight = 44;
+  const horizontalPadding = 2;
+  const pillX = horizontalPadding;
+  const pillWidth = canvasWidth - horizontalPadding * 2;
 
   // Star is drawn using the same path, positioned via transform
   const svg = `
     <svg width="${canvasWidth}" height="${canvasHeight}" viewBox="0 0 ${canvasWidth} ${canvasHeight}" xmlns="http://www.w3.org/2000/svg">
       <!-- Faux shadow pill -->
-      <rect x="0" y="4" width="60" height="32" rx="16" fill="black" opacity="0.12" />
+      <rect x="${pillX}" y="4" width="${pillWidth}" height="32" rx="16" fill="black" opacity="0.12" />
       <!-- Main pill -->
-      <rect x="0" y="2" width="60" height="32" rx="16" fill="white" stroke="${airyColor}" stroke-width="2" />
+      <rect x="${pillX}" y="2" width="${pillWidth}" height="32" rx="16" fill="white" stroke="${airyColor}" stroke-width="2" />
       <text x="19" y="23" font-family="Arial, sans-serif" font-size="16" font-weight="bold" text-anchor="middle" fill="${airyColor}">${rating}</text>
       <!-- Star icon -->
       <path
