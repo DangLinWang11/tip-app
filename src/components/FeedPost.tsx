@@ -1006,7 +1006,7 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
                    '');
             if (!visitText) return null;
             return (
-              <p className="mt-1 mb-3 text-sm text-gray-900 leading-snug border-l-2 border-gray-100 pl-3">
+              <p className="mt-1 mb-3 text-sm text-gray-900 leading-snug border-l-2 border-gray-200 pl-3">
                 {visitText}
               </p>
             );
@@ -1016,7 +1016,7 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
           const source = dishContextItem || currentItem;
           if (source.review.caption) {
             return (
-              <p className="mt-1 mb-3 text-sm text-gray-900 leading-snug border-l-2 border-gray-100 pl-3">
+              <p className="mt-1 mb-3 text-sm text-gray-900 leading-snug border-l-2 border-gray-200 pl-3">
                 {source.review.caption}
               </p>
             );
@@ -1048,14 +1048,16 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
             <button
               type="button"
               onClick={handleDishClickEnhanced}
-              className="flex items-center justify-between w-full py-1.5 px-4 text-sm hover:bg-gray-50 rounded"
+              className="w-full py-1.5 px-4 text-sm hover:bg-gray-50 rounded"
             >
-              <span className="font-medium text-gray-900 truncate text-left">
-                {currentItem.dish.name}
-              </span>
-              <span className="flex-shrink-0 ml-3 text-xs font-semibold text-white bg-red-500 rounded-full px-2.5 py-[2px]">
-                {displayRating.toFixed(1)}
-              </span>
+              <div className="mx-auto flex items-center justify-center gap-3 max-w-full">
+                <span className="font-medium text-gray-900 truncate text-left max-w-[70%]">
+                  {currentItem.dish.name}
+                </span>
+                <span className="flex-shrink-0 text-xs font-semibold text-white bg-red-500 rounded-full px-2.5 py-[2px]">
+                  {displayRating.toFixed(1)}
+                </span>
+              </div>
             </button>
           </div>
         )}
@@ -1498,7 +1500,7 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
           </div>
 
           {visitCaption && (
-            <p className="mt-1 mb-3 text-sm text-gray-900 leading-snug border-l-2 border-gray-100 pl-3">
+            <p className="mt-1 mb-3 text-sm text-gray-900 leading-snug border-l-2 border-gray-200 pl-3">
               {visitCaption}
             </p>
           )}
@@ -1519,12 +1521,16 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
                         <button
                           key={dish.id}
                           onClick={() => navigateToDishReview(dish.id, dish.dishId)}
-                          className="flex items-center justify-between w-full py-1.5 px-4 text-sm hover:bg-gray-50 rounded"
+                          className="w-full py-1.5 px-4 text-sm hover:bg-gray-50 rounded"
                         >
-                          <span className="font-medium text-gray-900 truncate text-left">{dish.name}</span>
-                          <span className="flex-shrink-0 ml-3 text-xs font-semibold text-white bg-red-500 rounded-full px-2.5 py-[2px]">
-                            {dish.rating.toFixed(1)}
-                          </span>
+                          <div className="flex items-center justify-center gap-3 max-w-full mx-auto">
+                            <span className="font-medium text-gray-900 truncate text-left max-w-[70%]">
+                              {dish.name}
+                            </span>
+                            <span className="flex-shrink-0 text-xs font-semibold text-white bg-red-500 rounded-full px-2.5 py-[2px]">
+                              {dish.rating.toFixed(1)}
+                            </span>
+                          </div>
                         </button>
                       ))}
                       {remaining > 0 && (
