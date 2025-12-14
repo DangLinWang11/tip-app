@@ -134,7 +134,12 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, needsUsernameOnly =
       } else {
         // Check if user just closed the popup - don't show error in that case
         const errorLower = (result.error || '').toLowerCase();
-        if (errorLower.includes('popup') && (errorLower.includes('closed') || errorLower.includes('cancel'))) {
+        const isUserCancellation =
+          errorLower.includes('popup') ||
+          errorLower.includes('cancel') ||
+          errorLower.includes('closed');
+
+        if (isUserCancellation) {
           // User cancelled - just reset state without showing error
           console.log('Google sign-in cancelled by user');
         } else {

@@ -269,30 +269,45 @@ export const signInWithGoogle = async (): Promise<{ success: boolean; user?: Use
     return { success: true, user };
   } catch (error: any) {
     console.error('❌ Google sign-in failed:', error);
-    
+
     let errorMessage = 'Failed to sign in with Google';
-    
+
+    // Check if this is a popup cancellation (user closed the dialog)
+    const isPopupCancellation =
+      error.code === 'auth/popup-closed-by-user' ||
+      error.code === 'auth/cancelled-popup-request' ||
+      (error.message && error.message.toLowerCase().includes('popup') &&
+       (error.message.toLowerCase().includes('closed') || error.message.toLowerCase().includes('cancel')));
+
     switch (error.code) {
       case 'auth/popup-closed-by-user':
+      case 'auth/cancelled-popup-request':
         errorMessage = 'Sign-in popup was closed';
         break;
       case 'auth/popup-blocked':
         errorMessage = 'Sign-in popup was blocked by browser';
         break;
-      case 'auth/cancelled-popup-request':
-        errorMessage = 'Sign-in was cancelled';
-        break;
       case 'auth/network-request-failed':
-        errorMessage = 'Network error. Please check your internet connection';
+        // Only show network error if it's not a popup cancellation
+        if (!isPopupCancellation) {
+          errorMessage = 'Network error. Please check your internet connection';
+        } else {
+          errorMessage = 'Sign-in popup was closed';
+        }
         break;
       case 'auth/invalid-credential':
         errorMessage = 'Invalid Google credentials';
         break;
       default:
-        errorMessage = error.message || 'Unknown error occurred during Google sign-in';
-        console.error('🔍 Unhandled Google auth error code:', error.code, error.message);
+        // Check if the error message suggests popup cancellation
+        if (isPopupCancellation) {
+          errorMessage = 'Sign-in popup was closed';
+        } else {
+          errorMessage = error.message || 'Unknown error occurred during Google sign-in';
+          console.error('🔍 Unhandled Google auth error code:', error.code, error.message);
+        }
     }
-    
+
     return { success: false, error: errorMessage };
   }
 };

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeftIcon, MapPinIcon, SearchIcon, PlusIcon, CheckIcon, EditIcon, Share, User, Star, Users, TrendingUp } from 'lucide-react';
+import { ArrowLeftIcon, MapPinIcon, SearchIcon, PlusIcon, CheckIcon, EditIcon, Share, User, Star, Users, TrendingUp, Store } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import FeedPost from '../components/FeedPost';
 import { fetchUserReviews, convertReviewsToFeedPosts, FirebaseReview } from '../services/reviewService';
@@ -226,42 +226,42 @@ const PublicProfile: React.FC = () => {
 
       <div className="px-4 py-6">
         {/* Profile Info */}
-        <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
-          <div className="flex items-start mb-6">
-            <img 
+        <div className="bg-white rounded-xl shadow-sm p-5 mb-6">
+          <div className="flex items-start mb-3">
+            <img
               src={userProfile?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${username}`}
-              alt={username} 
+              alt={username}
               className="w-20 h-20 rounded-full object-cover"
             />
             <div className="ml-4 flex-1 min-w-0">
               <div className="flex items-center">
-                <User size={18} className="text-primary mr-2" />
-                <h2 className="text-xl font-bold text-black">@{username}</h2>
+                <User size={16} className="text-primary mr-1.5" />
+                <h2 className="text-lg font-bold text-black">@{username}</h2>
               </div>
-              <p className="text-gray-600 text-sm mt-1 ml-7 whitespace-pre-line">
+              <p className="text-gray-600 text-sm mt-1 whitespace-pre-line">
                 {userProfile?.bio || "Food enthusiast exploring local cuisine"}
               </p>
             </div>
           </div>
-          
-          {/* Action Buttons - Positioned above stats */}
-          <div className="flex justify-end items-center mb-4">
+
+          {/* Action Buttons - Positioned closer to bio */}
+          <div className="flex justify-center items-center mb-4">
             <div className="flex space-x-2">
               {isOwnProfile ? (
                 <>
-                  <button 
+                  <button
                     onClick={() => navigate('/profile/edit')}
-                    className="px-3 py-1.5 border border-gray-200 rounded-full text-xs flex items-center hover:bg-gray-50 transition-colors"
+                    className="px-4 py-2 border border-gray-200 rounded-full text-sm flex items-center hover:bg-gray-50 transition-colors"
                   >
-                    <EditIcon size={12} className="mr-1" />
+                    <EditIcon size={14} className="mr-1.5" />
                     Edit
                   </button>
-                  
-                  <button 
+
+                  <button
                     onClick={handleShareProfile}
-                    className="px-3 py-1.5 border border-gray-200 rounded-full text-xs flex items-center hover:bg-gray-50 transition-colors"
+                    className="px-4 py-2 border border-gray-200 rounded-full text-sm flex items-center hover:bg-gray-50 transition-colors"
                   >
-                    <Share size={12} className="mr-1" />
+                    <Share size={14} className="mr-1.5" />
                     Share
                   </button>
                 </>
@@ -270,91 +270,91 @@ const PublicProfile: React.FC = () => {
                   <button
                     onClick={handleFollowToggle}
                     disabled={followLoading}
-                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors flex items-center ${
-                      isFollowingUser 
-                        ? 'bg-green-100 text-green-700 hover:bg-green-200 border border-green-200' 
+                    className={`px-4 py-2 rounded-full text-sm font-medium transition-colors flex items-center ${
+                      isFollowingUser
+                        ? 'bg-green-100 text-green-700 hover:bg-green-200 border border-green-200'
                         : 'bg-primary text-white hover:bg-red-600'
                     } ${followLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
                   >
                     {followLoading ? (
-                      <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin mr-1" />
+                      <div className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin mr-1.5" />
                     ) : isFollowingUser ? (
-                      <CheckIcon size={12} className="mr-1" />
+                      <CheckIcon size={14} className="mr-1.5" />
                     ) : (
-                      <PlusIcon size={12} className="mr-1" />
+                      <PlusIcon size={14} className="mr-1.5" />
                     )}
                     {isFollowingUser ? 'Following' : 'Follow'}
                   </button>
-                  
-                  <button 
+
+                  <button
                     onClick={handleShareProfile}
-                    className="px-3 py-1.5 border border-gray-200 rounded-full text-xs flex items-center hover:bg-gray-50 transition-colors"
+                    className="px-4 py-2 border border-gray-200 rounded-full text-sm flex items-center hover:bg-gray-50 transition-colors"
                   >
-                    <Share size={12} className="mr-1" />
+                    <Share size={14} className="mr-1.5" />
                     Share
                   </button>
                 </>
               )}
             </div>
           </div>
-          
-          {/* Stats Cards - 2x2 Grid */}
-          <div className="grid grid-cols-2 gap-3 pt-4 border-t border-gray-100">
+
+          {/* Stats Cards - 2x2 Grid - More Compact */}
+          <div className="grid grid-cols-2 gap-2.5">
             {/* Reviews Card */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-3">
               <div className="flex items-center">
-                <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center mr-3">
-                  <Star size={20} className="text-red-500" />
+                <div className="w-9 h-9 bg-red-100 rounded-full flex items-center justify-center mr-2.5 flex-shrink-0">
+                  <Star size={18} className="text-red-500" />
                 </div>
-                <div>
-                  <p className="text-2xl font-bold text-primary">{userReviews.length}</p>
-                  <p className="text-sm text-gray-500">Reviews</p>
+                <div className="min-w-0">
+                  <p className="text-xl font-bold text-primary leading-tight">{userReviews.length}</p>
+                  <p className="text-xs text-gray-500 leading-tight">Reviews</p>
                 </div>
               </div>
             </div>
 
             {/* Followers Card */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-3">
               <div className="flex items-center">
-                <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center mr-3">
-                  <Users size={20} className="text-purple-500" />
+                <div className="w-9 h-9 bg-purple-100 rounded-full flex items-center justify-center mr-2.5 flex-shrink-0">
+                  <Users size={18} className="text-purple-500" />
                 </div>
-                <div>
-                  <p className="text-2xl font-bold text-primary">{followerCount}</p>
-                  <p className="text-sm text-gray-500">Followers</p>
+                <div className="min-w-0">
+                  <p className="text-xl font-bold text-primary leading-tight">{followerCount}</p>
+                  <p className="text-xs text-gray-500 leading-tight">Followers</p>
                 </div>
               </div>
             </div>
 
             {/* Average Rating Card */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-3">
               <div className="flex items-center">
-                <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center mr-3">
-                  <TrendingUp size={20} className="text-green-500" />
+                <div className="w-9 h-9 bg-green-100 rounded-full flex items-center justify-center mr-2.5 flex-shrink-0">
+                  <TrendingUp size={18} className="text-green-500" />
                 </div>
-                <div>
-                  <p className="text-2xl font-bold text-primary">
-                    {userReviews.length > 0 
+                <div className="min-w-0">
+                  <p className="text-xl font-bold text-primary leading-tight">
+                    {userReviews.length > 0
                       ? (userReviews.reduce((sum, review) => sum + review.rating, 0) / userReviews.length).toFixed(1)
                       : "0.0"
                     }
                   </p>
-                  <p className="text-sm text-gray-500">Avg Rating</p>
+                  <p className="text-xs text-gray-500 leading-tight">Avg Rating</p>
                 </div>
               </div>
             </div>
 
             {/* Restaurants Card */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-3">
               <div className="flex items-center">
-                <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mr-3">
-                  <Users size={20} className="text-blue-500" />
+                <div className="w-9 h-9 bg-blue-100 rounded-full flex items-center justify-center mr-2.5 flex-shrink-0">
+                  <Store size={18} className="text-blue-500" />
                 </div>
-                <div>
-                  <p className="text-2xl font-bold text-primary">
+                <div className="min-w-0">
+                  <p className="text-xl font-bold text-primary leading-tight">
                     {new Set(userReviews.map(r => r.restaurant).filter(Boolean)).size}
                   </p>
-                  <p className="text-sm text-gray-500">Restaurants</p>
+                  <p className="text-xs text-gray-500 leading-tight">Restaurants</p>
                 </div>
               </div>
             </div>

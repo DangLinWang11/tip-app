@@ -643,7 +643,7 @@ const Profile: React.FC = () => {
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
               <div className="flex items-center">
                 <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mr-3">
-                  <Users size={20} className="text-blue-500" />
+                  <StoreIcon size={20} className="text-blue-500" />
                 </div>
                 <div>
                   <p className="text-2xl font-bold text-primary">{personalStats.restaurantsTried}</p>
