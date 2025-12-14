@@ -77,7 +77,7 @@ const UserFoodMapPage: React.FC = () => {
             <ArrowLeftIcon size={20} className="text-gray-600" />
           </button>
           <MapIcon size={20} className="text-primary mr-2" />
-          <h1 className="text-lg font-semibold text-black">{username} Map</h1>
+          <h1 className="text-lg font-semibold text-black">{username}'s Map</h1>
         </div>
       </div>
 

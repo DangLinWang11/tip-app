@@ -102,6 +102,8 @@ interface FeedPostProps {
   showPendingVerification?: boolean;
   // Precomputed follow status for author, provided by parent (Home).
   isFollowingAuthor?: boolean;
+  // Optional callback to inform parent when follow state changes for this author.
+  onFollowChange?: (userId: string, isFollowing: boolean) => void;
 }
 
 const FeedPostComponent: React.FC<FeedPostProps> = ({
@@ -123,7 +125,8 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
   visitDishes,
   mediaItems,
   showPendingVerification = false,
-  isFollowingAuthor = false
+  isFollowingAuthor = false,
+  onFollowChange,
 }) => {
   const renderStart = performance.now?.() ?? Date.now();
   console.log('[FeedPost][render-start]', {
@@ -371,10 +374,20 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
     try {
       if (isFollowingUser) {
         const success = await unfollowUser(author.id);
-        if (success) setIsFollowingUser(false);
+        if (success) {
+          setIsFollowingUser(false);
+          if (onFollowChange) {
+            onFollowChange(author.id, false);
+          }
+        }
       } else {
         const success = await followUser(author.id, author.name);
-        if (success) setIsFollowingUser(true);
+        if (success) {
+          setIsFollowingUser(true);
+          if (onFollowChange) {
+            onFollowChange(author.id, true);
+          }
+        }
       }
     } catch (error) {
       console.error('Error toggling follow:', error);
@@ -782,21 +795,24 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
               >
                 {author.name}
               </span>
-              {/* NEW: Follow button (+ icon in top-right of username area) */}
+              {/* Follow button: small pill like Instagram-style */}
               {!isOwnPost && (
                 <button
                   onClick={handleFollowToggle}
                   disabled={followLoading}
-                  className={`ml-0.5 -mt-1 w-5 h-5 rounded-full border flex items-center justify-center transition-all duration-200 ${
-                    isFollowingUser 
-                      ? 'bg-green-100 border-green-300 text-green-600 hover:bg-green-200'
-                      : 'border-gray-300 text-gray-500 hover:border-primary hover:text-primary'
+                  className={`ml-2 -mt-0.5 px-2.5 py-0.5 rounded-full border text-xs font-medium flex items-center justify-center transition-all duration-200 ${
+                    isFollowingUser
+                      ? 'border-green-500 text-green-600 bg-green-50'
+                      : 'border-gray-300 text-gray-600 bg-white hover:border-gray-400'
                   } ${followLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                 >
                   {isFollowingUser ? (
-                    <CheckCircleIcon size={12} className="text-green-600" />
+                    <>
+                      <CheckCircleIcon size={12} className="mr-1" />
+                      Following
+                    </>
                   ) : (
-                    <PlusIcon size={12} />
+                    'Follow'
                   )}
                 </button>
               )}
@@ -809,24 +825,24 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
               />
             )}
           </div>
+          {/* Restaurant line under header (legacy layout) */}
           {restaurant && (
-            <div className="text-sm text-dark-gray flex items-center gap-1.5 mt-0.5">
+            <div className="mt-1 text-sm text-dark-gray flex items-center gap-1.5">
               <MapPinIcon size={14} className="text-red-500" />
               <span
                 onClick={() => {
                   if (restaurantId) {
                     navigate(`/restaurant/${restaurantId}`);
                   } else {
-                    console.warn('Restaurant ID missing for:', restaurant.name, 'Review ID:', id);
+                    console.warn('Restaurant ID missing for:', restaurant?.name, 'Review ID:', id);
                   }
                 }}
-                className={`max-w-32 truncate ${restaurantId ? "hover:text-primary cursor-pointer" : "text-gray-500"}`}
+                className={`max-w-32 truncate ${restaurantId ? 'hover:text-primary cursor-pointer' : 'text-gray-500'}`}
               >
                 {restaurant.name}
               </span>
-              {restaurant.isVerified && <CheckCircleIcon size={14} className="text-secondary" />}
               {restaurant.qualityScore !== undefined && (
-                <div 
+                <div
                   className="w-8 h-5 flex items-center justify-center rounded-full"
                   style={{ backgroundColor: getQualityColor(restaurant.qualityScore) }}
                 >
@@ -1268,21 +1284,24 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
               >
                 {author.name}
               </span>
-              {/* NEW: Follow button (+ icon in top-right of username area) */}
+              {/* Follow button: small pill like Instagram-style */}
               {!isOwnPost && (
                 <button
                   onClick={handleFollowToggle}
                   disabled={followLoading}
-                  className={`ml-0.5 -mt-1 w-5 h-5 rounded-full border flex items-center justify-center transition-all duration-200 ${
-                    isFollowingUser 
-                      ? 'bg-green-100 border-green-300 text-green-600 hover:bg-green-200' 
-                      : 'border-gray-300 text-gray-500 hover:border-primary hover:text-primary'
+                  className={`ml-2 -mt-0.5 px-2.5 py-0.5 rounded-full border text-xs font-medium flex items-center justify-center transition-all duration-200 ${
+                    isFollowingUser
+                      ? 'border-green-500 text-green-600 bg-green-50'
+                      : 'border-gray-300 text-gray-600 bg-white hover:border-gray-400'
                   } ${followLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                 >
                   {isFollowingUser ? (
-                    <CheckCircleIcon size={12} className="text-green-600" />
+                    <>
+                      <CheckCircleIcon size={12} className="mr-1" />
+                      Following
+                    </>
                   ) : (
-                    <PlusIcon size={12} />
+                    'Follow'
                   )}
                 </button>
               )}
@@ -1295,24 +1314,24 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
               />
             )}
           </div>
+          {/* Restaurant line under header (visit layout) */}
           {restaurant && (
-            <div className="text-sm text-dark-gray flex items-center gap-1.5 mt-0.5">
+            <div className="mt-1 text-sm text-dark-gray flex items-center gap-1.5">
               <MapPinIcon size={14} className="text-red-500" />
               <span
                 onClick={() => {
                   if (restaurantId) {
                     navigate(`/restaurant/${restaurantId}`);
                   } else {
-                    console.warn('Restaurant ID missing for:', restaurant.name, 'Review ID:', id);
+                    console.warn('Restaurant ID missing for:', restaurant?.name, 'Review ID:', id);
                   }
                 }}
-                className={`max-w-32 truncate ${restaurantId ? "hover:text-primary cursor-pointer" : "text-gray-500"}`}
+                className={`max-w-32 truncate ${restaurantId ? 'hover:text-primary cursor-pointer' : 'text-gray-500'}`}
               >
                 {restaurant.name}
               </span>
-              {restaurant.isVerified && <CheckCircleIcon size={14} className="text-secondary" />}
               {restaurant.qualityScore !== undefined && (
-                <div 
+                <div
                   className="w-8 h-5 flex items-center justify-center rounded-full"
                   style={{ backgroundColor: getQualityColor(restaurant.qualityScore) }}
                 >

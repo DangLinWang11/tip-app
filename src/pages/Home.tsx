@@ -620,17 +620,6 @@ const Home: React.FC = () => {
           </div>
         </div>
 
-        {/* Recent Activity from Friends Button */}
-        <div 
-          className="bg-white rounded-xl shadow-sm p-4 mb-6 cursor-pointer hover:shadow-md transition-shadow flex items-center justify-between"
-          onClick={() => navigate('/recent-activity')}
-        >
-          <div className="flex items-center">
-            <div className="text-lg font-bold text-primary">Recent Activity from Friends</div>
-          </div>
-          <ChevronRight size={22} className="text-primary" />
-        </div>
-
         {/* Community Feed Section */}
         <div className="space-y-4">
           {/* Section Header */}
@@ -664,6 +653,17 @@ const Home: React.FC = () => {
                       key={post.id}
                       {...post}
                       isFollowingAuthor={isFollowingAuthor}
+                      onFollowChange={(userId, isFollowing) => {
+                        setFollowingIds((prev) => {
+                          const next = new Set(prev);
+                          if (isFollowing) {
+                            next.add(userId);
+                          } else {
+                            next.delete(userId);
+                          }
+                          return next;
+                        });
+                      }}
                     />
                   );
                 });
