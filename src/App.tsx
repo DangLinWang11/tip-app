@@ -26,6 +26,7 @@ import AdminUpload from './pages/AdminUpload';
 import PostDetail from './pages/PostDetail';
 import { LocationProvider } from './contexts/LocationContext';
 import { useFeature } from './utils/features';
+import { getRandomLoadingMessage } from './utils/loadingMessages';
 import { runBackfillSoftDelete } from './dev/backfillSoftDelete';
 import { runBackfillCuisines } from './dev/backfillCuisines';
 import { undeleteAllReviews } from './utils/undeleteReviews';
@@ -178,7 +179,7 @@ export function App() {
   
   // Show loading screen while checking auth state
   if (authState.isLoading) {
-    return <LoadingScreen label="Auth state" />;
+    return <LoadingScreen label={getRandomLoadingMessage()} />;
   }
   
   // Show onboarding if not authenticated or needs username
