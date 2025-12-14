@@ -5,6 +5,9 @@ import { signOutUser, analytics } from '../lib/firebase';
 import { logEvent } from 'firebase/analytics';
 import { useOwnedRestaurants } from '../hooks/useOwnedRestaurants';
 
+const ReactDOMGlobal: typeof import('react-dom') | null =
+  typeof document !== 'undefined' ? require('react-dom') : null;
+
 // Simple Settings Modal Component
 const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen, onClose }) => {
   const [locationPermissionState, setLocationPermissionState] = useState<PermissionState | 'unsupported'>('prompt');
@@ -76,9 +79,12 @@ const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isO
 
   if (!isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-[110] flex items-center justify-center p-4">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+  const modalContent = (
+    <div className="fixed inset-0 bg-black bg-opacity-50 z-[1000] flex items-center justify-center p-4" onClick={onClose}>
+      <div
+        className="bg-white rounded-xl shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <h2 className="text-xl font-semibold text-gray-900">Settings</h2>
           <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
@@ -159,6 +165,9 @@ const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isO
       </div>
     </div>
   );
+
+  if (!ReactDOMGlobal) return modalContent;
+  return ReactDOMGlobal.createPortal(modalContent, document.body);
 };
 
 // Simple Help & Support Modal Component
@@ -170,7 +179,6 @@ const HelpModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen,
     message: ''
   });
 
-  if (!isOpen) return null;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -181,9 +189,14 @@ const HelpModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen,
     onClose();
   };
 
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-[110] flex items-center justify-center p-4">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+  if (!isOpen) return null;
+
+  const modalContent = (
+    <div className="fixed inset-0 bg-black bg-opacity-50 z-[1000] flex items-center justify-center p-4" onClick={onClose}>
+      <div
+        className="bg-white rounded-xl shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <h2 className="text-xl font-semibold text-gray-900">Help & Support</h2>
@@ -260,6 +273,9 @@ const HelpModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen,
       </div>
     </div>
   );
+
+  if (!ReactDOMGlobal) return modalContent;
+  return ReactDOMGlobal.createPortal(modalContent, document.body);
 };
 
 const HamburgerMenu: React.FC = () => {
@@ -392,5 +408,4 @@ const HamburgerMenu: React.FC = () => {
 };
 
 export default HamburgerMenu;
-
 

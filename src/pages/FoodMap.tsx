@@ -49,7 +49,6 @@ const FoodMap: React.FC = () => {
   }, []);
   
   // Stats calculation from actual user data
-  
   // Calculate stats from actual user reviews and profile
   const userStats = {
     averageRating: userProfile?.stats?.averageRating 
@@ -62,8 +61,24 @@ const FoodMap: React.FC = () => {
     pointsEarned: userProfile?.stats?.pointsEarned || 0
   };
 
-  // Filter reviews based on search term
-  const filteredReviews = userReviews.filter(review => 
+  // Flatten visits so each dish in a multi-dish visit becomes its own "recent visit" entry
+  const dishVisits = userReviews.flatMap((post: any) => {
+    if (post.isCarousel && Array.isArray(post.carouselItems) && post.carouselItems.length > 0) {
+      return post.carouselItems.map((item: any) => ({
+        ...post,
+        // Treat as single-dish entry for the Recent Visits list
+        isCarousel: false,
+        dish: item.dish,
+        dishId: item.id, // use reviewId for personal notes
+        review: item.review,
+        personalNotes: item.personalNotes || []
+      }));
+    }
+    return [post];
+  });
+
+  // Filter dish-level visits based on search term
+  const filteredReviews = dishVisits.filter((review: any) => 
     searchTerm === '' || 
     review.dish?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     review.restaurant?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
