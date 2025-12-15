@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Search, MapPin, Store, Utensils } from 'lucide-react';
 import { collection, getDocs, query, where, limit } from 'firebase/firestore';
@@ -6,6 +6,9 @@ import { db } from '../lib/firebase';
 import { calculateRestaurantQualityScore, ReviewWithCategory, FirebaseReview } from '../services/reviewService';
 import { useLocationContext } from '../contexts/LocationContext';
 import { DISH_TYPES, CUISINES, normalizeToken, inferFacetsFromText } from '../utils/taxonomy';
+import { searchNearbyForDish, GoogleFallbackPlace } from '../services/googlePlacesService';
+import RestaurantListCard from '../components/discover/RestaurantListCard';
+import { tipRestaurantToCardModel, googlePlaceToCardModel } from '../utils/restaurantCardAdapters';
 
 interface FirebaseRestaurant {
   id: string;
@@ -24,13 +27,14 @@ interface FirebaseRestaurant {
   updatedAt: any;
   qualityScore?: number;
   googlePhotos?: string[];
+  priceLevel?: number;
 }
 
 interface RestaurantWithExtras extends FirebaseRestaurant {
   averageRating: number;
   qualityPercentage: number | null;
   reviewCount: number;
-  priceRange: string;
+  priceRange: string | null;
   coverImage: string | null;
   location: { lat: number | null; lng: number | null };
   normalizedCuisine: string;
@@ -69,18 +73,24 @@ const getQualityColor = (percentage: number): string => {
 const capitalizeWords = (value: string) =>
   value.split(' ').map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
 
+const DISH_CATEGORIES = ['All', 'Near Me', 'Appetizer', 'Entrée', 'Handheld', 'Side', 'Dessert', 'Drink'];
+const MIN_REVIEWS_FOR_TRUST = 5;
+
 const getCategories = (mode: 'restaurant' | 'dish') => {
   if (mode === 'restaurant') {
     return ['All', 'Near Me', ...CUISINES.map((cuisine) => capitalizeWords(cuisine))];
   }
-  return ['All', 'Near Me', ...DISH_TYPES.map((dish) => capitalizeWords(dish))];
+  return DISH_CATEGORIES;
 };
 
 const TAG_FILTERS = [
-  { label: 'Great Value', tags: ['fair', 'bargain'], emoji: '💰' },
-  { label: 'Spicy', tags: ['nice_warmth', 'overwhelms'], emoji: '🌶️' },
-  { label: 'Date Night', tags: ['date_night'], emoji: '💕' },
-  { label: 'Generous Portions', tags: ['generous'], emoji: '🍽️' },
+  { value: 'great_value', label: 'Great Value', tags: ['val_fair', 'val_good_value'], emoji: '💰' },
+  { value: 'spicy', label: 'Spicy', tags: ['attr_spicy'], emoji: '🌶️' },
+  { value: 'date_night', label: 'Date Night', tags: ['occasion_date_night'], emoji: '💕' },
+  { value: 'vegetarian', label: 'Vegetarian', tags: ['dietary_vegetarian'], emoji: '🥗' },
+  { value: 'vegan', label: 'Vegan', tags: ['dietary_vegan'], emoji: '🌱' },
+  { value: 'family', label: 'Family Friendly', tags: ['occasion_family'], emoji: '👨‍👩‍👧‍👦' },
+  { value: 'quick_bite', label: 'Quick Bite', tags: ['occasion_quick_lunch', 'service_fast'], emoji: '⏱️' },
 ];
 
 const toRad = (n: number) => (n * Math.PI) / 180;
@@ -107,6 +117,13 @@ const formatDistanceLabel = (miles: number | null | undefined) => {
 const normalizeCategoryValue = (label: string) => {
   if (label === 'All') return 'all';
   if (label === 'Near Me') return 'nearme';
+  // For dish categories, normalize to match Create flow categories
+  if (label === 'Appetizer') return 'appetizer';
+  if (label === 'Entrée') return 'entree';
+  if (label === 'Handheld') return 'handheld';
+  if (label === 'Side') return 'side';
+  if (label === 'Dessert') return 'dessert';
+  if (label === 'Drink') return 'drink';
   return normalizeToken(label);
 };
 
@@ -121,6 +138,7 @@ const DiscoverList: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTagFilter, setSelectedTagFilter] = useState<string | null>(null);
+  const [selectedPriceLevel, setSelectedPriceLevel] = useState<number | null>(null);
   const [restaurants, setRestaurants] = useState<RestaurantWithExtras[]>([]);
   const [dishes, setDishes] = useState<DiscoverDish[]>([]);
   const [loadingRestaurants, setLoadingRestaurants] = useState<boolean>(true);
@@ -128,12 +146,17 @@ const DiscoverList: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [loadingTagFilter, setLoadingTagFilter] = useState<boolean>(false);
   const [tagFilteredRestaurantIds, setTagFilteredRestaurantIds] = useState<string[]>([]);
+  const [googleFallbackResults, setGoogleFallbackResults] = useState<GoogleFallbackPlace[]>([]);
+  const [showGoogleFallback, setShowGoogleFallback] = useState<boolean>(false);
+  const [loadingGoogleFallback, setLoadingGoogleFallback] = useState<boolean>(false);
+
+  const debounceTimerRef = useRef<number | null>(null);
 
   const categories = useMemo(() => getCategories(viewMode), [viewMode]);
   const parsed = useMemo(() => inferFacetsFromText(searchQuery), [searchQuery]);
   const queryTokens = useMemo(() => normalizeToken(searchQuery).split(' ').filter(Boolean), [searchQuery]);
   const activeTagFilter = useMemo(
-    () => TAG_FILTERS.find((filter) => filter.label === selectedTagFilter) ?? null,
+    () => TAG_FILTERS.find((filter) => filter.value === selectedTagFilter) ?? null,
     [selectedTagFilter]
   );
 
@@ -148,13 +171,18 @@ const DiscoverList: React.FC = () => {
     }
   };
 
-  const handleTagFilterSelect = (label: string) => {
-    setSelectedTagFilter((prev) => (prev === label ? null : label));
+  const handleTagFilterSelect = (value: string) => {
+    setSelectedTagFilter((prev) => (prev === value ? null : value));
+  };
+
+  const handlePriceLevelSelect = (level: number) => {
+    setSelectedPriceLevel((prev) => (prev === level ? null : level));
   };
 
   const handleClearFilters = () => {
     setSelectedTagFilter(null);
     setSelectedCategory('all');
+    setSelectedPriceLevel(null);
   };
 
   const fetchRestaurantReviews = async (restaurantId: string): Promise<ReviewWithCategory[]> => {
@@ -200,13 +228,19 @@ const DiscoverList: React.FC = () => {
             ? Number((reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length).toFixed(1))
             : 0;
 
+          // Derive priceRange from priceLevel (1-4)
+          const priceLevel = data.priceLevel;
+          const priceRange = typeof priceLevel === 'number' && priceLevel >= 1 && priceLevel <= 4
+            ? '$'.repeat(priceLevel)
+            : null;
+
           return {
             ...data,
             id: restaurantId,
             averageRating,
             qualityPercentage: computedQuality ?? null,
             reviewCount: reviews.length,
-            priceRange: ['$', '$$', '$$$'][Math.floor(Math.random() * 3)],
+            priceRange,
             coverImage: (data.googlePhotos && data.googlePhotos.length > 0) ? data.googlePhotos[0] : null,
             cuisines: normalizedCuisines,
             location: { lat, lng },
@@ -457,6 +491,11 @@ const DiscoverList: React.FC = () => {
         );
 
         return hitCuisine || hitTokens;
+      })
+      .filter((restaurant) => {
+        // Price level filtering
+        if (selectedPriceLevel === null) return true;
+        return restaurant.priceLevel === selectedPriceLevel;
       });
 
     if (viewMode !== 'restaurant' || !activeTagFilter || loadingTagFilter) {
@@ -473,6 +512,7 @@ const DiscoverList: React.FC = () => {
     searchQuery,
     parsed,
     queryTokens,
+    selectedPriceLevel,
     viewMode,
     activeTagFilter,
     loadingTagFilter,
@@ -482,8 +522,10 @@ const DiscoverList: React.FC = () => {
   const filteredDishes = useMemo(() => {
     return dishesWithDerived.filter((dish) => {
       if (selectedCategory !== 'all' && selectedCategory !== 'nearme') {
-        const categoryLower = (dish.category || '').toLowerCase();
-        if (!categoryLower.includes(selectedCategory)) {
+        const dishCategoryNormalized = (dish.category || '').toLowerCase().trim();
+        const selectedCategoryNormalized = selectedCategory.toLowerCase().trim();
+        // Check for equality or containment (case-insensitive)
+        if (dishCategoryNormalized !== selectedCategoryNormalized && !dishCategoryNormalized.includes(selectedCategoryNormalized)) {
           return false;
         }
       }
@@ -509,13 +551,95 @@ const DiscoverList: React.FC = () => {
 
   const isLoading = viewMode === 'restaurant' ? (loadingRestaurants || loadingTagFilter) : loadingRestaurants || loadingDishes;
 
-  const restaurantsForRender = coords
-    ? [...filteredRestaurants].sort((a, b) => {
-      const da = a.distanceMiles ?? Number.POSITIVE_INFINITY;
-      const db = b.distanceMiles ?? Number.POSITIVE_INFINITY;
-      return da - db;
-    })
-    : filteredRestaurants;
+  // Google fallback search effect with debouncing
+  useEffect(() => {
+    const trimmedQuery = searchQuery.trim();
+
+    // Clear previous debounce timer
+    if (debounceTimerRef.current !== null) {
+      window.clearTimeout(debounceTimerRef.current);
+      debounceTimerRef.current = null;
+    }
+
+    // Reset fallback if query is too short
+    if (trimmedQuery.length < 3) {
+      setShowGoogleFallback(false);
+      setGoogleFallbackResults([]);
+      return;
+    }
+
+    // Check if we should trigger Google fallback (low TIP results)
+    const shouldTriggerFallback =
+      (viewMode === 'dish' && filteredDishes.length < 3) ||
+      (viewMode === 'restaurant' && filteredRestaurants.length < 3);
+
+    if (!shouldTriggerFallback || !coords) {
+      setShowGoogleFallback(false);
+      setGoogleFallbackResults([]);
+      return;
+    }
+
+    // Debounce the Google API call
+    debounceTimerRef.current = window.setTimeout(() => {
+      let isCancelled = false;
+
+      const fetchGoogleFallback = async () => {
+        try {
+          setLoadingGoogleFallback(true);
+          const results = await searchNearbyForDish(trimmedQuery, coords);
+          if (!isCancelled) {
+            setGoogleFallbackResults(results);
+            setShowGoogleFallback(results.length > 0);
+          }
+        } catch (err) {
+          console.error('Google fallback search failed:', err);
+          if (!isCancelled) {
+            setGoogleFallbackResults([]);
+            setShowGoogleFallback(false);
+          }
+        } finally {
+          if (!isCancelled) {
+            setLoadingGoogleFallback(false);
+          }
+        }
+      };
+
+      fetchGoogleFallback();
+
+      return () => {
+        isCancelled = true;
+      };
+    }, 500); // 500ms debounce
+
+    return () => {
+      if (debounceTimerRef.current !== null) {
+        window.clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, [searchQuery, viewMode, filteredDishes.length, filteredRestaurants.length, coords]);
+
+  const restaurantsForRender = [...filteredRestaurants].sort((a, b) => {
+    // Growth-safe ranking: prioritize restaurants with sufficient data
+    const aSufficient = a.reviewCount >= MIN_REVIEWS_FOR_TRUST;
+    const bSufficient = b.reviewCount >= MIN_REVIEWS_FOR_TRUST;
+
+    // First: sort by sufficient data (true first)
+    if (aSufficient !== bSufficient) {
+      return aSufficient ? -1 : 1;
+    }
+
+    // Second: sort by quality percentage (DESC)
+    const aQuality = a.qualityPercentage ?? 0;
+    const bQuality = b.qualityPercentage ?? 0;
+    if (aQuality !== bQuality) {
+      return bQuality - aQuality;
+    }
+
+    // Third: sort by distance (ASC) when available
+    const da = a.distanceMiles ?? Number.POSITIVE_INFINITY;
+    const db = b.distanceMiles ?? Number.POSITIVE_INFINITY;
+    return da - db;
+  });
   const noTagFilterResults =
     viewMode === 'restaurant' && Boolean(selectedTagFilter) && !loadingTagFilter && restaurantsForRender.length === 0;
 
@@ -590,33 +714,56 @@ const DiscoverList: React.FC = () => {
       </div>
 
       {viewMode === 'restaurant' && (
-        <div className="bg-white px-4 py-3 border-b">
-          {loadingTagFilter && selectedTagFilter ? (
-            <div className="flex items-center text-sm text-gray-500 mb-3">
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-400 mr-2"></div>
-              <span>Finding {selectedTagFilter} spots...</span>
+        <>
+          <div className="bg-white px-4 py-3 border-b">
+            {loadingTagFilter && selectedTagFilter ? (
+              <div className="flex items-center text-sm text-gray-500 mb-3">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-400 mr-2"></div>
+                <span>Finding {activeTagFilter?.label ?? selectedTagFilter} spots...</span>
+              </div>
+            ) : null}
+            <div className="flex overflow-x-auto no-scrollbar space-x-2">
+              {TAG_FILTERS.map((filter) => {
+                const isActive = selectedTagFilter === filter.value;
+                return (
+                  <button
+                    key={filter.value}
+                    type="button"
+                    disabled={loadingTagFilter}
+                    onClick={() => handleTagFilterSelect(filter.value)}
+                    className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-colors flex items-center gap-2 ${
+                      isActive ? 'bg-gray-300 text-gray-900' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    } ${loadingTagFilter ? 'opacity-60 cursor-not-allowed' : ''}`}
+                  >
+                    <span>{filter.emoji}</span>
+                    <span>{filter.label}</span>
+                  </button>
+                );
+              })}
             </div>
-          ) : null}
-          <div className="flex overflow-x-auto no-scrollbar space-x-2">
-            {TAG_FILTERS.map((filter) => {
-              const isActive = selectedTagFilter === filter.label;
-              return (
-                <button
-                  key={filter.label}
-                  type="button"
-                  disabled={loadingTagFilter}
-                  onClick={() => handleTagFilterSelect(filter.label)}
-                  className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-colors flex items-center gap-2 ${
-                    isActive ? 'bg-gray-300 text-gray-900' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  } ${loadingTagFilter ? 'opacity-60 cursor-not-allowed' : ''}`}
-                >
-                  <span>{filter.emoji}</span>
-                  <span>{filter.label}</span>
-                </button>
-              );
-            })}
           </div>
-        </div>
+
+          <div className="bg-white px-4 py-3 border-b">
+            <div className="flex overflow-x-auto no-scrollbar space-x-2">
+              {[1, 2, 3, 4].map((level) => {
+                const isActive = selectedPriceLevel === level;
+                const priceLabel = '$'.repeat(level);
+                return (
+                  <button
+                    key={level}
+                    type="button"
+                    onClick={() => handlePriceLevelSelect(level)}
+                    className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                      isActive ? 'bg-primary text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    {priceLabel}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </>
       )}
 
       <div className="px-4 py-4">
@@ -641,7 +788,7 @@ const DiscoverList: React.FC = () => {
         ) : viewMode === 'restaurant' ? (
           noTagFilterResults ? (
             <div className="text-center py-8 text-gray-500 space-y-3">
-              <p>No restaurants found with {selectedTagFilter}</p>
+              <p>No restaurants found with {activeTagFilter?.label ?? selectedTagFilter}</p>
               <button
                 type="button"
                 onClick={handleClearFilters}
@@ -654,6 +801,7 @@ const DiscoverList: React.FC = () => {
           restaurantsForRender.length ? (
             restaurantsForRender.map((restaurant) => {
               const q = (restaurant as any).qualityScore ?? restaurant.qualityPercentage ?? null;
+              const hasSufficientData = restaurant.reviewCount >= MIN_REVIEWS_FOR_TRUST;
 
               return (
                 <div
@@ -677,19 +825,26 @@ const DiscoverList: React.FC = () => {
                   <div className="p-3 flex-1">
                     <div className="flex justify-between items-start">
                       <h3 className="font-medium truncate max-w-[160px] mr-4">{restaurant.name}</h3>
-                      {q !== null && (
-                        <div
-                          className="px-2 py-0.5 rounded-full flex-shrink-0"
-                          style={{ backgroundColor: getQualityColor(q) }}
-                        >
-                          <span className="text-xs font-medium text-white">{q}%</span>
-                        </div>
-                      )}
+                      <div className="flex items-center gap-1 flex-shrink-0">
+                        {!hasSufficientData && (
+                          <div className="px-2 py-0.5 rounded-full bg-gray-200">
+                            <span className="text-xs font-medium text-gray-600">Limited ratings ({restaurant.reviewCount})</span>
+                          </div>
+                        )}
+                        {q !== null && (
+                          <div
+                            className="px-2 py-0.5 rounded-full"
+                            style={{ backgroundColor: getQualityColor(q) }}
+                          >
+                            <span className="text-xs font-medium text-white">{q}%</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
                     <div className="flex items-center justify-between mt-1">
                       <div className="flex items-center text-sm text-dark-gray space-x-2">
                         <span>{restaurant.cuisine || 'Unknown'}</span>
-                        <span>{restaurant.priceRange}</span>
+                        {restaurant.priceRange && <span>{restaurant.priceRange}</span>}
                       </div>
                       <div className="flex items-center text-xs text-dark-gray">
                         <MapPin size={14} className="text-dark-gray mr-1" />
@@ -702,7 +857,7 @@ const DiscoverList: React.FC = () => {
             })
           ) : noTagFilterResults ? (
             <div className="text-center py-8 text-gray-500">
-              <p className="font-medium">No restaurants found with {selectedTagFilter}</p>
+              <p className="font-medium">No restaurants found with {activeTagFilter?.label ?? selectedTagFilter}</p>
               <p className="text-sm">Try broadening your filters.</p>
               <button
                 type="button"
@@ -766,6 +921,45 @@ const DiscoverList: React.FC = () => {
           <div className="text-center py-8 text-gray-500">
             <p>No dishes found</p>
             <p className="text-sm">Try selecting a different category</p>
+          </div>
+        )}
+
+        {/* Google fallback section */}
+        {showGoogleFallback && googleFallbackResults.length > 0 && (
+          <div className="mt-6 pt-6 border-t border-gray-200">
+            <h2 className="text-lg font-semibold text-gray-900 mb-3">Popular nearby (via Google Places)</h2>
+            <div className="space-y-3">
+              {googleFallbackResults.map((place) => (
+                <div
+                  key={place.id}
+                  className="bg-white rounded-xl shadow-sm p-4 border"
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <h3 className="font-medium text-gray-900">{place.name}</h3>
+                      {place.vicinity && (
+                        <p className="text-sm text-gray-600 mt-1">{place.vicinity}</p>
+                      )}
+                      {place.rating && (
+                        <p className="text-xs text-gray-500 mt-1">Google rating: {place.rating.toFixed(1)}</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <p className="text-xs text-gray-500 mt-3 italic">
+              These are Google results, not yet rated in TIP. Be the first to review!
+            </p>
+          </div>
+        )}
+
+        {loadingGoogleFallback && (
+          <div className="mt-6 pt-6 border-t border-gray-200">
+            <div className="flex items-center justify-center py-4">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-400 mr-2"></div>
+              <p className="text-sm text-gray-600">Searching nearby...</p>
+            </div>
           </div>
         )}
       </div>

@@ -188,3 +188,57 @@ export const saveGooglePlaceToFirestore = async (placeDetails: PlaceDetailsResul
   await setDoc(docRef, payload, { merge: true });
   return payload;
 };
+
+export interface GoogleFallbackPlace {
+  place_id: string;
+  name: string;
+  vicinity: string;
+  rating?: number;
+  user_ratings_total?: number;
+  price_level?: number;
+  photos?: google.maps.places.PlacePhoto[];
+  geometry?: {
+    location?: google.maps.LatLng | google.maps.LatLngLiteral;
+  };
+}
+
+export const searchNearbyForDish = async (
+  keyword: string,
+  location: LatLngLiteral
+): Promise<GoogleFallbackPlace[]> => {
+  if (!keyword || keyword.length < 3 || !location) {
+    return [];
+  }
+
+  await ensureGoogleMapsLoaded();
+
+  return new Promise<GoogleFallbackPlace[]>((resolve, reject) => {
+    const service = createPlacesService();
+    const request: google.maps.places.PlaceSearchRequest = {
+      location: new google.maps.LatLng(location.lat, location.lng),
+      radius: 10000, // 10km
+      type: 'restaurant',
+      keyword
+    };
+
+    service.nearbySearch(request, (results, status) => {
+      if (status === google.maps.places.PlacesServiceStatus.OK && results) {
+        const mapped = results.slice(0, 5).map((result) => ({
+          place_id: result.place_id || `google_${Math.random()}`,
+          name: result.name || 'Unknown',
+          vicinity: result.vicinity || '',
+          rating: result.rating,
+          user_ratings_total: result.user_ratings_total,
+          price_level: result.price_level,
+          photos: result.photos,
+          geometry: result.geometry
+        }));
+        resolve(mapped);
+      } else if (status === google.maps.places.PlacesServiceStatus.ZERO_RESULTS) {
+        resolve([]);
+      } else {
+        reject(new Error(`Nearby search failed: ${status}`));
+      }
+    });
+  });
+};
