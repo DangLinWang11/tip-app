@@ -447,7 +447,7 @@ const FoodMap: React.FC = () => {
                             <div className="space-y-2">
                               {visit.personalNotes.map((note: PersonalNote) => (
                                 <div key={note.id} className="flex items-center justify-between bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
-                                  {editingNote?.reviewId === visit.dishId && editingNote?.noteId === note.id ? (
+                                  {editingNote?.reviewId === visit.id && editingNote?.noteId === note.id ? (
                                     <input
                                       type="text"
                                       defaultValue={note.text}
@@ -457,7 +457,7 @@ const FoodMap: React.FC = () => {
                                       onBlur={async (e) => {
                                         try {
                                           if (e.target.value.trim() !== note.text) {
-                                            await updatePersonalNote(visit.dishId, note.id, e.target.value);
+                                            await updatePersonalNote(visit.id, note.id, e.target.value);
                                             await loadUserData();
                                           }
                                         } catch (error) {
@@ -488,7 +488,7 @@ const FoodMap: React.FC = () => {
                                       </div>
                                       <div className="flex items-center space-x-1 ml-2">
                                         <button
-                                          onClick={() => setEditingNote({ reviewId: visit.dishId, noteId: note.id })}
+                                          onClick={() => setEditingNote({ reviewId: visit.id, noteId: note.id })}
                                           className="text-gray-400 hover:text-gray-600 transition-colors"
                                         >
                                           <Edit2 size={14} />
@@ -496,7 +496,7 @@ const FoodMap: React.FC = () => {
                                         <button
                                           onClick={async () => {
                                             try {
-                                              await deletePersonalNote(visit.dishId, note.id);
+                                              await deletePersonalNote(visit.id, note.id);
                                               await loadUserData();
                                             } catch (error) {
                                               console.error('Failed to delete note:', error);
@@ -525,7 +525,7 @@ const FoodMap: React.FC = () => {
                                 const noteText = e.target.value.trim();
                                 if (noteText) {
                                   try {
-                                    await addPersonalNote(visit.dishId, noteText);
+                                    await addPersonalNote(visit.id, noteText);
                                     await loadUserData();
                                     e.target.value = '';
                                   } catch (error) {

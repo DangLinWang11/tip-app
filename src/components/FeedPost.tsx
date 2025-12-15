@@ -1048,16 +1048,14 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
             <button
               type="button"
               onClick={handleDishClickEnhanced}
-              className="w-full py-1.5 px-4 text-sm hover:bg-gray-50 rounded"
+              className="flex items-center justify-between w-full py-1.5 px-4 text-sm hover:bg-gray-50 rounded"
             >
-              <div className="mx-auto flex items-center justify-center gap-3 max-w-full">
-                <span className="font-medium text-gray-900 truncate text-left max-w-[70%]">
-                  {currentItem.dish.name}
-                </span>
-                <span className="flex-shrink-0 text-xs font-semibold text-white bg-red-500 rounded-full px-2.5 py-[2px]">
-                  {displayRating.toFixed(1)}
-                </span>
-              </div>
+              <span className="font-medium text-gray-900 truncate text-left">
+                {currentItem.dish.name}
+              </span>
+              <span className="flex-shrink-0 ml-3 mr-6 text-xs font-semibold text-white bg-red-500 rounded-full px-2.5 py-[2px]">
+                {displayRating.toFixed(1)}
+              </span>
             </button>
           </div>
         )}
@@ -1521,16 +1519,14 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
                         <button
                           key={dish.id}
                           onClick={() => navigateToDishReview(dish.id, dish.dishId)}
-                          className="w-full py-1.5 px-4 text-sm hover:bg-gray-50 rounded"
+                          className="flex items-center justify-between w-full py-1.5 px-4 text-sm hover:bg-gray-50 rounded"
                         >
-                          <div className="flex items-center justify-center gap-3 max-w-full mx-auto">
-                            <span className="font-medium text-gray-900 truncate text-left max-w-[70%]">
-                              {dish.name}
-                            </span>
-                            <span className="flex-shrink-0 text-xs font-semibold text-white bg-red-500 rounded-full px-2.5 py-[2px]">
-                              {dish.rating.toFixed(1)}
-                            </span>
-                          </div>
+                          <span className="font-medium text-gray-900 truncate text-left">
+                            {dish.name}
+                          </span>
+                          <span className="flex-shrink-0 ml-3 mr-6 text-xs font-semibold text-white bg-red-500 rounded-full px-2.5 py-[2px]">
+                            {dish.rating.toFixed(1)}
+                          </span>
                         </button>
                       ))}
                       {remaining > 0 && (

@@ -4,9 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { signOutUser, analytics } from '../lib/firebase';
 import { logEvent } from 'firebase/analytics';
 import { useOwnedRestaurants } from '../hooks/useOwnedRestaurants';
-
-const ReactDOMGlobal: typeof import('react-dom') | null =
-  typeof document !== 'undefined' ? require('react-dom') : null;
+import ReactDOM from 'react-dom';
 
 // Simple Settings Modal Component
 const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen, onClose }) => {
@@ -166,8 +164,8 @@ const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isO
     </div>
   );
 
-  if (!ReactDOMGlobal) return modalContent;
-  return ReactDOMGlobal.createPortal(modalContent, document.body);
+  if (typeof document === 'undefined') return modalContent;
+  return ReactDOM.createPortal(modalContent, document.body);
 };
 
 // Simple Help & Support Modal Component
@@ -274,8 +272,8 @@ const HelpModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen,
     </div>
   );
 
-  if (!ReactDOMGlobal) return modalContent;
-  return ReactDOMGlobal.createPortal(modalContent, document.body);
+  if (typeof document === 'undefined') return modalContent;
+  return ReactDOM.createPortal(modalContent, document.body);
 };
 
 const HamburgerMenu: React.FC = () => {
@@ -408,4 +406,3 @@ const HamburgerMenu: React.FC = () => {
 };
 
 export default HamburgerMenu;
-
