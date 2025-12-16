@@ -192,8 +192,8 @@ const Discover: React.FC = () => {
 
   return (
     <div className="flex flex-col h-screen bg-white">
-      <header className="bg-white fixed top-0 left-0 right-0 z-50 px-4 py-3 shadow-sm" style={{overscrollBehavior: 'none', touchAction: 'none'}}>
-        <div className="flex items-center mb-4 gap-3">
+      <header className="bg-white fixed top-0 left-0 right-0 z-50 pl-4 pr-2 py-3 shadow-sm" style={{overscrollBehavior: 'none', touchAction: 'none'}}>
+        <div className="flex items-center mb-4 gap-2">
           <div className="flex-1">
             <DiscoverSearchBar
               userLocation={userLocation}
@@ -204,7 +204,7 @@ const Discover: React.FC = () => {
           </div>
           <button
             onClick={() => navigate('/discover/list')}
-            className="ml-2 p-2 rounded-full bg-light-gray hover:bg-gray-200 transition-colors"
+            className="flex-shrink-0 p-2 rounded-full bg-light-gray hover:bg-gray-200 transition-colors"
             aria-label="View list"
           >
             <Menu size={20} className="text-dark-gray" />
