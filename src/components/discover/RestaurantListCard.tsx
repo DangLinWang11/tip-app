@@ -11,6 +11,7 @@ export type RestaurantCardModel = {
   badgeText: string | null;
   badgeColor: string | null;
   limitedRatingsText: string | null;
+  reviewCountText: string | null;
   source: 'tip' | 'google';
   restaurantId?: string;
   googlePlaceId?: string;
@@ -54,14 +55,20 @@ const RestaurantListCard: React.FC<RestaurantListCardProps> = ({ card, onClick }
         )}
       </div>
       <div className="p-3 flex-1">
-        <div className="flex justify-between items-start">
-          <h3 className="font-medium truncate max-w-[160px] mr-4">{card.name}</h3>
-          <div className="flex items-center gap-1 flex-shrink-0">
-            {card.limitedRatingsText && (
-              <div className="px-2 py-0.5 rounded-full bg-gray-200">
-                <span className="text-xs font-medium text-gray-600">{card.limitedRatingsText}</span>
+        <div className="flex justify-between items-start gap-2">
+          <div className="flex-1 min-w-0">
+            <h3 className="font-medium truncate">{card.name}</h3>
+            {(card.limitedRatingsText || card.reviewCountText) && (
+              <div className="mt-1">
+                <div className="inline-block px-2 py-0.5 rounded-full bg-gray-200">
+                  <span className="text-xs font-medium text-gray-600">
+                    {card.reviewCountText || card.limitedRatingsText}
+                  </span>
+                </div>
               </div>
             )}
+          </div>
+          <div className="flex items-center gap-1 flex-shrink-0">
             {card.badgeText && (
               <div
                 className="px-2 py-0.5 rounded-full"

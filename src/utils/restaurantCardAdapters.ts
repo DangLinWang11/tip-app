@@ -15,6 +15,7 @@ interface RestaurantWithExtras {
 }
 
 const MIN_REVIEWS_FOR_TRUST = 5;
+const MIN_REVIEWS_FOR_COUNT_DISPLAY = 100;
 
 const toRad = (n: number) => (n * Math.PI) / 180;
 
@@ -43,6 +44,18 @@ const formatDistanceLabel = (miles: number | null | undefined) => {
 export function tipRestaurantToCardModel(restaurant: RestaurantWithExtras): RestaurantCardModel {
   const q = (restaurant as any).qualityScore ?? restaurant.qualityPercentage ?? null;
   const hasSufficientData = restaurant.reviewCount >= MIN_REVIEWS_FOR_TRUST;
+  const hasEnoughForCountDisplay = restaurant.reviewCount >= MIN_REVIEWS_FOR_COUNT_DISPLAY;
+
+  let limitedRatingsText: string | null = null;
+  let reviewCountText: string | null = null;
+
+  if (hasEnoughForCountDisplay) {
+    // Show review count for restaurants with >= 100 reviews
+    reviewCountText = `${restaurant.reviewCount} reviews`;
+  } else if (!hasSufficientData) {
+    // Show limited ratings badge for restaurants with < 5 reviews
+    limitedRatingsText = `Limited ratings (${restaurant.reviewCount})`;
+  }
 
   return {
     id: restaurant.id,
@@ -53,7 +66,8 @@ export function tipRestaurantToCardModel(restaurant: RestaurantWithExtras): Rest
     subtitleText: restaurant.cuisine || 'Unknown',
     badgeText: q !== null ? `${q}%` : null,
     badgeColor: q !== null ? getQualityColor(q) : null,
-    limitedRatingsText: !hasSufficientData ? `Limited ratings (${restaurant.reviewCount})` : null,
+    limitedRatingsText,
+    reviewCountText,
     source: 'tip',
     restaurantId: restaurant.id
   };
@@ -127,6 +141,7 @@ export function googlePlaceToCardModel(
     badgeText,
     badgeColor: '#4285F4', // Google blue color
     limitedRatingsText,
+    reviewCountText: null,
     source: 'google',
     googlePlaceId: place.place_id
   };
