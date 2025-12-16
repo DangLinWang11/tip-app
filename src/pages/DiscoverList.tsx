@@ -800,59 +800,13 @@ const DiscoverList: React.FC = () => {
           ) :
           restaurantsForRender.length ? (
             restaurantsForRender.map((restaurant) => {
-              const q = (restaurant as any).qualityScore ?? restaurant.qualityPercentage ?? null;
-              const hasSufficientData = restaurant.reviewCount >= MIN_REVIEWS_FOR_TRUST;
-
+              const card = tipRestaurantToCardModel(restaurant);
               return (
-                <div
-                  key={restaurant.id}
-                  className="bg-white rounded-xl shadow-sm flex overflow-hidden border cursor-pointer hover:bg-gray-50 transition-colors"
-                  onClick={() => navigate(`/restaurant/${restaurant.id}`)}
-                >
-                  <div className="w-20 h-20 bg-gray-100 flex items-center justify-center flex-shrink-0">
-                    {restaurant.coverImage ? (
-                      <img
-                        src={restaurant.coverImage}
-                        alt={restaurant.name}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-12 h-12 bg-gray-300 rounded-lg flex items-center justify-center">
-                        <Store size={24} className="text-gray-500" />
-                      </div>
-                    )}
-                  </div>
-                  <div className="p-3 flex-1">
-                    <div className="flex justify-between items-start">
-                      <h3 className="font-medium truncate max-w-[160px] mr-4">{restaurant.name}</h3>
-                      <div className="flex items-center gap-1 flex-shrink-0">
-                        {!hasSufficientData && (
-                          <div className="px-2 py-0.5 rounded-full bg-gray-200">
-                            <span className="text-xs font-medium text-gray-600">Limited ratings ({restaurant.reviewCount})</span>
-                          </div>
-                        )}
-                        {q !== null && (
-                          <div
-                            className="px-2 py-0.5 rounded-full"
-                            style={{ backgroundColor: getQualityColor(q) }}
-                          >
-                            <span className="text-xs font-medium text-white">{q}%</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-between mt-1">
-                      <div className="flex items-center text-sm text-dark-gray space-x-2">
-                        <span>{restaurant.cuisine || 'Unknown'}</span>
-                        {restaurant.priceRange && <span>{restaurant.priceRange}</span>}
-                      </div>
-                      <div className="flex items-center text-xs text-dark-gray">
-                        <MapPin size={14} className="text-dark-gray mr-1" />
-                        <span>{restaurant.distanceLabel ?? '-'}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                <RestaurantListCard
+                  key={card.id}
+                  card={card}
+                  onClick={() => navigate(`/restaurant/${card.restaurantId}`)}
+                />
               );
             })
           ) : noTagFilterResults ? (
@@ -929,24 +883,21 @@ const DiscoverList: React.FC = () => {
           <div className="mt-6 pt-6 border-t border-gray-200">
             <h2 className="text-lg font-semibold text-gray-900 mb-3">Popular nearby (via Google Places)</h2>
             <div className="space-y-3">
-              {googleFallbackResults.map((place) => (
-                <div
-                  key={place.id}
-                  className="bg-white rounded-xl shadow-sm p-4 border"
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <h3 className="font-medium text-gray-900">{place.name}</h3>
-                      {place.vicinity && (
-                        <p className="text-sm text-gray-600 mt-1">{place.vicinity}</p>
-                      )}
-                      {place.rating && (
-                        <p className="text-xs text-gray-500 mt-1">Google rating: {place.rating.toFixed(1)}</p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
+              {googleFallbackResults.map((place) => {
+                const card = googlePlaceToCardModel(place, coords);
+                return (
+                  <RestaurantListCard
+                    key={card.id}
+                    card={card}
+                    onClick={() => {
+                      // Open Google Maps in new tab as fallback
+                      if (card.googlePlaceId) {
+                        window.open(`https://www.google.com/maps/search/?api=1&query=Google&query_place_id=${card.googlePlaceId}`, '_blank');
+                      }
+                    }}
+                  />
+                );
+              })}
             </div>
             <p className="text-xs text-gray-500 mt-3 italic">
               These are Google results, not yet rated in TIP. Be the first to review!
