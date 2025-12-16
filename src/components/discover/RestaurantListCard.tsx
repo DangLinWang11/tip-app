@@ -56,7 +56,7 @@ const RestaurantListCard: React.FC<RestaurantListCardProps> = ({ card, onClick }
       </div>
       <div className="p-3 flex-1">
         <div className="flex justify-between items-start gap-2">
-          <div className="flex-1 min-w-0">
+          <div className="flex-1 min-w-0 max-w-[calc(100%-60px)]">
             <h3 className="font-medium truncate">{card.name}</h3>
             {(card.limitedRatingsText || card.reviewCountText) && (
               <div className="mt-1">
@@ -68,7 +68,7 @@ const RestaurantListCard: React.FC<RestaurantListCardProps> = ({ card, onClick }
               </div>
             )}
           </div>
-          <div className="flex items-center gap-1 flex-shrink-0">
+          <div className="flex items-center gap-1 flex-shrink-0 w-[52px] justify-end">
             {card.badgeText && (
               <div
                 className="px-2 py-0.5 rounded-full"
