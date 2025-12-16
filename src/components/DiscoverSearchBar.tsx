@@ -272,7 +272,11 @@ const DiscoverSearchBar: React.FC<DiscoverSearchBarProps> = ({ userLocation, onR
   const hasAnyResults = filteredSaved.length > 0 || googlePredictions.length > 0;
 
   return (
-    <div className="relative w-full">
+    <div className={`${
+      dropdownOpen
+        ? 'fixed left-4 right-4 top-[12px] z-[60]'
+        : 'relative w-full'
+    } transition-all duration-300 ease-in-out`}>
       <div className="relative">
         <input
           type="text"
@@ -280,13 +284,13 @@ const DiscoverSearchBar: React.FC<DiscoverSearchBarProps> = ({ userLocation, onR
           onFocus={() => setDropdownOpen(true)}
           onChange={(event) => setQuery(event.target.value)}
           placeholder="Search restaurants nearby..."
-          className="w-full rounded-full border border-slate-200 py-3 pl-11 pr-4 text-sm text-slate-800 placeholder:text-slate-400 focus:border-red-400 focus:outline-none focus:ring-2 focus:ring-red-100"
+          className="w-full rounded-full border border-slate-200 py-3 pl-11 pr-4 text-sm text-slate-800 placeholder:text-slate-400 focus:border-red-400 focus:outline-none focus:ring-2 focus:ring-red-100 transition-all duration-300"
         />
         <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
       </div>
 
       {dropdownOpen && (
-        <div className="absolute z-30 mt-3 left-0 right-[-8px] rounded-3xl border border-slate-100 bg-white p-4 shadow-xl shadow-slate-200/70">
+        <div className="absolute z-30 mt-3 left-0 right-0 w-full rounded-3xl border border-slate-100 bg-white p-4 shadow-xl shadow-slate-200/70">
           {(loadingSaved || loadingGoogle || savingSelection) && (
             <div className="flex items-center gap-2 text-xs text-slate-500 mb-3">
               <Loader2 className="h-4 w-4 animate-spin text-red-500" />
