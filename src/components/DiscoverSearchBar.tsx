@@ -286,7 +286,7 @@ const DiscoverSearchBar: React.FC<DiscoverSearchBarProps> = ({ userLocation, onR
       </div>
 
       {dropdownOpen && (
-        <div className="absolute z-30 mt-3 w-full rounded-3xl border border-slate-100 bg-white p-4 shadow-xl shadow-slate-200/70">
+        <div className="absolute z-30 mt-3 left-0 right-[-8px] rounded-3xl border border-slate-100 bg-white p-4 shadow-xl shadow-slate-200/70">
           {(loadingSaved || loadingGoogle || savingSelection) && (
             <div className="flex items-center gap-2 text-xs text-slate-500 mb-3">
               <Loader2 className="h-4 w-4 animate-spin text-red-500" />
