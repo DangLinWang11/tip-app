@@ -308,7 +308,7 @@ const DiscoverSearchBar: React.FC<DiscoverSearchBarProps> = ({ userLocation, onR
           <div className="space-y-4 max-h-[420px] overflow-y-auto pr-2">
             <div>
               <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-400">
-                Your Saved Restaurants
+                RESTAURANTS
               </p>
               {filteredSaved.length === 0 ? (
                 <p className="mt-2 text-sm text-slate-400">No saved restaurants match this search.</p>
@@ -335,9 +335,6 @@ const DiscoverSearchBar: React.FC<DiscoverSearchBarProps> = ({ userLocation, onR
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
                               <p className="truncate font-semibold text-slate-900">{restaurant.name}</p>
-                              {restaurant.distance !== undefined && (
-                                <span className="text-xs text-slate-400">{restaurant.distance.toFixed(1)} mi</span>
-                              )}
                             </div>
                             <p className="text-xs text-slate-500 truncate">
                               {restaurant.location?.formatted || restaurant.address || 'Address unavailable'}
@@ -356,21 +353,9 @@ const DiscoverSearchBar: React.FC<DiscoverSearchBarProps> = ({ userLocation, onR
                             )}
                           </div>
                           <div className="flex flex-col items-end gap-1">
-                            {restaurant.qualityScore !== null && restaurant.qualityScore !== undefined ? (
-                              <div
-                                className={`rounded-full px-3 py-1 text-xs font-semibold text-white ${getQualityColor(
-                                  restaurant.qualityScore
-                                )}`}
-                              >
-                                {restaurant.qualityScore}%
-                              </div>
-                            ) : restaurant.googleRating ? (
-                              <div className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-600">
-                                ⭐ {restaurant.googleRating.toFixed(1)}
-                              </div>
-                            ) : (
-                              <div className="rounded-full bg-slate-200 px-3 py-1 text-xs font-medium text-slate-600">
-                                New
+                            {restaurant.distance !== undefined && (
+                              <div className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-600">
+                                {restaurant.distance.toFixed(1)} mi
                               </div>
                             )}
                           </div>
@@ -383,9 +368,6 @@ const DiscoverSearchBar: React.FC<DiscoverSearchBarProps> = ({ userLocation, onR
             </div>
 
             <div>
-              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-400">
-                From Google Places
-              </p>
               {googlePredictions.length === 0 ? (
                 <p className="mt-2 text-sm text-slate-400">No Google results for this search.</p>
               ) : (
@@ -420,9 +402,6 @@ const DiscoverSearchBar: React.FC<DiscoverSearchBarProps> = ({ userLocation, onR
                               <p className="truncate font-semibold text-slate-900">
                                 {prediction.structured_formatting.main_text}
                               </p>
-                              {distance !== undefined && (
-                                <span className="text-xs text-slate-400">{distance.toFixed(1)} mi</span>
-                              )}
                             </div>
                             <p className="text-xs text-slate-500 truncate">
                               {prediction.structured_formatting.secondary_text || meta?.address}
@@ -438,11 +417,11 @@ const DiscoverSearchBar: React.FC<DiscoverSearchBarProps> = ({ userLocation, onR
                                 🚀 Be first
                               </div>
                             )}
-                            {meta?.rating ? (
-                              <div className="rounded-full bg-white px-2 py-0.5 text-[10px] font-semibold text-amber-600 shadow">
-                                ⭐ {meta.rating.toFixed(1)}
+                            {distance !== undefined && (
+                              <div className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-600">
+                                {distance.toFixed(1)} mi
                               </div>
-                            ) : null}
+                            )}
                           </div>
                         </div>
                       </button>
