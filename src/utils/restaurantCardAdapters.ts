@@ -69,11 +69,18 @@ export function tipRestaurantToCardModel(restaurant: RestaurantWithExtras): Rest
     (restaurant.recentReviewPhotos && restaurant.recentReviewPhotos.length > 0 ? restaurant.recentReviewPhotos[0] : null) ||
     null;
 
+  // Price badge logic: Use Tip's priceLevel if available
+  let priceBadge: string | null = null;
+  if (restaurant.priceLevel && restaurant.priceLevel >= 1 && restaurant.priceLevel <= 4) {
+    priceBadge = '$'.repeat(restaurant.priceLevel);
+  }
+
   return {
     id: restaurant.id,
     name: restaurant.name,
     coverImage,
     priceText: restaurant.priceRange,
+    priceBadge,
     distanceLabel: restaurant.distanceLabel ?? null,
     subtitleText: restaurant.mostReviewedCuisine || '',
     badgeText: q !== null ? `${q}%` : null,
@@ -109,6 +116,9 @@ export function googlePlaceToCardModel(
     priceText = '$'.repeat(place.price_level);
   }
 
+  // Use same price for badge
+  const priceBadge = priceText;
+
   // Calculate distance if location is available
   let distanceLabel: string | null = null;
   if (userLocation && place.geometry?.location) {
@@ -143,6 +153,7 @@ export function googlePlaceToCardModel(
     name: place.name || 'Unknown',
     coverImage,
     priceText,
+    priceBadge,
     distanceLabel,
     subtitleText: place.vicinity || 'Popular nearby',
     badgeText: null,

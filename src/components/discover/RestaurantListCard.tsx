@@ -6,6 +6,7 @@ export type RestaurantCardModel = {
   name: string;
   coverImage: string | null;
   priceText: string | null;
+  priceBadge: string | null;
   distanceLabel: string | null;
   subtitleText: string;
   badgeText: string | null;
@@ -46,15 +47,62 @@ const formatTagLabel = (tag: string): string => {
     .join(' ');
 };
 
+/**
+ * Truncates text in the middle with ellipsis
+ * Example: "1234 Main Street, Suite 100" -> "1234 Main St...Suite 100"
+ */
+const truncateMiddle = (text: string, maxLength: number): string => {
+  if (text.length <= maxLength) return text;
+
+  const ellipsis = '...';
+  const charsToShow = maxLength - ellipsis.length;
+  const frontChars = Math.ceil(charsToShow * 0.6);  // 60% at start
+  const backChars = Math.floor(charsToShow * 0.4);  // 40% at end
+
+  return text.substring(0, frontChars) + ellipsis + text.substring(text.length - backChars);
+};
+
 const RestaurantListCard: React.FC<RestaurantListCardProps> = ({ card, onClick }) => {
   const [imgError, setImgError] = React.useState(false);
+  const [displaySubtitle, setDisplaySubtitle] = React.useState(card.subtitleText);
+  const subtitleRef = React.useRef<HTMLSpanElement>(null);
+
+  // Detect if text wraps to multiple lines and truncate
+  React.useEffect(() => {
+    const element = subtitleRef.current;
+    if (!element || !card.subtitleText) return;
+
+    // Reset to original text first
+    setDisplaySubtitle(card.subtitleText);
+
+    // Wait for next frame to measure after render
+    requestAnimationFrame(() => {
+      if (!element) return;
+
+      // Check if text wraps to multiple lines
+      const lineHeight = parseInt(getComputedStyle(element).lineHeight);
+      const height = element.scrollHeight;
+      const lines = Math.round(height / lineHeight);
+
+      if (lines > 1) {
+        // Text wraps - apply middle truncation
+        // Estimate characters per line based on element width
+        const charWidth = 7; // Approximate px per character for text-sm
+        const availableWidth = element.clientWidth;
+        const charsPerLine = Math.floor(availableWidth / charWidth);
+        const maxChars = Math.floor(charsPerLine * 1.5); // 1.5 lines worth
+
+        setDisplaySubtitle(truncateMiddle(card.subtitleText, maxChars));
+      }
+    });
+  }, [card.subtitleText]);
 
   return (
     <div
       className="bg-white rounded-xl shadow-sm flex items-center overflow-hidden border cursor-pointer hover:bg-gray-50 transition-colors h-[116px]"
       onClick={onClick}
     >
-      <div className="w-20 h-20 bg-slate-100 flex items-center justify-center flex-shrink-0 rounded-2xl overflow-hidden ml-3">
+      <div className="relative w-20 h-20 bg-slate-100 flex items-center justify-center flex-shrink-0 rounded-2xl overflow-hidden ml-3">
         {card.coverImage && !imgError ? (
           <img
             src={card.coverImage}
@@ -64,6 +112,11 @@ const RestaurantListCard: React.FC<RestaurantListCardProps> = ({ card, onClick }
           />
         ) : (
           <Store size={32} className="text-slate-400" />
+        )}
+        {card.priceBadge && (
+          <div className="absolute top-1 left-1 bg-[#EF4444] rounded-full px-1.5 py-0.5 z-10">
+            <span className="text-[10px] font-semibold text-white leading-none">{card.priceBadge}</span>
+          </div>
         )}
       </div>
       <div className="p-3 flex-1 relative overflow-hidden">
@@ -99,8 +152,12 @@ const RestaurantListCard: React.FC<RestaurantListCardProps> = ({ card, onClick }
           </div>
         </div>
         <div className="flex items-center justify-between mt-1">
-          <div className="flex items-center text-sm text-slate-600 space-x-2">
-            {card.subtitleText && <span>{card.subtitleText}</span>}
+          <div className="flex items-center text-sm text-slate-600 space-x-2 pr-2">
+            {card.subtitleText && (
+              <span ref={subtitleRef} className="line-clamp-2">
+                {displaySubtitle}
+              </span>
+            )}
             {card.priceText && <span>{card.priceText}</span>}
           </div>
           <div className="flex items-center text-xs text-slate-500">
