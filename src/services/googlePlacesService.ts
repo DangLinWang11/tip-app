@@ -242,3 +242,47 @@ export const searchNearbyForDish = async (
     });
   });
 };
+
+export const searchByText = async (
+  query: string,
+  location?: LatLngLiteral
+): Promise<GoogleFallbackPlace[]> => {
+  if (!query || query.length < 3) return [];
+
+  await ensureGoogleMapsLoaded();
+
+  return new Promise<GoogleFallbackPlace[]>((resolve, reject) => {
+    const service = createPlacesService();
+    const request: google.maps.places.TextSearchRequest = {
+      query,
+      type: 'restaurant',
+    };
+
+    if (location) {
+      request.location = new google.maps.LatLng(location.lat, location.lng);
+      request.radius = 10000; // 10km bias
+    }
+
+    service.textSearch(request, (results, status) => {
+      if (status === google.maps.places.PlacesServiceStatus.OK && results) {
+        const mapped = results.slice(0, 5).map((result) => ({
+          place_id: result.place_id || `google_${Math.random()}`,
+          name: result.name || 'Unknown',
+          vicinity: result.formatted_address || result.vicinity || '',
+          rating: result.rating,
+          user_ratings_total: result.user_ratings_total,
+          price_level: result.price_level,
+          photos: result.photos,
+          geometry: result.geometry
+        }));
+        resolve(mapped);
+      } else if (status === google.maps.places.PlacesServiceStatus.ZERO_RESULTS) {
+        resolve([]);
+      } else {
+        // textSearch can fail if query is weird, just resolve empty to handle gracefully
+        console.warn(`Text search failed: ${status}`);
+        resolve([]);
+      }
+    });
+  });
+};

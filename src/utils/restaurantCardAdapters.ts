@@ -64,10 +64,10 @@ export function tipRestaurantToCardModel(restaurant: RestaurantWithExtras): Rest
 
   // Image fallback chain: coverImage -> headerImage -> googlePhotos -> recentReviewPhotos -> null
   const coverImage = restaurant.coverImage ||
-                     restaurant.headerImage ||
-                     (restaurant.googlePhotos && restaurant.googlePhotos.length > 0 ? restaurant.googlePhotos[0] : null) ||
-                     (restaurant.recentReviewPhotos && restaurant.recentReviewPhotos.length > 0 ? restaurant.recentReviewPhotos[0] : null) ||
-                     null;
+    restaurant.headerImage ||
+    (restaurant.googlePhotos && restaurant.googlePhotos.length > 0 ? restaurant.googlePhotos[0] : null) ||
+    (restaurant.recentReviewPhotos && restaurant.recentReviewPhotos.length > 0 ? restaurant.recentReviewPhotos[0] : null) ||
+    null;
 
   return {
     id: restaurant.id,
@@ -97,7 +97,7 @@ export function googlePlaceToCardModel(
   let coverImage: string | null = null;
   if (place.photos && place.photos.length > 0) {
     try {
-      coverImage = place.photos[0].getUrl({ maxWidth: 800, maxHeight: 800 });
+      coverImage = place.photos[0].getUrl({ maxWidth: 400, maxHeight: 400 });
     } catch (err) {
       console.warn('Failed to get photo URL:', err);
     }
@@ -130,13 +130,7 @@ export function googlePlaceToCardModel(
     }
   }
 
-  // Create badge text
-  let badgeText: string;
-  if (place.rating) {
-    badgeText = `Google ${place.rating.toFixed(1)}★`;
-  } else {
-    badgeText = 'Google';
-  }
+
 
   // Create limited ratings text
   let limitedRatingsText: string | null = null;
@@ -150,9 +144,9 @@ export function googlePlaceToCardModel(
     coverImage,
     priceText,
     distanceLabel,
-    subtitleText: 'Popular nearby',
-    badgeText,
-    badgeColor: '#4285F4', // Google blue color
+    subtitleText: place.vicinity || 'Popular nearby',
+    badgeText: null,
+    badgeColor: null,
     limitedRatingsText,
     reviewCountText: null,
     source: 'google',

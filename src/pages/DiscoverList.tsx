@@ -6,7 +6,7 @@ import { db } from '../lib/firebase';
 import { calculateRestaurantQualityScore, ReviewWithCategory, FirebaseReview } from '../services/reviewService';
 import { useLocationContext } from '../contexts/LocationContext';
 import { DISH_TYPES, CUISINES, normalizeToken, inferFacetsFromText } from '../utils/taxonomy';
-import { searchNearbyForDish, GoogleFallbackPlace } from '../services/googlePlacesService';
+import { searchNearbyForDish, searchByText, GoogleFallbackPlace, getPlaceDetails, saveGooglePlaceToFirestore } from '../services/googlePlacesService';
 import RestaurantListCard from '../components/discover/RestaurantListCard';
 import { tipRestaurantToCardModel, googlePlaceToCardModel } from '../utils/restaurantCardAdapters';
 
@@ -651,12 +651,9 @@ const DiscoverList: React.FC = () => {
       return;
     }
 
-    // Check if we should trigger Google fallback (low TIP results)
-    const shouldTriggerFallback =
-      (viewMode === 'dish' && filteredDishes.length < 3) ||
-      (viewMode === 'restaurant' && filteredRestaurants.length < 3);
+    const shouldTriggerFallback = viewMode === 'restaurant';
 
-    if (!shouldTriggerFallback || !coords) {
+    if (!shouldTriggerFallback) {
       setShowGoogleFallback(false);
       setGoogleFallbackResults([]);
       return;
@@ -669,7 +666,9 @@ const DiscoverList: React.FC = () => {
       const fetchGoogleFallback = async () => {
         try {
           setLoadingGoogleFallback(true);
-          const results = await searchNearbyForDish(trimmedQuery, coords);
+          // Use searchByText which is more robust than nearby for general "typing" queries
+          // coords can be undefined, searches will just be broader
+          const results = await searchByText(trimmedQuery, coords);
           if (!isCancelled) {
             setGoogleFallbackResults(results);
             setShowGoogleFallback(results.length > 0);
@@ -699,7 +698,7 @@ const DiscoverList: React.FC = () => {
         window.clearTimeout(debounceTimerRef.current);
       }
     };
-  }, [searchQuery, viewMode, filteredDishes.length, filteredRestaurants.length, coords]);
+  }, [searchQuery, viewMode, coords]);
 
   const restaurantsForRender = [...filteredRestaurants].sort((a, b) => {
     // When "Near Me" is active, prioritize distance first
@@ -832,9 +831,8 @@ const DiscoverList: React.FC = () => {
                     type="button"
                     disabled={loadingTagFilter}
                     onClick={() => handleTagFilterSelect(filter.value)}
-                    className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-colors flex items-center gap-2 ${
-                      isActive ? 'bg-gray-300 text-gray-900' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    } ${loadingTagFilter ? 'opacity-60 cursor-not-allowed' : ''}`}
+                    className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-colors flex items-center gap-2 ${isActive ? 'bg-gray-300 text-gray-900' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      } ${loadingTagFilter ? 'opacity-60 cursor-not-allowed' : ''}`}
                   >
                     <span>{filter.emoji}</span>
                     <span>{filter.label}</span>
@@ -854,9 +852,8 @@ const DiscoverList: React.FC = () => {
                     key={level}
                     type="button"
                     onClick={() => handlePriceLevelSelect(level)}
-                    className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                      isActive ? 'bg-primary text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
+                    className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-colors ${isActive ? 'bg-primary text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      }`}
                   >
                     {priceLabel}
                   </button>
@@ -899,44 +896,73 @@ const DiscoverList: React.FC = () => {
               </button>
             </div>
           ) :
-          restaurantsForRender.length ? (
-            restaurantsForRender.map((restaurant) => {
-              const card = tipRestaurantToCardModel(restaurant);
-              return (
-                <RestaurantListCard
-                  key={card.id}
-                  card={card}
-                  onClick={() => navigate(`/restaurant/${card.restaurantId}`)}
-                />
-              );
-            })
-          ) : noTagFilterResults ? (
-            <div className="text-center py-8 text-gray-500">
-              <p className="font-medium">No restaurants found with {activeTagFilter?.label ?? selectedTagFilter}</p>
-              <p className="text-sm">Try broadening your filters.</p>
-              <button
-                type="button"
-                onClick={handleClearFilters}
-                className="mt-3 inline-flex items-center px-4 py-2 rounded-full bg-primary text-white text-sm font-semibold"
-              >
-                Clear Filters
-              </button>
-            </div>
-          ) : (
-            <div className="text-center py-8 text-gray-500">
-              <p>No restaurants found</p>
-              <p className="text-sm">Try selecting a different category</p>
-              {selectedTagFilter ? (
+            (restaurantsForRender.length > 0 || googleFallbackResults.length > 0) ? (
+              <>
+                {restaurantsForRender.map((restaurant) => {
+                  const card = tipRestaurantToCardModel(restaurant);
+                  return (
+                    <RestaurantListCard
+                      key={card.id}
+                      card={card}
+                      onClick={() => navigate(`/restaurant/${card.restaurantId}`)}
+                    />
+                  );
+                })}
+                {googleFallbackResults.map((place) => {
+                  const card = googlePlaceToCardModel(place, coords);
+                  return (
+                    <RestaurantListCard
+                      key={card.id}
+                      card={card}
+                      onClick={async () => {
+                        if (card.googlePlaceId) {
+                          try {
+                            const details = await getPlaceDetails(card.googlePlaceId);
+                            await saveGooglePlaceToFirestore(details);
+                            navigate(`/restaurant/${card.googlePlaceId}`);
+                          } catch (err) {
+                            console.error("Failed to process Google Place selection", err);
+                            window.open(`https://www.google.com/maps/search/?api=1&query=Google&query_place_id=${card.googlePlaceId}`, '_blank');
+                          }
+                        }
+                      }}
+                    />
+                  );
+                })}
+                {/* Show Google attribution footer if we have Google results */}
+                {googleFallbackResults.length > 0 && (
+                  <p className="text-xs text-gray-500 mt-3 italic text-center pb-2">
+                    Some results from Google Places
+                  </p>
+                )}
+              </>
+            ) : noTagFilterResults ? (
+              <div className="text-center py-8 text-gray-500">
+                <p className="font-medium">No restaurants found with {activeTagFilter?.label ?? selectedTagFilter}</p>
+                <p className="text-sm">Try broadening your filters.</p>
                 <button
                   type="button"
                   onClick={handleClearFilters}
-                  className="mt-3 inline-flex items-center px-4 py-2 rounded-full border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-100"
+                  className="mt-3 inline-flex items-center px-4 py-2 rounded-full bg-primary text-white text-sm font-semibold"
                 >
-                  Clear Tag Filter
+                  Clear Filters
                 </button>
-              ) : null}
-            </div>
-          )
+              </div>
+            ) : (
+              <div className="text-center py-8 text-gray-500">
+                <p>No restaurants found</p>
+                <p className="text-sm">Try selecting a different category</p>
+                {selectedTagFilter ? (
+                  <button
+                    type="button"
+                    onClick={handleClearFilters}
+                    className="mt-3 inline-flex items-center px-4 py-2 rounded-full border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-100"
+                  >
+                    Clear Tag Filter
+                  </button>
+                ) : null}
+              </div>
+            )
         ) : dishesForRender.length ? (
           dishesForRender.map((dish) => (
             <div
@@ -976,42 +1002,6 @@ const DiscoverList: React.FC = () => {
           <div className="text-center py-8 text-gray-500">
             <p>No dishes found</p>
             <p className="text-sm">Try selecting a different category</p>
-          </div>
-        )}
-
-        {/* Google fallback section */}
-        {showGoogleFallback && googleFallbackResults.length > 0 && (
-          <div className="mt-6 pt-6 border-t border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-900 mb-3">Popular nearby (via Google Places)</h2>
-            <div className="space-y-3">
-              {googleFallbackResults.map((place) => {
-                const card = googlePlaceToCardModel(place, coords);
-                return (
-                  <RestaurantListCard
-                    key={card.id}
-                    card={card}
-                    onClick={() => {
-                      // Open Google Maps in new tab as fallback
-                      if (card.googlePlaceId) {
-                        window.open(`https://www.google.com/maps/search/?api=1&query=Google&query_place_id=${card.googlePlaceId}`, '_blank');
-                      }
-                    }}
-                  />
-                );
-              })}
-            </div>
-            <p className="text-xs text-gray-500 mt-3 italic">
-              These are Google results, not yet rated in TIP. Be the first to review!
-            </p>
-          </div>
-        )}
-
-        {loadingGoogleFallback && (
-          <div className="mt-6 pt-6 border-t border-gray-200">
-            <div className="flex items-center justify-center py-4">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-400 mr-2"></div>
-              <p className="text-sm text-gray-600">Searching nearby...</p>
-            </div>
           </div>
         )}
       </div>

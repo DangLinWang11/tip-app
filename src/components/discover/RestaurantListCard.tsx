@@ -47,17 +47,20 @@ const formatTagLabel = (tag: string): string => {
 };
 
 const RestaurantListCard: React.FC<RestaurantListCardProps> = ({ card, onClick }) => {
+  const [imgError, setImgError] = React.useState(false);
+
   return (
     <div
       className="bg-white rounded-xl shadow-sm flex items-center overflow-hidden border cursor-pointer hover:bg-gray-50 transition-colors h-[116px]"
       onClick={onClick}
     >
       <div className="w-20 h-20 bg-slate-100 flex items-center justify-center flex-shrink-0 rounded-2xl overflow-hidden ml-3">
-        {card.coverImage ? (
+        {card.coverImage && !imgError ? (
           <img
             src={card.coverImage}
             alt={card.name}
             className="w-full h-full object-cover"
+            onError={() => setImgError(true)}
           />
         ) : (
           <Store size={32} className="text-slate-400" />
