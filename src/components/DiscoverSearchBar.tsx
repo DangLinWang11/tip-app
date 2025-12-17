@@ -9,6 +9,7 @@ import {
   getPlaceDetails,
   saveGooglePlaceToFirestore
 } from '../services/googlePlacesService';
+import { getUserRestaurantReviews } from '../services/reviewService';
 
 interface DiscoverSearchBarProps {
   userLocation?: { lat: number; lng: number } | null;
@@ -33,6 +34,8 @@ interface SavedRestaurant {
   googlePhotos?: string[];
   googleRating?: number | null;
   googlePlaceId?: string;
+  recentReviewPhotos?: string[];
+  distance?: number;
 }
 
 interface PredictionMeta {
@@ -46,12 +49,17 @@ interface PredictionMeta {
 const FALLBACK_IMAGE = 'https://source.unsplash.com/80x80/?restaurant,food';
 
 const getQualityColor = (score: number | null | undefined): string => {
-  if (score === null || score === undefined) return 'bg-slate-200';
-  if (score >= 90) return 'bg-green-500';
-  if (score >= 80) return 'bg-green-400';
-  if (score >= 70) return 'bg-yellow-400';
-  if (score >= 60) return 'bg-orange-400';
-  return 'bg-red-400';
+  if (score === null || score === undefined) return '#9CA3AF';
+  if (score >= 95) return '#059669'; // Bright Green
+  if (score >= 90) return '#10B981'; // Green
+  if (score >= 85) return '#34D399'; // Light Green
+  if (score >= 80) return '#6EE7B7'; // Yellow-Green
+  if (score >= 75) return '#FDE047'; // Yellow
+  if (score >= 70) return '#FACC15'; // Orange-Yellow
+  if (score >= 65) return '#F59E0B'; // Orange
+  if (score >= 60) return '#F97316'; // Red-Orange
+  if (score >= 55) return '#FB7185'; // Light Red
+  return '#EF4444'; // Red
 };
 
 const calculateDistance = (lat1: number, lng1: number, lat2: number, lng2: number): number => {
@@ -92,7 +100,45 @@ const DiscoverSearchBar: React.FC<DiscoverSearchBarProps> = ({ userLocation, onR
           id: docSnap.id,
           ...(docSnap.data() as SavedRestaurant)
         }));
-        setSavedRestaurants(list);
+
+        // Fetch review photos for restaurants without images
+        const enrichedList = await Promise.all(
+          list.map(async (restaurant) => {
+            // Only fetch reviews if restaurant has no photos
+            if (!restaurant.coverImage && !restaurant.headerImage && !restaurant.googlePhotos?.[0]) {
+              try {
+                const reviews = await getUserRestaurantReviews(restaurant.id);
+                const recentReviewPhotos: string[] = [];
+
+                // Extract photos from most recent reviews (limit to first 3 reviews)
+                for (const review of reviews.slice(0, 3)) {
+                  // Check newer media.photos structure first
+                  if (review.media?.photos && Array.isArray(review.media.photos) && review.media.photos.length > 0) {
+                    recentReviewPhotos.push(...review.media.photos);
+                  }
+                  // Fall back to legacy images array
+                  else if (review.images && Array.isArray(review.images) && review.images.length > 0) {
+                    recentReviewPhotos.push(...review.images);
+                  }
+
+                  // Stop if we have enough photos
+                  if (recentReviewPhotos.length >= 3) break;
+                }
+
+                return {
+                  ...restaurant,
+                  recentReviewPhotos: recentReviewPhotos.slice(0, 3)
+                };
+              } catch (error) {
+                console.error(`Failed to fetch review photos for ${restaurant.name}`, error);
+                return restaurant;
+              }
+            }
+            return restaurant;
+          })
+        );
+
+        setSavedRestaurants(enrichedList);
       } catch (error) {
         console.error('Failed to load saved restaurants', error);
         setSavedError('Unable to load restaurants right now.');
@@ -320,6 +366,7 @@ const DiscoverSearchBar: React.FC<DiscoverSearchBarProps> = ({ userLocation, onR
                       restaurant.coverImage ||
                       restaurant.headerImage ||
                       restaurant.googlePhotos?.[0] ||
+                      restaurant.recentReviewPhotos?.[0] ||
                       FALLBACK_IMAGE;
                     return (
                       <button
@@ -333,8 +380,18 @@ const DiscoverSearchBar: React.FC<DiscoverSearchBarProps> = ({ userLocation, onR
                             <img src={image} alt={restaurant.name} className="h-full w-full object-cover" />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-1.5 min-w-0">
                               <p className="truncate font-semibold text-slate-900">{restaurant.name}</p>
+                              {restaurant.qualityScore !== null && restaurant.qualityScore !== undefined && (
+                                <div
+                                  className="flex-shrink-0 px-2 h-5 flex items-center justify-center rounded-full"
+                                  style={{ backgroundColor: getQualityColor(restaurant.qualityScore) }}
+                                >
+                                  <span className="text-xs font-semibold text-white">
+                                    {restaurant.qualityScore}%
+                                  </span>
+                                </div>
+                              )}
                             </div>
                             <p className="text-xs text-slate-500 truncate">
                               {restaurant.location?.formatted || restaurant.address || 'Address unavailable'}
@@ -352,10 +409,13 @@ const DiscoverSearchBar: React.FC<DiscoverSearchBarProps> = ({ userLocation, onR
                               </div>
                             )}
                           </div>
-                          <div className="flex flex-col items-end gap-1">
+                          <div className="flex-shrink-0 self-center">
                             {restaurant.distance !== undefined && (
-                              <div className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-600">
-                                {restaurant.distance.toFixed(1)} mi
+                              <div className="flex items-center gap-1 text-slate-500">
+                                <MapPin size={14} className="flex-shrink-0" />
+                                <span className="text-xs font-medium whitespace-nowrap">
+                                  {restaurant.distance.toFixed(1)} mi
+                                </span>
                               </div>
                             )}
                           </div>
@@ -398,7 +458,7 @@ const DiscoverSearchBar: React.FC<DiscoverSearchBarProps> = ({ userLocation, onR
                             <img src={image} alt={prediction.description} className="h-full w-full object-cover" />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-1.5 min-w-0">
                               <p className="truncate font-semibold text-slate-900">
                                 {prediction.structured_formatting.main_text}
                               </p>
@@ -407,19 +467,13 @@ const DiscoverSearchBar: React.FC<DiscoverSearchBarProps> = ({ userLocation, onR
                               {prediction.structured_formatting.secondary_text || meta?.address}
                             </p>
                           </div>
-                          <div className="flex flex-col items-end gap-1">
-                            {existing ? (
-                              <div className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
-                                Saved
-                              </div>
-                            ) : (
-                              <div className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-700">
-                                🚀 Be first
-                              </div>
-                            )}
+                          <div className="flex-shrink-0 self-center">
                             {distance !== undefined && (
-                              <div className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-600">
-                                {distance.toFixed(1)} mi
+                              <div className="flex items-center gap-1 text-slate-500">
+                                <MapPin size={14} className="flex-shrink-0" />
+                                <span className="text-xs font-medium whitespace-nowrap">
+                                  {distance.toFixed(1)} mi
+                                </span>
                               </div>
                             )}
                           </div>
