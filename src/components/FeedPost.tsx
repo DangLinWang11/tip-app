@@ -283,10 +283,12 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
   };
 
   function getDisplayRating(
-    item: CarouselItem,
+    item: CarouselItem | undefined,
     visitAverageRating?: number,
     isVisitPostFlag?: boolean
   ): number | null {
+    // Add defensive null check to prevent crashes when item is undefined
+    if (!item) return null;
     if (isVisitPostFlag && typeof visitAverageRating === 'number') return visitAverageRating;
     const dishRating = (item.dish as any)?.rating;
     const reviewRating = (item.review as any)?.rating;
@@ -409,7 +411,9 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
   // Get current item to display (carousel or single)
   const currentItem = useMemo(() => {
     if (isCarousel && carouselItems.length > 0) {
-      return carouselItems[currentIndex];
+      // Add bounds validation to prevent out-of-bounds access
+      const safeIndex = Math.min(Math.max(currentIndex, 0), carouselItems.length - 1);
+      return carouselItems[safeIndex];
     }
     return {
       id,
@@ -515,14 +519,38 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
     return () => clearInterval(id);
   }, []);
 
+  // Debug logging: Track index mismatches to help prevent crashes
+  useEffect(() => {
+    if (currentIndex >= carouselItems.length && isCarousel && !hasMediaItems) {
+      console.warn('[FeedPost] Index mismatch detected:', {
+        currentIndex,
+        carouselLength: carouselItems.length,
+        mediaLength: mediaItems?.length,
+        hasMediaItems,
+        isVisitPost,
+        postId: id,
+      });
+    }
+    if (hasMediaItems && currentIndex >= (mediaItems?.length || 0)) {
+      console.warn('[FeedPost] Media index out of bounds:', {
+        currentIndex,
+        mediaLength: mediaItems?.length,
+        postId: id,
+      });
+    }
+  }, [currentIndex, carouselItems.length, mediaItems?.length, hasMediaItems, isCarousel, isVisitPost, id]);
+
   // Handle touch events for swipe
   const getMediaLength = () => {
-    if (isVisitPost && hasMediaItems && Array.isArray(mediaItems)) {
-      return Math.max(0, mediaItems.length); // Ensure non-negative
+    // For visit posts with media items, use mediaItems length
+    if (hasMediaItems && Array.isArray(mediaItems) && mediaItems.length > 0) {
+      return mediaItems.length;
     }
-    if (isCarousel && Array.isArray(carouselItems)) {
-      return Math.max(0, carouselItems.length); // Ensure non-negative
+    // For regular carousel posts, use carouselItems length
+    if (isCarousel && Array.isArray(carouselItems) && carouselItems.length > 0) {
+      return carouselItems.length;
     }
+    // Default to 1 for single posts
     return 1;
   };
 
@@ -560,9 +588,15 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
   };
 
   const handleDishClick = () => {
+    // Add null check to prevent crashes when currentItem is undefined
+    if (!currentItem) {
+      console.warn('?? [FeedPost] handleDishClick called but currentItem is undefined');
+      return;
+    }
+
     console.log('?? [FeedPost] Dish click:', {
       dishId: currentItem.dishId,
-      dishName: currentItem.dish.name,
+      dishName: currentItem.dish?.name,
       restaurantId: restaurantId,
       willNavigateTo: currentItem.dishId ? `/dish/${currentItem.dishId}` : restaurantId ? `/restaurant/${restaurantId}` : 'nowhere'
     });

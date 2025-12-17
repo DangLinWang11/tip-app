@@ -5,9 +5,14 @@ interface RestaurantWithExtras {
   id: string;
   name: string;
   coverImage: string | null;
+  headerImage?: string | null;
+  googlePhotos?: string[];
+  recentReviewPhotos?: string[];
   priceRange: string | null;
   priceLevel?: number;
   cuisine: string;
+  mostReviewedCuisine: string | null;
+  topTags: string[];
   distanceLabel?: string;
   qualityPercentage: number | null;
   qualityScore?: number;
@@ -57,17 +62,25 @@ export function tipRestaurantToCardModel(restaurant: RestaurantWithExtras): Rest
     limitedRatingsText = `Limited ratings (${restaurant.reviewCount})`;
   }
 
+  // Image fallback chain: coverImage -> headerImage -> googlePhotos -> recentReviewPhotos -> null
+  const coverImage = restaurant.coverImage ||
+                     restaurant.headerImage ||
+                     (restaurant.googlePhotos && restaurant.googlePhotos.length > 0 ? restaurant.googlePhotos[0] : null) ||
+                     (restaurant.recentReviewPhotos && restaurant.recentReviewPhotos.length > 0 ? restaurant.recentReviewPhotos[0] : null) ||
+                     null;
+
   return {
     id: restaurant.id,
     name: restaurant.name,
-    coverImage: restaurant.coverImage,
+    coverImage,
     priceText: restaurant.priceRange,
     distanceLabel: restaurant.distanceLabel ?? null,
-    subtitleText: restaurant.cuisine || 'Unknown',
+    subtitleText: restaurant.mostReviewedCuisine || '',
     badgeText: q !== null ? `${q}%` : null,
     badgeColor: q !== null ? getQualityColor(q) : null,
     limitedRatingsText,
     reviewCountText,
+    tags: restaurant.topTags,
     source: 'tip',
     restaurantId: restaurant.id
   };

@@ -12,6 +12,7 @@ export type RestaurantCardModel = {
   badgeColor: string | null;
   limitedRatingsText: string | null;
   reviewCountText: string | null;
+  tags?: string[];
   source: 'tip' | 'google';
   restaurantId?: string;
   googlePlaceId?: string;
@@ -35,13 +36,23 @@ interface RestaurantListCardProps {
   onClick: () => void;
 }
 
+/**
+ * Formats tag labels from snake_case to Title Case
+ */
+const formatTagLabel = (tag: string): string => {
+  return tag
+    .split('_')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+};
+
 const RestaurantListCard: React.FC<RestaurantListCardProps> = ({ card, onClick }) => {
   return (
     <div
-      className="bg-white rounded-xl shadow-sm flex overflow-hidden border cursor-pointer hover:bg-gray-50 transition-colors"
+      className="bg-white rounded-xl shadow-sm flex items-center overflow-hidden border cursor-pointer hover:bg-gray-50 transition-colors h-[116px]"
       onClick={onClick}
     >
-      <div className="w-20 h-20 bg-gray-100 flex items-center justify-center flex-shrink-0">
+      <div className="w-20 h-20 bg-slate-100 flex items-center justify-center flex-shrink-0 rounded-2xl overflow-hidden ml-3">
         {card.coverImage ? (
           <img
             src={card.coverImage}
@@ -49,22 +60,27 @@ const RestaurantListCard: React.FC<RestaurantListCardProps> = ({ card, onClick }
             className="w-full h-full object-cover"
           />
         ) : (
-          <div className="w-12 h-12 bg-gray-300 rounded-lg flex items-center justify-center">
-            <Store size={24} className="text-gray-500" />
-          </div>
+          <Store size={32} className="text-slate-400" />
         )}
       </div>
-      <div className="p-3 flex-1 relative">
+      <div className="p-3 flex-1 relative overflow-hidden">
         <div className="flex justify-between items-start gap-2">
           <div className="flex-1 min-w-0 max-w-[calc(100%-70px)]">
             <h3 className="font-medium truncate">{card.name}</h3>
-            {(card.limitedRatingsText || card.reviewCountText) && (
-              <div className="mt-1">
-                <div className="inline-block px-2 py-0.5 rounded-full bg-gray-200">
-                  <span className="text-xs font-medium text-gray-600">
+            {(card.limitedRatingsText || card.reviewCountText || (card.tags && card.tags.length > 0)) && (
+              <div className="mt-1 flex items-center gap-1.5 flex-wrap">
+                {/* Review badge */}
+                {(card.limitedRatingsText || card.reviewCountText) && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] text-slate-600">
                     {card.reviewCountText || card.limitedRatingsText}
                   </span>
-                </div>
+                )}
+                {/* Restaurant tags (1-2 most used) */}
+                {card.tags && card.tags.length > 0 && card.tags.map(tag => (
+                  <span key={tag} className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[10px] text-slate-600">
+                    {formatTagLabel(tag)}
+                  </span>
+                ))}
               </div>
             )}
           </div>
@@ -80,12 +96,12 @@ const RestaurantListCard: React.FC<RestaurantListCardProps> = ({ card, onClick }
           </div>
         </div>
         <div className="flex items-center justify-between mt-1">
-          <div className="flex items-center text-sm text-dark-gray space-x-2">
-            <span>{card.subtitleText}</span>
+          <div className="flex items-center text-sm text-slate-600 space-x-2">
+            {card.subtitleText && <span>{card.subtitleText}</span>}
             {card.priceText && <span>{card.priceText}</span>}
           </div>
-          <div className="flex items-center text-xs text-dark-gray">
-            <MapPin size={14} className="text-dark-gray mr-1" />
+          <div className="flex items-center text-xs text-slate-500">
+            <MapPin size={14} className="text-slate-500 mr-1" />
             <span>{card.distanceLabel ?? '-'}</span>
           </div>
         </div>

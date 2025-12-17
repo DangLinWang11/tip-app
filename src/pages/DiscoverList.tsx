@@ -41,6 +41,8 @@ interface RestaurantWithExtras extends FirebaseRestaurant {
   normalizedName: string;
   distanceMiles?: number | null;
   distanceLabel?: string;
+  mostReviewedCuisine: string | null;
+  topTags: string[];
 }
 
 interface DiscoverDish {
@@ -185,6 +187,65 @@ const DiscoverList: React.FC = () => {
     setSelectedPriceLevel(null);
   };
 
+  /**
+   * Determines the cuisine with the most reviews for a restaurant
+   * Counts reviews where the cuisine field matches
+   * Returns null if no reviews with cuisine tags exist
+   */
+  const getMostReviewedCuisine = (reviews: any[]): string | null => {
+    if (!reviews || reviews.length === 0) return null;
+
+    const cuisineCounts: Record<string, number> = {};
+
+    // Count reviews per cuisine (only checking the cuisine field)
+    reviews.forEach(review => {
+      if (review.cuisine && typeof review.cuisine === 'string') {
+        const normalized = review.cuisine.toLowerCase().trim();
+        cuisineCounts[normalized] = (cuisineCounts[normalized] || 0) + 1;
+      }
+    });
+
+    // Find cuisine with most reviews
+    let maxCuisine: string | null = null;
+    let maxCount = 0;
+
+    Object.entries(cuisineCounts).forEach(([cuisine, count]) => {
+      if (count > maxCount) {
+        maxCount = count;
+        maxCuisine = cuisine;
+      }
+    });
+
+    return maxCuisine;
+  };
+
+  /**
+   * Determines the 1-2 most frequently used tags across all reviews
+   * Returns top 2 tags by frequency
+   */
+  const getMostUsedTags = (reviews: any[]): string[] => {
+    if (!reviews || reviews.length === 0) return [];
+
+    const tagCounts: Record<string, number> = {};
+
+    // Count occurrences of each tag across all reviews
+    reviews.forEach(review => {
+      if (review.tags && Array.isArray(review.tags)) {
+        review.tags.forEach((tag: string) => {
+          if (tag) {
+            tagCounts[tag] = (tagCounts[tag] || 0) + 1;
+          }
+        });
+      }
+    });
+
+    // Sort by count descending, take top 2
+    return Object.entries(tagCounts)
+      .sort(([, countA], [, countB]) => countB - countA)
+      .slice(0, 2)
+      .map(([tag]) => tag);
+  };
+
   const fetchRestaurantReviews = async (restaurantId: string): Promise<ReviewWithCategory[]> => {
     try {
       const reviewsQuery = query(collection(db, 'reviews'), where('restaurantId', '==', restaurantId));
@@ -234,6 +295,24 @@ const DiscoverList: React.FC = () => {
             ? '$'.repeat(priceLevel)
             : null;
 
+          // Calculate distance if coords is available
+          let distanceMiles: number | null = null;
+          let distanceLabel: string | undefined = undefined;
+          if (coords && lat != null && lng != null) {
+            const distanceKm = haversine(
+              { lat: coords.lat, lng: coords.lng },
+              { lat, lng }
+            );
+            distanceMiles = distanceKm * 0.621371; // Convert km to miles
+            distanceLabel = formatDistanceLabel(distanceMiles);
+          }
+
+          // Precompute most reviewed cuisine
+          const mostReviewedCuisine = getMostReviewedCuisine(reviews);
+
+          // Precompute top 1-2 tags
+          const topTags = getMostUsedTags(reviews);
+
           return {
             ...data,
             id: restaurantId,
@@ -246,6 +325,10 @@ const DiscoverList: React.FC = () => {
             location: { lat, lng },
             normalizedCuisine: normalizeToken(data.cuisine || ''),
             normalizedName: normalizeToken(data.name || ''),
+            distanceMiles,
+            distanceLabel,
+            mostReviewedCuisine,
+            topTags,
           } as RestaurantWithExtras;
         });
 
@@ -619,6 +702,24 @@ const DiscoverList: React.FC = () => {
   }, [searchQuery, viewMode, filteredDishes.length, filteredRestaurants.length, coords]);
 
   const restaurantsForRender = [...filteredRestaurants].sort((a, b) => {
+    // When "Near Me" is active, prioritize distance first
+    if (selectedCategory === 'nearme') {
+      // Restaurants with distance come before those without
+      const da = a.distanceMiles;
+      const db = b.distanceMiles;
+
+      if (da != null && db == null) return -1;
+      if (da == null && db != null) return 1;
+
+      // Both have distance - sort by closest first
+      if (da != null && db != null) {
+        if (da !== db) {
+          return da - db; // Ascending (closest first)
+        }
+      }
+      // If distances equal, fall through to quality/sufficiency
+    }
+
     // Growth-safe ranking: prioritize restaurants with sufficient data
     const aSufficient = a.reviewCount >= MIN_REVIEWS_FOR_TRUST;
     const bSufficient = b.reviewCount >= MIN_REVIEWS_FOR_TRUST;
@@ -636,9 +737,9 @@ const DiscoverList: React.FC = () => {
     }
 
     // Third: sort by distance (ASC) when available
-    const da = a.distanceMiles ?? Number.POSITIVE_INFINITY;
-    const db = b.distanceMiles ?? Number.POSITIVE_INFINITY;
-    return da - db;
+    const finalDa = a.distanceMiles ?? Number.POSITIVE_INFINITY;
+    const finalDb = b.distanceMiles ?? Number.POSITIVE_INFINITY;
+    return finalDa - finalDb;
   });
   const noTagFilterResults =
     viewMode === 'restaurant' && Boolean(selectedTagFilter) && !loadingTagFilter && restaurantsForRender.length === 0;
