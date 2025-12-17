@@ -7,10 +7,8 @@ import {
   ShareIcon,
   CheckCircleIcon,
   MapPinIcon,
-  PlusIcon,
 } from 'lucide-react';
 import { MoreHorizontal as DotsIcon } from 'lucide-react';
-import { motion, PanInfo } from 'framer-motion';
 import RatingBadge from './RatingBadge';
 import { useFeature } from '../utils/features';
 import SaveToListModal from './SaveToListModal';
@@ -154,6 +152,7 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
   const [likeCount, setLikeCount] = useState(engagement.likes || 0);
   const [currentIndex, setCurrentIndex] = useState(0);
   const imageRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [isActionSheetOpen, setIsActionSheetOpen] = useState(false);
   const [showReceiptModal, setShowReceiptModal] = useState(false);
@@ -553,26 +552,31 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
     return 1;
   };
 
-  // Swipe detection with velocity awareness using Framer Motion
-  const swipeConfidenceThreshold = 10000;
-  const swipePower = (offset: number, velocity: number) => {
-    return Math.abs(offset) * velocity;
-  };
+  // Native scroll-based navigation with scroll snap
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const container = e.currentTarget;
+    const scrollLeft = container.scrollLeft;
+    const itemWidth = container.offsetWidth;
+    const newIndex = Math.round(scrollLeft / itemWidth);
 
-  const handleDragEnd = (_event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
-    const mediaLength = getMediaLength();
-    const swipe = swipePower(info.offset.x, info.velocity.x);
-
-    if (swipe < -swipeConfidenceThreshold && currentIndex < mediaLength - 1) {
-      setCurrentIndex(currentIndex + 1);
-    } else if (swipe > swipeConfidenceThreshold && currentIndex > 0) {
-      setCurrentIndex(currentIndex - 1);
+    if (newIndex !== currentIndex) {
+      setCurrentIndex(newIndex);
     }
   };
 
   const handleDotClick = (index: number) => {
     const mediaLength = getMediaLength();
-    setCurrentIndex(Math.min(Math.max(index, 0), mediaLength - 1));
+    const safeIndex = Math.min(Math.max(index, 0), mediaLength - 1);
+    setCurrentIndex(safeIndex);
+
+    // Scroll to the selected index
+    if (scrollContainerRef.current) {
+      const itemWidth = scrollContainerRef.current.offsetWidth;
+      scrollContainerRef.current.scrollTo({
+        left: safeIndex * itemWidth,
+        behavior: 'smooth'
+      });
+    }
   };
 
   const handleDishClick = () => {
@@ -883,14 +887,15 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
           ref={imageRef}
           className="relative overflow-hidden"
         >
-          <motion.div
-            className="flex"
-            animate={{ x: `-${currentIndex * 100}%` }}
-            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-            drag="x"
-            dragConstraints={{ left: 0, right: 0 }}
-            dragElastic={0.2}
-            onDragEnd={handleDragEnd}
+          <div
+            ref={scrollContainerRef}
+            className="flex overflow-x-scroll snap-x snap-mandatory no-scrollbar"
+            onScroll={handleScroll}
+            style={{
+              scrollSnapType: 'x mandatory',
+              scrollBehavior: 'smooth',
+              WebkitOverflowScrolling: 'touch'
+            }}
           >
             {isCarousel && carouselItems.length > 1 ? (
               carouselItems.map((item) => (
@@ -902,12 +907,12 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
                     alt={item.dish.name}
                     loading="lazy"
                     decoding="async"
-                    className="w-full aspect-square object-cover flex-shrink-0"
+                    className="w-full aspect-square object-cover flex-shrink-0 snap-center"
                   />
                 ) : (
                   <div
                     key={item.id}
-                    className="w-full aspect-square bg-gray-200 flex-shrink-0 flex items-center justify-center"
+                    className="w-full aspect-square bg-gray-200 flex-shrink-0 snap-center flex items-center justify-center"
                   >
                     <span className="text-gray-400">Image unavailable</span>
                   </div>
@@ -920,15 +925,15 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
                   alt={currentItem.dish.name}
                   loading="lazy"
                   decoding="async"
-                  className="w-full aspect-square object-cover flex-shrink-0"
+                  className="w-full aspect-square object-cover flex-shrink-0 snap-center"
                 />
               ) : (
-                <div className="w-full aspect-square bg-gray-200 flex items-center justify-center">
+                <div className="w-full aspect-square bg-gray-200 flex items-center justify-center snap-center">
                   <span className="text-gray-400">Image unavailable</span>
                 </div>
               )
             )}
-          </motion.div>
+          </div>
           {currentItem.dish.visitCount && (
             <div className="absolute top-4 right-4 bg-black bg-opacity-50 text-white px-3 py-1 rounded-full text-sm">
               Visited {currentItem.dish.visitCount}x
@@ -1376,14 +1381,15 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
             className="relative overflow-hidden"
           >
             {hasMediaItems && mediaItems.length > 0 ? (
-              <motion.div
-                className="flex"
-                animate={{ x: `-${currentIndex * 100}%` }}
-                transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-                drag="x"
-                dragConstraints={{ left: 0, right: 0 }}
-                dragElastic={0.2}
-                onDragEnd={handleDragEnd}
+              <div
+                ref={scrollContainerRef}
+                className="flex overflow-x-scroll snap-x snap-mandatory no-scrollbar"
+                onScroll={handleScroll}
+                style={{
+                  scrollSnapType: 'x mandatory',
+                  scrollBehavior: 'smooth',
+                  WebkitOverflowScrolling: 'touch'
+                }}
               >
                 {mediaItems.map((item) => (
                   // Defensive: ensure imageUrl is valid before rendering
@@ -1392,27 +1398,28 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
                       key={item.id}
                       src={item.imageUrl}
                       alt={item.dishName || 'Visit photo'}
-                      className="w-full aspect-square object-cover flex-shrink-0"
+                      className="w-full aspect-square object-cover flex-shrink-0 snap-center"
                     />
                   ) : (
                     <div
                       key={item.id}
-                      className="w-full aspect-square bg-gray-200 flex-shrink-0 flex items-center justify-center"
+                      className="w-full aspect-square bg-gray-200 flex-shrink-0 snap-center flex items-center justify-center"
                     >
                       <span className="text-gray-400">Image unavailable</span>
                     </div>
                   )
                 ))}
-              </motion.div>
+              </div>
             ) : (
-              <motion.div
-                className="flex"
-                animate={{ x: `-${currentIndex * 100}%` }}
-                transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-                drag="x"
-                dragConstraints={{ left: 0, right: 0 }}
-                dragElastic={0.2}
-                onDragEnd={handleDragEnd}
+              <div
+                ref={scrollContainerRef}
+                className="flex overflow-x-scroll snap-x snap-mandatory no-scrollbar"
+                onScroll={handleScroll}
+                style={{
+                  scrollSnapType: 'x mandatory',
+                  scrollBehavior: 'smooth',
+                  WebkitOverflowScrolling: 'touch'
+                }}
               >
                 {isCarousel && carouselItems.length > 1 ? (
                   carouselItems.map((item) => (
@@ -1420,17 +1427,17 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
                       key={item.id}
                       src={item.dish.image}
                       alt={item.dish.name}
-                      className="w-full aspect-square object-cover flex-shrink-0"
+                      className="w-full aspect-square object-cover flex-shrink-0 snap-center"
                     />
                   ))
                 ) : (
                   <img
                     src={currentItem.dish.image}
                     alt={currentItem.dish.name}
-                    className="w-full aspect-square object-cover flex-shrink-0"
+                    className="w-full aspect-square object-cover flex-shrink-0 snap-center"
                   />
                 )}
-              </motion.div>
+              </div>
             )}
             {currentItem.dish.visitCount && (
               <div className="absolute top-4 right-4 bg-black bg-opacity-50 text-white px-3 py-1 rounded-full text-sm">
@@ -1453,6 +1460,15 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
                     onClick={() => {
                       const safeIndex = Math.min(Math.max(index, 0), mediaItems!.length - 1);
                       setCurrentIndex(safeIndex);
+
+                      // Scroll to the selected index
+                      if (scrollContainerRef.current) {
+                        const itemWidth = scrollContainerRef.current.offsetWidth;
+                        scrollContainerRef.current.scrollTo({
+                          left: safeIndex * itemWidth,
+                          behavior: 'smooth'
+                        });
+                      }
                     }}
                     className={`relative flex-shrink-0 rounded-xl overflow-hidden border ${
                       isActive
@@ -1481,6 +1497,15 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
                         onClick={() => {
                           const safeIndex = Math.min(Math.max(index, 0), carouselItems.length - 1);
                           setCurrentIndex(safeIndex);
+
+                          // Scroll to the selected index
+                          if (scrollContainerRef.current) {
+                            const itemWidth = scrollContainerRef.current.offsetWidth;
+                            scrollContainerRef.current.scrollTo({
+                              left: safeIndex * itemWidth,
+                              behavior: 'smooth'
+                            });
+                          }
                         }}
                         className={`relative flex-shrink-0 rounded-xl overflow-hidden border ${
                           isActive
