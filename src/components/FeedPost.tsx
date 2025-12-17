@@ -10,6 +10,7 @@ import {
   PlusIcon,
 } from 'lucide-react';
 import { MoreHorizontal as DotsIcon } from 'lucide-react';
+import { motion, PanInfo } from 'framer-motion';
 import RatingBadge from './RatingBadge';
 import { useFeature } from '../utils/features';
 import SaveToListModal from './SaveToListModal';
@@ -152,8 +153,6 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(engagement.likes || 0);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [touchStart, setTouchStart] = useState(0);
-  const [touchEnd, setTouchEnd] = useState(0);
   const imageRef = useRef<HTMLDivElement>(null);
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [isActionSheetOpen, setIsActionSheetOpen] = useState(false);
@@ -554,31 +553,20 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
     return 1;
   };
 
-  const handleTouchStart = (e: React.TouchEvent) => {
-    const mediaLength = getMediaLength();
-    if (!isCarousel || mediaLength <= 1) return;
-    setTouchStart(e.targetTouches[0].clientX);
+  // Swipe detection with velocity awareness using Framer Motion
+  const swipeConfidenceThreshold = 10000;
+  const swipePower = (offset: number, velocity: number) => {
+    return Math.abs(offset) * velocity;
   };
 
-  const handleTouchMove = (e: React.TouchEvent) => {
+  const handleDragEnd = (_event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
     const mediaLength = getMediaLength();
-    if (!isCarousel || mediaLength <= 1) return;
-    setTouchEnd(e.targetTouches[0].clientX);
-  };
+    const swipe = swipePower(info.offset.x, info.velocity.x);
 
-  const handleTouchEnd = () => {
-    const mediaLength = getMediaLength();
-    if (!isCarousel || mediaLength <= 1) return;
-    if (!touchStart || !touchEnd) return;
-
-    const distance = touchStart - touchEnd;
-    const isLeftSwipe = distance > 50;
-    const isRightSwipe = distance < -50;
-
-    if (isLeftSwipe && currentIndex < mediaLength - 1) {
-      setCurrentIndex(Math.min(currentIndex + 1, mediaLength - 1));
-    } else if (isRightSwipe && currentIndex > 0) {
-      setCurrentIndex(Math.max(currentIndex - 1, 0));
+    if (swipe < -swipeConfidenceThreshold && currentIndex < mediaLength - 1) {
+      setCurrentIndex(currentIndex + 1);
+    } else if (swipe > swipeConfidenceThreshold && currentIndex > 0) {
+      setCurrentIndex(currentIndex - 1);
     }
   };
 
@@ -894,11 +882,16 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
         <div
           ref={imageRef}
           className="relative overflow-hidden"
-          onTouchStart={handleTouchStart}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={handleTouchEnd}
         >
-          <div className="flex transition-transform duration-300 ease-out" style={{ transform: `translateX(-${currentIndex * 100}%)` }}>
+          <motion.div
+            className="flex"
+            animate={{ x: `-${currentIndex * 100}%` }}
+            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+            drag="x"
+            dragConstraints={{ left: 0, right: 0 }}
+            dragElastic={0.2}
+            onDragEnd={handleDragEnd}
+          >
             {isCarousel && carouselItems.length > 1 ? (
               carouselItems.map((item) => (
                 // Defensive: ensure image URL exists before rendering
@@ -935,7 +928,7 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
                 </div>
               )
             )}
-          </div>
+          </motion.div>
           {currentItem.dish.visitCount && (
             <div className="absolute top-4 right-4 bg-black bg-opacity-50 text-white px-3 py-1 rounded-full text-sm">
               Visited {currentItem.dish.visitCount}x
@@ -1381,12 +1374,17 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
           <div
             ref={imageRef}
             className="relative overflow-hidden"
-            onTouchStart={handleTouchStart}
-            onTouchMove={handleTouchMove}
-            onTouchEnd={handleTouchEnd}
           >
             {hasMediaItems && mediaItems.length > 0 ? (
-              <div className="flex transition-transform duration-300 ease-out" style={{ transform: `translateX(-${currentIndex * 100}%)` }}>
+              <motion.div
+                className="flex"
+                animate={{ x: `-${currentIndex * 100}%` }}
+                transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                drag="x"
+                dragConstraints={{ left: 0, right: 0 }}
+                dragElastic={0.2}
+                onDragEnd={handleDragEnd}
+              >
                 {mediaItems.map((item) => (
                   // Defensive: ensure imageUrl is valid before rendering
                   item.imageUrl && typeof item.imageUrl === 'string' ? (
@@ -1405,9 +1403,17 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
                     </div>
                   )
                 ))}
-              </div>
+              </motion.div>
             ) : (
-              <div className="flex transition-transform duration-300 ease-out" style={{ transform: `translateX(-${currentIndex * 100}%)` }}>
+              <motion.div
+                className="flex"
+                animate={{ x: `-${currentIndex * 100}%` }}
+                transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                drag="x"
+                dragConstraints={{ left: 0, right: 0 }}
+                dragElastic={0.2}
+                onDragEnd={handleDragEnd}
+              >
                 {isCarousel && carouselItems.length > 1 ? (
                   carouselItems.map((item) => (
                     <img
@@ -1424,7 +1430,7 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
                     className="w-full aspect-square object-cover flex-shrink-0"
                   />
                 )}
-              </div>
+              </motion.div>
             )}
             {currentItem.dish.visitCount && (
               <div className="absolute top-4 right-4 bg-black bg-opacity-50 text-white px-3 py-1 rounded-full text-sm">
