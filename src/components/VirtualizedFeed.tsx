@@ -21,13 +21,18 @@ export const VirtualizedFeed: React.FC<VirtualizedFeedProps> = ({
   loadingMore = false,
   scrollRef,
 }) => {
-  const parentRef = scrollRef || useRef<HTMLDivElement>(null);
+  const parentRef = useRef<HTMLDivElement>(null);
 
   const virtualizer = useVirtualizer({
     count: posts.length,
-    getScrollElement: () => window,
+    getScrollElement: () => (typeof window !== 'undefined' ? window : null),
     estimateSize: () => 600, // Average post height
     overscan: 5, // Render 5 extra items above/below viewport
+    measureElement:
+      typeof window !== 'undefined' &&
+      navigator.userAgent.indexOf('jsdom') === -1
+        ? (element) => element?.getBoundingClientRect().height
+        : undefined,
   });
 
   // Infinite scroll detection
@@ -54,7 +59,7 @@ export const VirtualizedFeed: React.FC<VirtualizedFeedProps> = ({
   ]);
 
   return (
-    <div className="space-y-4">
+    <div ref={parentRef} className="space-y-4">
       <div
         style={{
           height: `${virtualizer.getTotalSize()}px`,
