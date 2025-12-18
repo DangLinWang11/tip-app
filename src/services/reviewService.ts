@@ -1,4 +1,4 @@
-import { collection, addDoc, serverTimestamp, getDocs, query, orderBy, limit, where, doc, getDoc, updateDoc, arrayUnion, onSnapshot } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, getDocs, query, orderBy, limit, where, doc, getDoc, updateDoc, arrayUnion, onSnapshot, startAfter, QueryDocumentSnapshot, DocumentData } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage, getUserProfile, getCurrentUser, updateUserStats } from '../lib/firebase';
 import { inferFacetsFromText, tokenizeForSearch, normalizeToken } from '../utils/taxonomy';
@@ -1094,6 +1094,67 @@ export const fetchReviews = async (limitCount = 20): Promise<FirebaseReview[]> =
   }
 };
 
+// Paginated version of fetchReviews for infinite scroll
+export const fetchReviewsPaginated = async (
+  limitCount = 20,
+  lastDocSnapshot?: QueryDocumentSnapshot<DocumentData>
+): Promise<{ reviews: FirebaseReview[]; lastDoc: QueryDocumentSnapshot<DocumentData> | null }> => {
+  try {
+    const reviewsRef = collection(db, 'reviews');
+    let q = query(
+      reviewsRef,
+      orderBy('createdAt', 'desc'),
+      limit(limitCount)
+    );
+
+    // Add cursor for pagination
+    if (lastDocSnapshot) {
+      q = query(reviewsRef, orderBy('createdAt', 'desc'), startAfter(lastDocSnapshot), limit(limitCount));
+    }
+
+    const querySnapshot = await getDocs(q);
+    const raw = querySnapshot.docs;
+
+    // Filter out malformed documents
+    const validDocs = raw.filter((d) => {
+      const data = d.data();
+      if (data._methodName || !data.dish && !data.dishName || !data.userId) {
+        return false;
+      }
+      return true;
+    });
+
+    const reviews: FirebaseReview[] = validDocs
+      .map(d => ({ id: d.id, ...d.data() } as any))
+      .filter(r => safeReview(r))
+      .map((data: any) => {
+        const mappedData = {
+          ...data,
+          images: data.media?.photos && Array.isArray(data.media.photos) && data.media.photos.length > 0
+            ? data.media.photos.map((photoPath: string) => photoPath)
+            : data.images || []
+        };
+
+        return {
+          id: data.id,
+          ...mappedData,
+          restaurantId: data.restaurantId || null,
+          menuItemId: data.menuItemId || null,
+          dish: data.dish || data.dishName || 'Unknown Dish',
+          restaurant: data.restaurant || data.restaurantName || 'Unknown Restaurant'
+        } as FirebaseReview;
+      });
+
+    const newLastDoc = reviews.length > 0 ? raw[raw.length - 1] : null;
+
+    console.log(`Fetched ${reviews.length} paginated reviews`);
+    return { reviews, lastDoc: newLastDoc };
+  } catch (error) {
+    console.error('Error fetching paginated reviews:', error);
+    throw new Error('Failed to fetch paginated reviews');
+  }
+};
+
 // Fetch current user's reviews from Firestore
 export const fetchUserReviews = async (limitCount = 50, userId?: string): Promise<FirebaseReview[]> => {
   try {
@@ -1232,6 +1293,43 @@ export interface VisitDish {
 
 // Cache for user profiles to avoid redundant fetches
 const userProfileCache = new Map<string, FeedPostAuthor>();
+const userProfileCacheTimestamps = new Map<string, number>();
+const USER_PROFILE_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+// Helper function to get cached user profile with TTL
+const getCachedUserProfile = async (userId: string): Promise<FeedPostAuthor | null> => {
+  const now = Date.now();
+  const cached = userProfileCache.get(userId);
+  const timestamp = userProfileCacheTimestamps.get(userId);
+
+  // Return if fresh
+  if (cached && timestamp && (now - timestamp) < USER_PROFILE_CACHE_TTL) {
+    return cached;
+  }
+
+  // Fetch fresh
+  try {
+    const userProfileResult = await getUserProfile(userId);
+    if (userProfileResult.success && userProfileResult.profile) {
+      const profile = userProfileResult.profile;
+      const author: FeedPostAuthor = {
+        id: userId,
+        name: profile.displayName || profile.username,
+        username: profile.username,
+        image: getAvatarUrl(profile),
+        isVerified: profile.isVerified || false
+      };
+
+      userProfileCache.set(userId, author);
+      userProfileCacheTimestamps.set(userId, now);
+      return author;
+    }
+  } catch (error) {
+    console.warn('Failed to fetch user profile:', userId, error);
+  }
+
+  return null;
+};
 
 // Group reviews by visitId or individual reviews
 const groupReviewsByVisit = (reviews: FirebaseReview[]) => {
@@ -1282,25 +1380,9 @@ export const convertVisitToCarouselFeedPost = async (reviews: FirebaseReview[]) 
   };
 
   if (mainReview.userId) {
-    try {
-      if (userProfileCache.has(mainReview.userId)) {
-        author = userProfileCache.get(mainReview.userId)!;
-      } else {
-        const userProfileResult = await getUserProfile(mainReview.userId);
-        if (userProfileResult.success && userProfileResult.profile) {
-          const profile = userProfileResult.profile;
-          author = {
-            id: mainReview.userId, // NEW: Include actual userId
-            name: profile.displayName || profile.username,
-            username: profile.username,
-            image: getAvatarUrl(profile),
-            isVerified: profile.isVerified || false
-          };
-          userProfileCache.set(mainReview.userId, author);
-        }
-      }
-    } catch (error) {
-      console.warn('Failed to fetch user profile for visit:', mainReview.visitId, error);
+    const cachedAuthor = await getCachedUserProfile(mainReview.userId);
+    if (cachedAuthor) {
+      author = cachedAuthor;
     }
   }
 
@@ -1638,30 +1720,9 @@ export const convertReviewToFeedPost = async (review: FirebaseReview) => {
   };
 
   if (review.userId) {
-    try {
-      if (userProfileCache.has(review.userId)) {
-        author = userProfileCache.get(review.userId)!;
-      } else {
-        const userProfileResult = await getUserProfile(review.userId);
-        console.log('🔍 getUserProfile result:', userProfileResult); // ADD THIS DEBUG
-        console.log('🔍 Profile data:', userProfileResult.profile); // ADD THIS DEBUG
-        
-        if (userProfileResult.success && userProfileResult.profile) {
-          const profile = userProfileResult.profile;
-          console.log('🔍 Using profile username:', profile.username); // ADD THIS DEBUG
-          
-          author = {
-            id: review.userId, // NEW: Include actual userId
-            name: profile.displayName || profile.username,
-            username: profile.username,
-            image: getAvatarUrl(profile),
-            isVerified: profile.isVerified || false
-          };
-          userProfileCache.set(review.userId, author);
-        }
-      }
-    } catch (error) {
-      console.warn('Failed to fetch user profile for review:', review.id, error);
+    const cachedAuthor = await getCachedUserProfile(review.userId);
+    if (cachedAuthor) {
+      author = cachedAuthor;
     }
   }
   
@@ -1955,7 +2016,10 @@ export const convertReviewsToFeedPosts = async (reviews: FirebaseReview[]) => {
 };
 
 // Real-time listener for the home feed (public, not deleted), newest first
-export function listenHomeFeed(onChange: (items: FirebaseReview[]) => void) {
+export function listenHomeFeed(
+  onChange: (items: FirebaseReview[]) => void,
+  onDelta?: (added: FirebaseReview[], modified: FirebaseReview[], removed: string[]) => void
+) {
   // Fetch more than needed (100) and filter client-side to exclude malformed docs
   // This avoids needing a composite index for where + multiple orderBy
   const qRef = query(
@@ -1981,7 +2045,32 @@ export function listenHomeFeed(onChange: (items: FirebaseReview[]) => void) {
     const items = validDocs.filter((it) => safeReview(it)).slice(0, 50) as FirebaseReview[]; // Take top 50 after filtering
     const sample = items.slice(0, 3).map((r: any) => ({ id: r.id, isDeleted: r.isDeleted, visibility: r.visibility, dishName: r.dish || r.dishName }));
     console.log(`Live feed snapshot: total=${raw.length}, valid=${validDocs.length}, dropped(deleted=${deletedCount}, private=${privateCount}), emitted=${items.length}, sample=`, sample);
+
+    // Always send full snapshot for initial load and full updates
     onChange(items);
+
+    // If delta callback provided, detect changes and send incremental updates
+    if (onDelta) {
+      const added: FirebaseReview[] = [];
+      const modified: FirebaseReview[] = [];
+      const removed: string[] = [];
+
+      snap.docChanges().forEach((change) => {
+        const data = { id: change.doc.id, ...change.doc.data() } as any;
+
+        // Only process valid reviews
+        if (!safeReview(data)) return;
+
+        if (change.type === 'added') added.push(data as FirebaseReview);
+        else if (change.type === 'modified') modified.push(data as FirebaseReview);
+        else if (change.type === 'removed') removed.push(change.doc.id);
+      });
+
+      // Only call delta callback if there are actual changes
+      if (added.length || modified.length || removed.length) {
+        onDelta(added, modified, removed);
+      }
+    }
   });
 
   return unsub;

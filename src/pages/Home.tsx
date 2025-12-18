@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useRef, useMemo, useLayoutEffect } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useLayoutEffect, useCallback } from 'react';
 import { MapIcon, PlusIcon, MapPinIcon, Star, ChevronRight, Store } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { onAuthStateChanged } from 'firebase/auth';
 import HamburgerMenu from '../components/HamburgerMenu';
 import FeedPost from '../components/FeedPost';
-import { fetchReviews, convertReviewsToFeedPosts, fetchUserReviews, FirebaseReview, listenHomeFeed } from '../services/reviewService';
+import { VirtualizedFeed } from '../components/VirtualizedFeed';
+import { fetchReviews, fetchReviewsPaginated, convertReviewsToFeedPosts, fetchUserReviews, FirebaseReview, listenHomeFeed } from '../services/reviewService';
 import { auth, getUserProfile, getCurrentUser } from '../lib/firebase';
 import { getFollowing } from '../services/followService';
 import mapPreview from "../assets/map-preview.png";
@@ -68,8 +69,14 @@ const Home: React.FC = () => {
   const [pullY, setPullY] = useState(0);
   const pullStartY = useRef<number | null>(null);
   const canPull = useRef(false);
+  const virtualScrollRef = useRef<HTMLDivElement>(null);
   const isFirstLoad = useRef(true);
   const PULL_TRIGGER = 140; // pixels required to trigger refresh (harder to trigger)
+
+  // Pagination state
+  const [hasMore, setHasMore] = useState(true);
+  const [lastDoc, setLastDoc] = useState<any>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
   const radius = 16; // progress ring radius (SVG units)
   const circumference = 2 * Math.PI * radius;
   const pullProgress = Math.max(0, Math.min(1, pullY / PULL_TRIGGER));
@@ -334,41 +341,78 @@ const Home: React.FC = () => {
   // Real-time home feed listener (public, not deleted). Keeps feed fresh and ordered.
   useEffect(() => {
     console.log('[Home] Setting up real-time feed listener');
-    const unsub = listenHomeFeed(async (items: FirebaseReview[]) => {
-      try {
-        const tListenerStart = performance.now?.() ?? Date.now();
-        console.log('[Home][listener] received items', {
-          ts: new Date().toISOString(),
-          rawCount: items.length,
+    const unsub = listenHomeFeed(
+      // Initial load: full conversion
+      async (items: FirebaseReview[]) => {
+        try {
+          const tListenerStart = performance.now?.() ?? Date.now();
+          console.log('[Home][listener] received items', {
+            ts: new Date().toISOString(),
+            rawCount: items.length,
+          });
+          const tConvertStart = performance.now?.() ?? Date.now();
+          const posts = await convertReviewsToFeedPosts(items);
+          const tConvertEnd = performance.now?.() ?? Date.now();
+          console.log('[Home][listener] Converted items to posts', {
+            ts: new Date().toISOString(),
+            count: posts.length,
+            durationMs: tConvertEnd - tConvertStart,
+          });
+          setFeedPosts(posts);
+          // update cache
+          __homeCache = {
+            ts: Date.now(),
+            firebaseReviews: items,
+            userReviews: userReviews,
+            feedPosts: posts,
+            userProfile
+          };
+          __homeCacheUserId = authUser?.uid || null;
+          setLoading(false);
+          const tListenerEnd = performance.now?.() ?? Date.now();
+          console.log('[Home][listener] complete', {
+            ts: new Date().toISOString(),
+            totalDurationMs: tListenerEnd - tListenerStart,
+          });
+        } catch (e) {
+          console.error('[Home][listener] Failed converting live feed posts', e);
+        }
+      },
+      // Incremental updates: only convert what changed
+      async (added, modified, removed) => {
+        console.log('[Home][listener] Delta:', {
+          added: added.length,
+          modified: modified.length,
+          removed: removed.length
         });
-        const tConvertStart = performance.now?.() ?? Date.now();
-        const posts = await convertReviewsToFeedPosts(items);
-        const tConvertEnd = performance.now?.() ?? Date.now();
-        console.log('[Home][listener] Converted items to posts', {
-          ts: new Date().toISOString(),
-          count: posts.length,
-          durationMs: tConvertEnd - tConvertStart,
-        });
-        setFeedPosts(posts);
-        // update cache
-        __homeCache = {
-          ts: Date.now(),
-          firebaseReviews: items,
-          userReviews: userReviews,
-          feedPosts: posts,
-          userProfile
-        };
-        __homeCacheUserId = authUser?.uid || null;
-        setLoading(false);
-        const tListenerEnd = performance.now?.() ?? Date.now();
-        console.log('[Home][listener] complete', {
-          ts: new Date().toISOString(),
-          totalDurationMs: tListenerEnd - tListenerStart,
-        });
-      } catch (e) {
-        console.error('[Home][listener] Failed converting live feed posts', e);
+
+        // Handle removed posts
+        if (removed.length) {
+          setFeedPosts((prev) => prev.filter(post => !removed.includes(post.id)));
+        }
+
+        // Handle modified posts (re-convert and replace)
+        if (modified.length) {
+          const modifiedPosts = await convertReviewsToFeedPosts(modified);
+          setFeedPosts((prev) => {
+            const updated = [...prev];
+            modifiedPosts.forEach(modPost => {
+              const index = updated.findIndex(p => p.id === modPost.id);
+              if (index >= 0) {
+                updated[index] = modPost;
+              }
+            });
+            return updated;
+          });
+        }
+
+        // Handle new posts (convert and prepend to top)
+        if (added.length) {
+          const newPosts = await convertReviewsToFeedPosts(added);
+          setFeedPosts((prev) => [...newPosts, ...prev]);
+        }
       }
-    });
+    );
     return () => {
       console.log('[Home] Cleaning up feed listener');
       unsub();
@@ -419,6 +463,43 @@ const Home: React.FC = () => {
   const followingMap = useMemo(() => {
     return followingIds;
   }, [followingIds]);
+
+  // Memoized callback - stable reference across renders
+  const handleFollowChange = useCallback((userId: string, isFollowing: boolean) => {
+    setFollowingIds((prev) => {
+      const next = new Set(prev);
+      if (isFollowing) {
+        next.add(userId);
+      } else {
+        next.delete(userId);
+      }
+      return next;
+    });
+  }, []);
+
+  // Load more posts for infinite scroll
+  const loadMorePosts = useCallback(async () => {
+    if (loadingMore || !hasMore) return;
+
+    setLoadingMore(true);
+    try {
+      const { reviews, lastDoc: newLastDoc } = await fetchReviewsPaginated(20, lastDoc);
+
+      if (reviews.length === 0) {
+        setHasMore(false);
+        return;
+      }
+
+      const newPosts = await convertReviewsToFeedPosts(reviews);
+      setFeedPosts(prev => [...prev, ...newPosts]);
+      setLastDoc(newLastDoc);
+      setHasMore(newLastDoc !== null);
+    } catch (error) {
+      console.error('Failed to load more posts:', error);
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [loadingMore, hasMore, lastDoc]);
 
   const handleVisitClick = (visitId: number) => {
     console.log(`Navigate to post ${visitId}`);
@@ -481,7 +562,8 @@ const Home: React.FC = () => {
     <div
       className="min-h-screen bg-gray-50 pb-16"
       onTouchStart={(e) => {
-        if (window.scrollY <= 0) {
+        const container = virtualScrollRef.current;
+        if (container && container.scrollTop <= 0) {
           canPull.current = true;
           pullStartY.current = e.touches[0].clientY;
         } else {
@@ -639,36 +721,15 @@ const Home: React.FC = () => {
           
           {/* Feed Posts */}
           {feedPosts.length > 0 ? (
-            <div className="space-y-4">
-              {(() => {
-                console.log('[Home][render] Rendering feed posts', {
-                  ts: new Date().toISOString(),
-                  count: feedPosts.length,
-                });
-                return feedPosts.map((post) => {
-                  const isFollowingAuthor =
-                    !!(post.author && followingMap.has && followingMap.has(post.author.id));
-                  return (
-                    <FeedPost
-                      key={post.id}
-                      {...post}
-                      isFollowingAuthor={isFollowingAuthor}
-                      onFollowChange={(userId, isFollowing) => {
-                        setFollowingIds((prev) => {
-                          const next = new Set(prev);
-                          if (isFollowing) {
-                            next.add(userId);
-                          } else {
-                            next.delete(userId);
-                          }
-                          return next;
-                        });
-                      }}
-                    />
-                  );
-                });
-              })()}
-            </div>
+            <VirtualizedFeed
+              posts={feedPosts}
+              followingMap={followingMap}
+              onFollowChange={handleFollowChange}
+              scrollRef={virtualScrollRef}
+              onLoadMore={loadMorePosts}
+              hasMore={hasMore}
+              loadingMore={loadingMore}
+            />
           ) : !loading && !error && (
             <div className="text-center py-12 px-4">
               <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">

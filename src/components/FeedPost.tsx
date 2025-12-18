@@ -460,7 +460,13 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
   };
 
   const dishContextItem = resolveDishItemForActiveMedia();
-  const displayRating = getDisplayRating(currentItem, visitAverageRating, isVisitPost);
+
+  // Memoize expensive rating calculations
+  const displayRating = useMemo(
+    () => getDisplayRating(currentItem, visitAverageRating, isVisitPost),
+    [currentItem, visitAverageRating, isVisitPost]
+  );
+
   const heroRating =
     displayRating ??
     (typeof (currentItem.dish as any)?.rating === 'number'
@@ -480,6 +486,12 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
     if (percentage >= 55) return '#FB7185'; // Light Red (55-59%)
     return '#EF4444'; // Red (0-54%)
   };
+
+  // Memoize quality color calculation
+  const qualityColor = useMemo(
+    () => restaurant?.qualityScore !== undefined ? getQualityColor(restaurant.qualityScore) : undefined,
+    [restaurant?.qualityScore]
+  );
 
   function formatRelativeTime(input: Date | number | string | any): string {
     const toMillis = (v: any) =>
@@ -865,10 +877,10 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
               >
                 {restaurant.name}
               </span>
-              {restaurant.qualityScore !== undefined && (
+              {restaurant.qualityScore !== undefined && qualityColor && (
                 <div
                   className="ml-1 w-8 h-5 flex items-center justify-center rounded-full flex-shrink-0"
-                  style={{ backgroundColor: getQualityColor(restaurant.qualityScore) }}
+                  style={{ backgroundColor: qualityColor }}
                 >
                   <span className="text-xs font-medium text-white">
                     {restaurant.qualityScore}%
@@ -1357,10 +1369,10 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
               >
                 {restaurant.name}
               </span>
-              {restaurant.qualityScore !== undefined && (
+              {restaurant.qualityScore !== undefined && qualityColor && (
                 <div
                   className="ml-1 w-8 h-5 flex items-center justify-center rounded-full flex-shrink-0"
-                  style={{ backgroundColor: getQualityColor(restaurant.qualityScore) }}
+                  style={{ backgroundColor: qualityColor }}
                 >
                   <span className="text-xs font-medium text-white">
                     {restaurant.qualityScore}%
