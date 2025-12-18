@@ -114,7 +114,7 @@ const RestaurantListCard: React.FC<RestaurantListCardProps> = ({ card, onClick }
           <Store size={32} className="text-slate-400" />
         )}
         {card.priceBadge && (
-          <div className="absolute top-1 left-1 bg-[#EF4444] rounded-full px-1.5 py-[2px] z-10">
+          <div className="absolute top-1 left-1 bg-[#EF4444] rounded-full px-1.5 py-[1px] z-10">
             <span className="text-[10px] font-semibold text-white leading-none">{card.priceBadge}</span>
           </div>
         )}
