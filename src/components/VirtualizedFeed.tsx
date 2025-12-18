@@ -1,5 +1,4 @@
-import { useVirtualizer } from '@tanstack/react-virtual';
-import React, { useRef, useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import FeedPost from './FeedPost';
 
 interface VirtualizedFeedProps {
@@ -19,97 +18,68 @@ export const VirtualizedFeed: React.FC<VirtualizedFeedProps> = ({
   onLoadMore,
   hasMore = false,
   loadingMore = false,
-  scrollRef,
 }) => {
-  const parentRef = useRef<HTMLDivElement>(null);
+  const observerRef = useRef<IntersectionObserver | null>(null);
+  const loadMoreRef = useRef<HTMLDivElement>(null);
 
-  const virtualizer = useVirtualizer({
-    count: posts.length,
-    getScrollElement: () => (typeof window !== 'undefined' ? window : null),
-    estimateSize: () => 600, // Average post height
-    overscan: 5, // Render 5 extra items above/below viewport
-    measureElement:
-      typeof window !== 'undefined' &&
-      navigator.userAgent.indexOf('jsdom') === -1
-        ? (element) => element?.getBoundingClientRect().height
-        : undefined,
-  });
-
-  // Infinite scroll detection
+  // Infinite scroll detection with Intersection Observer
   useEffect(() => {
-    const [lastItem] = [...virtualizer.getVirtualItems()].reverse();
+    if (!onLoadMore || !hasMore || loadingMore) return;
 
-    if (!lastItem) return;
+    observerRef.current = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !loadingMore) {
+          onLoadMore();
+        }
+      },
+      { threshold: 0.1 }
+    );
 
-    // Trigger load when within 5 items of end
-    if (
-      lastItem.index >= posts.length - 5 &&
-      hasMore &&
-      !loadingMore &&
-      onLoadMore
-    ) {
-      onLoadMore();
+    const currentRef = loadMoreRef.current;
+    if (currentRef) {
+      observerRef.current.observe(currentRef);
     }
-  }, [
-    hasMore,
-    loadingMore,
-    onLoadMore,
-    posts.length,
-    virtualizer.getVirtualItems(),
-  ]);
+
+    return () => {
+      if (observerRef.current && currentRef) {
+        observerRef.current.unobserve(currentRef);
+      }
+    };
+  }, [onLoadMore, hasMore, loadingMore]);
 
   return (
-    <div ref={parentRef} className="space-y-4">
-      <div
-        style={{
-          height: `${virtualizer.getTotalSize()}px`,
-          width: '100%',
-          position: 'relative',
-        }}
-      >
-        {virtualizer.getVirtualItems().map((virtualItem) => {
-          const post = posts[virtualItem.index];
-          const isFollowingAuthor = !!(
-            post.author && followingMap.has(post.author.id)
-          );
+    <div className="space-y-4">
+      {posts.map((post) => {
+        const isFollowingAuthor = !!(
+          post.author && followingMap.has(post.author.id)
+        );
 
-          return (
-            <div
-              key={post.id}
-              data-index={virtualItem.index}
-              ref={virtualizer.measureElement}
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                width: '100%',
-                transform: `translateY(${virtualItem.start}px)`,
-              }}
-              className="px-4 py-2"
-            >
-              <FeedPost
-                {...post}
-                isFollowingAuthor={isFollowingAuthor}
-                onFollowChange={onFollowChange}
-              />
-            </div>
-          );
-        })}
+        return (
+          <FeedPost
+            key={post.id}
+            {...post}
+            isFollowingAuthor={isFollowingAuthor}
+            onFollowChange={onFollowChange}
+          />
+        );
+      })}
 
-        {/* Loading indicator */}
-        {loadingMore && (
-          <div className="py-4 text-center text-gray-500">
-            Loading more posts...
-          </div>
-        )}
+      {/* Infinite scroll trigger */}
+      {hasMore && <div ref={loadMoreRef} style={{ height: '20px' }} />}
 
-        {/* End of feed */}
-        {!hasMore && posts.length > 0 && (
-          <div className="py-8 text-center text-gray-400">
-            You've seen all posts
-          </div>
-        )}
-      </div>
+      {/* Loading indicator */}
+      {loadingMore && (
+        <div className="py-4 text-center text-gray-500">
+          Loading more posts...
+        </div>
+      )}
+
+      {/* End of feed */}
+      {!hasMore && posts.length > 0 && (
+        <div className="py-8 text-center text-gray-400">
+          You've seen all posts
+        </div>
+      )}
     </div>
   );
 };
