@@ -36,6 +36,8 @@ interface RestaurantWithExtras extends FirebaseRestaurant {
   reviewCount: number;
   priceRange: string | null;
   coverImage: string | null;
+  headerImage?: string | null;
+  recentReviewPhotos?: string[];
   location: { lat: number | null; lng: number | null };
   normalizedCuisine: string;
   normalizedName: string;
@@ -258,6 +260,30 @@ const DiscoverList: React.FC = () => {
     }
   };
 
+  /**
+   * Extracts photos from reviews (media.photos and legacy images field)
+   * Returns up to 3 photos from the most recent reviews
+   */
+  const extractReviewPhotos = (reviews: ReviewWithCategory[]): string[] => {
+    const photos: string[] = [];
+
+    for (const review of reviews.slice(0, 5)) {
+      // Check new media.photos structure first
+      if ((review as any).media?.photos && Array.isArray((review as any).media.photos)) {
+        photos.push(...(review as any).media.photos);
+      }
+      // Fallback to legacy images field
+      else if (review.images && Array.isArray(review.images)) {
+        photos.push(...review.images);
+      }
+
+      // Stop after collecting 3 photos
+      if (photos.length >= 3) break;
+    }
+
+    return photos.slice(0, 3);
+  };
+
   useEffect(() => {
     let isCancelled = false;
 
@@ -313,6 +339,58 @@ const DiscoverList: React.FC = () => {
           // Precompute top 1-2 tags
           const topTags = getMostUsedTags(reviews);
 
+          // Extract review photos for thumbnail fallback
+          const recentReviewPhotos = extractReviewPhotos(reviews);
+
+          // Check if a URL is valid and not a tip logo/placeholder
+          const isValidImage = (url: string | undefined | null): boolean => {
+            if (!url || typeof url !== 'string' || url.trim() === '') return false;
+
+            const urlLower = url.toLowerCase();
+
+            // Debug log to see what URLs we're getting
+            if (urlLower.includes('tip') && !urlLower.includes('firebase') && !urlLower.includes('receipt')) {
+              console.log('[isValidImage] Checking URL with "tip":', url);
+            }
+
+            // Filter out tip logo in various formats
+            if (urlLower.includes('tip-logo') ||
+                urlLower.includes('/images/tip-logo') ||
+                urlLower.includes('tip_logo') ||
+                urlLower.includes('/tip-logo') ||
+                urlLower.includes('tiplogo') ||
+                urlLower.includes('placeholder')) {
+              console.log('[isValidImage] Filtered out as tip logo:', url);
+              return false;
+            }
+
+            // Filter out files that look like app logos/icons (but allow Firebase storage URLs with 'tip' in user content)
+            const isFirebaseUrl = urlLower.includes('firebasestorage') || urlLower.includes('googleapis');
+            if (!isFirebaseUrl && urlLower.includes('tip') &&
+                (urlLower.includes('.svg') || urlLower.includes('.png') || urlLower.includes('.jpg') || urlLower.includes('.webp')) &&
+                !urlLower.includes('receipt')) {
+              console.log('[isValidImage] Filtered out as potential tip icon:', url);
+              return false;
+            }
+
+            return true;
+          };
+
+          // Determine coverImage with proper fallback chain:
+          // 1. Existing coverImage (if valid and not tip logo)
+          // 2. Existing headerImage (if valid and not tip logo)
+          // 3. Google photos (for Google-sourced restaurants)
+          // 4. Review photos (for tip-rated restaurants)
+          // 5. null -> falls back to restaurant icon in RestaurantListCard
+          const existingCover = isValidImage((data as any).coverImage) ? (data as any).coverImage : null;
+          const existingHeader = isValidImage((data as any).headerImage) ? (data as any).headerImage : null;
+
+          const coverImage =
+            existingCover ||
+            existingHeader ||
+            (data.googlePhotos && data.googlePhotos.length > 0 ? data.googlePhotos[0] : null) ||
+            (recentReviewPhotos.length > 0 ? recentReviewPhotos[0] : null);
+
           return {
             ...data,
             id: restaurantId,
@@ -320,7 +398,9 @@ const DiscoverList: React.FC = () => {
             qualityPercentage: computedQuality ?? null,
             reviewCount: reviews.length,
             priceRange,
-            coverImage: (data.googlePhotos && data.googlePhotos.length > 0) ? data.googlePhotos[0] : null,
+            coverImage,
+            headerImage: (data as any).headerImage ?? null,
+            recentReviewPhotos,
             cuisines: normalizedCuisines,
             location: { lat, lng },
             normalizedCuisine: normalizeToken(data.cuisine || ''),
@@ -794,7 +874,7 @@ const DiscoverList: React.FC = () => {
         </div>
       </div>
 
-      <div className="bg-white px-4 py-3 border-b">
+      <div className="bg-white px-4 py-2 border-b">
         <div className="flex overflow-x-auto no-scrollbar space-x-2">
           {categories.map((category) => {
             const value = normalizeCategoryValue(category);
@@ -803,7 +883,7 @@ const DiscoverList: React.FC = () => {
               <button
                 key={value}
                 onClick={() => handleCategorySelect(value)}
-                className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-colors ${isActive ? 'bg-primary text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                className={`flex-shrink-0 px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${isActive ? 'bg-primary text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
               >
                 {category}
@@ -815,7 +895,7 @@ const DiscoverList: React.FC = () => {
 
       {viewMode === 'restaurant' && (
         <>
-          <div className="bg-white px-4 py-3 border-b">
+          <div className="bg-white px-4 py-2 border-b">
             {loadingTagFilter && selectedTagFilter ? (
               <div className="flex items-center text-sm text-gray-500 mb-3">
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-400 mr-2"></div>
@@ -831,7 +911,7 @@ const DiscoverList: React.FC = () => {
                     type="button"
                     disabled={loadingTagFilter}
                     onClick={() => handleTagFilterSelect(filter.value)}
-                    className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-colors flex items-center gap-2 ${isActive ? 'bg-gray-300 text-gray-900' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    className={`flex-shrink-0 px-4 py-1.5 rounded-full text-sm font-medium transition-colors flex items-center gap-2 ${isActive ? 'bg-gray-300 text-gray-900' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                       } ${loadingTagFilter ? 'opacity-60 cursor-not-allowed' : ''}`}
                   >
                     <span>{filter.emoji}</span>
@@ -842,7 +922,7 @@ const DiscoverList: React.FC = () => {
             </div>
           </div>
 
-          <div className="bg-white px-4 py-3 border-b">
+          <div className="bg-white px-4 py-2 border-b">
             <div className="flex overflow-x-auto no-scrollbar space-x-2">
               {[1, 2, 3, 4].map((level) => {
                 const isActive = selectedPriceLevel === level;
@@ -852,7 +932,7 @@ const DiscoverList: React.FC = () => {
                     key={level}
                     type="button"
                     onClick={() => handlePriceLevelSelect(level)}
-                    className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-colors ${isActive ? 'bg-primary text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    className={`flex-shrink-0 px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${isActive ? 'bg-primary text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                       }`}
                   >
                     {priceLabel}

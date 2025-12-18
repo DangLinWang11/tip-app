@@ -67,6 +67,26 @@ const RestaurantListCard: React.FC<RestaurantListCardProps> = ({ card, onClick }
   const [displaySubtitle, setDisplaySubtitle] = React.useState(card.subtitleText);
   const subtitleRef = React.useRef<HTMLSpanElement>(null);
 
+  // Calculate dynamic badge dimensions based on price level
+  const getBadgeDimensions = (priceText: string | null) => {
+    if (!priceText) return { width: 'auto', height: 'auto', borderRadius: '9999px' };
+
+    const dollarCount = priceText.length;
+    // Width increases with more dollar signs, height stays consistent
+    // $ -> 18px width (nearly circular)
+    // $$ -> 24px width (slightly elongated)
+    // $$$ -> 30px width (more elongated)
+    // $$$$ -> 36px width (most elongated)
+    const width = 12 + (dollarCount * 6); // 18, 24, 30, 36
+    const height = 18; // Consistent height
+
+    return {
+      width: `${width}px`,
+      height: `${height}px`,
+      borderRadius: '9999px' // Fully rounded ends
+    };
+  };
+
   // Detect if text wraps to multiple lines and truncate
   React.useEffect(() => {
     const element = subtitleRef.current;
@@ -102,19 +122,24 @@ const RestaurantListCard: React.FC<RestaurantListCardProps> = ({ card, onClick }
       className="bg-white rounded-xl shadow-sm flex items-center overflow-hidden border cursor-pointer hover:bg-gray-50 transition-colors h-[116px]"
       onClick={onClick}
     >
-      <div className="relative w-20 h-20 bg-slate-100 flex items-center justify-center flex-shrink-0 rounded-2xl overflow-hidden ml-3">
-        {card.coverImage && !imgError ? (
-          <img
-            src={card.coverImage}
-            alt={card.name}
-            className="w-full h-full object-cover"
-            onError={() => setImgError(true)}
-          />
-        ) : (
-          <Store size={32} className="text-slate-400" />
-        )}
+      <div className="relative w-20 h-20 flex-shrink-0 ml-3">
+        <div className="w-full h-full bg-slate-100 flex items-center justify-center rounded-2xl overflow-hidden">
+          {card.coverImage && !imgError ? (
+            <img
+              src={card.coverImage}
+              alt={card.name}
+              className="w-full h-full object-cover"
+              onError={() => setImgError(true)}
+            />
+          ) : (
+            <Store size={32} className="text-slate-400" />
+          )}
+        </div>
         {card.priceBadge && (
-          <div className="absolute top-1 left-1 bg-[#EF4444] rounded-full px-1.5 py-[1px] z-10">
+          <div
+            className="absolute -top-1 -left-1 bg-[#EF4444] z-10 flex items-center justify-center shadow-sm"
+            style={getBadgeDimensions(card.priceBadge)}
+          >
             <span className="text-[10px] font-semibold text-white leading-none">{card.priceBadge}</span>
           </div>
         )}
@@ -158,7 +183,6 @@ const RestaurantListCard: React.FC<RestaurantListCardProps> = ({ card, onClick }
                 {displaySubtitle}
               </span>
             )}
-            {card.priceText && <span>{card.priceText}</span>}
           </div>
           <div className="flex items-center text-xs text-slate-500">
             <MapPin size={14} className="text-slate-500 mr-1" />
