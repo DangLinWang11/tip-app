@@ -50,15 +50,18 @@ const Home: React.FC = () => {
 
   const navigate = useNavigate();
 
-  // Seed initial state from any existing module-level cache without invalidating it.
-  const initialCachedState = __homeCache;
-  const [firebaseReviews, setFirebaseReviews] = useState<FirebaseReview[]>(initialCachedState?.firebaseReviews || []);
-  const [userReviews, setUserReviews] = useState<FirebaseReview[]>(initialCachedState?.userReviews || []);
-  const [feedPosts, setFeedPosts] = useState<any[]>(initialCachedState?.feedPosts || []);
-  const [userProfile, setUserProfile] = useState<any>(initialCachedState?.userProfile || null);
-  // If we have any cached feed posts, treat as not loading to avoid blank screen.
-  const [loading, setLoading] = useState(!initialCachedState || (initialCachedState.feedPosts || []).length === 0);
-  const [profileLoading, setProfileLoading] = useState(!initialCachedState);
+  // Synchronously validate cache BEFORE initializing state to avoid blank screen
+  const initialAuthUser = getCurrentUser();
+  const cacheIsValid = isCacheValid(initialAuthUser?.uid);
+  const cachedData = cacheIsValid ? __homeCache : null;
+
+  const [firebaseReviews, setFirebaseReviews] = useState<FirebaseReview[]>(cachedData?.firebaseReviews || []);
+  const [userReviews, setUserReviews] = useState<FirebaseReview[]>(cachedData?.userReviews || []);
+  const [feedPosts, setFeedPosts] = useState<any[]>(cachedData?.feedPosts || []);
+  const [userProfile, setUserProfile] = useState<any>(cachedData?.userProfile || null);
+  // CRITICAL: If we have cached posts, we're NOT loading - this prevents blank screen
+  const [loading, setLoading] = useState(!cachedData || cachedData.feedPosts.length === 0);
+  const [profileLoading, setProfileLoading] = useState(!cachedData);
   const [error, setError] = useState<string | null>(null);
   const [showExpandedMap, setShowExpandedMap] = useState(false);
   const [authUser, setAuthUser] = useState(() => getCurrentUser());
@@ -163,22 +166,16 @@ const Home: React.FC = () => {
         forceRefresh,
       });
 
-      // If we have valid cache and no force refresh, we're done (state already initialized)
+      // If we have valid cache and no force refresh, skip fetch entirely
       if (!forceRefresh && cacheValid) {
         console.log(
           '[Home][init] Using cached data, skipping fetch',
           'ts=',
           new Date().toISOString()
         );
-        // Hydrate state from cache if we haven't already.
-        if (__homeCache) {
-          setFirebaseReviews(__homeCache.firebaseReviews);
-          setUserReviews(__homeCache.userReviews);
-          setFeedPosts(__homeCache.feedPosts);
-          setUserProfile(__homeCache.userProfile);
-          setLoading(false);
-          setProfileLoading(false);
-        }
+        // State is already hydrated from cache at mount, just ensure loading is false
+        setLoading(false);
+        setProfileLoading(false);
         return;
       }
 
@@ -541,14 +538,16 @@ const Home: React.FC = () => {
   );
 
   const hasAnyContent =
-    (feedPosts && feedPosts.length > 0) ||
-    (firebaseReviews && firebaseReviews.length > 0) ||
-    (userReviews && userReviews.length > 0);
+    feedPosts.length > 0 ||
+    firebaseReviews.length > 0 ||
+    userReviews.length > 0;
 
-  // Only show a full-screen loader on a true cold start where we have no cached content at all.
-  if (isFirstLoad.current && loading && !hasAnyContent && !__homeCache) {
-    console.log('[Home][render] showing cold-start loading state', {
+  // Only show loader on true cold start (no cache at all)
+  if (loading && !hasAnyContent) {
+    console.log('[Home][render] showing loading state', {
       ts: new Date().toISOString(),
+      feedPostsLength: feedPosts.length,
+      cacheExists: !!cachedData
     });
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 text-gray-500 text-sm">

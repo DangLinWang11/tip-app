@@ -1315,7 +1315,7 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
 
       {/* Header */}
       <div className="p-4 flex items-center gap-4">
-        <img src={author.image} alt={displayAuthorName} className="w-10 h-10 rounded-full object-cover" />
+        <img src={author.image} alt={displayAuthorName} loading="lazy" decoding="async" className="w-10 h-10 rounded-full object-cover" />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5">
             {/* NEW: Username area with follow button */}
@@ -1410,6 +1410,8 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
                       key={item.id}
                       src={item.imageUrl}
                       alt={item.dishName || 'Visit photo'}
+                      loading="lazy"
+                      decoding="async"
                       className="w-full aspect-square object-cover flex-shrink-0 snap-center"
                     />
                   ) : (
@@ -1439,6 +1441,8 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
                       key={item.id}
                       src={item.dish.image}
                       alt={item.dish.name}
+                      loading="lazy"
+                      decoding="async"
                       className="w-full aspect-square object-cover flex-shrink-0 snap-center"
                     />
                   ))
@@ -1446,6 +1450,8 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
                   <img
                     src={currentItem.dish.image}
                     alt={currentItem.dish.name}
+                    loading="lazy"
+                    decoding="async"
                     className="w-full aspect-square object-cover flex-shrink-0 snap-center"
                   />
                 )}
@@ -1491,6 +1497,8 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
                     <img
                       src={item.imageUrl}
                       alt={item.dishName || currentItem.dish.name}
+                      loading="lazy"
+                      decoding="async"
                       className="h-12 w-12 md:h-14 md:w-14 object-cover"
                     />
                   </button>
@@ -1528,6 +1536,8 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
                         <img
                           src={item.dish.image}
                           alt={item.dish.name}
+                          loading="lazy"
+                          decoding="async"
                           className="h-12 w-12 md:h-14 md:w-14 object-cover"
                         />
                       </button>

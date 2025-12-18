@@ -220,10 +220,12 @@ const PostDetail: React.FC<PostDetailProps> = () => {
       <div className="max-w-2xl mx-auto bg-white">
         {/* Author header */}
         <div className="p-6 flex items-center gap-4">
-          <img 
-            src={author?.image} 
-            alt={author?.name} 
-            className="w-12 h-12 rounded-full object-cover" 
+          <img
+            src={author?.image}
+            alt={author?.name}
+            loading="lazy"
+            decoding="async"
+            className="w-12 h-12 rounded-full object-cover"
           />
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
@@ -263,9 +265,11 @@ const PostDetail: React.FC<PostDetailProps> = () => {
         
         {/* Image */}
         <div className="relative">
-          <img 
-            src={(Array.isArray(post.images) && post.images.length > 0) ? post.images[0] : `https://source.unsplash.com/800x600/?food,${encodeURIComponent(post.dish)}`} 
-            alt={post.dish} 
+          <img
+            src={(Array.isArray(post.images) && post.images.length > 0) ? post.images[0] : `https://source.unsplash.com/800x600/?food,${encodeURIComponent(post.dish)}`}
+            alt={post.dish}
+            loading="lazy"
+            decoding="async"
             className="w-full aspect-square object-cover" 
           />
           {post.visitedTimes && (
