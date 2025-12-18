@@ -25,7 +25,7 @@ export const VirtualizedFeed: React.FC<VirtualizedFeedProps> = ({
 
   const virtualizer = useVirtualizer({
     count: posts.length,
-    getScrollElement: () => parentRef.current,
+    getScrollElement: () => window,
     estimateSize: () => 600, // Average post height
     overscan: 5, // Render 5 extra items above/below viewport
   });
@@ -54,11 +54,7 @@ export const VirtualizedFeed: React.FC<VirtualizedFeedProps> = ({
   ]);
 
   return (
-    <div
-      ref={parentRef}
-      style={{ height: '100vh', overflow: 'auto' }}
-      className="touch-pan-y"
-    >
+    <div className="space-y-4">
       <div
         style={{
           height: `${virtualizer.getTotalSize()}px`,

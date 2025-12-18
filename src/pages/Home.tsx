@@ -562,8 +562,7 @@ const Home: React.FC = () => {
     <div
       className="min-h-screen bg-gray-50 pb-16"
       onTouchStart={(e) => {
-        const container = virtualScrollRef.current;
-        if (container && container.scrollTop <= 0) {
+        if (window.scrollY <= 0) {
           canPull.current = true;
           pullStartY.current = e.touches[0].clientY;
         } else {
@@ -725,7 +724,6 @@ const Home: React.FC = () => {
               posts={feedPosts}
               followingMap={followingMap}
               onFollowChange={handleFollowChange}
-              scrollRef={virtualScrollRef}
               onLoadMore={loadMorePosts}
               hasMore={hasMore}
               loadingMore={loadingMore}
