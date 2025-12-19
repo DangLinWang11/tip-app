@@ -1,9 +1,8 @@
-﻿// File: src/App.tsx
+// File: src/App.tsx
 import React, { useState, useEffect, useLayoutEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth, getUserProfile } from './lib/firebase';
-import { ensureUserProfile } from './services/userService';
 import { I18nProvider } from './lib/i18n/useI18n';
 import Layout from './components/Layout';
 import Home from './pages/Home';
@@ -137,8 +136,6 @@ export function App() {
       if (user) {
         // User is signed in with Firebase Auth
         try {
-          // Ensure minimal user profile exists
-          await ensureUserProfile(user);
           // Check if user has completed profile setup
           const profileResult = await getUserProfile(user.uid);
           
