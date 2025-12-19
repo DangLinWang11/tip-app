@@ -460,12 +460,23 @@ const MenuDetail: React.FC = () => {
       {/* Header */}
       <header className="bg-white sticky top-0 z-10 shadow-sm p-4">
         <div className="flex items-center justify-between">
-          <div className="flex items-center">
-            <button onClick={() => navigate(-1)} className="mr-3">
+          <div className="flex items-center flex-1 min-w-0">
+            <button onClick={() => navigate(-1)} className="mr-3 flex-shrink-0">
               <ArrowLeftIcon size={24} />
             </button>
-            <div>
-              <h1 className="text-xl font-semibold">{menuItem.name}</h1>
+            <div className="min-w-0 flex-1">
+              <h1 className="text-xl font-semibold truncate">{menuItem.name}</h1>
+              {restaurant && (
+                <div className="flex items-center mt-0.5 text-sm text-dark-gray">
+                  <MapPinIcon size={14} className="text-primary mr-1 flex-shrink-0" />
+                  <Link
+                    to={`/restaurant/${restaurant.id}`}
+                    className="hover:underline truncate"
+                  >
+                    {restaurant.name}
+                  </Link>
+                </div>
+              )}
             </div>
           </div>
           {/* Right side icons removed for cleaner header */}

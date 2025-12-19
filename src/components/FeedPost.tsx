@@ -917,7 +917,7 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
                     key={item.id}
                     src={item.dish.image}
                     alt={item.dish.name}
-                    loading="lazy"
+                    loading="eager"
                     decoding="async"
                     className="w-full aspect-square object-cover flex-shrink-0 snap-center"
                   />
@@ -935,7 +935,7 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
                 <img
                   src={currentItem.dish.image}
                   alt={currentItem.dish.name}
-                  loading="lazy"
+                  loading="eager"
                   decoding="async"
                   className="w-full aspect-square object-cover flex-shrink-0 snap-center"
                 />
@@ -1410,7 +1410,7 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
                       key={item.id}
                       src={item.imageUrl}
                       alt={item.dishName || 'Visit photo'}
-                      loading="lazy"
+                      loading="eager"
                       decoding="async"
                       className="w-full aspect-square object-cover flex-shrink-0 snap-center"
                     />
@@ -1441,7 +1441,7 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
                       key={item.id}
                       src={item.dish.image}
                       alt={item.dish.name}
-                      loading="lazy"
+                      loading="eager"
                       decoding="async"
                       className="w-full aspect-square object-cover flex-shrink-0 snap-center"
                     />
@@ -1450,7 +1450,7 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
                   <img
                     src={currentItem.dish.image}
                     alt={currentItem.dish.name}
-                    loading="lazy"
+                    loading="eager"
                     decoding="async"
                     className="w-full aspect-square object-cover flex-shrink-0 snap-center"
                   />
