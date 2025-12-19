@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo, useLayoutEffect, useCallback } from 'react';
 import { MapIcon, PlusIcon, MapPinIcon, Star, ChevronRight, Store } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { onAuthStateChanged } from 'firebase/auth';
 import HamburgerMenu from '../components/HamburgerMenu';
 import FeedPost from '../components/FeedPost';
@@ -49,6 +49,7 @@ const Home: React.FC = () => {
   );
 
   const navigate = useNavigate();
+  const location = useLocation();
 
   // Synchronously validate cache BEFORE initializing state to avoid blank screen
   const initialAuthUser = getCurrentUser();
@@ -145,12 +146,16 @@ const Home: React.FC = () => {
   useEffect(() => {
     const initializeData = async () => {
       if (!authUser) {
-        console.log(
-          '[Home][init] No authenticated user yet, skipping initialization',
-          'ts=',
-          new Date().toISOString()
-        );
-        return;
+        console.log('[Home][init] No authenticated user yet, waiting...');
+
+        // Set timeout: if no auth after 3 seconds, show error
+        const timeoutId = setTimeout(() => {
+          console.error('[Home][init] Auth timeout - user still null after 3s');
+          setLoading(false);
+          setError('Authentication timeout. Please refresh the page.');
+        }, 3000);
+
+        return () => clearTimeout(timeoutId);
       }
 
       // Check for force refresh flag
@@ -373,40 +378,48 @@ const Home: React.FC = () => {
           });
         } catch (e) {
           console.error('[Home][listener] Failed converting live feed posts', e);
+          setError('Failed to load feed updates');
+          setLoading(false);
+          setRefreshing(false);
         }
       },
       // Incremental updates: only convert what changed
       async (added, modified, removed) => {
-        console.log('[Home][listener] Delta:', {
-          added: added.length,
-          modified: modified.length,
-          removed: removed.length
-        });
-
-        // Handle removed posts
-        if (removed.length) {
-          setFeedPosts((prev) => prev.filter(post => !removed.includes(post.id)));
-        }
-
-        // Handle modified posts (re-convert and replace)
-        if (modified.length) {
-          const modifiedPosts = await convertReviewsToFeedPosts(modified);
-          setFeedPosts((prev) => {
-            const updated = [...prev];
-            modifiedPosts.forEach(modPost => {
-              const index = updated.findIndex(p => p.id === modPost.id);
-              if (index >= 0) {
-                updated[index] = modPost;
-              }
-            });
-            return updated;
+        try {
+          console.log('[Home][listener] Delta:', {
+            added: added.length,
+            modified: modified.length,
+            removed: removed.length
           });
-        }
 
-        // Handle new posts (convert and prepend to top)
-        if (added.length) {
-          const newPosts = await convertReviewsToFeedPosts(added);
-          setFeedPosts((prev) => [...newPosts, ...prev]);
+          // Handle removed posts
+          if (removed.length) {
+            setFeedPosts((prev) => prev.filter(post => !removed.includes(post.id)));
+          }
+
+          // Handle modified posts (re-convert and replace)
+          if (modified.length) {
+            const modifiedPosts = await convertReviewsToFeedPosts(modified);
+            setFeedPosts((prev) => {
+              const updated = [...prev];
+              modifiedPosts.forEach(modPost => {
+                const index = updated.findIndex(p => p.id === modPost.id);
+                if (index >= 0) {
+                  updated[index] = modPost;
+                }
+              });
+              return updated;
+            });
+          }
+
+          // Handle new posts (convert and prepend to top)
+          if (added.length) {
+            const newPosts = await convertReviewsToFeedPosts(added);
+            setFeedPosts((prev) => [...newPosts, ...prev]);
+          }
+        } catch (e) {
+          console.error('[Home][listener] Delta update failed', e);
+          // Don't set error for incremental failures - just log
         }
       }
     );
@@ -455,6 +468,68 @@ const Home: React.FC = () => {
       authUserId: authUser?.uid || null,
     });
   }, [feedPosts.length]);
+
+  // Loading timeout protection: prevent infinite loading state
+  useEffect(() => {
+    if (!loading) return;
+
+    const timeoutId = setTimeout(() => {
+      if (loading) {
+        console.error('[Home] Loading timeout - still loading after 10s');
+        setLoading(false);
+        setError('Loading took too long. Please try refreshing.');
+      }
+    }, 10000);
+
+    return () => clearTimeout(timeoutId);
+  }, [loading]);
+
+  // Navigation detection: refresh stale cache when navigating to Home
+  const hasNavigatedToHome = useRef(false);
+
+  useEffect(() => {
+    // Detect when we navigate TO home (not just mount)
+    if (location.pathname === '/' && authUser) {
+      if (hasNavigatedToHome.current) {
+        // Not first mount, this is a navigation event
+        const cacheAge = __homeCache ? Date.now() - __homeCache.ts : Infinity;
+
+        // Refresh if cache older than 30 seconds
+        if (cacheAge > 30000) {
+          console.log('[Home][nav] Navigated to Home, refreshing stale cache', {
+            cacheAgeMs: cacheAge
+          });
+          setRefreshing(true);
+          // Clear cache and fetch fresh data
+          __homeCache = null;
+          __homeCacheUserId = null;
+          loadReviews();
+        }
+      }
+      hasNavigatedToHome.current = true;
+    }
+  }, [location.pathname, authUser]);
+
+  // Page visibility detection: refresh when user returns to tab
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && authUser) {
+        const cacheAge = __homeCache ? Date.now() - __homeCache.ts : Infinity;
+        const cacheStale = cacheAge > HOME_CACHE_TTL_MS;
+
+        if (cacheStale) {
+          console.log('[Home][visibility] Tab visible, cache stale, refreshing');
+          setRefreshing(true);
+          __homeCache = null;
+          __homeCacheUserId = null;
+          loadReviews();
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [authUser]);
 
   // Stable map of follow status keyed by authorId, for FeedPost components.
   const followingMap = useMemo(() => {
@@ -543,18 +618,28 @@ const Home: React.FC = () => {
     userReviews.length > 0;
 
   // Only show loader on true cold start (no cache at all)
-  if (loading && !hasAnyContent) {
+  // CRITICAL: Only block UI on absolute first load to ensure interactability
+  if (loading && !hasAnyContent && !cachedData && isFirstLoad.current) {
+    // ONLY show blocking loading screen on true first load
+    // If we have ANY data (cache or current), show it and make page interactive
     console.log('[Home][render] showing loading state', {
       ts: new Date().toISOString(),
       feedPostsLength: feedPosts.length,
-      cacheExists: !!cachedData
+      cacheExists: !!cachedData,
+      isFirstLoad: isFirstLoad.current
     });
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 text-gray-500 text-sm">
-        Loading your feed...
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading your feed...</p>
+        </div>
       </div>
     );
   }
+
+  // If we reach here, ALWAYS render the full UI (even if loading)
+  // This ensures the page is ALWAYS interactive after first load
 
   // Always show the full Home dashboard (stats, map, community feed)
   return (
@@ -665,9 +750,12 @@ const Home: React.FC = () => {
 
       <div className="px-4 py-6">
         {/* Inline refresh indicator when updating but showing cached content */}
-        {loading && hasAnyContent && (
+        {refreshing && hasAnyContent && (
           <div className="flex justify-center mb-3">
-            <span className="text-xs text-gray-400">Refreshing...</span>
+            <div className="bg-white rounded-full shadow-sm px-4 py-2 flex items-center gap-2">
+              <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+              <span className="text-xs text-gray-600">Updating feed...</span>
+            </div>
           </div>
         )}
 
@@ -706,13 +794,30 @@ const Home: React.FC = () => {
           <h2 className="text-lg font-bold text-black">Community Feed</h2>
           
           {error && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
-              <p className="text-red-600">{error}</p>
-              <button 
-                onClick={() => window.location.reload()} 
-                className="mt-2 text-red-600 underline"
+            <div className="max-w-md mx-auto bg-white rounded-xl shadow-sm p-8 text-center my-6">
+              <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                    d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                Couldn't Load Your Feed
+              </h3>
+              <p className="text-gray-600 mb-6 text-sm">{error}</p>
+              <button
+                onClick={() => {
+                  // Clear cache and retry
+                  __homeCache = null;
+                  __homeCacheUserId = null;
+                  setError(null);
+                  setLoading(true);
+                  // Trigger re-initialization
+                  window.location.search = '?refresh=1';
+                }}
+                className="bg-primary text-white py-3 px-6 rounded-full font-medium hover:bg-red-600 transition-colors"
               >
-                Retry
+                Try Again
               </button>
             </div>
           )}
@@ -747,8 +852,12 @@ const Home: React.FC = () => {
 
       {/* Expanded Map Modal */}
       {/* Lazy-loaded map modal to keep initial bundle light */}
-      <React.Suspense fallback={null}>
-        <ExpandedMapModal 
+      <React.Suspense fallback={
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin" />
+        </div>
+      }>
+        <ExpandedMapModal
           isOpen={showExpandedMap}
           onClose={() => setShowExpandedMap(false)}
         />

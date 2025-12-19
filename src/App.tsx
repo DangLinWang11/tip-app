@@ -218,8 +218,12 @@ export function App() {
         <RedirectAfterLogin />
         <RouteLogger />
         <RouteShell>
-          {/* Keep Suspense, but remove full-screen fallback to avoid white flash */}
-          <React.Suspense fallback={null}>
+          {/* Suspense with minimal loading indicator */}
+          <React.Suspense fallback={
+            <div className="min-h-screen bg-white flex items-center justify-center">
+              <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+            </div>
+          }>
             <Routes>
               <Route path="/" element={<Layout />}>
                 <Route index element={<Home />} />

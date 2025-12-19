@@ -461,7 +461,7 @@ const MenuDetail: React.FC = () => {
       <header className="bg-white sticky top-0 z-10 shadow-sm p-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center flex-1 min-w-0">
-            <button onClick={() => navigate(-1)} className="mr-3 flex-shrink-0">
+            <button onClick={() => navigate('/')} className="mr-3 flex-shrink-0">
               <ArrowLeftIcon size={24} />
             </button>
             <div className="min-w-0 flex-1">

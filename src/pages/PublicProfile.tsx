@@ -158,7 +158,7 @@ const PublicProfile: React.FC = () => {
         <div className="bg-white px-4 py-6 shadow-sm">
           <div className="flex items-center">
             <button 
-              onClick={() => navigate(-1)}
+              onClick={() => navigate('/')}
               className="mr-4 p-2 hover:bg-gray-100 rounded-full transition-colors"
             >
               <ArrowLeftIcon size={20} className="text-gray-600" />
@@ -185,7 +185,7 @@ const PublicProfile: React.FC = () => {
         <div className="bg-white px-4 py-6 shadow-sm">
           <div className="flex items-center">
             <button 
-              onClick={() => navigate(-1)}
+              onClick={() => navigate('/')}
               className="mr-4 p-2 hover:bg-gray-100 rounded-full transition-colors"
             >
               <ArrowLeftIcon size={20} className="text-gray-600" />
@@ -199,7 +199,7 @@ const PublicProfile: React.FC = () => {
           <h3 className="text-lg font-semibold text-gray-900 mb-2">User Not Found</h3>
           <p className="text-gray-600 mb-4">This user doesn't exist or their profile is private.</p>
           <button
-            onClick={() => navigate(-1)}
+            onClick={() => navigate('/')}
             className="bg-primary text-white py-2 px-6 rounded-full font-medium hover:bg-red-600 transition-colors"
           >
             Go Back
@@ -215,7 +215,7 @@ const PublicProfile: React.FC = () => {
       <div className="bg-white px-4 py-4 shadow-sm">
         <div className="flex items-center">
           <button 
-            onClick={() => navigate(-1)}
+            onClick={() => navigate('/')}
             className="mr-2 p-2 hover:bg-gray-100 rounded-full transition-colors"
           >
             <ArrowLeftIcon size={20} className="text-gray-600" />
