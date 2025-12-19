@@ -2028,6 +2028,9 @@ export function listenHomeFeed(
     limit(100) // Fetch extra to account for filtering
   );
 
+  // Track if this is the first snapshot to avoid duplicate processing
+  let isFirstSnapshot = true;
+
   const unsub = onSnapshot(qRef, { includeMetadataChanges: false }, (snap) => {
     const raw = snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) }));
 
@@ -2050,7 +2053,8 @@ export function listenHomeFeed(
     onChange(items);
 
     // If delta callback provided, detect changes and send incremental updates
-    if (onDelta) {
+    // IMPORTANT: Skip delta processing on first snapshot to avoid duplicates
+    if (onDelta && !isFirstSnapshot) {
       const added: FirebaseReview[] = [];
       const modified: FirebaseReview[] = [];
       const removed: string[] = [];
@@ -2070,6 +2074,11 @@ export function listenHomeFeed(
       if (added.length || modified.length || removed.length) {
         onDelta(added, modified, removed);
       }
+    }
+
+    // Mark that we've processed the first snapshot
+    if (isFirstSnapshot) {
+      isFirstSnapshot = false;
     }
   });
 
