@@ -6,9 +6,9 @@ import {
   BookmarkIcon,
   ShareIcon,
   CheckCircleIcon,
-  MapPinIcon,
 } from 'lucide-react';
 import { MoreHorizontal as DotsIcon } from 'lucide-react';
+import LocationPinIcon from './icons/LocationPinIcon';
 import RatingBadge from './RatingBadge';
 import { useFeature } from '../utils/features';
 import SaveToListModal from './SaveToListModal';
@@ -864,7 +864,7 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
           {/* Restaurant line under header (legacy layout) */}
           {restaurant && (
             <div className="mt-1 text-sm text-dark-gray flex items-center gap-0.5">
-              <MapPinIcon size={14} className="text-red-500" />
+              <LocationPinIcon size={14} className="text-red-500" />
               <span
                 onClick={() => {
                   if (restaurantId) {
@@ -1356,7 +1356,7 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
           {/* Restaurant line under header (visit layout) */}
           {restaurant && (
             <div className="mt-1 text-sm text-dark-gray flex items-center gap-0.5">
-              <MapPinIcon size={14} className="text-red-500" />
+              <LocationPinIcon size={14} className="text-red-500" />
               <span
                 onClick={() => {
                   if (restaurantId) {
