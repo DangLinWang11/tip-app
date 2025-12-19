@@ -53,15 +53,18 @@ try {
 
 // Enable offline persistence for better background handling
 if (db) {
-  enableIndexedDbPersistence(db).catch((err) => {
-    if (err.code === 'failed-precondition') {
-      console.warn('⚠️ Multiple tabs open - persistence only enabled in first tab');
-    } else if (err.code === 'unimplemented') {
-      console.warn('⚠️ Browser doesn\'t support offline persistence');
-    } else {
-      console.error('❌ Failed to enable persistence:', err);
+  (async () => {
+    try {
+      await enableIndexedDbPersistence(db);
+      console.log('✅ Firestore offline persistence enabled');
+    } catch (err: any) {
+      if (err.code === 'failed-precondition') {
+        console.warn('⚠️ Firestore persistence failed: multiple tabs open. Offline mode will be disabled for this tab.');
+      } else if (err.code === 'unimplemented') {
+        console.warn('⚠️ Firestore persistence not supported in this browser. Offline mode will be disabled.');
+      }
     }
-  });
+  })();
 }
 
 // Initialize Cloud Storage with error handling
