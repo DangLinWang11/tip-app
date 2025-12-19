@@ -761,8 +761,10 @@ const Home: React.FC = () => {
 
         {/* Your Food Journey Section */}
         <div className="bg-white rounded-xl shadow-sm p-5 mb-6">
-          <h2 className="text-2xl font-bold text-gray-900 mb-1">Your Food Journey</h2>
-          <p className="text-sm font-normal text-gray-500 mb-5">Tap to open your journey map</p>
+          <div className="flex items-center gap-2 mb-5">
+            <MapIcon size={24} className="text-primary" />
+            <h2 className="text-2xl font-bold text-gray-900">Your Food Journey</h2>
+          </div>
           <div
             className="h-52 rounded-2xl border border-gray-100 overflow-hidden relative cursor-pointer hover:border-gray-200 hover:shadow-md transition-all duration-200"
             onClick={() => setShowExpandedMap(true)}
@@ -775,6 +777,12 @@ const Home: React.FC = () => {
               className="absolute inset-0 w-full h-full object-cover"
             />
             <div className="absolute inset-0 bg-white/5" />
+            {/* Centered text overlay */}
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div className="bg-white px-6 py-3 rounded-full shadow-lg">
+                <p className="text-sm font-semibold text-primary">Tap to open your journey map</p>
+              </div>
+            </div>
           </div>
 
           <div className="text-center mt-5">

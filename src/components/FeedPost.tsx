@@ -811,7 +811,7 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
   const legacyLayout = (
     <div className="relative bg-white rounded-2xl overflow-hidden shadow-sm mb-4">
       {/* Absolute rating (bigger, nudged down & left) */}
-      <div className="pointer-events-none absolute top-5 right-5 z-10">
+      <div className="pointer-events-none absolute top-5 right-5 z-0">
         <RatingBadge rating={heroRating} size="xl" />
       </div>
 
@@ -1309,7 +1309,7 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
   const visitLayout = (
     <div className="relative bg-white rounded-2xl overflow-hidden shadow-sm mb-4">
       {/* Absolute rating (bigger, nudged down & left) */}
-      <div className="pointer-events-none absolute top-5 right-5 z-10">
+      <div className="pointer-events-none absolute top-5 right-5 z-0">
         <RatingBadge rating={heroRating} size="xl" />
       </div>
 
