@@ -28,6 +28,7 @@ interface FeedPostReview {
   createdAtMs?: number;
   caption?: string;
   visitCaption?: string;
+  serviceSpeed?: 'fast' | 'normal' | 'slow' | null;
   tasteChips?: string[];
   audienceTags?: string[];
 }
@@ -134,6 +135,11 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
     id,
     authorId: author.id,
   });
+
+  // State for image loading
+  const [imageLoaded, setImageLoaded] = useState<{ [key: string]: boolean }>({});
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [isNearViewport, setIsNearViewport] = useState(false);
   // Log all IDs received by FeedPost component
   console.log('📝 [FeedPost] Component initialized with IDs:', {
     id: id,
@@ -153,6 +159,7 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
   const [currentIndex, setCurrentIndex] = useState(0);
   const imageRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const isProgrammaticScroll = useRef(false); // Track programmatic scrolls to prevent spazzing
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [isActionSheetOpen, setIsActionSheetOpen] = useState(false);
   const [showReceiptModal, setShowReceiptModal] = useState(false);
@@ -529,6 +536,36 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
     return () => clearInterval(id);
   }, []);
 
+  // Intersection Observer for pre-warming images
+  useEffect(() => {
+    if (!containerRef.current) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting || entry.intersectionRatio > 0) {
+            setIsNearViewport(true);
+          }
+        });
+      },
+      {
+        rootMargin: '200px', // Start loading 200px before entering viewport
+        threshold: 0
+      }
+    );
+
+    observer.observe(containerRef.current);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
+
+  // Handle image load event
+  const handleImageLoad = (imageUrl: string) => {
+    setImageLoaded(prev => ({ ...prev, [imageUrl]: true }));
+  };
+
   // Debug logging: Track index mismatches to help prevent crashes
   useEffect(() => {
     if (currentIndex >= carouselItems.length && isCarousel && !hasMediaItems) {
@@ -566,6 +603,11 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
 
   // Native scroll-based navigation with scroll snap
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    // Skip updating index during programmatic scrolls to prevent border "spazzing"
+    if (isProgrammaticScroll.current) {
+      return;
+    }
+
     const container = e.currentTarget;
     const scrollLeft = container.scrollLeft;
     const itemWidth = container.offsetWidth;
@@ -581,6 +623,9 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
     const safeIndex = Math.min(Math.max(index, 0), mediaLength - 1);
     setCurrentIndex(safeIndex);
 
+    // Set flag to prevent handleScroll from updating index during animation
+    isProgrammaticScroll.current = true;
+
     // Scroll to the selected index
     if (scrollContainerRef.current) {
       const itemWidth = scrollContainerRef.current.offsetWidth;
@@ -588,6 +633,11 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
         left: safeIndex * itemWidth,
         behavior: 'smooth'
       });
+
+      // Clear flag after scroll animation completes (~300ms for smooth scroll)
+      setTimeout(() => {
+        isProgrammaticScroll.current = false;
+      }, 350);
     }
   };
 
@@ -809,7 +859,7 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
   };
 
   const legacyLayout = (
-    <div className="relative bg-white rounded-2xl overflow-hidden shadow-sm mb-4">
+    <div ref={containerRef} className="relative bg-white rounded-2xl overflow-hidden shadow-sm mb-4">
       {/* Absolute rating (bigger, nudged down & left) */}
       <div className="pointer-events-none absolute top-5 right-5 z-0">
         <RatingBadge rating={heroRating} size="xl" />
@@ -877,6 +927,11 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
               >
                 {restaurant.name}
               </span>
+              {review.serviceSpeed && (
+                <span className="ml-1 text-xs flex-shrink-0">
+                  {review.serviceSpeed === 'fast' ? '⚡' : review.serviceSpeed === 'normal' ? '⏱️' : '🐌'}
+                </span>
+              )}
               {restaurant.qualityScore !== undefined && qualityColor && (
                 <div
                   className="ml-1 w-8 h-5 flex items-center justify-center rounded-full flex-shrink-0"
@@ -910,17 +965,24 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
             }}
           >
             {isCarousel && carouselItems.length > 1 ? (
-              carouselItems.map((item) => (
+              carouselItems.map((item, index) => (
                 // Defensive: ensure image URL exists before rendering
                 item.dish.image && typeof item.dish.image === 'string' ? (
-                  <img
+                  <div
                     key={item.id}
-                    src={item.dish.image}
-                    alt={item.dish.name}
-                    loading="eager"
-                    decoding="async"
-                    className="w-full aspect-square object-cover flex-shrink-0 snap-center"
-                  />
+                    className="w-full aspect-square bg-gray-100 flex-shrink-0 snap-center relative"
+                  >
+                    <img
+                      src={item.dish.image}
+                      alt={item.dish.name}
+                      loading={isNearViewport || index < 3 ? "eager" : "lazy"}
+                      decoding="async"
+                      onLoad={() => handleImageLoad(item.dish.image)}
+                      className={`w-full h-full object-cover absolute inset-0 transition-opacity duration-300 ${
+                        imageLoaded[item.dish.image] ? 'opacity-100' : 'opacity-0'
+                      }`}
+                    />
+                  </div>
                 ) : (
                   <div
                     key={item.id}
@@ -932,13 +994,18 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
               ))
             ) : (
               currentItem.dish.image && typeof currentItem.dish.image === 'string' ? (
-                <img
-                  src={currentItem.dish.image}
-                  alt={currentItem.dish.name}
-                  loading="eager"
-                  decoding="async"
-                  className="w-full aspect-square object-cover flex-shrink-0 snap-center"
-                />
+                <div className="w-full aspect-square bg-gray-100 snap-center relative">
+                  <img
+                    src={currentItem.dish.image}
+                    alt={currentItem.dish.name}
+                    loading={isNearViewport ? "eager" : "lazy"}
+                    decoding="async"
+                    onLoad={() => handleImageLoad(currentItem.dish.image)}
+                    className={`w-full h-full object-cover absolute inset-0 transition-opacity duration-300 ${
+                      imageLoaded[currentItem.dish.image] ? 'opacity-100' : 'opacity-0'
+                    }`}
+                  />
+                </div>
               ) : (
                 <div className="w-full aspect-square bg-gray-200 flex items-center justify-center snap-center">
                   <span className="text-gray-400">Image unavailable</span>
@@ -947,8 +1014,11 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
             )}
           </div>
           {currentItem.dish.visitCount && (
-            <div className="absolute top-4 right-4 bg-black bg-opacity-50 text-white px-3 py-1 rounded-full text-sm">
-              Visited {currentItem.dish.visitCount}x
+            <div className="absolute top-4 right-4 bg-black bg-opacity-50 text-white px-3 py-1 rounded-full text-sm max-w-[120px] truncate">
+              {hasMediaItems && activeMediaItem?.kind === 'dish' && currentItem.dish.visitCount === 1
+                ? (activeMediaItem.dishName || currentItem.dish.name)
+                : `Visited ${currentItem.dish.visitCount}x`
+              }
             </div>
           )}
         </div>
@@ -1307,7 +1377,7 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
   );
 
   const visitLayout = (
-    <div className="relative bg-white rounded-2xl overflow-hidden shadow-sm mb-4">
+    <div ref={containerRef} className="relative bg-white rounded-2xl overflow-hidden shadow-sm mb-4">
       {/* Absolute rating (bigger, nudged down & left) */}
       <div className="pointer-events-none absolute top-5 right-5 z-0">
         <RatingBadge rating={heroRating} size="xl" />
@@ -1369,6 +1439,11 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
               >
                 {restaurant.name}
               </span>
+              {review.serviceSpeed && (
+                <span className="ml-1 text-xs flex-shrink-0">
+                  {review.serviceSpeed === 'fast' ? '⚡' : review.serviceSpeed === 'normal' ? '⏱️' : '🐌'}
+                </span>
+              )}
               {restaurant.qualityScore !== undefined && qualityColor && (
                 <div
                   className="ml-1 w-8 h-5 flex items-center justify-center rounded-full flex-shrink-0"
@@ -1403,17 +1478,24 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
                   WebkitOverflowScrolling: 'touch'
                 }}
               >
-                {mediaItems.map((item) => (
+                {mediaItems.map((item, index) => (
                   // Defensive: ensure imageUrl is valid before rendering
                   item.imageUrl && typeof item.imageUrl === 'string' ? (
-                    <img
+                    <div
                       key={item.id}
-                      src={item.imageUrl}
-                      alt={item.dishName || 'Visit photo'}
-                      loading="eager"
-                      decoding="async"
-                      className="w-full aspect-square object-cover flex-shrink-0 snap-center"
-                    />
+                      className="w-full aspect-square bg-gray-100 flex-shrink-0 snap-center relative"
+                    >
+                      <img
+                        src={item.imageUrl}
+                        alt={item.dishName || 'Visit photo'}
+                        loading={isNearViewport || index < 3 ? "eager" : "lazy"}
+                        decoding="async"
+                        onLoad={() => handleImageLoad(item.imageUrl)}
+                        className={`w-full h-full object-cover absolute inset-0 transition-opacity duration-300 ${
+                          imageLoaded[item.imageUrl] ? 'opacity-100' : 'opacity-0'
+                        }`}
+                      />
+                    </div>
                   ) : (
                     <div
                       key={item.id}
@@ -1436,30 +1518,45 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
                 }}
               >
                 {isCarousel && carouselItems.length > 1 ? (
-                  carouselItems.map((item) => (
-                    <img
+                  carouselItems.map((item, index) => (
+                    <div
                       key={item.id}
-                      src={item.dish.image}
-                      alt={item.dish.name}
-                      loading="eager"
-                      decoding="async"
-                      className="w-full aspect-square object-cover flex-shrink-0 snap-center"
-                    />
+                      className="w-full aspect-square bg-gray-100 flex-shrink-0 snap-center relative"
+                    >
+                      <img
+                        src={item.dish.image}
+                        alt={item.dish.name}
+                        loading={isNearViewport || index < 3 ? "eager" : "lazy"}
+                        decoding="async"
+                        onLoad={() => handleImageLoad(item.dish.image)}
+                        className={`w-full h-full object-cover absolute inset-0 transition-opacity duration-300 ${
+                          imageLoaded[item.dish.image] ? 'opacity-100' : 'opacity-0'
+                        }`}
+                      />
+                    </div>
                   ))
                 ) : (
-                  <img
-                    src={currentItem.dish.image}
-                    alt={currentItem.dish.name}
-                    loading="eager"
-                    decoding="async"
-                    className="w-full aspect-square object-cover flex-shrink-0 snap-center"
-                  />
+                  <div className="w-full aspect-square bg-gray-100 snap-center relative">
+                    <img
+                      src={currentItem.dish.image}
+                      alt={currentItem.dish.name}
+                      loading={isNearViewport ? "eager" : "lazy"}
+                      decoding="async"
+                      onLoad={() => handleImageLoad(currentItem.dish.image)}
+                      className={`w-full h-full object-cover absolute inset-0 transition-opacity duration-300 ${
+                        imageLoaded[currentItem.dish.image] ? 'opacity-100' : 'opacity-0'
+                      }`}
+                    />
+                  </div>
                 )}
               </div>
             )}
             {currentItem.dish.visitCount && (
-              <div className="absolute top-4 right-4 bg-black bg-opacity-50 text-white px-3 py-1 rounded-full text-sm">
-                Visited {currentItem.dish.visitCount}x
+              <div className="absolute top-4 right-4 bg-black bg-opacity-50 text-white px-3 py-1 rounded-full text-sm max-w-[120px] truncate">
+                {hasMediaItems && activeMediaItem?.kind === 'dish' && currentItem.dish.visitCount === 1
+                  ? (activeMediaItem.dishName || currentItem.dish.name)
+                  : `Visited ${currentItem.dish.visitCount}x`
+                }
               </div>
             )}
           </div>
@@ -1479,6 +1576,9 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
                       const safeIndex = Math.min(Math.max(index, 0), mediaItems!.length - 1);
                       setCurrentIndex(safeIndex);
 
+                      // Set flag to prevent handleScroll from updating index during animation
+                      isProgrammaticScroll.current = true;
+
                       // Scroll to the selected index
                       if (scrollContainerRef.current) {
                         const itemWidth = scrollContainerRef.current.offsetWidth;
@@ -1486,6 +1586,11 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
                           left: safeIndex * itemWidth,
                           behavior: 'smooth'
                         });
+
+                        // Clear flag after scroll animation completes (~300ms for smooth scroll)
+                        setTimeout(() => {
+                          isProgrammaticScroll.current = false;
+                        }, 350);
                       }
                     }}
                     className={`relative flex-shrink-0 rounded-xl overflow-hidden border ${
@@ -1494,13 +1599,18 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
                         : 'border-transparent opacity-80 hover:opacity-100'
                     }`}
                   >
-                    <img
-                      src={item.imageUrl}
-                      alt={item.dishName || currentItem.dish.name}
-                      loading="lazy"
-                      decoding="async"
-                      className="h-12 w-12 md:h-14 md:w-14 object-cover"
-                    />
+                    <div className="h-12 w-12 md:h-14 md:w-14 bg-gray-100 relative">
+                      <img
+                        src={item.imageUrl}
+                        alt={item.dishName || currentItem.dish.name}
+                        loading="lazy"
+                        decoding="async"
+                        onLoad={() => handleImageLoad(`thumb_${item.imageUrl}`)}
+                        className={`h-full w-full object-cover absolute inset-0 transition-opacity duration-200 ${
+                          imageLoaded[`thumb_${item.imageUrl}`] ? 'opacity-100' : 'opacity-0'
+                        }`}
+                      />
+                    </div>
                   </button>
                 );
               })
@@ -1518,6 +1628,9 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
                           const safeIndex = Math.min(Math.max(index, 0), carouselItems.length - 1);
                           setCurrentIndex(safeIndex);
 
+                          // Set flag to prevent handleScroll from updating index during animation
+                          isProgrammaticScroll.current = true;
+
                           // Scroll to the selected index
                           if (scrollContainerRef.current) {
                             const itemWidth = scrollContainerRef.current.offsetWidth;
@@ -1525,6 +1638,11 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
                               left: safeIndex * itemWidth,
                               behavior: 'smooth'
                             });
+
+                            // Clear flag after scroll animation completes (~300ms for smooth scroll)
+                            setTimeout(() => {
+                              isProgrammaticScroll.current = false;
+                            }, 350);
                           }
                         }}
                         className={`relative flex-shrink-0 rounded-xl overflow-hidden border ${
@@ -1533,13 +1651,18 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
                             : 'border-transparent opacity-80 hover:opacity-100'
                         }`}
                       >
-                        <img
-                          src={item.dish.image}
-                          alt={item.dish.name}
-                          loading="lazy"
-                          decoding="async"
-                          className="h-12 w-12 md:h-14 md:w-14 object-cover"
-                        />
+                        <div className="h-12 w-12 md:h-14 md:w-14 bg-gray-100 relative">
+                          <img
+                            src={item.dish.image}
+                            alt={item.dish.name}
+                            loading="lazy"
+                            decoding="async"
+                            onLoad={() => handleImageLoad(`thumb_${item.dish.image}`)}
+                            className={`h-full w-full object-cover absolute inset-0 transition-opacity duration-200 ${
+                              imageLoaded[`thumb_${item.dish.image}`] ? 'opacity-100' : 'opacity-0'
+                            }`}
+                          />
+                        </div>
                       </button>
                     );
                   })

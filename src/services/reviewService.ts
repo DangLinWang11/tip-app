@@ -1,4 +1,4 @@
-import { collection, addDoc, serverTimestamp, getDocs, query, orderBy, limit, where, doc, getDoc, updateDoc, arrayUnion, onSnapshot, startAfter, QueryDocumentSnapshot, DocumentData } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, getDocs, query, orderBy, limit, where, doc, getDoc, updateDoc, arrayUnion, onSnapshot, startAfter, QueryDocumentSnapshot, DocumentData, writeBatch, setDoc, GeoPoint } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage, getUserProfile, getCurrentUser, updateUserStats } from '../lib/firebase';
 import { inferFacetsFromText, tokenizeForSearch, normalizeToken } from '../utils/taxonomy';
@@ -145,6 +145,7 @@ export interface ReviewData {
   serverRating?: 'bad' | 'okay' | 'good' | null;
   price?: string | null;
   restaurantPriceLevel?: '$' | '$$' | '$$$' | '$$$$' | null;
+  serviceSpeed?: 'fast' | 'normal' | 'slow' | null;
   explicit?: ExplicitSelection | null;
   sentiment?: SentimentSelection | null;
   explicitTags?: string[];
@@ -234,52 +235,78 @@ export const reportReview = async (reviewId: string, reason: string, details: st
 
 
 // Create restaurant if it doesn't exist in Firebase
-const createRestaurantIfNeeded = async (restaurant: any): Promise<string> => {
+// Returns the restaurant document ID (which is the googlePlaceId if from Google Places)
+const createRestaurantIfNeeded = async (restaurant: any, batch?: any): Promise<{ id: string; isNew: boolean; data?: any }> => {
+  // If restaurant has a googlePlaceId, use it as the document ID
   if (restaurant.googlePlaceId) {
-    console.log('Checking for existing restaurant with placeId:', restaurant.googlePlaceId);
-    const q = query(collection(db, 'restaurants'), where('googlePlaceId', '==', restaurant.googlePlaceId));
-    const snapshot = await getDocs(q);
-    if (!snapshot.empty) {
-      const existingId = snapshot.docs[0].id;
-      console.log('? Found existing restaurant with googlePlaceId:', existingId);
-      return existingId;
-    }
-  }
+    const restaurantDocId = restaurant.googlePlaceId;
+    const restaurantRef = doc(db, 'restaurants', restaurantDocId);
 
-  if (restaurant.id && !restaurant.id.startsWith('manual_') && !restaurant.id.startsWith('google_')) {
-    console.log('Using existing restaurant ID:', restaurant.id);
-    return restaurant.id;
-  }
-  
-  try {
-    console.log('Creating new restaurant:', restaurant.name);
-    
-    const coordinates = {
-      lat: restaurant.coordinates?.lat || restaurant.coordinates?.latitude || 0,
-      lng: restaurant.coordinates?.lng || restaurant.coordinates?.longitude || 0,
-      latitude: restaurant.coordinates?.lat || restaurant.coordinates?.latitude || 0,
-      longitude: restaurant.coordinates?.lng || restaurant.coordinates?.longitude || 0
-    };
-    
+    console.log('Checking for existing restaurant with placeId:', restaurantDocId);
+    const existingDoc = await getDoc(restaurantRef);
+
+    if (existingDoc.exists()) {
+      console.log('✅ Found existing restaurant with googlePlaceId:', restaurantDocId);
+      return { id: restaurantDocId, isNew: false };
+    }
+
+    // Restaurant is new - prepare data to be written in batch
+    console.log('📝 Preparing new restaurant with googlePlaceId:', restaurantDocId);
+
+    const lat = restaurant.coordinates?.lat || restaurant.coordinates?.latitude || restaurant.location?.lat || 0;
+    const lng = restaurant.coordinates?.lng || restaurant.coordinates?.longitude || restaurant.location?.lng || 0;
+
     const newRestaurant = {
-      name: restaurant.name,
+      name: restaurant.name || 'Unknown Restaurant',
       cuisines: restaurant.cuisines || [],
-      location: {
-        formatted: restaurant.address || restaurant.location?.formatted || 'Address not provided'
-      },
+      address: restaurant.address || restaurant.location?.formatted || 'Address not provided',
+      location: new GeoPoint(lat, lng),
+      photoUrl: restaurant.photoUrl || restaurant.photo || null,
       phone: restaurant.phone || '',
-      coordinates,
-      googlePlaceId: restaurant.googlePlaceId || null,
+      googlePlaceId: restaurant.googlePlaceId,
+      visitCount: 1,
       qualityScore: null,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     };
-    
+
+    return { id: restaurantDocId, isNew: true, data: newRestaurant };
+  }
+
+  // Fallback: if restaurant already has a valid Firebase ID (not manual_ or google_ prefix)
+  if (restaurant.id && !restaurant.id.startsWith('manual_') && !restaurant.id.startsWith('google_')) {
+    console.log('Using existing restaurant ID:', restaurant.id);
+    return { id: restaurant.id, isNew: false };
+  }
+
+  // Manual restaurant (no Google Place ID) - create with auto-generated ID
+  try {
+    console.log('Creating manual restaurant:', restaurant.name);
+
+    const lat = restaurant.coordinates?.lat || restaurant.coordinates?.latitude || 0;
+    const lng = restaurant.coordinates?.lng || restaurant.coordinates?.longitude || 0;
+
+    const newRestaurant = {
+      name: restaurant.name || 'Unknown Restaurant',
+      cuisines: restaurant.cuisines || [],
+      address: restaurant.address || restaurant.location?.formatted || 'Address not provided',
+      location: new GeoPoint(lat, lng),
+      photoUrl: restaurant.photoUrl || restaurant.photo || null,
+      phone: restaurant.phone || '',
+      googlePlaceId: null,
+      visitCount: 1,
+      qualityScore: null,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    };
+
+    // For manual restaurants, we still need to create immediately (not in batch)
+    // because we need the generated ID
     const docRef = await addDoc(collection(db, 'restaurants'), newRestaurant);
-    console.log('? Created new restaurant with ID:', docRef.id);
-    return docRef.id;
+    console.log('✅ Created manual restaurant with ID:', docRef.id);
+    return { id: docRef.id, isNew: true };
   } catch (error) {
-    console.error('? Error creating restaurant:', error);
+    console.error('❌ Error creating restaurant:', error);
     throw new Error('Failed to create restaurant');
   }
 };
@@ -358,8 +385,8 @@ export const getMenuItemCategory = async (menuItemId: string): Promise<string | 
 
 // Save review to Firestore with automatic restaurant/dish creation
 export const saveReview = async (
-  reviewData: ReviewData, 
-  selectedRestaurant: any, 
+  reviewData: ReviewData,
+  selectedRestaurant: any,
   selectedMenuItem: any
 ): Promise<string> => {
   try {
@@ -372,10 +399,21 @@ export const saveReview = async (
     console.log('Restaurant data:', selectedRestaurant);
     console.log('Menu item data:', selectedMenuItem);
 
+    // Initialize batch for atomic writes
+    const batch = writeBatch(db);
+
     // Step 1: Create restaurant if it doesn't exist
-    const restaurantId = await createRestaurantIfNeeded(selectedRestaurant);
-    
-    // Step 2: Create menu item if it doesn't exist  
+    const restaurantResult = await createRestaurantIfNeeded(selectedRestaurant);
+    const restaurantId = restaurantResult.id;
+
+    // If restaurant is new and has data, add to batch
+    if (restaurantResult.isNew && restaurantResult.data) {
+      const restaurantRef = doc(db, 'restaurants', restaurantId);
+      batch.set(restaurantRef, restaurantResult.data);
+      console.log('📝 Added new restaurant to batch:', restaurantId);
+    }
+
+    // Step 2: Create menu item if it doesn't exist
     const menuItemId = await createMenuItemIfNeeded(reviewData.dish, restaurantId, selectedMenuItem, (reviewData as any)?.dishCategory);
 
     const menuItemRef = doc(db, 'menuItems', menuItemId);
@@ -507,6 +545,7 @@ export const saveReview = async (
       menuItemId,
       // Add dishName to satisfy Firestore rules which require dishName (string)
       dishName: (reviewDataRest as any).dish || (reviewDataRest as any).dishName || 'Unknown Dish',
+      serviceSpeed: reviewData.serviceSpeed ?? null,
       userId: currentUser.uid,
       timestamp: serverTimestamp(),
       createdAt: serverTimestamp(),
@@ -533,9 +572,18 @@ export const saveReview = async (
       }
     });
 
-    const docRef = await addDoc(collection(db, 'reviews'), reviewDocumentPayload);
-    
-    console.log('✅ Review saved successfully with ID:', docRef.id);
+    // Create review document reference with auto-generated ID
+    const reviewRef = doc(collection(db, 'reviews'));
+    const reviewId = reviewRef.id;
+
+    // Add review to batch
+    batch.set(reviewRef, reviewDocumentPayload);
+    console.log('📝 Added review to batch:', reviewId);
+
+    // Commit the batch atomically
+    await batch.commit();
+    console.log('✅ Batch committed successfully - restaurant and review created atomically');
+    console.log('✅ Review ID:', reviewId);
     console.log('✅ Linked to restaurant:', restaurantId, 'and menu item:', menuItemId);
     
     // Step 3.5: If this menu item has no cover image yet and this review has photos,
@@ -637,13 +685,19 @@ export const saveReview = async (
         restaurantUpdatePayload.priceLevel = modalPriceLevel;
       }
 
+      // Calculate and update average service speed from user reviews
+      const avgServiceSpeed = calculateAverageServiceSpeed(restaurantReviews);
+      if (avgServiceSpeed !== null) {
+        restaurantUpdatePayload.avgServiceSpeed = avgServiceSpeed;
+      }
+
       await updateDoc(restaurantDocRef, restaurantUpdatePayload);
       console.log('✅ Restaurant quality score updated:', newQualityScore);
     } catch (error) {
       console.warn('⚠️ Failed to update restaurant quality score (non-critical):', error);
     }
-    
-    return docRef.id;
+
+    return reviewId;
   } catch (error) {
     console.error('❌ Error saving review:', error);
     throw error;
@@ -954,6 +1008,27 @@ export const calculateModalPriceLevel = (reviews: any[]): number | null => {
   });
 
   return modalPrice;
+};
+
+/**
+ * Calculate average service speed from reviews
+ * @param reviews Array of reviews with serviceSpeed
+ * @returns Number 1-3 representing average (1=slow, 2=normal, 3=fast), or null if no data
+ */
+export const calculateAverageServiceSpeed = (reviews: any[]): number | null => {
+  // Filter reviews that have service speed data
+  const speeds = reviews
+    .map(r => r.serviceSpeed)
+    .filter((s): s is 'slow' | 'normal' | 'fast' => Boolean(s));
+
+  if (speeds.length === 0) return null;
+
+  // Convert to numbers: slow=1, normal=2, fast=3
+  const speedValues = { slow: 1, normal: 2, fast: 3 };
+  const sum = speeds.reduce((acc, s) => acc + speedValues[s], 0);
+
+  // Return average rounded to 1 decimal place
+  return Math.round((sum / speeds.length) * 10) / 10;
 };
 
 // In-memory cache for restaurant docs to avoid repeated reads per session

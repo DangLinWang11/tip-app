@@ -96,11 +96,13 @@ const getRatingColor = (rating: number): string => {
 
 const createPinIcon = (text: string, backgroundColor: string, showQualityPercentages: boolean = true): string => {
   const airyColor = '#ff3131';
-  const width = text.length > 3 ? 90 : 60;
+  const width = text.length > 3 ? 75 : 52;
   const canvasHeight = 44;
   const horizontalPadding = 2;
   const pillX = horizontalPadding;
   const pillWidth = width - horizontalPadding * 2;
+  const pillHeight = 28;
+  const pillRadius = 14;
   const pillStrokeColor = showQualityPercentages ? backgroundColor : airyColor;
   const textColor = pillStrokeColor;
   const triangleFill = pillStrokeColor;
@@ -108,18 +110,18 @@ const createPinIcon = (text: string, backgroundColor: string, showQualityPercent
   const svg = `
     <svg width="${width}" height="${canvasHeight}" viewBox="0 0 ${width} ${canvasHeight}" xmlns="http://www.w3.org/2000/svg">
       <!-- Faux shadow pill -->
-      <rect x="${pillX}" y="4" width="${pillWidth}" height="32" rx="16" fill="black" opacity="0.12" />
+      <rect x="${pillX}" y="4" width="${pillWidth}" height="${pillHeight}" rx="${pillRadius}" fill="black" opacity="0.12" />
       <!-- Main pill -->
-      <rect x="${pillX}" y="2" width="${pillWidth}" height="32" rx="16" fill="white" stroke="${pillStrokeColor}" stroke-width="2" />
+      <rect x="${pillX}" y="2" width="${pillWidth}" height="${pillHeight}" rx="${pillRadius}" fill="white" stroke="${pillStrokeColor}" stroke-width="2" />
       ${
         text
-          ? `<text x="${width / 2}" y="23" font-family="Arial, sans-serif" font-size="12" font-weight="bold" text-anchor="middle" fill="${textColor}">${text}</text>`
+          ? `<text x="${width / 2}" y="21" font-family="Arial, sans-serif" font-size="12" font-weight="bold" text-anchor="middle" fill="${textColor}">${text}</text>`
           : ''
       }
       <!-- Pointer shadow -->
-      <path d="M ${width / 2 - 4} 36 L ${width / 2} 44 L ${width / 2 + 4} 36 Z" fill="black" opacity="0.12" />
+      <path d="M ${width / 2 - 4} 32 L ${width / 2} 40 L ${width / 2 + 4} 32 Z" fill="black" opacity="0.12" />
       <!-- Pointer -->
-      <path d="M ${width / 2 - 4} 34 L ${width / 2} 42 L ${width / 2 + 4} 34 Z" fill="${triangleFill}" />
+      <path d="M ${width / 2 - 4} 30 L ${width / 2} 38 L ${width / 2 + 4} 30 Z" fill="${triangleFill}" />
     </svg>
   `;
 
@@ -317,11 +319,11 @@ const Map: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishes, u
 
           // Determine what text to show in the pin
           let pinText = '';
-          let pinWidth = 60;
+          let pinWidth = 52;
           if (showQualityPercentages === false && restaurant.visitCount) {
             // Show visit count for user journey maps
             pinText = `${restaurant.visitCount} Visit${restaurant.visitCount !== 1 ? 's' : ''}`;
-            pinWidth = 90;
+            pinWidth = 75;
           } else if (showQualityPercentages !== false) {
             // Show quality percentage for regular restaurant maps
             pinText = `${restaurant.qualityPercentage}%`;

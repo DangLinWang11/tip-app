@@ -147,14 +147,14 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({ className = '', showLeg
           <div className="absolute bottom-4 left-4 z-10">
             <div className="bg-white rounded-lg shadow-lg px-4 py-3 flex items-center space-x-3">
               <div className="flex items-center justify-center">
-                <svg width="40" height="28" viewBox="0 0 60 40" xmlns="http://www.w3.org/2000/svg">
+                <svg width="36" height="32" viewBox="0 0 48 42" xmlns="http://www.w3.org/2000/svg">
                   <defs>
                     <filter id="shadow-legend">
                       <feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.15"/>
                     </filter>
                   </defs>
-                  <rect x="0" y="0" width="60" height="32" rx="16" fill="white" stroke="#ff3131" stroke-width="2" filter="url(#shadow-legend)"/>
-                  <path d="M 26 32 L 30 40 L 34 32 Z" fill="#ff3131"/>
+                  <rect x="1" y="1" width="46" height="30" rx="15" fill="white" stroke="#ff3131" stroke-width="2" filter="url(#shadow-legend)"/>
+                  <path d="M 21 31 L 24 40 L 27 31 Z" fill="#ff3131"/>
                 </svg>
               </div>
               <span className="text-gray-800 font-medium text-sm">Visited Restaurants</span>

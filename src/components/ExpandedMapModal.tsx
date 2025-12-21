@@ -54,8 +54,8 @@ const ExpandedMapModal: React.FC<ExpandedMapModalProps> = ({
   }, [isOpen, onClose]);
 
   return (
-    <div 
-      className="fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center py-12 p-2 overscroll-contain"
+    <div
+      className="fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center pt-4 pb-12 px-2 overscroll-contain"
       onClick={handleBackdropClick}
       onTouchStart={(e) => { e.stopPropagation(); }}
       onTouchMove={(e) => { e.stopPropagation(); }}
@@ -65,7 +65,7 @@ const ExpandedMapModal: React.FC<ExpandedMapModalProps> = ({
       onPointerUp={(e) => { e.stopPropagation(); }}
       onWheel={(e) => { e.stopPropagation(); }}
     >
-      <div 
+      <div
         className="bg-white rounded-xl w-full h-full max-w-6xl max-h-[75vh] overflow-hidden shadow-2xl relative"
       >
         {/* Header with close button */}

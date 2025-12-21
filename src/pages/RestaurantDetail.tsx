@@ -22,6 +22,7 @@ interface Restaurant {
   hours?: Record<string, string>;
   website?: string;
   priceLevel?: number;
+  avgServiceSpeed?: number | null;
   source?: string;
 }
 
@@ -74,6 +75,8 @@ const RestaurantDetail: React.FC = () => {
   const [authors, setAuthors] = useState<Record<string, ReviewAuthor>>({});
   const [showAllHours, setShowAllHours] = useState(false);
   const [heroImageIndex, setHeroImageIndex] = useState(0);
+  const heroScrollRef = useRef<HTMLDivElement>(null);
+  const isProgrammaticScroll = useRef(false);
 
   // Helper to collect visit photos from all reviews (both legacy and new structures)
   const getVisitPhotosFromReviews = (reviewsList: Review[] | undefined | null): string[] => {
@@ -342,12 +345,70 @@ const getCurrentDayHours = (hours: Record<string, string>) => {
   const currentImage = hasHeroImages ? heroImages[heroImageIndex] : null;
   const hasMultipleImages = heroImages.length > 1;
 
+  // Handle scroll-based navigation for hero images
+  const handleHeroScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    if (isProgrammaticScroll.current) {
+      return;
+    }
+
+    const container = e.currentTarget;
+    const scrollLeft = container.scrollLeft;
+    const itemWidth = container.offsetWidth;
+    const newIndex = Math.round(scrollLeft / itemWidth);
+
+    if (newIndex !== heroImageIndex && newIndex >= 0 && newIndex < heroImages.length) {
+      setHeroImageIndex(newIndex);
+    }
+  };
+
   const goPrevImage = () => {
-    setHeroImageIndex((prev) => (prev === 0 ? heroImages.length - 1 : prev - 1));
+    const newIndex = heroImageIndex === 0 ? heroImages.length - 1 : heroImageIndex - 1;
+    setHeroImageIndex(newIndex);
+
+    isProgrammaticScroll.current = true;
+    if (heroScrollRef.current) {
+      const itemWidth = heroScrollRef.current.offsetWidth;
+      heroScrollRef.current.scrollTo({
+        left: newIndex * itemWidth,
+        behavior: 'smooth'
+      });
+      setTimeout(() => {
+        isProgrammaticScroll.current = false;
+      }, 350);
+    }
   };
 
   const goNextImage = () => {
-    setHeroImageIndex((prev) => (prev === heroImages.length - 1 ? 0 : prev + 1));
+    const newIndex = heroImageIndex === heroImages.length - 1 ? 0 : heroImageIndex + 1;
+    setHeroImageIndex(newIndex);
+
+    isProgrammaticScroll.current = true;
+    if (heroScrollRef.current) {
+      const itemWidth = heroScrollRef.current.offsetWidth;
+      heroScrollRef.current.scrollTo({
+        left: newIndex * itemWidth,
+        behavior: 'smooth'
+      });
+      setTimeout(() => {
+        isProgrammaticScroll.current = false;
+      }, 350);
+    }
+  };
+
+  const handleDotClick = (index: number) => {
+    setHeroImageIndex(index);
+
+    isProgrammaticScroll.current = true;
+    if (heroScrollRef.current) {
+      const itemWidth = heroScrollRef.current.offsetWidth;
+      heroScrollRef.current.scrollTo({
+        left: index * itemWidth,
+        behavior: 'smooth'
+      });
+      setTimeout(() => {
+        isProgrammaticScroll.current = false;
+      }, 350);
+    }
   };
 
   const hasReviews = reviews.length > 0;
@@ -377,35 +438,57 @@ const getCurrentDayHours = (hours: Record<string, string>) => {
   }
   return <div className="min-h-screen bg-light-gray pb-16">
       <div className="relative h-64 overflow-hidden">
-        {/* Hero image or gradient fallback */}
+        {/* Hero image carousel with swipe support */}
         {hasHeroImages ? (
-          <img src={currentImage} alt={restaurant?.name ?? 'Restaurant'} className="w-full h-full object-cover" />
+          <div
+            ref={heroScrollRef}
+            className="flex overflow-x-scroll snap-x snap-mandatory no-scrollbar h-full"
+            onScroll={handleHeroScroll}
+            style={{
+              scrollSnapType: 'x mandatory',
+              scrollBehavior: 'smooth',
+              WebkitOverflowScrolling: 'touch'
+            }}
+          >
+            {heroImages.map((imageUrl, index) => (
+              <div
+                key={index}
+                className="w-full h-full flex-shrink-0 snap-center"
+              >
+                <img
+                  src={imageUrl}
+                  alt={`${restaurant?.name ?? 'Restaurant'} - Image ${index + 1}`}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            ))}
+          </div>
         ) : (
           <div className="w-full h-full bg-gradient-to-br from-gray-200 to-gray-300" />
         )}
 
         {/* Gradient overlay on top of image */}
-        <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/80" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/80 pointer-events-none" />
 
-        {/* Left arrow control (shown if multiple images) */}
+        {/* Left arrow control (shown if multiple images) - Smaller size */}
         {hasMultipleImages && (
           <button
             onClick={goPrevImage}
-            className="absolute left-3 top-1/2 -translate-y-1/2 z-20 bg-white/70 hover:bg-white/90 rounded-full p-2 transition-colors"
+            className="absolute left-2 top-1/2 -translate-y-1/2 z-20 bg-white/60 hover:bg-white/80 rounded-full p-1.5 transition-colors"
             aria-label="Previous image"
           >
-            <ChevronLeftIcon size={20} className="text-gray-900" />
+            <ChevronLeftIcon size={16} className="text-gray-900" />
           </button>
         )}
 
-        {/* Right arrow control (shown if multiple images) */}
+        {/* Right arrow control (shown if multiple images) - Smaller size */}
         {hasMultipleImages && (
           <button
             onClick={goNextImage}
-            className="absolute right-3 top-1/2 -translate-y-1/2 z-20 bg-white/70 hover:bg-white/90 rounded-full p-2 transition-colors"
+            className="absolute right-2 top-1/2 -translate-y-1/2 z-20 bg-white/60 hover:bg-white/80 rounded-full p-1.5 transition-colors"
             aria-label="Next image"
           >
-            <ChevronRightIcon size={20} className="text-gray-900" />
+            <ChevronRightIcon size={16} className="text-gray-900" />
           </button>
         )}
 
@@ -415,7 +498,7 @@ const getCurrentDayHours = (hours: Record<string, string>) => {
             {heroImages.map((_, idx) => (
               <button
                 key={idx}
-                onClick={() => setHeroImageIndex(idx)}
+                onClick={() => handleDotClick(idx)}
                 className={`w-2 h-2 rounded-full transition-all ${
                   idx === heroImageIndex ? 'bg-white w-4' : 'bg-white/60 hover:bg-white/80'
                 }`}
@@ -558,6 +641,21 @@ const getCurrentDayHours = (hours: Record<string, string>) => {
               <p className="text-gray-700">{priceLevelLabel}</p>
             </div>
           ) : null}
+          {restaurant.avgServiceSpeed && (
+            <div className="flex items-center">
+              <ClockIcon size={18} className="text-dark-gray mr-3" />
+              <div className="flex items-center gap-2">
+                <p className="text-gray-700">
+                  {restaurant.avgServiceSpeed >= 2.5 ? '⚡ Fast Service' :
+                   restaurant.avgServiceSpeed >= 1.5 ? '⏱️ Average Service' :
+                   '🐌 Slow Service'}
+                </p>
+                <span className="text-xs text-gray-500">
+                  ({restaurant.avgServiceSpeed.toFixed(1)}/3)
+                </span>
+              </div>
+            </div>
+          )}
           <div className="flex items-start">
             <ClockIcon size={18} className="text-dark-gray mr-3 mt-1" />
             <div>

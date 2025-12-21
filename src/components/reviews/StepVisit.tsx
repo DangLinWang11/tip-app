@@ -38,6 +38,79 @@ const calculateDistance = (lat1: number, lng1: number, lat2: number, lng2: numbe
 
 const libraries: ('places')[] = ['places'];
 
+// Memoized Restaurant Search Input to prevent re-renders from mediaItems changes
+const RestaurantSearchInput = React.memo(({
+  value,
+  onChange,
+  placeholder,
+  className
+}: {
+  value: string;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  placeholder: string;
+  className: string;
+}) => {
+  return (
+    <div className="relative">
+      <input
+        type="text"
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        className={className}
+        autoComplete="off"
+      />
+      <MapPin className="absolute right-4 top-3.5 h-5 w-5 text-slate-400" />
+    </div>
+  );
+});
+
+RestaurantSearchInput.displayName = 'RestaurantSearchInput';
+
+// Memoized Location Banner to prevent re-renders
+const LocationBanner = React.memo(({
+  onEnable,
+  onDismiss,
+  isLoading
+}: {
+  onEnable: () => void;
+  onDismiss: () => void;
+  isLoading: boolean;
+}) => {
+  return (
+    <div className="rounded-2xl border border-blue-200 bg-white px-4 py-3 text-slate-900 shadow-sm">
+      <div className="text-center text-sm font-semibold mb-3">
+        📍 Enable location for nearby restaurants
+      </div>
+      <div className="grid grid-cols-5 items-center">
+        <div />
+        <div className="flex justify-center">
+          <button
+            onClick={onEnable}
+            disabled={isLoading}
+            className="rounded-xl bg-red-500 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {isLoading ? 'Enabling...' : 'Enable'}
+          </button>
+        </div>
+        <div />
+        <div className="flex justify-center">
+          <button
+            type="button"
+            onClick={onDismiss}
+            className="text-sm font-semibold text-slate-500 transition-colors hover:text-slate-700"
+          >
+            Maybe Later
+          </button>
+        </div>
+        <div />
+      </div>
+    </div>
+  );
+});
+
+LocationBanner.displayName = 'LocationBanner';
+
 const StepVisit: React.FC = () => {
   const { t } = useI18n();
   const {
@@ -72,7 +145,7 @@ const StepVisit: React.FC = () => {
   const [locationError, setLocationError] = useState<string | null>(null);
   const [requestingLocation, setRequestingLocation] = useState(false);
 
-  const requestLocationPermission = async () => {
+  const requestLocationPermission = React.useCallback(async () => {
     if (typeof navigator === 'undefined' || !navigator.geolocation) {
       setLocationError('Geolocation is not supported by your browser');
       return;
@@ -105,7 +178,7 @@ const StepVisit: React.FC = () => {
         maximumAge: 0
       }
     );
-  };
+  }, []);
 
   const fetchGooglePlaces = async (searchText: string) => {
     if (!searchText || searchText.length < 2 || !mapsLoaded || typeof google === 'undefined') return;
@@ -156,7 +229,7 @@ const StepVisit: React.FC = () => {
     }
   }, [selectedRestaurant]);
 
-  const handleRestaurantQueryChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleRestaurantQueryChange = React.useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const value = event.target.value;
     setRestaurantQuery(value);
 
@@ -169,7 +242,7 @@ const StepVisit: React.FC = () => {
     } else {
       setPlacePredictions([]);
     }
-  };
+  }, [userLocation, showLocationBanner, requestingLocation, mapsLoaded, requestLocationPermission]);
 
   const filteredRestaurants = useMemo(() => {
     if (!restaurantQuery.trim()) return restaurants.slice(0, 6);
@@ -371,11 +444,17 @@ const StepVisit: React.FC = () => {
           </label>
           {mediaError ? <p className="text-sm text-red-500">{mediaError}</p> : null}
           {mediaItems.length > 0 ? (
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3" style={{ contentVisibility: 'auto', contain: 'layout style paint' }}>
               {mediaItems.map((item) => (
                 <div key={item.id} className="group relative overflow-hidden rounded-2xl border border-slate-200">
                   {item.kind === 'photo' ? (
-                    <img src={item.downloadURL || item.previewUrl} alt="Visit media" className="h-36 w-full object-cover" />
+                    <img
+                      src={item.downloadURL || item.previewUrl}
+                      alt="Visit media"
+                      className="h-36 w-full object-cover"
+                      decoding="async"
+                      loading="lazy"
+                    />
                   ) : (
                     <div className="relative h-36 w-full overflow-hidden bg-black/5">
                       <video src={item.downloadURL || item.previewUrl} className="h-full w-full object-cover" muted />
@@ -415,35 +494,6 @@ const StepVisit: React.FC = () => {
         </div>
       </section>
 
-      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-md shadow-slate-200/60">
-        <div className="mb-3">
-          <h3 className="text-base font-semibold text-slate-900">How expensive is this restaurant?</h3>
-          <p className="text-sm text-slate-500">Select one</p>
-        </div>
-        <div className="flex gap-2">
-          {PRICE_LEVELS.map((level) => {
-            const active = visitDraft.restaurantPriceLevel === level;
-            return (
-              <button
-                key={level}
-                type="button"
-                onClick={() => setVisitDraft((prev) => ({
-                  ...prev,
-                  restaurantPriceLevel: prev.restaurantPriceLevel === level ? null : level
-                }))}
-                className={`px-4 py-2 rounded-full text-sm font-semibold transition ${
-                  active
-                    ? 'bg-red-500 text-white shadow-md shadow-red-200/60'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                }`}
-              >
-                {level}
-              </button>
-            );
-          })}
-        </div>
-      </section>
-
       {/* Restaurant Selection */}
       <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-md shadow-slate-200/60 space-y-6">
         <div>
@@ -451,34 +501,11 @@ const StepVisit: React.FC = () => {
         </div>
 
         {showLocationBanner && !userLocation && (
-          <div className="rounded-2xl border border-blue-200 bg-white px-4 py-3 text-slate-900 shadow-sm">
-            <div className="text-center text-sm font-semibold mb-3">
-              📍 Enable location for nearby restaurants
-            </div>
-            <div className="grid grid-cols-5 items-center">
-              <div />
-              <div className="flex justify-center">
-                <button
-                  onClick={requestLocationPermission}
-                  disabled={requestingLocation}
-                  className="rounded-xl bg-red-500 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {requestingLocation ? 'Enabling...' : 'Enable'}
-                </button>
-              </div>
-              <div />
-              <div className="flex justify-center">
-                <button
-                  type="button"
-                  onClick={() => setShowLocationBanner(false)}
-                  className="text-sm font-semibold text-slate-500 transition-colors hover:text-slate-700"
-                >
-                  Maybe Later
-                </button>
-              </div>
-              <div />
-            </div>
-          </div>
+          <LocationBanner
+            onEnable={requestLocationPermission}
+            onDismiss={() => setShowLocationBanner(false)}
+            isLoading={requestingLocation}
+          />
         )}
 
         {locationError && (
@@ -496,15 +523,13 @@ const StepVisit: React.FC = () => {
         )}
 
         <div className="space-y-2">
-          <div className="relative mt-4">
-            <input
-              type="text"
+          <div className="mt-4">
+            <RestaurantSearchInput
               value={restaurantQuery}
               onChange={handleRestaurantQueryChange}
               placeholder="Search for a restaurant..."
               className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-base text-slate-700 focus:border-red-400 focus:outline-none focus:ring-2 focus:ring-red-100"
             />
-            <MapPin className="absolute right-4 top-3.5 h-5 w-5 text-slate-400" />
           </div>
           {restaurantError ? <p className="text-sm text-red-500">{restaurantError}</p> : null}
           <div className="mt-4">
@@ -646,6 +671,71 @@ const StepVisit: React.FC = () => {
           </div>
         </div>
       </section>
+
+      {/* Restaurant Price Level */}
+      {selectedRestaurant && (
+        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-md shadow-slate-200/60">
+          <div className="mb-3">
+            <h3 className="text-base font-semibold text-slate-900">How expensive is this restaurant?</h3>
+            <p className="text-sm text-slate-500">Select one</p>
+          </div>
+          <div className="flex gap-2">
+            {PRICE_LEVELS.map((level) => {
+              const active = visitDraft.restaurantPriceLevel === level;
+              return (
+                <button
+                  key={level}
+                  type="button"
+                  onClick={() => setVisitDraft((prev) => ({
+                    ...prev,
+                    restaurantPriceLevel: prev.restaurantPriceLevel === level ? null : level
+                  }))}
+                  className={`px-4 py-2 rounded-full text-sm font-semibold transition ${
+                    active
+                      ? 'bg-red-500 text-white shadow-md shadow-red-200/60'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  {level}
+                </button>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      {/* Service Speed */}
+      {selectedRestaurant && (
+        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-md shadow-slate-200/60">
+          <div className="mb-3">
+            <h3 className="text-base font-semibold text-slate-900">How fast was the service?</h3>
+            <p className="text-sm text-slate-500">Select one</p>
+          </div>
+          <div className="flex gap-2">
+            {(['slow', 'normal', 'fast'] as const).map((speed) => {
+              const active = visitDraft.serviceSpeed === speed;
+              const labels = { slow: '🐌 Slow', normal: '⏱️ Average', fast: '⚡ Fast' };
+              return (
+                <button
+                  key={speed}
+                  type="button"
+                  onClick={() => setVisitDraft((prev) => ({
+                    ...prev,
+                    serviceSpeed: prev.serviceSpeed === speed ? null : speed
+                  }))}
+                  className={`flex-1 px-4 py-2 rounded-full text-sm font-semibold transition ${
+                    active
+                      ? 'bg-red-500 text-white shadow-md shadow-red-200/60'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  {labels[speed]}
+                </button>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       {/* Meal Time Selection */}
       {selectedRestaurant && (

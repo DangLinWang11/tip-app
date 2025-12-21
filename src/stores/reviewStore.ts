@@ -17,6 +17,7 @@ interface ReviewState {
   setError: (error: string | null) => void;
   updateLastFetched: () => void;
   clearCache: () => void;
+  addReview: (review: FirebaseReview) => void;
 
   // Helpers
   isStale: () => boolean;
@@ -51,6 +52,10 @@ export const useReviewStore = create<ReviewState>()(
         lastFetched: null,
         error: null
       }),
+
+      addReview: (review) => set((state) => ({
+        reviews: [review, ...state.reviews],
+      })),
 
       // Helpers
       isStale: () => {

@@ -13,6 +13,7 @@ export type RestaurantCardModel = {
   badgeColor: string | null;
   limitedRatingsText: string | null;
   reviewCountText: string | null;
+  serviceSpeedLabel?: string | null;
   tags?: string[];
   source: 'tip' | 'google';
   restaurantId?: string;
@@ -148,12 +149,18 @@ const RestaurantListCard: React.FC<RestaurantListCardProps> = ({ card, onClick }
         <div className="flex justify-between items-start gap-2">
           <div className="flex-1 min-w-0 max-w-[calc(100%-70px)]">
             <h3 className="font-medium truncate">{card.name}</h3>
-            {(card.limitedRatingsText || card.reviewCountText || (card.tags && card.tags.length > 0)) && (
+            {(card.limitedRatingsText || card.reviewCountText || card.serviceSpeedLabel || (card.tags && card.tags.length > 0)) && (
               <div className="mt-1 flex items-center gap-1.5 flex-wrap">
                 {/* Review badge */}
                 {(card.limitedRatingsText || card.reviewCountText) && (
                   <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] text-slate-600">
                     {card.reviewCountText || card.limitedRatingsText}
+                  </span>
+                )}
+                {/* Service Speed badge */}
+                {card.serviceSpeedLabel && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-[11px] text-blue-700 font-medium">
+                    {card.serviceSpeedLabel}
                   </span>
                 )}
                 {/* Restaurant tags (1-2 most used) */}

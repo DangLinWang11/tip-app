@@ -15,6 +15,7 @@ import { LocalMediaItem, RestaurantOption, WizardContextValue, WizardStepKey, Mu
 import { WizardContext } from './WizardContext';
 import { useFeature } from '../../utils/features';
 import { buildExplicitTags, buildDerivedTags, buildMealTimeTags, buildServiceSpeedTags } from '../../data/tagDefinitions';
+import { useReviewStore } from '../../stores/reviewStore';
 
 const buildStorageKey = (uid: string, restaurantId?: string | null) => `review-visit-draft:${uid}:${restaurantId || 'new'}`;
 
@@ -164,6 +165,7 @@ const STEP_COMPONENTS: Record<WizardStepKey, React.ComponentType> = {
 
 const Wizard: React.FC = () => {
   const { t, language } = useI18n();
+  const { clearCache } = useReviewStore();
 
   const [userId, setUserId] = useState<string>('');
   const [authChecked, setAuthChecked] = useState(false);
@@ -352,52 +354,60 @@ const Wizard: React.FC = () => {
       throw new Error('User must be signed in to upload media');
     }
 
+    // PERFORMANCE FIX: Create all preview items upfront in a single state update
+    const newItems: LocalMediaItem[] = files
+      .filter(file => file.type.startsWith('image') || file.type.startsWith('video'))
+      .map(file => {
+        const kind: LocalMediaItem['kind'] = file.type.startsWith('video') ? 'video' : 'photo';
+        return {
+          id: safeId(),
+          kind,
+          previewUrl: fileToPreview(file),
+          status: 'uploading' as const
+        };
+      });
+
+    // Single batched state update for all new items
+    setMediaItems((prev) => [...prev, ...newItems]);
+
+    // Process uploads in parallel and batch status updates
     await Promise.all(
-      files.map(async (file) => {
+      files.map(async (file, index) => {
         const kind: LocalMediaItem['kind'] = file.type.startsWith('video') ? 'video' : 'photo';
         if (kind === 'photo' && !file.type.startsWith('image')) {
           return;
         }
-        const id = safeId();
-        const previewUrl = fileToPreview(file);
-        setMediaItems((prev) => ([
-          ...prev,
-          {
-            id,
-            kind,
-            previewUrl,
-            status: 'uploading'
-          }
-        ]));
+        const item = newItems[index];
+        if (!item) return;
 
         try {
           if (kind === 'photo') {
             const upload = await processAndUploadImage(file, userId);
-            setMediaItems((prev) => prev.map((item) => item.id === id ? {
-              ...item,
+            setMediaItems((prev) => prev.map((m) => m.id === item.id ? {
+              ...m,
               status: 'uploaded',
               storagePath: upload.storagePath,
               downloadURL: upload.downloadURL
-            } : item));
+            } : m));
             showReward('media');
           } else {
             const uploads = await processAndUploadVideo(file, userId);
-            setMediaItems((prev) => prev.map((item) => item.id === id ? {
-              ...item,
+            setMediaItems((prev) => prev.map((m) => m.id === item.id ? {
+              ...m,
               status: 'uploaded',
               storagePath: uploads.video.storagePath,
               downloadURL: uploads.video.downloadURL,
               thumbnailPath: uploads.thumbnail.storagePath,
               thumbnailURL: uploads.thumbnail.downloadURL
-            } : item));
+            } : m));
           }
         } catch (error) {
           console.error('Media upload failed', error);
-          setMediaItems((prev) => prev.map((item) => item.id === id ? {
-            ...item,
+          setMediaItems((prev) => prev.map((m) => m.id === item.id ? {
+            ...m,
             status: 'error',
             error: error instanceof Error ? error.message : 'Upload failed'
-          } : item));
+          } : m));
         }
       })
     );
@@ -521,13 +531,17 @@ const Wizard: React.FC = () => {
         console.warn('Failed to clear draft storage', error);
       }
 
+      // Clear review cache to force refetch with new data
+      clearCache();
+      console.log('✅ Cleared review cache - new reviews will be fetched on next page load');
+
       showReward('submit');
       return reviewIds;
     } catch (error) {
       console.error('Submission failed:', error);
       throw error;
     }
-  }, [userId, selectedRestaurant, dishDrafts, visitDraft, mediaItems, showReward]);
+  }, [userId, selectedRestaurant, dishDrafts, visitDraft, mediaItems, showReward, clearCache]);
 
   const contextValue = useMemo<WizardContextValue>(() => ({
     visitDraft,

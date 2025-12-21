@@ -834,7 +834,7 @@ const DiscoverList: React.FC = () => {
             <ArrowLeft size={24} className="text-gray-700" />
           </button>
 
-          <h1 className="text-xl font-semibold text-gray-900">Discover List</h1>
+              <h1 className="text-xl font-semibold text-gray-900">Discover</h1>
 
           <div className="relative">
             <div

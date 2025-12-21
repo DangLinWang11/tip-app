@@ -7,3 +7,4 @@ admin.initializeApp();
 export { updateRestaurantCuisines } from './updateRestaurantCuisines';
 export { onReviewWrite } from './onReviewWrite';
 export { onReviewPendingProof } from './verifyReceipt';
+export { onReviewUpdate } from './onReviewUpdate';
