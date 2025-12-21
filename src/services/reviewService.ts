@@ -1094,6 +1094,73 @@ export const fetchReviews = async (limitCount = 20): Promise<FirebaseReview[]> =
   }
 };
 
+// Cache-first fetch with server fallback for instant navigation
+export const fetchReviewsWithCache = async (limitCount = 20): Promise<FirebaseReview[]> => {
+  try {
+    const reviewsRef = collection(db, 'reviews');
+    const q = query(
+      reviewsRef,
+      orderBy('createdAt', 'desc'),
+      limit(limitCount * 3)
+    );
+
+    console.log('[fetchReviewsWithCache] Attempting cache-first fetch...');
+
+    // Try cache first
+    try {
+      const cacheSnapshot = await getDocs(q);
+
+      if (cacheSnapshot.metadata.fromCache && !cacheSnapshot.empty) {
+        console.log('[fetchReviewsWithCache] ✅ Serving from cache:', cacheSnapshot.docs.length, 'docs');
+
+        const raw = cacheSnapshot.docs.map((d) => ({ id: d.id, ...(d.data() as any) }));
+        const validDocs = raw.filter((doc: any) => {
+          if (doc._methodName || !doc.dish && !doc.dishName || !doc.userId) {
+            return false;
+          }
+          return true;
+        });
+
+        const items = validDocs.filter((r) => safeReview(r)).slice(0, limitCount);
+
+        const reviews: FirebaseReview[] = items.map((data: any) => {
+          const mappedData = {
+            ...data,
+            images: data.media?.photos && Array.isArray(data.media.photos) && data.media.photos.length > 0
+              ? data.media.photos.map((photoPath: string) => photoPath)
+              : data.images || []
+          };
+
+          return {
+            id: data.id,
+            ...mappedData,
+            restaurantId: data.restaurantId || null,
+            menuItemId: data.menuItemId || null,
+            dish: data.dish || data.dishName || 'Unknown Dish',
+            restaurant: data.restaurant || data.restaurantName || 'Unknown Restaurant'
+          } as FirebaseReview;
+        });
+
+        // Fetch from server in background to update cache
+        getDocs(q).catch((err) => {
+          console.warn('[fetchReviewsWithCache] Background server fetch failed:', err);
+        });
+
+        return reviews;
+      }
+    } catch (cacheError) {
+      console.warn('[fetchReviewsWithCache] Cache fetch failed, falling back to server:', cacheError);
+    }
+
+    // Fallback to server
+    console.log('[fetchReviewsWithCache] Fetching from server...');
+    return await fetchReviews(limitCount);
+  } catch (error) {
+    console.error('[fetchReviewsWithCache] Error:', error);
+    throw new Error('Failed to fetch reviews');
+  }
+};
+
 // Paginated version of fetchReviews for infinite scroll
 export const fetchReviewsPaginated = async (
   limitCount = 20,
