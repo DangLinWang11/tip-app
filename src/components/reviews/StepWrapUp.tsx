@@ -4,11 +4,22 @@ import { Loader2 } from 'lucide-react';
 import { useI18n } from '../../lib/i18n/useI18n';
 import { useReviewWizard } from './WizardContext';
 
+const BUSINESS_TAGS = [
+  'Great Staff',
+  'Wonderful Atmosphere',
+  'Quick Service',
+  'Hidden Gem',
+  'Worth the Wait',
+  'Highly Photogenic',
+  'Kid Friendly'
+];
+
 const StepWrapUp: React.FC = () => {
   const { t } = useI18n();
   const navigate = useNavigate();
   const {
     visitDraft,
+    setVisitDraft,
     dishDrafts,
     mediaItems,
     selectedRestaurant,
@@ -23,6 +34,7 @@ const StepWrapUp: React.FC = () => {
 
   const [successIds, setSuccessIds] = useState<string[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [selectedBusinessTags, setSelectedBusinessTags] = useState<string[]>(visitDraft.businessTags || []);
 
   const visitOnlyMediaItems = useMemo(() => {
     return mediaItems.filter((media) => {
@@ -34,6 +46,16 @@ const StepWrapUp: React.FC = () => {
   }, [mediaItems, dishDrafts]);
 
   const disableSubmit = isSubmitting || pendingUploads;
+
+  const toggleBusinessTag = (tag: string) => {
+    setSelectedBusinessTags(prev => {
+      const newTags = prev.includes(tag)
+        ? prev.filter(t => t !== tag)
+        : [...prev, tag];
+      setVisitDraft(draft => ({ ...draft, businessTags: newTags }));
+      return newTags;
+    });
+  };
 
   const handleSubmit = async () => {
     if (pendingUploads) {
@@ -101,17 +123,132 @@ const StepWrapUp: React.FC = () => {
   }
 
   const mediaCount = mediaItems.filter(m => m.downloadURL).length;
-  const attachedMediaCount = dishDrafts.reduce((total, dish) => total + new Set(dish.mediaIds).size, 0);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
+      {/* Header */}
+      <div className="space-y-2">
+        <h1 className="text-3xl font-bold tracking-tight text-slate-900">
+          You're rating {selectedRestaurant?.name}
+        </h1>
+        <p className="text-base text-slate-600">
+          Review your visit before posting
+        </p>
+      </div>
+
+      {/* Dishes Summary */}
+      <div className="space-y-4">
+        <h2 className="text-xl font-semibold text-slate-900">Your dishes ({dishDrafts.length})</h2>
+        <div className="space-y-3">
+          {dishDrafts.map((dish) => {
+            // Get the first attached photo for this dish
+            const firstMediaId = dish.mediaIds?.[0];
+            const firstMedia = firstMediaId
+              ? mediaItems.find(m => m.id === firstMediaId)
+              : null;
+            const thumbnailUrl = firstMedia?.downloadURL || firstMedia?.previewUrl || firstMedia?.thumbnailURL;
+
+            return (
+              <div
+                key={dish.id}
+                className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm hover:shadow-md transition-shadow"
+              >
+                <div className="flex items-center gap-4">
+                  {/* Left: Thumbnail */}
+                  {thumbnailUrl ? (
+                    <div className="flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden bg-slate-100">
+                      <img
+                        src={thumbnailUrl}
+                        alt={dish.dishName}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  ) : (
+                    <div className="flex-shrink-0 w-16 h-16 rounded-lg bg-slate-100 flex items-center justify-center">
+                      <span className="text-2xl">🍽️</span>
+                    </div>
+                  )}
+
+                  {/* Center: Dish Name & Category */}
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-base font-semibold text-slate-900 truncate">
+                      {dish.dishName}
+                    </h3>
+                    {dish.dishCategory && (
+                      <p className="text-sm text-slate-500 capitalize">{dish.dishCategory}</p>
+                    )}
+                  </div>
+
+                  {/* Right: Rating */}
+                  <div className="flex-shrink-0">
+                    <div className="text-2xl font-bold text-red-600">
+                      {dish.rating.toFixed(1)}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Caption if exists */}
+                {dish.caption && (
+                  <p className="mt-3 text-sm text-slate-600 italic">
+                    "{dish.caption}"
+                  </p>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Business Highlight Tags & Owner Message */}
+      <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 space-y-6">
+        {/* What stood out? */}
+        <div>
+          <h2 className="text-lg font-semibold text-slate-900 mb-4">What stood out?</h2>
+          <div className="flex flex-wrap gap-2">
+            {BUSINESS_TAGS.map(tag => {
+              const isSelected = selectedBusinessTags.includes(tag);
+              return (
+                <button
+                  key={tag}
+                  type="button"
+                  onClick={() => toggleBusinessTag(tag)}
+                  className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                    isSelected
+                      ? 'bg-slate-900 text-white shadow-sm'
+                      : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                  }`}
+                >
+                  {tag}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Say something to the owner */}
+        <div>
+          <textarea
+            value={visitDraft.overallText || ''}
+            onChange={(e) => setVisitDraft(prev => ({ ...prev, overallText: e.target.value || undefined }))}
+            onBlur={() => {
+              // Auto-save on blur (clicking out of textbox)
+              console.log('Owner message saved:', visitDraft.overallText);
+            }}
+            placeholder="Say something to the owner"
+            rows={3}
+            className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-100 transition-all"
+          />
+        </div>
+      </div>
+
+      {/* Visit Photos */}
       {visitOnlyMediaItems.length > 0 && (
-        <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
-          <h2 className="text-sm font-semibold text-slate-900">Your Visit Photos</h2>
-          <p className="mt-1 text-xs text-slate-500">
-            These photos are for the place, decor, or vibes. They&apos;re not tied to one specific dish.
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+          <h2 className="text-lg font-semibold text-slate-900 mb-2">Visit vibes</h2>
+          <p className="text-sm text-slate-500 mb-4">
+            Photos of the atmosphere, decor, or overall experience
           </p>
-          <div className="mt-3 flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+          <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1">
             {visitOnlyMediaItems.map((media) => {
               const src = media.downloadURL || media.previewUrl || media.thumbnailURL;
               if (!src) return null;
@@ -123,7 +260,7 @@ const StepWrapUp: React.FC = () => {
                   {media.kind === 'photo' ? (
                     <img src={src} alt="Visit photo" className="w-full h-full object-cover" />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-[11px] text-slate-600">
+                    <div className="w-full h-full flex items-center justify-center text-xs text-slate-600">
                       Video
                     </div>
                   )}
@@ -134,86 +271,18 @@ const StepWrapUp: React.FC = () => {
         </div>
       )}
 
-      {/* Summary Card */}
-      <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-md shadow-slate-200/60">
-        <h2 className="text-lg font-semibold text-slate-900 mb-6">Review Summary</h2>
-
-        {/* Restaurant */}
-        <div className="space-y-4">
+      {/* Visit Details */}
+      {visitDraft.mealTime && visitDraft.mealTime !== 'unspecified' && (
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+          <h2 className="text-lg font-semibold text-slate-900 mb-4">Visit details</h2>
           <div>
-            <h3 className="text-xs font-semibold text-slate-600 uppercase mb-1">Restaurant</h3>
-            <p className="text-sm font-medium text-slate-900">{selectedRestaurant?.name}</p>
-            {(selectedRestaurant as any)?.address && (
-              <p className="text-xs text-slate-500">{(selectedRestaurant as any).address}</p>
-            )}
-          </div>
-
-          {/* Meal Time */}
-          {visitDraft.mealTime && visitDraft.mealTime !== 'unspecified' && (
-            <div>
-              <h3 className="text-xs font-semibold text-slate-600 uppercase mb-1">Meal Time</h3>
-              <p className="text-sm font-medium text-slate-900 capitalize">{visitDraft.mealTime}</p>
-            </div>
-          )}
-
-          {/* Visit Text */}
-          {visitDraft.overallText && (
-            <div>
-              <h3 className="text-xs font-semibold text-slate-600 uppercase mb-1">About This Visit</h3>
-              <p className="text-sm text-slate-700 leading-relaxed">{visitDraft.overallText}</p>
-            </div>
-          )}
-
-          {/* Media Summary */}
-          <div>
-            <h3 className="text-xs font-semibold text-slate-600 uppercase mb-1">Photos & Videos</h3>
-            <div className="flex gap-2 text-sm">
-              <span className="text-slate-700">
-                {mediaCount} uploaded
-              </span>
-              {attachedMediaCount < mediaCount && (
-                <>
-                  <span className="text-slate-400">•</span>
-                  <span className="text-amber-600">
-                    {mediaCount - attachedMediaCount} visit-only
-                  </span>
-                </>
-              )}
-            </div>
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">
+              Meal Time
+            </p>
+            <p className="text-sm text-slate-900 capitalize">{visitDraft.mealTime}</p>
           </div>
         </div>
-      </div>
-
-      {/* Dishes Summary */}
-      <div className="space-y-3">
-        <h3 className="text-lg font-semibold text-slate-900">Dishes ({dishDrafts.length})</h3>
-        {dishDrafts.map((dish, idx) => {
-          const attachedCount = new Set(dish.mediaIds).size;
-          return (
-            <div key={dish.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-              <div className="flex items-start gap-3">
-                <div className="flex-1">
-                  <h4 className="text-sm font-semibold text-slate-900">{dish.dishName}</h4>
-                  <div className="flex items-center gap-2 mt-1 flex-wrap">
-                    <span className="text-xs bg-slate-100 px-2 py-0.5 rounded text-slate-600">
-                      {dish.dishCategory}
-                    </span>
-                    <span className="text-xs text-slate-500">⭐ {dish.rating.toFixed(1)}</span>
-                    {attachedCount > 0 && (
-                      <span className="text-xs bg-emerald-100 px-2 py-0.5 rounded text-emerald-700">
-                        {attachedCount} photo{attachedCount !== 1 ? 's' : ''}
-                      </span>
-                    )}
-                  </div>
-                  {dish.caption && (
-                    <p className="text-xs text-slate-500 mt-2 italic">"{dish.caption}"</p>
-                  )}
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
+      )}
 
       {/* Error Display */}
       {error && (
@@ -235,7 +304,7 @@ const StepWrapUp: React.FC = () => {
           type="button"
           onClick={goBack}
           disabled={isSubmitting}
-          className="flex-1 rounded-2xl border border-slate-200 py-3 text-center text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex-1 rounded-2xl border border-slate-200 py-3 text-center text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
         >
           Back
         </button>
@@ -243,7 +312,7 @@ const StepWrapUp: React.FC = () => {
           type="button"
           onClick={handleSubmit}
           disabled={disableSubmit}
-          className="flex-1 rounded-2xl bg-red-500 py-3 text-center text-sm font-semibold text-white transition hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          className="flex-1 rounded-2xl bg-red-500 py-3 text-center text-sm font-semibold text-white transition hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-md hover:shadow-lg"
         >
           {isSubmitting ? (
             <>

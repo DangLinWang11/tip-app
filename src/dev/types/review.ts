@@ -83,6 +83,7 @@ export interface VisitDraft {
   overallText?: string; // Visit-level caption that applies to every dish review
   serviceSpeed?: ServiceSpeed | null;
   visitId?: string;
+  businessTags?: string[]; // Business highlight tags: Great Staff, Wonderful Atmosphere, etc.
 }
 
 // Per-dish draft (multi-dish flow)

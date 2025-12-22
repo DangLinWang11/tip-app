@@ -146,6 +146,7 @@ export interface ReviewData {
   price?: string | null;
   restaurantPriceLevel?: '$' | '$$' | '$$$' | '$$$$' | null;
   serviceSpeed?: 'fast' | 'normal' | 'slow' | null;
+  businessTags?: string[]; // Business highlight tags: Great Staff, Wonderful Atmosphere, etc.
   explicit?: ExplicitSelection | null;
   sentiment?: SentimentSelection | null;
   explicitTags?: string[];

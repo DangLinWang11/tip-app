@@ -768,22 +768,6 @@ const StepVisit: React.FC = () => {
         </section>
       )}
 
-      {/* Visit Text */}
-      {selectedRestaurant && (
-        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-md shadow-slate-200/60">
-          <div className="mb-4">
-            <h2 className="text-lg font-semibold text-slate-900">Comments or Concerns?</h2>
-          </div>
-          <textarea
-            value={visitDraft.overallText || ''}
-            onChange={(e) => setVisitDraft(prev => ({ ...prev, overallText: e.target.value || undefined }))}
-            placeholder="Share what made this visit special..."
-            rows={4}
-            className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-base focus:border-red-400 focus:outline-none focus:ring-2 focus:ring-red-100"
-          />
-        </section>
-      )}
-
       {/* Navigation */}
       <div className="flex gap-3 pt-4">
         <button

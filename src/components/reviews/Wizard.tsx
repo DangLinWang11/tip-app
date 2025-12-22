@@ -516,6 +516,7 @@ const Wizard: React.FC = () => {
           dishCategory: dish.dishCategory,
           ...(visitLevelCaption ? { visitCaption: visitLevelCaption } : {}),
           ...(visitMediaUrls.length ? { visitMedia: visitMediaUrls } : {}),
+          ...(visitDraft.businessTags?.length ? { businessTags: visitDraft.businessTags } : {}),
         };
 
         // Add to payload for saveReview
