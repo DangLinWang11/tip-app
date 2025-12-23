@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, startTransition } from 'react';
 import { EditIcon, GridIcon, BookmarkIcon, SearchIcon, PlusIcon, Star, Users, TrendingUp, Award, Share, User, MapIcon } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Store as StoreIcon } from 'lucide-react';
@@ -10,17 +10,115 @@ import { fetchUserReviews, convertUserReviewsToFeedPosts, FirebaseReview } from 
 import { getUserProfile, UserProfile, getCurrentUser } from '../lib/firebase';
 import { getInitials } from '../utils/avatarUtils';
 import ListCard from '../components/ListCard';
-import { 
-  getUserSavedLists, 
-  createDefaultTemplates, 
-  deleteSavedList, 
+import {
+  getUserSavedLists,
+  createDefaultTemplates,
+  deleteSavedList,
   makeListPublic,
   createCustomList,
   updateListName,
-  SavedList 
+  SavedList
 } from '../services/savedListsService';
 import EditListNameModal from '../components/EditListNameModal';
 import { getFollowCounts } from '../services/followService';
+
+// Simple cache for profile data to enable instant "back" navigation
+let cachedProfileData: {
+  profile: UserProfile | null;
+  followerCount: number;
+  timestamp: number;
+} | null = null;
+
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
+// Skeleton UI Component for loading state
+const ProfileSkeleton: React.FC = () => {
+  return (
+    <div className="min-h-screen bg-light-gray pb-16 animate-pulse">
+      <header className="bg-white p-4 sticky top-0 z-10 shadow-sm">
+        <div className="flex justify-between items-center">
+          <div className="h-6 w-32 bg-gray-200 rounded"></div>
+          <div className="flex items-center">
+            <div className="w-20 h-8 bg-gray-200 rounded-2xl mr-3"></div>
+            <div className="w-8 h-8 bg-gray-200 rounded-lg"></div>
+          </div>
+        </div>
+      </header>
+
+      <div className="bg-white shadow-sm">
+        {/* Profile Header Skeleton */}
+        <div className="p-6">
+          <div className="flex items-start mb-6">
+            {/* Avatar skeleton */}
+            <div className="w-20 h-20 bg-gray-200 rounded-full"></div>
+            <div className="ml-4 flex-1">
+              {/* Username skeleton */}
+              <div className="h-5 w-32 bg-gray-200 rounded mb-2"></div>
+              {/* Bio skeleton */}
+              <div className="h-4 w-48 bg-gray-200 rounded"></div>
+            </div>
+          </div>
+
+          {/* Action buttons skeleton */}
+          <div className="flex justify-between items-center mb-4">
+            <div className="h-3 w-24 bg-gray-200 rounded"></div>
+            <div className="flex space-x-2">
+              <div className="h-7 w-16 bg-gray-200 rounded-full"></div>
+              <div className="h-7 w-16 bg-gray-200 rounded-full"></div>
+            </div>
+          </div>
+
+          {/* Stats Cards Skeleton - 2x2 Grid */}
+          <div className="grid grid-cols-2 gap-3">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+                <div className="flex items-center">
+                  <div className="w-10 h-10 bg-gray-200 rounded-full mr-3"></div>
+                  <div>
+                    <div className="h-6 w-12 bg-gray-200 rounded mb-1"></div>
+                    <div className="h-3 w-16 bg-gray-200 rounded"></div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Food Map Button Skeleton */}
+        <div className="px-6 mt-4 mb-4">
+          <div className="w-full h-12 bg-gray-200 rounded-xl"></div>
+        </div>
+
+        {/* Tabs Skeleton */}
+        <div className="flex border-t border-light-gray">
+          <div className="flex-1 py-3 flex justify-center items-center">
+            <div className="h-4 w-24 bg-gray-200 rounded"></div>
+          </div>
+          <div className="flex-1 py-3 flex justify-center items-center">
+            <div className="h-4 w-16 bg-gray-200 rounded"></div>
+          </div>
+        </div>
+      </div>
+
+      {/* Content skeleton */}
+      <div className="p-4">
+        {/* Search bar skeleton */}
+        <div className="h-10 w-full bg-gray-200 rounded-full mb-4"></div>
+
+        {/* Post skeletons */}
+        <div className="space-y-3">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="bg-white rounded-xl p-4">
+              <div className="h-48 bg-gray-200 rounded-lg mb-3"></div>
+              <div className="h-4 w-3/4 bg-gray-200 rounded mb-2"></div>
+              <div className="h-4 w-1/2 bg-gray-200 rounded"></div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const SavedListsTab: React.FC = () => {
   const navigate = useNavigate();
@@ -185,8 +283,12 @@ const SavedListsTab: React.FC = () => {
           <p className="text-gray-600 mb-6">
             Start saving restaurants and dishes to create your first list
           </p>
-          <button 
-            onClick={() => navigate('/discover')}
+          <button
+            onClick={() => {
+              startTransition(() => {
+                navigate('/discover');
+              });
+            }}
             className="bg-primary text-white px-6 py-3 rounded-full font-medium hover:bg-red-600 transition-colors"
           >
             Discover Restaurants
@@ -302,23 +404,46 @@ const Profile: React.FC = () => {
   useEffect(() => {
     const loadUserProfile = async () => {
       try {
-        setProfileLoading(true);
         const currentUser = getCurrentUser();
-        
+
         if (!currentUser) {
           setError('No authenticated user found');
+          setProfileLoading(false);
           return;
         }
 
+        // Check if we have valid cached data
+        const now = Date.now();
+        if (cachedProfileData &&
+            cachedProfileData.profile &&
+            (now - cachedProfileData.timestamp) < CACHE_DURATION) {
+          // Use cached data immediately for instant display
+          setUserProfile(cachedProfileData.profile);
+          setFollowerCount(cachedProfileData.followerCount);
+          setProfileLoading(false);
+
+          // Still fetch fresh data in the background to keep it updated
+          // but don't show loading state
+        } else {
+          // No cache available, show loading state
+          setProfileLoading(true);
+        }
+
+        // Fetch fresh data (either as background refresh or initial load)
         const result = await getUserProfile();
         if (result.success && result.profile) {
           setUserProfile(result.profile);
-          
+
           // Get follow counts
-          if (currentUser) {
-            const counts = await getFollowCounts(currentUser.uid);
-            setFollowerCount(counts.followers);
-          }
+          const counts = await getFollowCounts(currentUser.uid);
+          setFollowerCount(counts.followers);
+
+          // Update cache
+          cachedProfileData = {
+            profile: result.profile,
+            followerCount: counts.followers,
+            timestamp: Date.now()
+          };
         } else {
           setError(result.error || 'Failed to load user profile');
         }
@@ -493,16 +618,9 @@ const Profile: React.FC = () => {
     );
   };
 
-  // Loading state
+  // Loading state - show skeleton UI instead of blank screen
   if (!userProfile && profileLoading) {
-    return (
-      <div className="min-h-screen bg-light-gray flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading profile...</p>
-        </div>
-      </div>
-    );
+    return <ProfileSkeleton />;
   }
 
   // Error state
@@ -524,14 +642,24 @@ const Profile: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-light-gray pb-16">
+    <div className="min-h-screen bg-light-gray pb-16" style={{ animation: 'fadeIn 0.2s ease-in' }}>
+      <style>{`
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+      `}</style>
       <header className="bg-white p-4 sticky top-0 z-10 shadow-sm">
         <div className="flex justify-between items-center">
           <h1 className="text-xl font-semibold">My Profile</h1>
           <div className="flex items-center">
-            <div 
+            <div
               className="bg-white rounded-2xl shadow-sm border border-gray-100 px-4 py-2 mr-3 cursor-pointer hover:shadow-md transition-shadow flex items-center"
-              onClick={() => navigate('/rewards')}
+              onClick={() => {
+                startTransition(() => {
+                  navigate('/rewards');
+                });
+              }}
             >
               <span className="font-bold text-sm mr-2" style={{ color: '#FFD700' }}>
                 {personalStats.pointsEarned}
@@ -595,8 +723,12 @@ const Profile: React.FC = () => {
             
             {/* Action Buttons */}
             <div className="flex space-x-2">
-              <button 
-                onClick={() => navigate('/profile/edit')}
+              <button
+                onClick={() => {
+                  startTransition(() => {
+                    navigate('/profile/edit');
+                  });
+                }}
                 className="px-3 py-1.5 border border-gray-200 rounded-full text-xs flex items-center hover:bg-gray-50 transition-colors"
               >
                 <EditIcon size={12} className="mr-1" />
@@ -613,7 +745,11 @@ const Profile: React.FC = () => {
 
               {ownsAny && (
                 <button
-                  onClick={() => navigate('/owner')}
+                  onClick={() => {
+                    startTransition(() => {
+                      navigate('/owner');
+                    });
+                  }}
                   className="px-3 py-1.5 border border-gray-200 rounded-full text-xs flex items-center hover:bg-gray-50 transition-colors"
                   aria-label="Your Restaurant"
                 >
@@ -683,7 +819,11 @@ const Profile: React.FC = () => {
         {/* Food Map Button */}
         <div className="px-6 mt-4 mb-4">
           <button
-            onClick={() => navigate(`/profile/${userProfile.username}/map`)}
+            onClick={() => {
+              startTransition(() => {
+                navigate(`/profile/${userProfile.username}/map`);
+              });
+            }}
             className="w-full bg-gradient-to-r from-primary to-red-500 text-white py-3.5 px-6 rounded-xl font-medium shadow-sm hover:shadow-md transition-all duration-200 flex items-center justify-center"
           >
             <MapIcon size={18} className="mr-2" />
