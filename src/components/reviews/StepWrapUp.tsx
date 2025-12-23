@@ -234,7 +234,7 @@ const StepWrapUp: React.FC = () => {
               // Auto-save on blur (clicking out of textbox)
               console.log('Owner message saved:', visitDraft.overallText);
             }}
-            placeholder="Say something to the owner"
+            placeholder="Say something to the owner (This will be your review's caption)"
             rows={3}
             className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-100 transition-all"
           />
