@@ -1500,6 +1500,13 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
                         loading={isNearViewport || index < 3 ? "eager" : "lazy"}
                         decoding="async"
                         onLoad={() => handleImageLoad(displayUrl)}
+                        onError={(e) => {
+                          // Fallback to original URL if medium/thumbnail fails (404, etc.)
+                          if (e.currentTarget.src !== item.imageUrl) {
+                            console.warn(`Failed to load ${displayUrl}, falling back to original`);
+                            e.currentTarget.src = item.imageUrl;
+                          }
+                        }}
                         className={`w-full h-full object-cover absolute inset-0 transition-opacity duration-300 ${
                           imageLoaded[displayUrl] ? 'opacity-100' : 'opacity-0'
                         }`}
@@ -1621,6 +1628,12 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
                         loading="lazy"
                         decoding="async"
                         onLoad={() => handleImageLoad(`thumb_${item.thumbnailUrl || item.imageUrl}`)}
+                        onError={(e) => {
+                          // Fallback to original URL if thumbnail fails (404, etc.)
+                          if (e.currentTarget.src !== item.imageUrl) {
+                            e.currentTarget.src = item.imageUrl;
+                          }
+                        }}
                         className={`h-full w-full object-cover absolute inset-0 transition-opacity duration-200 ${
                           imageLoaded[`thumb_${item.thumbnailUrl || item.imageUrl}`] ? 'opacity-100' : 'opacity-0'
                         }`}
