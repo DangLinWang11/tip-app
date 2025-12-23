@@ -1,10 +1,119 @@
-import React, { useState, useEffect } from 'react';
-import { ArrowLeftIcon, MapIcon, SearchIcon, PlusIcon, CheckIcon, EditIcon, Share, User, Star, Users, TrendingUp, Store } from 'lucide-react';
+import React, { useState, useEffect, startTransition } from 'react';
+import { ArrowLeftIcon, MapIcon, MapPinIcon, SearchIcon, PlusIcon, CheckIcon, EditIcon, Share, User, Star, Users, TrendingUp, Store } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import FeedPost from '../components/FeedPost';
 import { fetchUserReviews, convertReviewsToFeedPosts, FirebaseReview } from '../services/reviewService';
 import { getFollowCounts, isFollowing, followUser, unfollowUser } from '../services/followService';
 import { getUserProfile, getCurrentUser, getUserByUsername } from '../lib/firebase';
+
+// Cache for visited public profiles (username-keyed with LRU eviction)
+interface CachedPublicProfile {
+  profile: any;
+  reviews: FirebaseReview[];
+  feedPosts: any[];
+  followerCount: number;
+  isFollowing: boolean;
+  timestamp: number;
+}
+
+const profileCache = new Map<string, CachedPublicProfile>();
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+const MAX_CACHE_SIZE = 10; // LRU limit
+
+// LRU cache eviction helper
+const evictOldestCache = () => {
+  if (profileCache.size >= MAX_CACHE_SIZE) {
+    const firstKey = profileCache.keys().next().value;
+    if (firstKey) profileCache.delete(firstKey);
+  }
+};
+
+// Skeleton UI Component for loading state
+const PublicProfileSkeleton: React.FC<{ username?: string }> = ({ username }) => {
+  return (
+    <div className="min-h-screen bg-gray-50 pb-16 animate-pulse">
+      {/* Header with Back Button */}
+      <div className="bg-white px-4 py-4 shadow-sm">
+        <div className="flex items-center">
+          <div className="w-8 h-8 bg-gray-200 rounded-full mr-2"></div>
+          <div className="h-5 w-24 bg-gray-200 rounded"></div>
+        </div>
+      </div>
+
+      <div className="px-4 py-6">
+        {/* Profile Info Card */}
+        <div className="bg-white rounded-xl shadow-sm p-5 mb-6">
+          <div className="flex items-start mb-3">
+            {/* Avatar skeleton */}
+            <div className="w-20 h-20 bg-gray-200 rounded-full"></div>
+            <div className="ml-4 flex-1">
+              {/* Username skeleton */}
+              <div className="h-5 w-32 bg-gray-200 rounded mb-2"></div>
+              {/* Bio skeleton */}
+              <div className="h-4 w-48 bg-gray-200 rounded"></div>
+            </div>
+          </div>
+
+          {/* Action buttons skeleton */}
+          <div className="flex justify-center items-center mb-4">
+            <div className="flex space-x-2">
+              <div className="h-9 w-24 bg-gray-200 rounded-full"></div>
+              <div className="h-9 w-20 bg-gray-200 rounded-full"></div>
+            </div>
+          </div>
+
+          {/* Stats Cards Skeleton - 2x2 Grid (More Compact) */}
+          <div className="grid grid-cols-2 gap-2.5">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="bg-white rounded-xl shadow-sm border border-gray-100 p-3">
+                <div className="flex items-center">
+                  <div className="w-9 h-9 bg-gray-200 rounded-full mr-2.5"></div>
+                  <div>
+                    <div className="h-5 w-10 bg-gray-200 rounded mb-1"></div>
+                    <div className="h-3 w-16 bg-gray-200 rounded"></div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Food Map Button Skeleton */}
+        <div className="mb-6">
+          <div className="w-full h-14 bg-gray-200 rounded-xl"></div>
+        </div>
+
+        {/* Tabs Skeleton */}
+        <div className="bg-white rounded-xl shadow-sm mb-4">
+          <div className="flex border-b border-gray-200">
+            <div className="flex-1 py-3 px-4 flex justify-center">
+              <div className="h-4 w-24 bg-gray-200 rounded"></div>
+            </div>
+            <div className="flex-1 py-3 px-4 flex justify-center">
+              <div className="h-4 w-20 bg-gray-200 rounded"></div>
+            </div>
+          </div>
+        </div>
+
+        {/* Search bar skeleton */}
+        <div className="bg-white rounded-xl shadow-sm p-4 mb-4">
+          <div className="h-10 w-full bg-gray-200 rounded-lg"></div>
+        </div>
+
+        {/* Post skeletons */}
+        <div className="space-y-4">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="bg-white rounded-xl p-4">
+              <div className="h-48 bg-gray-200 rounded-lg mb-3"></div>
+              <div className="h-4 w-3/4 bg-gray-200 rounded mb-2"></div>
+              <div className="h-4 w-1/2 bg-gray-200 rounded"></div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const PublicProfile: React.FC = () => {
   const navigate = useNavigate();
@@ -33,35 +142,66 @@ const PublicProfile: React.FC = () => {
 
   const loadUserProfile = async () => {
     try {
-      setLoading(true);
-      
       if (!username) {
         setError('Username is required');
         return;
       }
-      
-      // Get user profile by username
+
+      // Check cache first
+      const now = Date.now();
+      const cached = profileCache.get(username);
+
+      if (cached && (now - cached.timestamp) < CACHE_DURATION) {
+        // Use cached data immediately - instant display!
+        setUserProfile(cached.profile);
+        setUserReviews(cached.reviews);
+        setFeedPosts(cached.feedPosts);
+        setFollowerCount(cached.followerCount);
+        if (!isOwnProfile) {
+          setIsFollowingUser(cached.isFollowing);
+        }
+        setLoading(false);
+
+        // Still fetch fresh data in background, but don't show loading state
+      } else {
+        // No valid cache, show loading skeleton
+        setLoading(true);
+      }
+
+      // Fetch fresh data (either initial load or background refresh)
       const profileResult = await getUserByUsername(username);
-      
+
       if (profileResult.success && profileResult.profile) {
         setUserProfile(profileResult.profile);
-        
-        // Load user's reviews using the profile's uid
+
+        // Load reviews
         const reviews = await fetchUserReviews(50, profileResult.profile.uid);
         setUserReviews(reviews);
-        
+
         // Convert to feed posts
         const posts = await convertReviewsToFeedPosts(reviews);
         setFeedPosts(posts);
-        
-        // Get follow counts and status using the profile's uid
+
+        // Get follow counts and status
         const counts = await getFollowCounts(profileResult.profile.uid);
         setFollowerCount(counts.followers);
-        
+
+        let followingStatus = false;
         if (!isOwnProfile) {
-          const following = await isFollowing(profileResult.profile.uid);
-          setIsFollowingUser(following);
+          followingStatus = await isFollowing(profileResult.profile.uid);
+          setIsFollowingUser(followingStatus);
         }
+
+        // Update cache
+        evictOldestCache(); // LRU eviction
+        profileCache.set(username, {
+          profile: profileResult.profile,
+          reviews,
+          feedPosts: posts,
+          followerCount: counts.followers,
+          isFollowing: followingStatus,
+          timestamp: Date.now()
+        });
       } else {
         setError(profileResult.error || 'User not found');
       }
@@ -74,7 +214,7 @@ const PublicProfile: React.FC = () => {
   };
 
   const handleFollowToggle = async () => {
-    if (followLoading || isOwnProfile || !userProfile?.uid) return;
+    if (followLoading || isOwnProfile || !userProfile?.uid || !username) return;
 
     setFollowLoading(true);
     try {
@@ -83,12 +223,34 @@ const PublicProfile: React.FC = () => {
         if (success) {
           setIsFollowingUser(false);
           setFollowerCount(prev => prev - 1);
+
+          // Update cache to reflect new follow state
+          const cached = profileCache.get(username);
+          if (cached) {
+            profileCache.set(username, {
+              ...cached,
+              isFollowing: false,
+              followerCount: cached.followerCount - 1,
+              timestamp: Date.now() // Refresh timestamp
+            });
+          }
         }
       } else {
         const success = await followUser(userProfile.uid, userProfile.username || userProfile.displayName);
         if (success) {
           setIsFollowingUser(true);
           setFollowerCount(prev => prev + 1);
+
+          // Update cache to reflect new follow state
+          const cached = profileCache.get(username);
+          if (cached) {
+            profileCache.set(username, {
+              ...cached,
+              isFollowing: true,
+              followerCount: cached.followerCount + 1,
+              timestamp: Date.now() // Refresh timestamp
+            });
+          }
         }
       }
     } catch (error) {
@@ -152,30 +314,7 @@ const PublicProfile: React.FC = () => {
   });
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        {/* Header */}
-        <div className="bg-white px-4 py-6 shadow-sm">
-          <div className="flex items-center">
-            <button 
-              onClick={() => navigate('/')}
-              className="mr-4 p-2 hover:bg-gray-100 rounded-full transition-colors"
-            >
-              <ArrowLeftIcon size={20} className="text-gray-600" />
-            </button>
-            <h1 className="text-xl font-bold text-black">{username}</h1>
-          </div>
-        </div>
-
-        {/* Loading State */}
-        <div className="flex items-center justify-center py-12">
-          <div className="text-center">
-            <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading profile...</p>
-          </div>
-        </div>
-      </div>
-    );
+    return <PublicProfileSkeleton username={username} />;
   }
 
   if (error) {
@@ -184,8 +323,12 @@ const PublicProfile: React.FC = () => {
         {/* Header */}
         <div className="bg-white px-4 py-6 shadow-sm">
           <div className="flex items-center">
-            <button 
-              onClick={() => navigate('/')}
+            <button
+              onClick={() => {
+                startTransition(() => {
+                  navigate('/');
+                });
+              }}
               className="mr-4 p-2 hover:bg-gray-100 rounded-full transition-colors"
             >
               <ArrowLeftIcon size={20} className="text-gray-600" />
@@ -199,7 +342,11 @@ const PublicProfile: React.FC = () => {
           <h3 className="text-lg font-semibold text-gray-900 mb-2">User Not Found</h3>
           <p className="text-gray-600 mb-4">This user doesn't exist or their profile is private.</p>
           <button
-            onClick={() => navigate('/')}
+            onClick={() => {
+              startTransition(() => {
+                navigate('/');
+              });
+            }}
             className="bg-primary text-white py-2 px-6 rounded-full font-medium hover:bg-red-600 transition-colors"
           >
             Go Back
@@ -210,12 +357,22 @@ const PublicProfile: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-16">
+    <div className="min-h-screen bg-gray-50 pb-16" style={{ animation: 'fadeIn 0.2s ease-in' }}>
+      <style>{`
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+      `}</style>
       {/* Header */}
       <div className="bg-white px-4 py-4 shadow-sm">
         <div className="flex items-center">
-          <button 
-            onClick={() => navigate('/')}
+          <button
+            onClick={() => {
+              startTransition(() => {
+                navigate('/');
+              });
+            }}
             className="mr-2 p-2 hover:bg-gray-100 rounded-full transition-colors"
           >
             <ArrowLeftIcon size={20} className="text-gray-600" />
@@ -250,7 +407,11 @@ const PublicProfile: React.FC = () => {
               {isOwnProfile ? (
                 <>
                   <button
-                    onClick={() => navigate('/profile/edit')}
+                    onClick={() => {
+                      startTransition(() => {
+                        navigate('/profile/edit');
+                      });
+                    }}
                     className="px-4 py-2 border border-gray-200 rounded-full text-sm flex items-center hover:bg-gray-50 transition-colors"
                   >
                     <EditIcon size={14} className="mr-1.5" />
@@ -365,7 +526,11 @@ const PublicProfile: React.FC = () => {
         {!isOwnProfile && (
           <div className="mb-6">
             <button
-              onClick={() => navigate(`/profile/${username}/map`)}
+              onClick={() => {
+                startTransition(() => {
+                  navigate(`/profile/${username}/map`);
+                });
+              }}
               className="w-full bg-gradient-to-r from-primary to-red-500 text-white py-3.5 px-6 rounded-xl font-medium shadow-sm hover:shadow-md transition-all duration-200 flex items-center justify-center"
             >
               <MapIcon size={18} className="mr-2" />
