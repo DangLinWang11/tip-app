@@ -1698,7 +1698,7 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
           {/* 2-line header with hierarchy + dots button */}
           <div className="flex items-start justify-between mb-2">
             <div>
-              <p className="text-sm font-semibold text-gray-900">{author.name}</p>
+              <p className="text-sm font-semibold text-gray-900">{displayAuthorName}</p>
               <p className="text-xs text-gray-500">
                 rated <span className="font-medium text-gray-800">{restaurant?.name}</span> · {(() => {
                   const when = formatRelativeTime(

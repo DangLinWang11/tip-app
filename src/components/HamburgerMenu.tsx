@@ -1,13 +1,14 @@
 ﻿import React, { useEffect, useState } from 'react';
-import { Menu, X, Settings, HelpCircle, LogOut, Store as StoreIcon } from 'lucide-react';
+import { Menu, X, Settings, HelpCircle, LogOut, Store as StoreIcon, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { signOutUser, analytics } from '../lib/firebase';
 import { logEvent } from 'firebase/analytics';
 import { useOwnedRestaurants } from '../hooks/useOwnedRestaurants';
 import ReactDOM from 'react-dom';
+import FeedbackModal from './FeedbackModal';
 
 // Simple Settings Modal Component
-const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen, onClose }) => {
+const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void; onOpenFeedback: () => void }> = ({ isOpen, onClose, onOpenFeedback }) => {
   const [locationPermissionState, setLocationPermissionState] = useState<PermissionState | 'unsupported'>('prompt');
   const [locationMessage, setLocationMessage] = useState<string | null>(null);
 
@@ -151,12 +152,23 @@ const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isO
               <button className="w-full text-left py-2 text-gray-700 hover:text-primary">
                 Change Email Address
               </button>
-              <button className="w-full text-left py-2 text-gray-700 hover:text-primary">
-                Export My Data
-              </button>
               <button className="w-full text-left py-2 text-red-600 hover:text-red-700">
                 Delete Account
               </button>
+            </div>
+          </div>
+
+          {/* Help & Feedback */}
+          <div>
+            <div
+              className="flex items-center justify-between py-4 cursor-pointer hover:bg-gray-50 -mx-6 px-6 rounded-lg transition-colors"
+              onClick={() => {
+                onClose();
+                onOpenFeedback();
+              }}
+            >
+              <label className="text-lg font-medium text-gray-900 cursor-pointer">Help & Feedback</label>
+              <ChevronRight className="w-5 h-5 text-gray-400" />
             </div>
           </div>
         </div>
@@ -281,6 +293,7 @@ const HamburgerMenu: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
   const { ownsAny } = useOwnedRestaurants();
 
   const toggleMenu = () => {
@@ -397,10 +410,17 @@ const HamburgerMenu: React.FC = () => {
       </div>
 
       {/* Settings Modal */}
-      <SettingsModal isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} />
+      <SettingsModal
+        isOpen={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        onOpenFeedback={() => setFeedbackOpen(true)}
+      />
 
       {/* Help Modal */}
       <HelpModal isOpen={helpOpen} onClose={() => setHelpOpen(false)} />
+
+      {/* Feedback Modal */}
+      <FeedbackModal isOpen={feedbackOpen} onClose={() => setFeedbackOpen(false)} />
     </div>
   );
 };
