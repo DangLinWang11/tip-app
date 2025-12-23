@@ -1065,15 +1065,15 @@ const DiscoverList: React.FC = () => {
               </div>
               <div className="p-2 flex-1 flex flex-col justify-between">
                 <div className="flex justify-between items-start">
-                  <div className="flex-1 pr-2">
+                  <div className="flex-1 min-w-0 max-w-[calc(100%-90px)] pr-2">
                     <h3 className="font-medium truncate text-sm">{dish.name}</h3>
                     <p className="text-xs text-gray-600 truncate">{dish.restaurantName}</p>
                   </div>
-                  <div className="flex flex-col items-end">
-                    <span className={`text-sm font-semibold ${dish.rating === 0 ? 'text-red-500' : 'text-gray-900'}`}>
+                  <div className="flex flex-col items-end flex-shrink-0">
+                    <span className={`text-sm font-semibold whitespace-nowrap ${dish.rating === 0 ? 'text-red-500' : 'text-gray-900'}`}>
                       {dish.rating === 0 ? 'No reviews' : dish.rating.toFixed(1)}
                     </span>
-                    <div className="flex items-center mt-1 text-xs text-dark-gray">
+                    <div className="flex items-center mt-1 text-xs text-dark-gray whitespace-nowrap">
                       <MapPin size={12} className="text-dark-gray mr-1" />
                       <span>{dish.distanceLabel ?? '-'}</span>
                     </div>

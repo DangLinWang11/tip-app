@@ -161,7 +161,7 @@ const RestaurantListCard: React.FC<RestaurantListCardProps> = ({ card, onClick }
       className="bg-white rounded-xl shadow-sm flex items-center overflow-hidden border cursor-pointer hover:bg-gray-50 transition-colors h-[116px]"
       onClick={onClick}
     >
-      <div className="relative w-20 h-20 flex-shrink-0 ml-3">
+      <div className="relative w-20 h-20 flex-shrink-0 ml-2">
         <div className="w-full h-full bg-slate-100 flex items-center justify-center rounded-2xl overflow-hidden">
           {card.coverImage && !imgError ? (
             <img
@@ -176,19 +176,19 @@ const RestaurantListCard: React.FC<RestaurantListCardProps> = ({ card, onClick }
         </div>
         {card.priceBadge && (
           <div
-            className="absolute -top-1 -left-1 bg-[#EF4444] z-10 flex items-center justify-center shadow-sm"
+            className="absolute top-0 -left-0.5 bg-[#EF4444] z-10 flex items-center justify-center shadow-sm"
             style={getBadgeDimensions(card.priceBadge)}
           >
             <span className="text-[10px] font-semibold text-white leading-none">{card.priceBadge}</span>
           </div>
         )}
       </div>
-      <div className="p-3 flex-1 relative overflow-hidden">
+      <div className="px-2 py-1.5 flex-1 relative overflow-hidden">
         <div className="flex justify-between items-start gap-2">
           <div className="flex-1 min-w-0 max-w-[calc(100%-70px)]">
             <h3 className="font-medium truncate">{card.name}</h3>
             {(card.limitedRatingsText || card.reviewCountText || card.serviceSpeedLabel || (card.tags && card.tags.length > 0)) && (
-              <div className="mt-1 flex items-center gap-1.5 flex-wrap">
+              <div className="mt-0.5 flex items-center gap-1.5 flex-wrap">
                 {/* Review badge */}
                 {(card.limitedRatingsText || card.reviewCountText) && (
                   <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] text-slate-600">
@@ -210,7 +210,7 @@ const RestaurantListCard: React.FC<RestaurantListCardProps> = ({ card, onClick }
               </div>
             )}
           </div>
-          <div className="absolute right-3 top-3">
+          <div className="absolute right-2 top-1.5">
             {card.badgeText && (
               <div
                 className="px-2 py-0.5 rounded-full"
@@ -221,7 +221,7 @@ const RestaurantListCard: React.FC<RestaurantListCardProps> = ({ card, onClick }
             )}
           </div>
         </div>
-        <div className="flex items-center justify-between mt-1">
+        <div className="flex items-center justify-between mt-0.5">
           <div className="flex items-center text-sm text-slate-600 space-x-2 pr-2">
             {card.subtitleText && (
               <span ref={subtitleRef} className="line-clamp-2">
