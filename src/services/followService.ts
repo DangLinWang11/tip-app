@@ -155,18 +155,20 @@ export const getFollowers = async (userId?: string): Promise<Follow[]> => {
 // Get follow counts for a user
 export const getFollowCounts = async (userId: string): Promise<FollowCounts> => {
   try {
-    // Followers = count of follows where followingId == userId
-    const followersQ = query(collection(db, 'follows'), where('followingId', '==', userId));
-    const followersSnap = await getCountFromServer(followersQ);
+    // Read follower/following counts directly from user document (O(1) read)
+    // These counts are maintained by the updateFollowerCounters Cloud Function
+    const userRef = doc(db, 'users', userId);
+    const userSnap = await getDoc(userRef);
 
-    // Following = count of follows where followerId == userId
-    const followingQ = query(collection(db, 'follows'), where('followerId', '==', userId));
-    const followingSnap = await getCountFromServer(followingQ);
+    if (userSnap.exists()) {
+      const userData = userSnap.data();
+      return {
+        followers: Number(userData.followerCount || 0),
+        following: Number(userData.followingCount || 0)
+      };
+    }
 
-    return {
-      followers: Number(followersSnap.data().count || 0),
-      following: Number(followingSnap.data().count || 0)
-    };
+    return { following: 0, followers: 0 };
   } catch (error) {
     console.error('Error getting follow counts:', error);
     return { following: 0, followers: 0 };

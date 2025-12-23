@@ -4,8 +4,17 @@ export type MealTimeTag = 'breakfast' | 'brunch' | 'lunch' | 'dinner' | 'late_ni
 
 export type ServiceSpeed = 'fast' | 'normal' | 'slow';
 
+export interface MediaObject {
+  original: string;      // Full-resolution URL
+  thumbnail: string;     // 200x200 thumbnail for feed display
+  medium: string;        // 800x800 for detail views
+  width?: number;        // Original width in pixels
+  height?: number;       // Original height in pixels
+}
+
 export interface MediaBundle {
-  photos: string[];
+  photos: string[];               // Legacy: array of full-resolution URLs
+  photoObjects?: MediaObject[];   // New: enhanced objects with thumbnail URLs
   videos: string[];
   thumbnails: string[];
 }

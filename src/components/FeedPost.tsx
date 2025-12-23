@@ -1485,21 +1485,23 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
                   WebkitOverflowScrolling: 'touch'
                 }}
               >
-                {mediaItems.map((item, index) => (
+                {mediaItems.map((item, index) => {
+                  // Use medium (800x800) for main carousel display, fallback to original
+                  const displayUrl = item.mediumUrl || item.imageUrl;
                   // Defensive: ensure imageUrl is valid before rendering
-                  item.imageUrl && typeof item.imageUrl === 'string' ? (
+                  return item.imageUrl && typeof item.imageUrl === 'string' ? (
                     <div
                       key={item.id}
                       className="w-full aspect-square bg-gray-100 flex-shrink-0 snap-center relative"
                     >
                       <img
-                        src={item.imageUrl}
+                        src={displayUrl}
                         alt={item.dishName || 'Visit photo'}
                         loading={isNearViewport || index < 3 ? "eager" : "lazy"}
                         decoding="async"
-                        onLoad={() => handleImageLoad(item.imageUrl)}
+                        onLoad={() => handleImageLoad(displayUrl)}
                         className={`w-full h-full object-cover absolute inset-0 transition-opacity duration-300 ${
-                          imageLoaded[item.imageUrl] ? 'opacity-100' : 'opacity-0'
+                          imageLoaded[displayUrl] ? 'opacity-100' : 'opacity-0'
                         }`}
                       />
                     </div>
@@ -1510,8 +1512,8 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
                     >
                       <span className="text-gray-400">Image unavailable</span>
                     </div>
-                  )
-                ))}
+                  );
+                })}
               </div>
             ) : (
               <div
@@ -1614,13 +1616,13 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
                   >
                     <div className="h-12 w-12 md:h-14 md:w-14 bg-gray-100 relative">
                       <img
-                        src={item.imageUrl}
+                        src={item.thumbnailUrl || item.imageUrl}
                         alt={item.dishName || currentItem.dish.name}
                         loading="lazy"
                         decoding="async"
-                        onLoad={() => handleImageLoad(`thumb_${item.imageUrl}`)}
+                        onLoad={() => handleImageLoad(`thumb_${item.thumbnailUrl || item.imageUrl}`)}
                         className={`h-full w-full object-cover absolute inset-0 transition-opacity duration-200 ${
-                          imageLoaded[`thumb_${item.imageUrl}`] ? 'opacity-100' : 'opacity-0'
+                          imageLoaded[`thumb_${item.thumbnailUrl || item.imageUrl}`] ? 'opacity-100' : 'opacity-0'
                         }`}
                       />
                     </div>

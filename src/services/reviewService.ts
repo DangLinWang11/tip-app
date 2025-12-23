@@ -5,6 +5,53 @@ import { inferFacetsFromText, tokenizeForSearch, normalizeToken } from '../utils
 import { getAvatarUrl } from '../utils/avatarUtils';
 import type { ExplicitSelection, SentimentSelection } from '../dev/types/review';
 
+/**
+ * Enhanced media object with thumbnail URLs
+ * Assumes Firebase Resize Images extension is active (generates _200x200 and _800x800 suffixes)
+ */
+export interface MediaObject {
+  original: string;      // Full-resolution URL
+  thumbnail: string;     // 200x200 thumbnail for feed display
+  medium: string;        // 800x800 for detail views
+  width?: number;        // Original width in pixels
+  height?: number;       // Original height in pixels
+}
+
+/**
+ * Helper function to generate thumbnail URLs based on Firebase Resize Images extension
+ * Assumes extension creates variants with _200x200 and _800x800 suffixes
+ */
+export function generateThumbnailUrls(originalUrl: string): MediaObject {
+  // Extract the base URL and extension
+  // Firebase Storage URLs typically look like:
+  // https://firebasestorage.googleapis.com/.../reviews%2F123_abc.jpg?token=...
+
+  // Find the extension and insert size suffix before it
+  const urlParts = originalUrl.split('?');
+  const basePath = urlParts[0];
+  const queryParams = urlParts[1] ? `?${urlParts[1]}` : '';
+
+  // Find the last dot to get extension
+  const lastDotIndex = basePath.lastIndexOf('.');
+  if (lastDotIndex === -1) {
+    // No extension found, return original for all sizes
+    return {
+      original: originalUrl,
+      thumbnail: originalUrl,
+      medium: originalUrl
+    };
+  }
+
+  const baseWithoutExt = basePath.substring(0, lastDotIndex);
+  const ext = basePath.substring(lastDotIndex);
+
+  return {
+    original: originalUrl,
+    thumbnail: `${baseWithoutExt}_200x200${ext}${queryParams}`,
+    medium: `${baseWithoutExt}_800x800${ext}${queryParams}`
+  };
+}
+
 // Category weights for quality score calculation
 const CATEGORY_WEIGHTS: Record<string, number> = {
   // Main dishes
@@ -1418,7 +1465,9 @@ export type FeedMediaItemKind = 'dish' | 'visit';
 
 export interface FeedMediaItem {
   id: string;
-  imageUrl: string;
+  imageUrl: string;           // Full-resolution URL (legacy)
+  thumbnailUrl?: string;      // 200x200 thumbnail for feed display
+  mediumUrl?: string;         // 800x800 for detail views
   kind: FeedMediaItemKind;
   reviewId?: string;
   dishName?: string;
@@ -1594,9 +1643,12 @@ export const convertVisitToCarouselFeedPost = async (reviews: FirebaseReview[]) 
       review.visitMedia.forEach((url) => {
         if (typeof url === 'string' && url.trim().length && !visitMediaUrls.has(url)) {
           visitMediaUrls.add(url);
+          const thumbnails = generateThumbnailUrls(url);
           visitMediaItems.push({
             id: `visit-${visitMediaItems.length}`,
             imageUrl: url,
+            thumbnailUrl: thumbnails.thumbnail,
+            mediumUrl: thumbnails.medium,
             kind: 'visit',
             // No reviewId needed for pure visit images
           });
@@ -1613,9 +1665,12 @@ export const convertVisitToCarouselFeedPost = async (reviews: FirebaseReview[]) 
     // Ensure the first image is valid (getReviewImages already filters, but be defensive)
     const firstImage = imgs[0];
     if (typeof firstImage === 'string' && firstImage.trim().length > 0) {
+      const thumbnails = generateThumbnailUrls(firstImage);
       dishMediaItems.push({
         id: `dish-${review.id}`,
         imageUrl: firstImage,
+        thumbnailUrl: thumbnails.thumbnail,
+        mediumUrl: thumbnails.medium,
         kind: 'dish',
         reviewId: review.id,
         dishName: review.dish,
@@ -1632,9 +1687,12 @@ export const convertVisitToCarouselFeedPost = async (reviews: FirebaseReview[]) 
       const fallbackUrl = fallbackImages[0];
       // Ensure fallback URL is valid before adding
       if (typeof fallbackUrl === 'string' && fallbackUrl.trim().length > 0) {
+        const thumbnails = generateThumbnailUrls(fallbackUrl);
         visitMediaItems.push({
           id: `visit-fallback-${fallbackSource.id}`,
           imageUrl: fallbackUrl,
+          thumbnailUrl: thumbnails.thumbnail,
+          mediumUrl: thumbnails.medium,
           kind: 'visit',
           reviewId: fallbackSource.id,
           dishName: fallbackSource.dish,
@@ -2162,15 +2220,30 @@ export const convertReviewsToFeedPosts = async (reviews: FirebaseReview[]) => {
 // Real-time listener for the home feed (public, not deleted), newest first
 export function listenHomeFeed(
   onChange: (items: FirebaseReview[]) => void,
-  onDelta?: (added: FirebaseReview[], modified: FirebaseReview[], removed: string[]) => void
+  onDelta?: (added: FirebaseReview[], modified: FirebaseReview[], removed: string[]) => void,
+  blockedUserIds?: string[] // Optional array of user IDs to exclude from feed
 ) {
-  // Fetch more than needed (100) and filter client-side to exclude malformed docs
-  // This avoids needing a composite index for where + multiple orderBy
-  const qRef = query(
-    collection(db, 'reviews'),
+  // Build query with server-side filtering for better performance
+  // Note: Firestore has a limit of 10 items for 'not-in' operator
+  const constraints = [
+    where('isDeleted', '==', false), // Server-side filter to exclude deleted reviews
     orderBy('createdAt', 'desc'),
-    limit(100) // Fetch extra to account for filtering
-  );
+    limit(100) // Fetch extra to account for additional client-side filtering
+  ];
+
+  // Add blocking filter if provided and not too many blocked users
+  // Firestore 'not-in' has a limit of 10 values
+  if (blockedUserIds && blockedUserIds.length > 0) {
+    if (blockedUserIds.length <= 10) {
+      // Use server-side filtering for up to 10 blocked users
+      constraints.unshift(where('userId', 'not-in', blockedUserIds));
+    } else {
+      // For more than 10 blocked users, we'll filter client-side below
+      console.warn(`Blocking ${blockedUserIds.length} users - filtering client-side (Firestore not-in limit is 10)`);
+    }
+  }
+
+  const qRef = query(collection(db, 'reviews'), ...constraints);
 
   // Track if this is the first snapshot to avoid duplicate processing
   let isFirstSnapshot = true;
@@ -2179,7 +2252,7 @@ export function listenHomeFeed(
     const raw = snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) }));
 
     // Filter out malformed documents (those with _methodName, missing dishName, etc.)
-    const validDocs = raw.filter((doc: any) => {
+    let validDocs = raw.filter((doc: any) => {
       // Exclude docs that look like Firebase metadata
       if (doc._methodName || !doc.dish && !doc.dishName || !doc.userId) {
         return false;
@@ -2187,8 +2260,18 @@ export function listenHomeFeed(
       return true;
     });
 
+    // Client-side blocking filter if we have more than 10 blocked users
+    // (server-side filter only works for <= 10 users due to Firestore 'not-in' limit)
+    if (blockedUserIds && blockedUserIds.length > 10) {
+      const blockedSet = new Set(blockedUserIds);
+      validDocs = validDocs.filter((doc: any) => !blockedSet.has(doc.userId));
+    }
+
     const deletedCount = validDocs.filter((it: any) => asTrue(it?.isDeleted) === true).length;
     const privateCount = validDocs.filter((it: any) => it?.visibility === 'private').length;
+    const blockedCount = blockedUserIds && blockedUserIds.length > 10
+      ? raw.length - validDocs.length
+      : 0;
     const items = validDocs.filter((it) => safeReview(it)).slice(0, 50) as FirebaseReview[]; // Take top 50 after filtering
     const sample = items.slice(0, 3).map((r: any) => ({ id: r.id, isDeleted: r.isDeleted, visibility: r.visibility, dishName: r.dish || r.dishName }));
     console.log(`Live feed snapshot: total=${raw.length}, valid=${validDocs.length}, dropped(deleted=${deletedCount}, private=${privateCount}), emitted=${items.length}, sample=`, sample);

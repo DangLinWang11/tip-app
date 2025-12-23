@@ -137,6 +137,7 @@ const normalizeDishDraft = (draft: DishDraft): DishDraft => ({
 // Helper to build MediaBundle for a dish based on attached media
 const buildMediaBundleForDish = (dish: DishDraft, mediaItems: LocalMediaItem[]): ReviewDraft['media'] => {
   const photos: string[] = [];
+  const photoObjects: any[] = []; // Will store MediaObject[]
   const videos: string[] = [];
   const thumbnails: string[] = [];
 
@@ -145,6 +146,29 @@ const buildMediaBundleForDish = (dish: DishDraft, mediaItems: LocalMediaItem[]):
     if (media && media.downloadURL) {
       if (media.kind === 'photo') {
         photos.push(media.downloadURL);
+        // Generate thumbnail URLs using Firebase Resize Images extension convention
+        const urlParts = media.downloadURL.split('?');
+        const basePath = urlParts[0];
+        const queryParams = urlParts[1] ? `?${urlParts[1]}` : '';
+        const lastDotIndex = basePath.lastIndexOf('.');
+
+        if (lastDotIndex !== -1) {
+          const baseWithoutExt = basePath.substring(0, lastDotIndex);
+          const ext = basePath.substring(lastDotIndex);
+
+          photoObjects.push({
+            original: media.downloadURL,
+            thumbnail: `${baseWithoutExt}_200x200${ext}${queryParams}`,
+            medium: `${baseWithoutExt}_800x800${ext}${queryParams}`
+          });
+        } else {
+          // Fallback if no extension found
+          photoObjects.push({
+            original: media.downloadURL,
+            thumbnail: media.downloadURL,
+            medium: media.downloadURL
+          });
+        }
       } else if (media.kind === 'video') {
         videos.push(media.downloadURL);
         if (media.thumbnailURL) {
@@ -154,7 +178,7 @@ const buildMediaBundleForDish = (dish: DishDraft, mediaItems: LocalMediaItem[]):
     }
   });
 
-  return { photos, videos, thumbnails };
+  return { photos, photoObjects, videos, thumbnails };
 };
 
 const STEP_COMPONENTS: Record<WizardStepKey, React.ComponentType> = {
