@@ -1,5 +1,6 @@
 import React from 'react';
 import { MapPin, Store } from 'lucide-react';
+import { ATTRIBUTES, DIETARY, OCCASIONS } from '../../data/tagDefinitions';
 
 export type RestaurantCardModel = {
   id: string;
@@ -39,13 +40,50 @@ interface RestaurantListCardProps {
 }
 
 /**
- * Formats tag labels from snake_case to Title Case
+ * Converts snake_case to Title Case
  */
-const formatTagLabel = (tag: string): string => {
-  return tag
+const formatSnakeCase = (str: string): string => {
+  return str
     .split('_')
     .map(word => word.charAt(0).toUpperCase() + word.slice(1))
     .join(' ');
+};
+
+/**
+ * Gets the proper display label for a tag by handling prefixes and looking up definitions
+ */
+const getTagLabel = (tag: string): string => {
+  // Handle prefixed tags
+  if (tag.startsWith('attr_')) {
+    const attrValue = tag.replace('attr_', '');
+    const attr = ATTRIBUTES.find(a => a.value === attrValue);
+    return attr?.label || formatSnakeCase(attrValue);
+  }
+
+  if (tag.startsWith('meal_')) {
+    const mealValue = tag.replace('meal_', '');
+    return formatSnakeCase(mealValue); // "breakfast", "lunch", "dinner"
+  }
+
+  if (tag.startsWith('dietary_')) {
+    const dietValue = tag.replace('dietary_', '');
+    const diet = DIETARY.find(d => d.value === dietValue);
+    return diet?.label || formatSnakeCase(dietValue);
+  }
+
+  if (tag.startsWith('occasion_')) {
+    const occValue = tag.replace('occasion_', '');
+    const occ = OCCASIONS.find(o => o.value === occValue);
+    return occ?.label || formatSnakeCase(occValue);
+  }
+
+  if (tag.startsWith('service_')) {
+    const serviceValue = tag.replace('service_', '');
+    return formatSnakeCase(serviceValue); // "Fast", "Normal", "Slow"
+  }
+
+  // Fallback for non-prefixed tags
+  return formatSnakeCase(tag);
 };
 
 /**
@@ -166,7 +204,7 @@ const RestaurantListCard: React.FC<RestaurantListCardProps> = ({ card, onClick }
                 {/* Restaurant tags (1-2 most used) */}
                 {card.tags && card.tags.length > 0 && card.tags.map(tag => (
                   <span key={tag} className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[10px] text-slate-600">
-                    {formatTagLabel(tag)}
+                    {getTagLabel(tag)}
                   </span>
                 ))}
               </div>

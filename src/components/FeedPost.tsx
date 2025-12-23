@@ -163,6 +163,7 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [isActionSheetOpen, setIsActionSheetOpen] = useState(false);
   const [showReceiptModal, setShowReceiptModal] = useState(false);
+  const [isDishNameExpanded, setIsDishNameExpanded] = useState(false);
 
   // NEW: Follow state management
   const [isFollowingUser, setIsFollowingUser] = useState(isFollowingAuthor);
@@ -1014,12 +1015,18 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
             )}
           </div>
           {currentItem.dish.visitCount && (
-            <div className="absolute top-4 right-4 bg-black bg-opacity-50 text-white px-3 py-1 rounded-full text-sm max-w-[120px] truncate">
+            <button
+              type="button"
+              onClick={() => setIsDishNameExpanded(!isDishNameExpanded)}
+              className={`absolute top-4 right-4 bg-black bg-opacity-50 text-white px-3 py-1 rounded-full text-sm transition-all ${
+                isDishNameExpanded ? 'max-w-none' : 'max-w-[120px] truncate'
+              }`}
+            >
               {hasMediaItems && activeMediaItem?.kind === 'dish' && currentItem.dish.visitCount === 1
                 ? (activeMediaItem.dishName || currentItem.dish.name)
                 : `Visited ${currentItem.dish.visitCount}x`
               }
-            </div>
+            </button>
           )}
         </div>
       </div>
@@ -1552,12 +1559,18 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
               </div>
             )}
             {currentItem.dish.visitCount && (
-              <div className="absolute top-4 right-4 bg-black bg-opacity-50 text-white px-3 py-1 rounded-full text-sm max-w-[120px] truncate">
+              <button
+                type="button"
+                onClick={() => setIsDishNameExpanded(!isDishNameExpanded)}
+                className={`absolute top-4 right-4 bg-black bg-opacity-50 text-white px-3 py-1 rounded-full text-sm transition-all ${
+                  isDishNameExpanded ? 'max-w-none' : 'max-w-[120px] truncate'
+                }`}
+              >
                 {hasMediaItems && activeMediaItem?.kind === 'dish' && currentItem.dish.visitCount === 1
                   ? (activeMediaItem.dishName || currentItem.dish.name)
                   : `Visited ${currentItem.dish.visitCount}x`
                 }
-              </div>
+              </button>
             )}
           </div>
         </div>

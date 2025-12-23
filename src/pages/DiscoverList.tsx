@@ -826,33 +826,37 @@ const DiscoverList: React.FC = () => {
   return (
     <div className="min-h-screen bg-light-gray pb-16">
       <header className="bg-white sticky top-0 z-10 px-4 py-3 shadow-sm">
-        <div className="flex items-center justify-between">
-          <button
-            onClick={() => navigate('/discover')}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-          >
-            <ArrowLeft size={24} className="text-gray-700" />
-          </button>
-
-              <h1 className="text-xl font-semibold text-gray-900">Discover</h1>
-
-          <div className="relative">
-            <div
-              className={`flex items-center bg-gray-200 rounded-full p-1 w-20 h-10 cursor-pointer transition-colors ${viewMode === 'dish' ? 'bg-red-100' : ''
-                }`}
-              onClick={() => setViewMode(viewMode === 'restaurant' ? 'dish' : 'restaurant')}
+        <div className="flex items-center justify-center relative">
+          <div className="absolute left-0">
+            <button
+              onClick={() => navigate('/discover')}
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
             >
-              <div
-                className={`absolute w-8 h-8 bg-white rounded-full shadow-md transition-transform duration-200 ease-in-out ${viewMode === 'dish' ? 'transform translate-x-10' : 'transform translate-x-0'
-                  }`}
-              />
+              <ArrowLeft size={24} className="text-gray-700" />
+            </button>
+          </div>
 
-              <div className="flex items-center justify-between w-full relative z-10">
-                <div className="w-8 h-8 flex items-center justify-center">
-                  <Store size={16} className={`${viewMode === 'restaurant' ? 'text-primary' : 'text-gray-500'}`} />
-                </div>
-                <div className="w-8 h-8 flex items-center justify-center">
-                  <Utensils size={16} className={`${viewMode === 'dish' ? 'text-primary' : 'text-gray-500'}`} />
+          <h1 className="text-xl font-semibold text-gray-900">Discover</h1>
+
+          <div className="absolute right-0">
+            <div className="relative">
+              <div
+                className={`flex items-center bg-gray-200 rounded-full p-1 w-20 h-10 cursor-pointer transition-colors ${viewMode === 'dish' ? 'bg-red-100' : ''
+                  }`}
+                onClick={() => setViewMode(viewMode === 'restaurant' ? 'dish' : 'restaurant')}
+              >
+                <div
+                  className={`absolute w-8 h-8 bg-white rounded-full shadow-md transition-transform duration-200 ease-in-out ${viewMode === 'dish' ? 'transform translate-x-10' : 'transform translate-x-0'
+                    }`}
+                />
+
+                <div className="flex items-center justify-between w-full relative z-10">
+                  <div className="w-8 h-8 flex items-center justify-center">
+                    <Store size={16} className={`${viewMode === 'restaurant' ? 'text-primary' : 'text-gray-500'}`} />
+                  </div>
+                  <div className="w-8 h-8 flex items-center justify-center">
+                    <Utensils size={16} className={`${viewMode === 'dish' ? 'text-primary' : 'text-gray-500'}`} />
+                  </div>
                 </div>
               </div>
             </div>
