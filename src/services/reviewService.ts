@@ -742,6 +742,7 @@ export interface FirebaseReview {
   explicitTags?: string[];
   derivedTags?: string[];
   tags: string[];
+  businessTags?: string[]; // Business highlight tags: Great Staff, Wonderful Atmosphere, etc.
   restaurantCuisines?: string[];
   cuisines?: string[];
   images: string[];
