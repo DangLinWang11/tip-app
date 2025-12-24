@@ -518,7 +518,7 @@ const Wizard: React.FC = () => {
         // Build ReviewData payload
         const reviewData: ReviewData & { caption?: string } = {
           restaurant: selectedRestaurant.name || 'Unknown Restaurant',
-          location: (selectedRestaurant as any).address || '',
+          location: selectedRestaurant.address || (selectedRestaurant as any).formatted_address || '',
           dish: dish.dishName,
           rating: dish.rating,
           personalNote: visitDraft.overallText || '',

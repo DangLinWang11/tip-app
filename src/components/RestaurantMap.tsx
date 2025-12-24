@@ -562,9 +562,10 @@ const getTopDishes = async (restaurants: Restaurant[]): Promise<Dish[]> => {
   
   try {
     console.log('📡 getTopDishes: Fetching menuItems from Firebase...');
-    // Get all menu items from Firebase
+    // Get all menu items from Firebase (filter out deleted items)
     const menuItemsRef = collection(db, 'menuItems');
-    const menuItemsSnapshot = await getDocs(menuItemsRef);
+    const menuItemsQuery = query(menuItemsRef, where('isDeleted', '==', false));
+    const menuItemsSnapshot = await getDocs(menuItemsQuery);
     const allMenuItems = menuItemsSnapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data()
