@@ -1127,7 +1127,7 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
                    '');
             if (!visitText) return null;
             return (
-              <p className="mt-1 mb-3 text-sm text-gray-900 leading-snug border-l-4 border-gray-600 pl-3">
+              <p className="mt-1 mb-3 text-sm text-gray-900 leading-snug border-l-4 border-gray-600 rounded-l-md pl-3 bg-gray-50 py-2 pr-2">
                 {visitText}
               </p>
             );
@@ -1137,7 +1137,7 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
           const source = dishContextItem || currentItem;
           if (source.review.caption) {
             return (
-              <p className="mt-1 mb-3 text-sm text-gray-900 leading-snug border-l-4 border-gray-600 pl-3">
+              <p className="mt-1 mb-3 text-sm text-gray-900 leading-snug border-l-4 border-gray-600 rounded-l-md pl-3 bg-gray-50 py-2 pr-2">
                 {source.review.caption}
               </p>
             );
@@ -1736,7 +1736,7 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
           </div>
 
           {visitCaption && (
-            <p className="mt-1 mb-3 text-sm text-gray-900 leading-snug border-l-4 border-gray-600 pl-3">
+            <p className="mt-1 mb-3 text-sm text-gray-900 leading-snug border-l-4 border-gray-600 rounded-l-md pl-3 bg-gray-50 py-2 pr-2">
               {visitCaption}
             </p>
           )}
@@ -1821,7 +1821,7 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
         })()}
         {/* Caption - Only for legacy/single-dish layout */}
         {!isVisitPost && currentItem.review.caption && (
-          <p className="text-sm text-gray-900 mb-2 leading-snug border-l-4 border-gray-600 pl-3">{currentItem.review.caption}</p>
+          <p className="text-sm text-gray-900 mb-2 leading-snug border-l-4 border-gray-600 rounded-l-md pl-3 bg-gray-50 py-2 pr-2">{currentItem.review.caption}</p>
         )}
 
         {/* Dish details - Only for legacy/single-dish layout */}
