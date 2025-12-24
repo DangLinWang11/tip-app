@@ -330,9 +330,9 @@ const Map: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishes, u
           let pinText = '';
           let pinWidth = 52;
           if (showQualityPercentages === false && restaurant.visitCount) {
-            // Show visit count for user journey maps
-            pinText = `${restaurant.visitCount} Visit${restaurant.visitCount !== 1 ? 's' : ''}`;
-            pinWidth = 75;
+            // Show review count for user journey maps
+            pinText = `${restaurant.visitCount} Review${restaurant.visitCount !== 1 ? 's' : ''}`;
+            pinWidth = 85;
           } else if (showQualityPercentages !== false) {
             // Show quality percentage for regular restaurant maps
             pinText = `${restaurant.qualityPercentage}%`;
