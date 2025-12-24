@@ -354,16 +354,19 @@ const Map: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishes, u
                     ${restaurant.visitCount ? `<span style="background: #ff3131; color: white; padding: 2px 8px; border-radius: 12px; font-size: 12px; font-weight: bold;">
                       ${restaurant.visitCount} Visit${restaurant.visitCount !== 1 ? 's' : ''}
                     </span>` : ''}
-                    <span style="color: #666; font-size: 14px;">${restaurant.cuisine} ${getCuisineIcon(restaurant.cuisine)}</span>
+                    <span style="color: #666; font-size: 14px;">${restaurant.cuisine || 'Restaurant'} ${getCuisineIcon(restaurant.cuisine || '')}</span>
                   </div>
                   <div style="display: flex; align-items: center; gap: 8px; color: #666; font-size: 14px;">
                     <span style="display: flex; align-items: center; gap: 4px;">
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="#FFD700" style="margin-right: 4px;">
                         <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
                       </svg>
-                      ${(restaurant.averageMenuRating || restaurant.rating).toFixed(1)}
+                      ${(() => {
+                        const rating = restaurant.averageMenuRating || restaurant.rating;
+                        return rating != null && typeof rating === 'number' ? rating.toFixed(1) : 'N/A';
+                      })()}
                     </span>
-                    <span>${restaurant.priceRange}</span>
+                    <span>${restaurant.priceRange || ''}</span>
                   </div>
                 </div>
               </div>
@@ -385,18 +388,20 @@ const Map: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishes, u
       } else {
         // Show dish pins
         dishes.forEach((dish) => {
-          const ratingColor = getRatingColor(dish.rating);
-          
+          const rating = dish.rating != null && typeof dish.rating === 'number' ? dish.rating : 0;
+          const ratingColor = getRatingColor(rating);
+          const displayRating = rating > 0 ? rating.toFixed(1) : 'N/A';
+
           const marker = new window.google.maps.Marker({
             position: dish.location,
             map,
             icon: {
-              url: createDishPinIcon(dish.rating.toFixed(1), ratingColor),
+              url: createDishPinIcon(displayRating, ratingColor),
               scaledSize: new window.google.maps.Size(60, 44),
               anchor: new window.google.maps.Point(30, 44)
             },
             title: dish.name,
-            zIndex: dish.rating * 10
+            zIndex: rating * 10
           });
 
           const infoWindow = new window.google.maps.InfoWindow({
@@ -405,9 +410,9 @@ const Map: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishes, u
                 <h3 style="margin: 0 0 8px 0; font-size: 16px; font-weight: 600; cursor: pointer; color: #0066cc;" onclick="window.onDishClick('${dish.id}')">${dish.name}</h3>
                 <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
                   <span style="background: ${ratingColor}; color: white; padding: 2px 8px; border-radius: 12px; font-size: 12px; font-weight: bold;">
-                    ${dish.rating.toFixed(1)}
+                    ${displayRating}
                   </span>
-                  <span style="color: #0066cc; font-size: 14px; cursor: pointer;" onclick="window.onRestaurantClick('${dish.restaurantId}')">${dish.restaurantName}</span>
+                  <span style="color: #0066cc; font-size: 14px; cursor: pointer;" onclick="window.onRestaurantClick('${dish.restaurantId || ''}')">${dish.restaurantName || 'Unknown'}</span>
                 </div>
                 ${dish.price ? `<div style="color: #666; font-size: 14px;">${dish.price}</div>` : ''}
               </div>

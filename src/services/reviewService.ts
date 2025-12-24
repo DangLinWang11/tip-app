@@ -329,6 +329,17 @@ const createRestaurantIfNeeded = async (restaurant: any, batch?: any): Promise<{
 
   // Manual restaurant (no Google Place ID) - create with auto-generated ID
   try {
+    // VALIDATION: Log warning if restaurant data suggests it should have a Google ID but doesn't
+    if (restaurant.address && restaurant.phone && !restaurant.googlePlaceId) {
+      console.warn('⚠️ POTENTIAL DATA ISSUE: Creating manual restaurant with address and phone but NO googlePlaceId.', {
+        name: restaurant.name,
+        address: restaurant.address,
+        phone: restaurant.phone,
+        hasCoordinates: !!(restaurant.coordinates?.lat || restaurant.coordinates?.latitude)
+      });
+      console.warn('   If this restaurant was found via Google Places, ensure googlePlaceId is being passed!');
+    }
+
     console.log('Creating manual restaurant:', restaurant.name);
 
     const lat = restaurant.coordinates?.lat || restaurant.coordinates?.latitude || 0;
@@ -937,6 +948,7 @@ export const getUserRestaurantReviews = async (restaurantId: string): Promise<Fi
       collection(db, 'reviews'),
       where('userId', '==', currentUser.uid),
       where('restaurantId', '==', restaurantId),
+      where('isDeleted', '==', false),
       orderBy('createdAt', 'desc')
     );
 
@@ -1169,6 +1181,7 @@ export const fetchReviews = async (limitCount = 20): Promise<FirebaseReview[]> =
     // Fetch more than needed and filter client-side to exclude malformed docs
     const q = query(
       reviewsRef,
+      where('isDeleted', '==', false),
       orderBy('createdAt', 'desc'),
       limit(limitCount * 3) // Fetch 3x to account for filtering
     );
@@ -1224,6 +1237,7 @@ export const fetchReviewsWithCache = async (limitCount = 20): Promise<FirebaseRe
     const reviewsRef = collection(db, 'reviews');
     const q = query(
       reviewsRef,
+      where('isDeleted', '==', false),
       orderBy('createdAt', 'desc'),
       limit(limitCount * 3)
     );
@@ -1294,13 +1308,14 @@ export const fetchReviewsPaginated = async (
     const reviewsRef = collection(db, 'reviews');
     let q = query(
       reviewsRef,
+      where('isDeleted', '==', false),
       orderBy('createdAt', 'desc'),
       limit(limitCount)
     );
 
     // Add cursor for pagination
     if (lastDocSnapshot) {
-      q = query(reviewsRef, orderBy('createdAt', 'desc'), startAfter(lastDocSnapshot), limit(limitCount));
+      q = query(reviewsRef, where('isDeleted', '==', false), orderBy('createdAt', 'desc'), startAfter(lastDocSnapshot), limit(limitCount));
     }
 
     const querySnapshot = await getDocs(q);
@@ -1365,6 +1380,7 @@ export const fetchUserReviews = async (limitCount = 50, userId?: string): Promis
     const q = query(
       reviewsRef,
       where('userId', '==', targetUserId),
+      where('isDeleted', '==', false),
       orderBy('createdAt', 'desc'),
       limit(limitCount)
     );
@@ -2242,6 +2258,9 @@ export function listenHomeFeed(
       console.warn(`Blocking ${blockedUserIds.length} users - filtering client-side (Firestore not-in limit is 10)`);
     }
   }
+
+  // Add isDeleted filter to constraints
+  constraints.push(where('isDeleted', '==', false));
 
   const qRef = query(collection(db, 'reviews'), ...constraints);
 
