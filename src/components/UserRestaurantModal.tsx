@@ -151,7 +151,7 @@ const UserRestaurantModal: React.FC<UserRestaurantModalProps> = ({
                   >
                     <div className="flex items-start space-x-3">
                       {/* Review image */}
-                      {review.images.length > 0 && (
+                      {review.images && Array.isArray(review.images) && review.images.length > 0 && (
                         <div className="flex-shrink-0">
                           <img
                             src={review.images[0]}
@@ -164,25 +164,29 @@ const UserRestaurantModal: React.FC<UserRestaurantModalProps> = ({
                       {/* Content */}
                       <div className="flex-1 min-w-0">
                         <div>
-                          <div>
+                          <div className="flex items-center justify-between">
                             <p className="text-sm text-gray-900 leading-5">
                               <span className="font-medium">{review.dish}</span>
                               {review.price && (
                                 <span className="text-gray-600"> - {review.price}</span>
                               )}
                             </p>
-                            
-                            {/* Review notes preview */}
-                            {review.personalNote && (
-                              <p className="text-sm text-gray-600 mt-1 line-clamp-2">
-                                {review.personalNote}
-                                {review.rating && (
-                                  <span className="text-primary text-lg font-bold"> {review.rating}</span>
-                                )}
-                              </p>
+
+                            {/* Dish Rating */}
+                            {review.rating != null && typeof review.rating === 'number' && (
+                              <span className="text-sm font-bold text-primary ml-2 flex-shrink-0">
+                                {review.rating.toFixed(1)}
+                              </span>
                             )}
                           </div>
-                          
+
+                          {/* Review notes preview */}
+                          {review.personalNote && (
+                            <p className="text-sm text-gray-600 mt-1 line-clamp-2">
+                              {review.personalNote}
+                            </p>
+                          )}
+
                           {/* Timestamp at bottom-right */}
                           <div className="flex justify-end mt-2">
                             <div className="text-xs text-gray-500">

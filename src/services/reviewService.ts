@@ -900,13 +900,39 @@ export const getUserVisitedRestaurants = async (userId?: string): Promise<UserVi
       )[0];
       const lastVisit = safeToISOString(lastVisitReview.createdAt);
 
+      // Extract coordinates - try all possible formats
+      let lat = 27.3364; // Default to Sarasota center
+      let lng = -82.5307;
+
+      if (restaurantData?.location?._latitude !== undefined && restaurantData?.location?._longitude !== undefined) {
+        // GeoPoint format (from Firestore)
+        lat = restaurantData.location._latitude;
+        lng = restaurantData.location._longitude;
+        console.log(`📍 [${restaurantData.name}] Extracted from GeoPoint: { lat: ${lat}, lng: ${lng} }`);
+      } else if (restaurantData?.coordinates) {
+        // Check multiple coordinate format variations
+        if (restaurantData.coordinates.latitude !== undefined && restaurantData.coordinates.longitude !== undefined) {
+          // Format: { latitude, longitude }
+          lat = parseFloat(restaurantData.coordinates.latitude);
+          lng = parseFloat(restaurantData.coordinates.longitude);
+          console.log(`📍 [${restaurantData.name}] Extracted from coordinates.latitude/longitude: { lat: ${lat}, lng: ${lng} }`);
+        } else if (restaurantData.coordinates.lat !== undefined && restaurantData.coordinates.lng !== undefined) {
+          // Format: { lat, lng }
+          lat = parseFloat(restaurantData.coordinates.lat);
+          lng = parseFloat(restaurantData.coordinates.lng);
+          console.log(`📍 [${restaurantData.name}] Extracted from coordinates.lat/lng: { lat: ${lat}, lng: ${lng} }`);
+        }
+      } else {
+        console.log(`⚠️ [${restaurantData?.name || 'Unknown'}] Using default Sarasota coordinates: { lat: ${lat}, lng: ${lng} }`);
+      }
+
       // Create visited restaurant object
       const visitedRestaurant: UserVisitedRestaurant = {
         id: firstReview.restaurantId || `manual_${restaurantKey}`,
         name: restaurantData?.name || firstReview.restaurant,
         location: {
-          lat: parseFloat(restaurantData?.coordinates?.lat) || 27.3364, // Default to Sarasota center
-          lng: parseFloat(restaurantData?.coordinates?.lng) || -82.5307
+          lat,
+          lng
         },
         cuisine: restaurantData?.cuisine || 'Restaurant',
         visitCount,
@@ -914,6 +940,12 @@ export const getUserVisitedRestaurants = async (userId?: string): Promise<UserVi
         totalReviews: visitCount,
         averageRating: Math.round(averageRating * 10) / 10 // Round to 1 decimal
       };
+
+      console.log(`✅ Created visited restaurant object for [${visitedRestaurant.name}]:`, {
+        id: visitedRestaurant.id,
+        location: visitedRestaurant.location,
+        visitCount: visitedRestaurant.visitCount
+      });
 
       visitedRestaurants.push(visitedRestaurant);
     }
@@ -957,9 +989,22 @@ export const getUserRestaurantReviews = async (restaurantId: string): Promise<Fi
 
     reviewsSnapshot.forEach((doc) => {
       const data = doc.data();
+
+      // Map new media structure to old images array for backward compatibility
+      const mappedData = {
+        ...data,
+        images: data.media?.photos && Array.isArray(data.media.photos) && data.media.photos.length > 0
+          ? data.media.photos
+          : data.images || [] // Fallback to old images field or empty array
+      };
+
       reviews.push({
         id: doc.id,
-        ...data
+        ...mappedData,
+        restaurantId: data.restaurantId || null,
+        menuItemId: data.menuItemId || null,
+        dish: data.dish || data.dishName || 'Unknown Dish',
+        restaurant: data.restaurant || data.restaurantName || 'Unknown Restaurant'
       } as FirebaseReview);
     });
 
