@@ -1127,7 +1127,7 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
                    '');
             if (!visitText) return null;
             return (
-              <p className="mt-1 mb-3 text-sm text-gray-900 leading-snug border-l-3 border-gray-400 pl-3">
+              <p className="mt-1 mb-3 text-sm text-gray-900 leading-snug border-l-3 border-gray-600 pl-3">
                 {visitText}
               </p>
             );
@@ -1137,7 +1137,7 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
           const source = dishContextItem || currentItem;
           if (source.review.caption) {
             return (
-              <p className="mt-1 mb-3 text-sm text-gray-900 leading-snug border-l-3 border-gray-400 pl-3">
+              <p className="mt-1 mb-3 text-sm text-gray-900 leading-snug border-l-3 border-gray-600 pl-3">
                 {source.review.caption}
               </p>
             );
@@ -1736,7 +1736,7 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
           </div>
 
           {visitCaption && (
-            <p className="mt-1 mb-3 text-sm text-gray-900 leading-snug border-l-2 border-gray-200 pl-3">
+            <p className="mt-1 mb-3 text-sm text-gray-900 leading-snug border-l-3 border-gray-600 pl-3">
               {visitCaption}
             </p>
           )}
@@ -1821,7 +1821,7 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
         })()}
         {/* Caption - Only for legacy/single-dish layout */}
         {!isVisitPost && currentItem.review.caption && (
-          <p className="text-sm text-gray-700 mb-2">{currentItem.review.caption}</p>
+          <p className="text-sm text-gray-900 mb-2 leading-snug border-l-3 border-gray-600 pl-3">{currentItem.review.caption}</p>
         )}
 
         {/* Dish details - Only for legacy/single-dish layout */}
