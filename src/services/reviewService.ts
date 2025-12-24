@@ -301,8 +301,17 @@ const createRestaurantIfNeeded = async (restaurant: any, batch?: any): Promise<{
     // Restaurant is new - prepare data to be written in batch
     console.log('📝 Preparing new restaurant with googlePlaceId:', restaurantDocId);
 
-    const lat = restaurant.coordinates?.lat || restaurant.coordinates?.latitude || restaurant.location?.lat || 0;
-    const lng = restaurant.coordinates?.lng || restaurant.coordinates?.longitude || restaurant.location?.lng || 0;
+    // Extract coordinates - check all possible formats
+    // Priority: 1) Firestore GeoPoint (location.latitude/longitude), 2) coordinates object, 3) legacy _latitude/_longitude
+    const lat = restaurant.location?.latitude || restaurant.coordinates?.latitude || restaurant.coordinates?.lat || restaurant.location?._latitude || restaurant.location?.lat || 0;
+    const lng = restaurant.location?.longitude || restaurant.coordinates?.longitude || restaurant.coordinates?.lng || restaurant.location?._longitude || restaurant.location?.lng || 0;
+
+    console.log(`📍 [Google Place] Creating restaurant "${restaurant.name}" with coordinates: lat=${lat}, lng=${lng}`, {
+      hasLocation: !!restaurant.location,
+      hasCoordinates: !!restaurant.coordinates,
+      locationData: restaurant.location,
+      coordinatesData: restaurant.coordinates
+    });
 
     const newRestaurant = {
       name: restaurant.name || 'Unknown Restaurant',
@@ -342,8 +351,10 @@ const createRestaurantIfNeeded = async (restaurant: any, batch?: any): Promise<{
 
     console.log('Creating manual restaurant:', restaurant.name);
 
-    const lat = restaurant.coordinates?.lat || restaurant.coordinates?.latitude || 0;
-    const lng = restaurant.coordinates?.lng || restaurant.coordinates?.longitude || 0;
+    // Extract coordinates - check all possible formats
+    // Priority: 1) Firestore GeoPoint (location.latitude/longitude), 2) coordinates object, 3) legacy _latitude/_longitude
+    const lat = restaurant.location?.latitude || restaurant.coordinates?.latitude || restaurant.coordinates?.lat || restaurant.location?._latitude || restaurant.location?.lat || 0;
+    const lng = restaurant.location?.longitude || restaurant.coordinates?.longitude || restaurant.coordinates?.lng || restaurant.location?._longitude || restaurant.location?.lng || 0;
 
     const newRestaurant = {
       name: restaurant.name || 'Unknown Restaurant',
@@ -904,13 +915,20 @@ export const getUserVisitedRestaurants = async (userId?: string): Promise<UserVi
       let lat = 27.3364; // Default to Sarasota center
       let lng = -82.5307;
 
-      if (restaurantData?.location?._latitude !== undefined && restaurantData?.location?._longitude !== undefined) {
-        // GeoPoint format (from Firestore)
+      // Priority 1: Check for Firestore GeoPoint (location.latitude/longitude - standard client SDK format)
+      if (restaurantData?.location?.latitude !== undefined && restaurantData?.location?.longitude !== undefined) {
+        lat = restaurantData.location.latitude;
+        lng = restaurantData.location.longitude;
+        console.log(`📍 [${restaurantData.name}] Extracted from GeoPoint (latitude/longitude): { lat: ${lat}, lng: ${lng} }`);
+      }
+      // Priority 2: Check for legacy GeoPoint format (_latitude/_longitude)
+      else if (restaurantData?.location?._latitude !== undefined && restaurantData?.location?._longitude !== undefined) {
         lat = restaurantData.location._latitude;
         lng = restaurantData.location._longitude;
-        console.log(`📍 [${restaurantData.name}] Extracted from GeoPoint: { lat: ${lat}, lng: ${lng} }`);
-      } else if (restaurantData?.coordinates) {
-        // Check multiple coordinate format variations
+        console.log(`📍 [${restaurantData.name}] Extracted from GeoPoint (_latitude/_longitude): { lat: ${lat}, lng: ${lng} }`);
+      }
+      // Priority 3: Check coordinates object formats
+      else if (restaurantData?.coordinates) {
         if (restaurantData.coordinates.latitude !== undefined && restaurantData.coordinates.longitude !== undefined) {
           // Format: { latitude, longitude }
           lat = parseFloat(restaurantData.coordinates.latitude);

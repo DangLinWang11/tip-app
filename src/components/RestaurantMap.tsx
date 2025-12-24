@@ -315,6 +315,15 @@ const Map: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishes, u
       if (mapType === 'restaurant') {
         // Show restaurant pins
         restaurants.forEach((restaurant) => {
+          // Validate location data before creating marker
+          let position = restaurant.location;
+
+          // Safety check: ensure position is a valid LatLng object
+          if (!position || typeof position !== 'object' || typeof position.lat !== 'number' || typeof position.lng !== 'number') {
+            console.warn(`⚠️ Invalid location data for restaurant ${restaurant.name}, skipping marker`, position);
+            return; // Skip this restaurant
+          }
+
           const qualityColor = getQualityColor(restaurant.qualityPercentage);
 
           // Determine what text to show in the pin
@@ -330,7 +339,7 @@ const Map: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishes, u
           }
 
           const marker = new window.google.maps.Marker({
-            position: restaurant.location,
+            position,
             map,
             icon: {
               url: createPinIcon(pinText, showQualityPercentages === false ? '#ff3131' : qualityColor, showQualityPercentages),

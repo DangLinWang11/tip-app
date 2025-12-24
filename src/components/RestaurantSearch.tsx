@@ -200,12 +200,13 @@ const RestaurantSearch: React.FC<RestaurantSearchProps> = ({
                     lat: place.geometry?.location?.lat() || 0,
                     lng: place.geometry?.location?.lng() || 0
                   },
+                  googlePlaceId: placeId, // Ensure googlePlaceId is included
                   createdAt: null,
                   updatedAt: null,
                   rating: place.rating || 0,
                   distance: '0 mi',
                   coverImage: place.photos?.[0]?.getUrl({ maxWidth: 500, maxHeight: 500 }) || 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80'
-                };
+                } as any;
 
                 onSelect(newRestaurant);
                 setQuery(place.name || placeName);
