@@ -498,7 +498,7 @@ const Map: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishes, u
       {showMyLocationButton && (
         <button
           onClick={centerOnMyLocation}
-          className="absolute bottom-24 right-4 w-12 h-12 rounded-full bg-white shadow-lg flex items-center justify-center z-[60] border border-gray-100"
+          className="absolute bottom-24 right-4 w-12 h-12 rounded-full bg-white shadow-lg flex items-center justify-center z-[40] border border-gray-100"
           title="My Location"
           aria-label="Center on my location"
         >
