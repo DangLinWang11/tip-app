@@ -6,8 +6,8 @@ import { db } from '../lib/firebase';
 import { calculateRestaurantQualityScore, ReviewWithCategory, FirebaseReview } from '../services/reviewService';
 import { useLocationContext } from '../contexts/LocationContext';
 import { locationStore } from '../utils/locationStore';
-import { DISH_TYPES, CUISINES, normalizeToken, inferFacetsFromText } from '../utils/taxonomy';
-import { searchNearbyForDish, searchByText, searchByCuisine, GoogleFallbackPlace, getPlaceDetails, saveGooglePlaceToFirestore } from '../services/googlePlacesService';
+import { CUISINES, normalizeToken, inferFacetsFromText } from '../utils/taxonomy';
+import { searchByText, searchByCuisine, GoogleFallbackPlace, getPlaceDetails, saveGooglePlaceToFirestore } from '../services/googlePlacesService';
 import RestaurantListCard from '../components/discover/RestaurantListCard';
 import { tipRestaurantToCardModel, googlePlaceToCardModel } from '../utils/restaurantCardAdapters';
 
@@ -150,7 +150,6 @@ const DiscoverList: React.FC = () => {
   const [loadingDishes, setLoadingDishes] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [googleFallbackResults, setGoogleFallbackResults] = useState<GoogleFallbackPlace[]>([]);
-  const [showGoogleFallback, setShowGoogleFallback] = useState<boolean>(false);
   const [loadingGoogleFallback, setLoadingGoogleFallback] = useState<boolean>(false);
 
   const debounceTimerRef = useRef<number | null>(null);
@@ -180,21 +179,21 @@ const DiscoverList: React.FC = () => {
         try {
           setLoadingGoogleFallback(true);
           const location = locationStore.get();
+          console.log(`[Discover] Searching Google for ${cuisineLabel} at location:`, location);
           const results = await searchByCuisine(cuisineLabel, location, 10);
+          console.log(`[Discover] Google returned ${results.length} results for ${cuisineLabel}`);
           setGoogleFallbackResults(results);
-          setShowGoogleFallback(results.length > 0);
         } catch (err) {
           console.error('Failed to search Google for cuisine:', err);
           setGoogleFallbackResults([]);
-          setShowGoogleFallback(false);
         } finally {
           setLoadingGoogleFallback(false);
         }
       }
     } else {
       // Clear Google results for "All" or "Near Me"
+      console.log(`[Discover] Clearing Google results (selected: ${value})`);
       setGoogleFallbackResults([]);
-      setShowGoogleFallback(false);
     }
   };
 
@@ -688,7 +687,8 @@ const DiscoverList: React.FC = () => {
 
   const isLoading = viewMode === 'restaurant' ? loadingRestaurants : loadingRestaurants || loadingDishes;
 
-  // Google fallback search effect with debouncing
+  // Google text search effect with debouncing
+  // Note: This only handles text-based searches. Category-based searches are handled in handleCategorySelect
   useEffect(() => {
     const trimmedQuery = searchQuery.trim();
 
@@ -698,22 +698,24 @@ const DiscoverList: React.FC = () => {
       debounceTimerRef.current = null;
     }
 
-    // Reset fallback if query is too short
+    // Only trigger text search if query is long enough
     if (trimmedQuery.length < 3) {
-      setShowGoogleFallback(false);
-      setGoogleFallbackResults([]);
+      // Don't clear Google results here - they might be from category selection
+      // Only clear if we're in "All" category (no category filter active)
+      if (selectedCategory === 'all') {
+        setGoogleFallbackResults([]);
+      }
       return;
     }
 
     const shouldTriggerFallback = viewMode === 'restaurant';
 
     if (!shouldTriggerFallback) {
-      setShowGoogleFallback(false);
       setGoogleFallbackResults([]);
       return;
     }
 
-    // Debounce the Google API call
+    // Debounce the Google API call for text search
     debounceTimerRef.current = window.setTimeout(() => {
       let isCancelled = false;
 
@@ -725,13 +727,11 @@ const DiscoverList: React.FC = () => {
           const results = await searchByText(trimmedQuery, coords);
           if (!isCancelled) {
             setGoogleFallbackResults(results);
-            setShowGoogleFallback(results.length > 0);
           }
         } catch (err) {
           console.error('Google fallback search failed:', err);
           if (!isCancelled) {
             setGoogleFallbackResults([]);
-            setShowGoogleFallback(false);
           }
         } finally {
           if (!isCancelled) {
@@ -752,48 +752,90 @@ const DiscoverList: React.FC = () => {
         window.clearTimeout(debounceTimerRef.current);
       }
     };
-  }, [searchQuery, viewMode, coords]);
+  }, [searchQuery, viewMode, coords, selectedCategory]);
 
-  const restaurantsForRender = [...filteredRestaurants].sort((a, b) => {
-    // When "Near Me" is active, prioritize distance first
-    if (selectedCategory === 'nearme') {
-      // Restaurants with distance come before those without
-      const da = a.distanceMiles;
-      const db = b.distanceMiles;
+  /**
+   * Unified render list that merges Firebase and Google results with deduplication
+   * Strategy:
+   * 1. Convert Firebase restaurants to card models with 'tip' source
+   * 2. Convert Google places to card models with 'google' source
+   * 3. Deduplicate: If a restaurant exists in both (by matching name/address), keep only Firebase version
+   * 4. Sort: Firebase restaurants first (sorted by quality), then Google results
+   */
+  const restaurantsForRender = useMemo(() => {
+    console.log(`[Discover] Rendering with ${filteredRestaurants.length} Firebase restaurants and ${googleFallbackResults.length} Google results`);
 
-      if (da != null && db == null) return -1;
-      if (da == null && db != null) return 1;
+    // Convert Firebase restaurants to card models
+    const firebaseCards = filteredRestaurants.map((restaurant) => ({
+      card: tipRestaurantToCardModel(restaurant),
+      restaurant,
+      source: 'firebase' as const
+    }));
 
-      // Both have distance - sort by closest first
-      if (da != null && db != null) {
-        if (da !== db) {
+    // Convert Google places to card models
+    const googleCards = googleFallbackResults.map((place) => ({
+      card: googlePlaceToCardModel(place, coords),
+      place,
+      source: 'google' as const
+    }));
+
+    // Deduplicate: Remove Google places that match Firebase restaurants
+    // Match by normalized name (case-insensitive, trimmed)
+    const firebaseNames = new Set(
+      firebaseCards.map(({ restaurant }) =>
+        restaurant.name.toLowerCase().trim()
+      )
+    );
+
+    const deduplicatedGoogleCards = googleCards.filter(({ card }) => {
+      const normalizedName = card.name.toLowerCase().trim();
+      return !firebaseNames.has(normalizedName);
+    });
+
+    // Sort Firebase restaurants
+    const sortedFirebase = [...firebaseCards].sort((a, b) => {
+      const restaurantA = a.restaurant;
+      const restaurantB = b.restaurant;
+
+      // When "Near Me" is active, prioritize distance first
+      if (selectedCategory === 'nearme') {
+        const da = restaurantA.distanceMiles;
+        const db = restaurantB.distanceMiles;
+
+        if (da != null && db == null) return -1;
+        if (da == null && db != null) return 1;
+
+        if (da != null && db != null && da !== db) {
           return da - db; // Ascending (closest first)
         }
       }
-      // If distances equal, fall through to quality/sufficiency
-    }
 
-    // Growth-safe ranking: prioritize restaurants with sufficient data
-    const aSufficient = a.reviewCount >= MIN_REVIEWS_FOR_TRUST;
-    const bSufficient = b.reviewCount >= MIN_REVIEWS_FOR_TRUST;
+      // Growth-safe ranking: prioritize restaurants with sufficient data
+      const aSufficient = restaurantA.reviewCount >= MIN_REVIEWS_FOR_TRUST;
+      const bSufficient = restaurantB.reviewCount >= MIN_REVIEWS_FOR_TRUST;
 
-    // First: sort by sufficient data (true first)
-    if (aSufficient !== bSufficient) {
-      return aSufficient ? -1 : 1;
-    }
+      if (aSufficient !== bSufficient) {
+        return aSufficient ? -1 : 1;
+      }
 
-    // Second: sort by quality percentage (DESC)
-    const aQuality = a.qualityPercentage ?? 0;
-    const bQuality = b.qualityPercentage ?? 0;
-    if (aQuality !== bQuality) {
-      return bQuality - aQuality;
-    }
+      // Sort by quality percentage (DESC)
+      const aQuality = restaurantA.qualityPercentage ?? 0;
+      const bQuality = restaurantB.qualityPercentage ?? 0;
+      if (aQuality !== bQuality) {
+        return bQuality - aQuality;
+      }
 
-    // Third: sort by distance (ASC) when available
-    const finalDa = a.distanceMiles ?? Number.POSITIVE_INFINITY;
-    const finalDb = b.distanceMiles ?? Number.POSITIVE_INFINITY;
-    return finalDa - finalDb;
-  });
+      // Sort by distance (ASC) when available
+      const finalDa = restaurantA.distanceMiles ?? Number.POSITIVE_INFINITY;
+      const finalDb = restaurantB.distanceMiles ?? Number.POSITIVE_INFINITY;
+      return finalDa - finalDb;
+    });
+
+    // Combine: Firebase first, then deduplicated Google
+    const combined = [...sortedFirebase, ...deduplicatedGoogleCards];
+    console.log(`[Discover] Final render list: ${combined.length} total (${sortedFirebase.length} Firebase + ${deduplicatedGoogleCards.length} Google after dedup)`);
+    return combined;
+  }, [filteredRestaurants, googleFallbackResults, coords, selectedCategory]);
   const noTagFilterResults =
     viewMode === 'restaurant' && Boolean(selectedTagFilter) && restaurantsForRender.length === 0;
 
@@ -947,71 +989,61 @@ const DiscoverList: React.FC = () => {
               </button>
             </div>
           ) :
-            (restaurantsForRender.length > 0 || googleFallbackResults.length > 0) ? (
+            restaurantsForRender.length > 0 ? (
               <>
-                {restaurantsForRender.map((restaurant) => {
-                  const card = tipRestaurantToCardModel(restaurant);
-                  return (
-                    <RestaurantListCard
-                      key={card.id}
-                      card={card}
-                      onClick={() => navigate(`/restaurant/${card.restaurantId}`)}
-                    />
-                  );
-                })}
-                {googleFallbackResults.map((place) => {
-                  const card = googlePlaceToCardModel(place, coords);
-                  return (
-                    <RestaurantListCard
-                      key={card.id}
-                      card={card}
-                      onClick={async () => {
-                        if (card.googlePlaceId) {
-                          try {
-                            const details = await getPlaceDetails(card.googlePlaceId);
-                            await saveGooglePlaceToFirestore(details);
-                            navigate(`/restaurant/${card.googlePlaceId}`);
-                          } catch (err) {
-                            console.error("Failed to process Google Place selection", err);
-                            window.open(`https://www.google.com/maps/search/?api=1&query=Google&query_place_id=${card.googlePlaceId}`, '_blank');
+                {restaurantsForRender.map((item) => {
+                  const { card, source } = item;
+
+                  if (source === 'firebase') {
+                    return (
+                      <RestaurantListCard
+                        key={card.id}
+                        card={card}
+                        onClick={() => navigate(`/restaurant/${card.restaurantId}`)}
+                      />
+                    );
+                  } else {
+                    // Google place
+                    return (
+                      <RestaurantListCard
+                        key={card.id}
+                        card={card}
+                        onClick={async () => {
+                          if (card.googlePlaceId) {
+                            try {
+                              const details = await getPlaceDetails(card.googlePlaceId);
+                              await saveGooglePlaceToFirestore(details);
+                              navigate(`/restaurant/${card.googlePlaceId}`);
+                            } catch (err) {
+                              console.error("Failed to process Google Place selection", err);
+                              window.open(`https://www.google.com/maps/search/?api=1&query=Google&query_place_id=${card.googlePlaceId}`, '_blank');
+                            }
                           }
-                        }
-                      }}
-                    />
-                  );
+                        }}
+                      />
+                    );
+                  }
                 })}
                 {/* Show Google attribution footer if we have Google results */}
-                {googleFallbackResults.length > 0 && (
+                {restaurantsForRender.some(item => item.source === 'google') && (
                   <p className="text-xs text-gray-500 mt-3 italic text-center pb-2">
                     Some results from Google Places
                   </p>
                 )}
               </>
-            ) : noTagFilterResults ? (
-              <div className="text-center py-8 text-gray-500">
-                <p className="font-medium">No restaurants found with {selectedTagFilter}</p>
-                <p className="text-sm">Try broadening your filters.</p>
-                <button
-                  type="button"
-                  onClick={handleClearFilters}
-                  className="mt-3 inline-flex items-center px-4 py-2 rounded-full bg-primary text-white text-sm font-semibold"
-                >
-                  Clear Filters
-                </button>
-              </div>
             ) : (
               <div className="text-center py-8 text-gray-500">
                 <p>No restaurants found</p>
-                <p className="text-sm">Try selecting a different category</p>
-                {selectedTagFilter ? (
+                <p className="text-sm">Try selecting a different category or adjusting filters</p>
+                {selectedTagFilter && (
                   <button
                     type="button"
                     onClick={handleClearFilters}
                     className="mt-3 inline-flex items-center px-4 py-2 rounded-full border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-100"
                   >
-                    Clear Tag Filter
+                    Clear Filters
                   </button>
-                ) : null}
+                )}
               </div>
             )
         ) : dishesForRender.length ? (
