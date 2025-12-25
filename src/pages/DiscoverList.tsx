@@ -5,8 +5,9 @@ import { collection, getDocs, query, where, limit } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { calculateRestaurantQualityScore, ReviewWithCategory, FirebaseReview } from '../services/reviewService';
 import { useLocationContext } from '../contexts/LocationContext';
+import { locationStore } from '../utils/locationStore';
 import { DISH_TYPES, CUISINES, normalizeToken, inferFacetsFromText } from '../utils/taxonomy';
-import { searchNearbyForDish, searchByText, GoogleFallbackPlace, getPlaceDetails, saveGooglePlaceToFirestore } from '../services/googlePlacesService';
+import { searchNearbyForDish, searchByText, searchByCuisine, GoogleFallbackPlace, getPlaceDetails, saveGooglePlaceToFirestore } from '../services/googlePlacesService';
 import RestaurantListCard from '../components/discover/RestaurantListCard';
 import { tipRestaurantToCardModel, googlePlaceToCardModel } from '../utils/restaurantCardAdapters';
 
@@ -160,12 +161,40 @@ const DiscoverList: React.FC = () => {
 
   const handleCategorySelect = async (value: string) => {
     setSelectedCategory(value);
+
+    // Handle "Near Me" - request location permission if needed
     if (value === 'nearme' && !coords && requestLocationPermission) {
       try {
         await requestLocationPermission();
       } catch (err) {
         console.warn('Location permission request failed', err);
       }
+    }
+
+    // Handle cuisine selection - trigger Google search for hybrid results
+    if (value !== 'all' && value !== 'nearme' && viewMode === 'restaurant') {
+      // Find the cuisine label from the normalized value
+      const cuisineLabel = CUISINES.find(c => normalizeToken(c) === value);
+
+      if (cuisineLabel) {
+        try {
+          setLoadingGoogleFallback(true);
+          const location = locationStore.get();
+          const results = await searchByCuisine(cuisineLabel, location, 10);
+          setGoogleFallbackResults(results);
+          setShowGoogleFallback(results.length > 0);
+        } catch (err) {
+          console.error('Failed to search Google for cuisine:', err);
+          setGoogleFallbackResults([]);
+          setShowGoogleFallback(false);
+        } finally {
+          setLoadingGoogleFallback(false);
+        }
+      }
+    } else {
+      // Clear Google results for "All" or "Near Me"
+      setGoogleFallbackResults([]);
+      setShowGoogleFallback(false);
     }
   };
 

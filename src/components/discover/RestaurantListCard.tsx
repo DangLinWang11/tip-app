@@ -187,8 +187,20 @@ const RestaurantListCard: React.FC<RestaurantListCardProps> = ({ card, onClick }
         <div className="flex justify-between items-start gap-2">
           <div className="flex-1 min-w-0 max-w-[calc(100%-70px)]">
             <h3 className="font-medium truncate">{card.name}</h3>
-            {(card.limitedRatingsText || card.reviewCountText || card.serviceSpeedLabel || (card.tags && card.tags.length > 0)) && (
+            {(card.source === 'google' || card.limitedRatingsText || card.reviewCountText || card.serviceSpeedLabel || (card.tags && card.tags.length > 0)) && (
               <div className="mt-0.5 flex items-center gap-1.5 flex-wrap">
+                {/* Source badge - show for Google Places */}
+                {card.source === 'google' && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-[10px] text-blue-700 font-semibold">
+                    New to You
+                  </span>
+                )}
+                {/* Source badge - show for Visited restaurants */}
+                {card.source === 'tip' && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2 py-0.5 text-[10px] text-green-700 font-semibold">
+                    Visited
+                  </span>
+                )}
                 {/* Review badge */}
                 {(card.limitedRatingsText || card.reviewCountText) && (
                   <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] text-slate-600">

@@ -6,6 +6,65 @@ const GOOGLE_MAPS_LIBRARIES = ['places'];
 
 type LatLngLiteral = { lat: number; lng: number };
 
+/**
+ * Maps our taxonomy cuisines to Google Places API types or keywords
+ * Returns { type?: string, keyword?: string }
+ * - type: Used for includedPrimaryTypes or nearbySearch type parameter
+ * - keyword: Used for text search or keyword parameter when no direct type exists
+ */
+export const getCuisineSearchParams = (cuisine: string): { type?: string; keyword?: string } => {
+  const normalized = cuisine.toLowerCase().trim();
+
+  // Direct Google Places type mappings
+  const typeMapping: Record<string, string> = {
+    'italian': 'italian_restaurant',
+    'japanese': 'japanese_restaurant',
+    'chinese': 'chinese_restaurant',
+    'mexican': 'mexican_restaurant',
+    'thai': 'thai_restaurant',
+    'american': 'american_restaurant',
+    'french': 'french_restaurant',
+    'indian': 'indian_restaurant',
+    'greek': 'greek_restaurant',
+    'korean': 'korean_restaurant',
+    'vietnamese': 'vietnamese_restaurant',
+    'spanish': 'spanish_restaurant',
+    'turkish': 'turkish_restaurant',
+    'brazilian': 'brazilian_restaurant',
+    'mediterranean': 'mediterranean_restaurant',
+    'seafood': 'seafood_restaurant',
+    'pizza': 'pizza_restaurant',
+    'breakfast / brunch': 'breakfast_restaurant'
+  };
+
+  // Keyword-based searches for cuisines without direct Google type
+  const keywordMapping: Record<string, string> = {
+    'bbq/grill': 'bbq barbecue',
+    'latin american': 'latin american restaurant',
+    'middle eastern': 'middle eastern restaurant',
+    'caribbean': 'caribbean restaurant',
+    'sandwiches / deli': 'sandwich deli',
+    'european': 'european restaurant',
+    'african': 'african restaurant',
+    'peruvian': 'peruvian restaurant',
+    'argentine': 'argentine restaurant',
+    'filipino': 'filipino restaurant',
+    'hawaiian': 'hawaiian restaurant',
+    'lebanese': 'lebanese restaurant'
+  };
+
+  if (typeMapping[normalized]) {
+    return { type: typeMapping[normalized] };
+  }
+
+  if (keywordMapping[normalized]) {
+    return { keyword: keywordMapping[normalized] };
+  }
+
+  // Default: use the cuisine name as keyword
+  return { keyword: `${cuisine} restaurant` };
+};
+
 export interface SavedGooglePlace {
   name: string;
   address: string;
@@ -281,6 +340,62 @@ export const searchByText = async (
       } else {
         // textSearch can fail if query is weird, just resolve empty to handle gracefully
         console.warn(`Text search failed: ${status}`);
+        resolve([]);
+      }
+    });
+  });
+};
+
+/**
+ * Search for restaurants by cuisine using our taxonomy mapping
+ * This function intelligently uses either nearbySearch with type or keyword
+ * based on what Google Places API supports for the given cuisine
+ */
+export const searchByCuisine = async (
+  cuisine: string,
+  location: LatLngLiteral,
+  maxResults: number = 10
+): Promise<GoogleFallbackPlace[]> => {
+  if (!cuisine || !location) return [];
+
+  await ensureGoogleMapsLoaded();
+
+  const searchParams = getCuisineSearchParams(cuisine);
+
+  return new Promise<GoogleFallbackPlace[]>((resolve, reject) => {
+    const service = createPlacesService();
+    const request: google.maps.places.PlaceSearchRequest = {
+      location: new google.maps.LatLng(location.lat, location.lng),
+      radius: 8000, // 8km search radius
+      type: 'restaurant'
+    };
+
+    // Add either type-specific or keyword search
+    if (searchParams.type) {
+      // For cuisines with direct Google type support, we rely on the type filter
+      request.type = searchParams.type as any;
+    } else if (searchParams.keyword) {
+      // For cuisines without direct type, use keyword search
+      request.keyword = searchParams.keyword;
+    }
+
+    service.nearbySearch(request, (results, status) => {
+      if (status === google.maps.places.PlacesServiceStatus.OK && results) {
+        const mapped = results.slice(0, maxResults).map((result) => ({
+          place_id: result.place_id || `google_${Math.random()}`,
+          name: result.name || 'Unknown',
+          vicinity: result.vicinity || '',
+          rating: result.rating,
+          user_ratings_total: result.user_ratings_total,
+          price_level: result.price_level,
+          photos: result.photos,
+          geometry: result.geometry
+        }));
+        resolve(mapped);
+      } else if (status === google.maps.places.PlacesServiceStatus.ZERO_RESULTS) {
+        resolve([]);
+      } else {
+        console.warn(`Cuisine search failed for ${cuisine}: ${status}`);
         resolve([]);
       }
     });

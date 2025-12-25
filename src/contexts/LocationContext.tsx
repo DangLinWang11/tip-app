@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { locationStore } from '../utils/locationStore';
 
 export interface LocationCoordinates {
   latitude: number;
@@ -8,11 +9,11 @@ export interface LocationCoordinates {
 export interface LocationContextType {
   hasPermission: boolean;
   isPermissionRequested: boolean;
-  currentLocation: LocationCoordinates | null;
+  currentLocation: LocationCoordinates;
   isLoading: boolean;
   error: string | null;
   requestLocationPermission: () => Promise<boolean>;
-  getCurrentLocation: () => Promise<LocationCoordinates | null>;
+  getCurrentLocation: () => Promise<LocationCoordinates>;
   clearError: () => void;
 }
 
@@ -25,7 +26,14 @@ interface LocationProviderProps {
 export const LocationProvider: React.FC<LocationProviderProps> = ({ children }) => {
   const [hasPermission, setHasPermission] = useState<boolean>(false);
   const [isPermissionRequested, setIsPermissionRequested] = useState<boolean>(false);
-  const [currentLocation, setCurrentLocation] = useState<LocationCoordinates | null>(null);
+
+  // Initialize from locationStore instead of null
+  const storedLocation = locationStore.get();
+  const [currentLocation, setCurrentLocation] = useState<LocationCoordinates>({
+    latitude: storedLocation.lat,
+    longitude: storedLocation.lng
+  });
+
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -84,10 +92,15 @@ export const LocationProvider: React.FC<LocationProviderProps> = ({ children }) 
         });
       });
 
-      setCurrentLocation({
+      const coordinates = {
         latitude: position.coords.latitude,
         longitude: position.coords.longitude
-      });
+      };
+
+      // Update both state and locationStore
+      setCurrentLocation(coordinates);
+      locationStore.update(coordinates.latitude, coordinates.longitude);
+
       setHasPermission(true);
       setIsPermissionRequested(true);
       localStorage.setItem('locationPermissionRequested', 'true');
@@ -122,15 +135,17 @@ export const LocationProvider: React.FC<LocationProviderProps> = ({ children }) 
     }
   };
 
-  const getCurrentLocation = async (): Promise<LocationCoordinates | null> => {
+  const getCurrentLocation = async (): Promise<LocationCoordinates> => {
     if (!navigator.geolocation) {
       setError('Geolocation is not supported by this browser');
-      return null;
+      // Return stored location as fallback
+      return currentLocation;
     }
 
     if (!hasPermission) {
       setError('Location permission not granted');
-      return null;
+      // Return stored location as fallback
+      return currentLocation;
     }
 
     setIsLoading(true);
@@ -150,14 +165,18 @@ export const LocationProvider: React.FC<LocationProviderProps> = ({ children }) 
         longitude: position.coords.longitude
       };
 
+      // Update both state and locationStore
       setCurrentLocation(coordinates);
+      locationStore.update(coordinates.latitude, coordinates.longitude);
+
       setIsLoading(false);
       return coordinates;
 
     } catch (err) {
       setIsLoading(false);
       setError('Failed to get current location');
-      return null;
+      // Return stored location as fallback
+      return currentLocation;
     }
   };
 
