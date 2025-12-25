@@ -7,6 +7,49 @@ const GOOGLE_MAPS_LIBRARIES = ['places'];
 type LatLngLiteral = { lat: number; lng: number };
 
 /**
+ * Filters out non-restaurant noise from Google Places results
+ * Removes cities, hotels, landmarks, and other non-restaurant types
+ */
+export const filterRestaurantNoise = (places: GoogleFallbackPlace[]): GoogleFallbackPlace[] => {
+  // Types to exclude - these are clearly not restaurants
+  const excludedTypes = new Set([
+    'locality',           // City centers (e.g., "Sarasota")
+    'political',          // Political entities
+    'lodging',            // Hotels (e.g., Ritz-Carlton, voco)
+    'park',               // Parks
+    'airport',            // Airports
+    'university',         // Universities
+    'school',             // Schools
+    'hospital',           // Hospitals
+    'church',             // Churches
+    'shopping_mall',      // Shopping malls (unless they have restaurants)
+    'tourist_attraction', // Tourist attractions (unless restaurants)
+    'transit_station',    // Transit stations
+    'gas_station',        // Gas stations
+    'car_dealer',         // Car dealerships
+    'store',              // General stores
+    'point_of_interest'   // Generic POIs (too broad, often not restaurants)
+  ]);
+
+  return places.filter((place) => {
+    // If no types array, keep it (be permissive for missing data)
+    if (!place.types || place.types.length === 0) {
+      return true;
+    }
+
+    // Check if any excluded type is present
+    const hasExcludedType = place.types.some(type => excludedTypes.has(type));
+
+    if (hasExcludedType) {
+      console.log(`[Filter] Excluding ${place.name} - types: ${place.types.join(', ')}`);
+      return false;
+    }
+
+    return true;
+  });
+};
+
+/**
  * Maps our taxonomy cuisines to Google Places API types or keywords
  * Returns { type?: string, keyword?: string }
  * - type: Used for includedPrimaryTypes or nearbySearch type parameter
@@ -259,6 +302,7 @@ export interface GoogleFallbackPlace {
   geometry?: {
     location?: google.maps.LatLng | google.maps.LatLngLiteral;
   };
+  types?: string[];
 }
 
 export const searchNearbyForDish = async (
@@ -290,7 +334,8 @@ export const searchNearbyForDish = async (
           user_ratings_total: result.user_ratings_total,
           price_level: result.price_level,
           photos: result.photos,
-          geometry: result.geometry
+          geometry: result.geometry,
+          types: result.types
         }));
         resolve(mapped);
       } else if (status === google.maps.places.PlacesServiceStatus.ZERO_RESULTS) {
@@ -332,7 +377,8 @@ export const searchByText = async (
           user_ratings_total: result.user_ratings_total,
           price_level: result.price_level,
           photos: result.photos,
-          geometry: result.geometry
+          geometry: result.geometry,
+          types: result.types
         }));
         resolve(mapped);
       } else if (status === google.maps.places.PlacesServiceStatus.ZERO_RESULTS) {
@@ -366,7 +412,7 @@ export const searchByCuisine = async (
     const service = createPlacesService();
     const request: google.maps.places.PlaceSearchRequest = {
       location: new google.maps.LatLng(location.lat, location.lng),
-      radius: 8000, // 8km search radius
+      radius: 10000, // 10km search radius (consistent with other searches)
       type: 'restaurant'
     };
 
@@ -389,7 +435,8 @@ export const searchByCuisine = async (
           user_ratings_total: result.user_ratings_total,
           price_level: result.price_level,
           photos: result.photos,
-          geometry: result.geometry
+          geometry: result.geometry,
+          types: result.types
         }));
         resolve(mapped);
       } else if (status === google.maps.places.PlacesServiceStatus.ZERO_RESULTS) {

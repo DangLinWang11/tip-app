@@ -7,7 +7,7 @@ import { calculateRestaurantQualityScore, ReviewWithCategory, FirebaseReview } f
 import { useLocationContext } from '../contexts/LocationContext';
 import { locationStore } from '../utils/locationStore';
 import { CUISINES, normalizeToken, inferFacetsFromText } from '../utils/taxonomy';
-import { searchByText, searchByCuisine, GoogleFallbackPlace, getPlaceDetails, saveGooglePlaceToFirestore } from '../services/googlePlacesService';
+import { searchByText, searchByCuisine, filterRestaurantNoise, GoogleFallbackPlace, getPlaceDetails, saveGooglePlaceToFirestore } from '../services/googlePlacesService';
 import RestaurantListCard from '../components/discover/RestaurantListCard';
 import { tipRestaurantToCardModel, googlePlaceToCardModel } from '../utils/restaurantCardAdapters';
 
@@ -182,7 +182,12 @@ const DiscoverList: React.FC = () => {
           console.log(`[Discover] Searching Google for ${cuisineLabel} at location:`, location);
           const results = await searchByCuisine(cuisineLabel, location, 10);
           console.log(`[Discover] Google returned ${results.length} results for ${cuisineLabel}`);
-          setGoogleFallbackResults(results);
+
+          // Filter out non-restaurant noise (cities, hotels, etc.)
+          const filtered = filterRestaurantNoise(results);
+          console.log(`[Discover] After filtering: ${filtered.length} restaurants (removed ${results.length - filtered.length} non-restaurants)`);
+
+          setGoogleFallbackResults(filtered);
         } catch (err) {
           console.error('Failed to search Google for cuisine:', err);
           setGoogleFallbackResults([]);
@@ -725,8 +730,12 @@ const DiscoverList: React.FC = () => {
           // Use searchByText which is more robust than nearby for general "typing" queries
           // coords can be undefined, searches will just be broader
           const results = await searchByText(trimmedQuery, coords);
+
           if (!isCancelled) {
-            setGoogleFallbackResults(results);
+            // Filter out non-restaurant noise (cities, hotels, etc.)
+            const filtered = filterRestaurantNoise(results);
+            console.log(`[Discover Text Search] ${filtered.length}/${results.length} results after filtering`);
+            setGoogleFallbackResults(filtered);
           }
         } catch (err) {
           console.error('Google fallback search failed:', err);
@@ -759,8 +768,9 @@ const DiscoverList: React.FC = () => {
    * Strategy:
    * 1. Convert Firebase restaurants to card models with 'tip' source
    * 2. Convert Google places to card models with 'google' source
-   * 3. Deduplicate: If a restaurant exists in both (by matching name/address), keep only Firebase version
-   * 4. Sort: Firebase restaurants first (sorted by quality), then Google results
+   * 3. Apply safety checks to Google places (filter suspicious entries)
+   * 4. Deduplicate: If a restaurant exists in both (by matching name/address), keep only Firebase version
+   * 5. Sort: Firebase restaurants first (sorted by quality), then Google results
    */
   const restaurantsForRender = useMemo(() => {
     console.log(`[Discover] Rendering with ${filteredRestaurants.length} Firebase restaurants and ${googleFallbackResults.length} Google results`);
@@ -772,8 +782,31 @@ const DiscoverList: React.FC = () => {
       source: 'firebase' as const
     }));
 
+    // Safety check: Filter out suspicious Google places
+    // Authentic restaurants almost always have a rating or price level
+    // Places without either are often city markers or invalid POIs
+    const validGooglePlaces = googleFallbackResults.filter((place) => {
+      // If it has either a rating or price level, it's likely a real restaurant
+      if (place.rating || place.price_level) {
+        return true;
+      }
+
+      // If it lacks both rating and price, check if the name matches common city names
+      const suspiciousNames = ['sarasota', 'tampa', 'st. petersburg', 'bradenton', 'venice'];
+      const normalizedName = place.name.toLowerCase().trim();
+
+      if (suspiciousNames.some(city => normalizedName.includes(city))) {
+        console.log(`[Safety Check] Excluding suspicious place: ${place.name} (no rating/price, matches city name)`);
+        return false;
+      }
+
+      // Otherwise, keep it with a warning
+      console.warn(`[Safety Check] Allowing place without rating/price: ${place.name}`);
+      return true;
+    });
+
     // Convert Google places to card models
-    const googleCards = googleFallbackResults.map((place) => ({
+    const googleCards = validGooglePlaces.map((place) => ({
       card: googlePlaceToCardModel(place, coords),
       place,
       source: 'google' as const
