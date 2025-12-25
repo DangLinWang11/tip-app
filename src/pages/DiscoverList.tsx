@@ -135,9 +135,14 @@ const normalizeCategoryValue = (label: string) => {
 const DiscoverList: React.FC = () => {
   const navigate = useNavigate();
   const { currentLocation, requestLocationPermission } = useLocationContext();
-  const coords = currentLocation
-    ? { lat: currentLocation.latitude, lng: currentLocation.longitude }
-    : undefined;
+
+  // Stabilize coords reference with useMemo to prevent infinite loops
+  const coords = useMemo(() => {
+    if (currentLocation) {
+      return { lat: currentLocation.latitude, lng: currentLocation.longitude };
+    }
+    return undefined;
+  }, [currentLocation?.latitude, currentLocation?.longitude]);
 
   const [viewMode, setViewMode] = useState<'restaurant' | 'dish'>('restaurant');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -159,7 +164,11 @@ const DiscoverList: React.FC = () => {
   const queryTokens = useMemo(() => normalizeToken(searchQuery).split(' ').filter(Boolean), [searchQuery]);
 
   const handleCategorySelect = async (value: string) => {
+    console.log('🚀 Triggering category selection:', value);
     setSelectedCategory(value);
+
+    // Reset search query to avoid conflicting filters
+    setSearchQuery('');
 
     // Handle "Near Me" - request location permission if needed
     if (value === 'nearme' && !coords && requestLocationPermission) {
@@ -178,14 +187,35 @@ const DiscoverList: React.FC = () => {
       if (cuisineLabel) {
         try {
           setLoadingGoogleFallback(true);
-          const location = locationStore.get();
+          // Ensure location is 'warm' - use stored location or Sarasota fallback
+          const location = locationStore.get() || { lat: 27.3364, lng: -82.5307 };
           console.log(`[Discover] Searching Google for ${cuisineLabel} at location:`, location);
           const results = await searchByCuisine(cuisineLabel, location, 10);
           console.log(`[Discover] Google returned ${results.length} results for ${cuisineLabel}`);
 
+          // Debug: Show raw results before filtering
+          if (results.length > 0) {
+            console.table(results.map(r => ({
+              name: r.name,
+              vicinity: r.vicinity,
+              types: r.types?.join(', '),
+              rating: r.rating,
+              price_level: r.price_level
+            })));
+          }
+
           // Filter out non-restaurant noise (cities, hotels, etc.)
           const filtered = filterRestaurantNoise(results);
           console.log(`[Discover] After filtering: ${filtered.length} restaurants (removed ${results.length - filtered.length} non-restaurants)`);
+
+          // Debug: Show filtered results
+          if (filtered.length > 0) {
+            console.table(filtered.map(r => ({
+              name: r.name,
+              vicinity: r.vicinity,
+              types: r.types?.join(', ')
+            })));
+          }
 
           setGoogleFallbackResults(filtered);
         } catch (err) {
@@ -728,13 +758,38 @@ const DiscoverList: React.FC = () => {
         try {
           setLoadingGoogleFallback(true);
           // Use searchByText which is more robust than nearby for general "typing" queries
-          // coords can be undefined, searches will just be broader
-          const results = await searchByText(trimmedQuery, coords);
+          // Ensure location is 'warm' - use stored location or Sarasota fallback
+          const location = coords || locationStore.get() || { lat: 27.3364, lng: -82.5307 };
+          console.log(`[Discover Text Search] Searching for "${trimmedQuery}" at location:`, location);
+          const results = await searchByText(trimmedQuery, location);
 
           if (!isCancelled) {
+            console.log(`[Discover Text Search] Google returned ${results.length} results for "${trimmedQuery}"`);
+
+            // Debug: Show raw results before filtering
+            if (results.length > 0) {
+              console.table(results.map(r => ({
+                name: r.name,
+                vicinity: r.vicinity,
+                types: r.types?.join(', '),
+                rating: r.rating,
+                price_level: r.price_level
+              })));
+            }
+
             // Filter out non-restaurant noise (cities, hotels, etc.)
             const filtered = filterRestaurantNoise(results);
-            console.log(`[Discover Text Search] ${filtered.length}/${results.length} results after filtering`);
+            console.log(`[Discover Text Search] ${filtered.length}/${results.length} results after filtering (removed ${results.length - filtered.length})`);
+
+            // Debug: Show filtered results
+            if (filtered.length > 0) {
+              console.table(filtered.map(r => ({
+                name: r.name,
+                vicinity: r.vicinity,
+                types: r.types?.join(', ')
+              })));
+            }
+
             setGoogleFallbackResults(filtered);
           }
         } catch (err) {

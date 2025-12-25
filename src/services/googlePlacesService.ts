@@ -8,45 +8,66 @@ type LatLngLiteral = { lat: number; lng: number };
 
 /**
  * Filters out non-restaurant noise from Google Places results
- * Removes cities, hotels, landmarks, and other non-restaurant types
+ * Blacklist-only approach: Only removes clearly non-restaurant types
+ * Keeps cafes, sushi restaurants, food establishments, etc.
  */
 export const filterRestaurantNoise = (places: GoogleFallbackPlace[]): GoogleFallbackPlace[] => {
-  // Types to exclude - these are clearly not restaurants
+  // Strict blacklist - ONLY exclude these specific non-food types
   const excludedTypes = new Set([
     'locality',           // City centers (e.g., "Sarasota")
     'political',          // Political entities
-    'lodging',            // Hotels (e.g., Ritz-Carlton, voco)
-    'park',               // Parks
-    'airport',            // Airports
-    'university',         // Universities
-    'school',             // Schools
-    'hospital',           // Hospitals
-    'church',             // Churches
-    'shopping_mall',      // Shopping malls (unless they have restaurants)
-    'tourist_attraction', // Tourist attractions (unless restaurants)
-    'transit_station',    // Transit stations
-    'gas_station',        // Gas stations
-    'car_dealer',         // Car dealerships
-    'store',              // General stores
-    'point_of_interest'   // Generic POIs (too broad, often not restaurants)
+    'lodging',            // Hotels only (not hotel restaurants)
   ]);
 
-  return places.filter((place) => {
+  const excluded: Array<{ name: string; types: string; reason: string }> = [];
+
+  const filtered = places.filter((place) => {
     // If no types array, keep it (be permissive for missing data)
     if (!place.types || place.types.length === 0) {
       return true;
     }
 
-    // Check if any excluded type is present
+    // BLACKLIST ONLY: Only exclude if it ONLY has blacklisted types
+    // If it has ANY food-related type, keep it
+    const hasFoodType = place.types.some(type =>
+      type.includes('restaurant') ||
+      type.includes('food') ||
+      type.includes('cafe') ||
+      type.includes('bar') ||
+      type === 'meal_takeaway' ||
+      type === 'meal_delivery'
+    );
+
+    // If it has a food type, always keep it regardless of other types
+    if (hasFoodType) {
+      return true;
+    }
+
+    // Otherwise, check if it has any blacklisted types
     const hasExcludedType = place.types.some(type => excludedTypes.has(type));
 
     if (hasExcludedType) {
-      console.log(`[Filter] Excluding ${place.name} - types: ${place.types.join(', ')}`);
+      const matchedType = place.types.find(type => excludedTypes.has(type)) || '';
+      excluded.push({
+        name: place.name,
+        types: place.types.join(', '),
+        reason: `Has excluded type: ${matchedType}`
+      });
       return false;
     }
 
+    // If it doesn't have food types but also isn't blacklisted, keep it with warning
+    console.warn(`[filterRestaurantNoise] Allowing non-food place: ${place.name} (types: ${place.types.join(', ')})`);
     return true;
   });
+
+  // Debug: Show what was filtered out
+  if (excluded.length > 0) {
+    console.log(`[filterRestaurantNoise] Excluded ${excluded.length} non-restaurants:`);
+    console.table(excluded);
+  }
+
+  return filtered;
 };
 
 /**
@@ -394,8 +415,8 @@ export const searchByText = async (
 
 /**
  * Search for restaurants by cuisine using our taxonomy mapping
- * This function intelligently uses either nearbySearch with type or keyword
- * based on what Google Places API supports for the given cuisine
+ * Uses Text Search with cuisine + "restaurant" for better reliability
+ * Falls back to nearby search if text search fails
  */
 export const searchByCuisine = async (
   cuisine: string,
@@ -408,29 +429,31 @@ export const searchByCuisine = async (
 
   const searchParams = getCuisineSearchParams(cuisine);
 
+  // Strategy: Use Text Search with cuisine + "restaurant" for better coverage
+  // This finds local spots that Google hasn't perfectly categorized yet
   return new Promise<GoogleFallbackPlace[]>((resolve, reject) => {
     const service = createPlacesService();
-    const request: google.maps.places.PlaceSearchRequest = {
+
+    // Build query: "italian restaurant" or use mapped keyword
+    const query = searchParams.keyword || `${cuisine} restaurant`;
+
+    console.log(`[searchByCuisine] Searching with query: "${query}" at location:`, location);
+
+    const request: google.maps.places.TextSearchRequest = {
+      query: query,
       location: new google.maps.LatLng(location.lat, location.lng),
-      radius: 10000, // 10km search radius (consistent with other searches)
+      radius: 10000, // 10km search radius
       type: 'restaurant'
     };
 
-    // Add either type-specific or keyword search
-    if (searchParams.type) {
-      // For cuisines with direct Google type support, we rely on the type filter
-      request.type = searchParams.type as any;
-    } else if (searchParams.keyword) {
-      // For cuisines without direct type, use keyword search
-      request.keyword = searchParams.keyword;
-    }
-
-    service.nearbySearch(request, (results, status) => {
+    service.textSearch(request, (results, status) => {
       if (status === google.maps.places.PlacesServiceStatus.OK && results) {
+        console.log(`[searchByCuisine] Text search returned ${results.length} results for "${query}"`);
+
         const mapped = results.slice(0, maxResults).map((result) => ({
           place_id: result.place_id || `google_${Math.random()}`,
           name: result.name || 'Unknown',
-          vicinity: result.vicinity || '',
+          vicinity: result.formatted_address || result.vicinity || '',
           rating: result.rating,
           user_ratings_total: result.user_ratings_total,
           price_level: result.price_level,
@@ -438,11 +461,13 @@ export const searchByCuisine = async (
           geometry: result.geometry,
           types: result.types
         }));
+
         resolve(mapped);
       } else if (status === google.maps.places.PlacesServiceStatus.ZERO_RESULTS) {
+        console.warn(`[searchByCuisine] Zero results for "${query}"`);
         resolve([]);
       } else {
-        console.warn(`Cuisine search failed for ${cuisine}: ${status}`);
+        console.warn(`[searchByCuisine] Search failed for "${query}": ${status}`);
         resolve([]);
       }
     });
