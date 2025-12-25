@@ -13,6 +13,7 @@ import RatingBadge from './RatingBadge';
 import { useFeature } from '../utils/features';
 import SaveToListModal from './SaveToListModal';
 import ReceiptUploadModal from './ReceiptUploadModal';
+import CommentSheet from './comments/CommentSheet';
 import { followUser, unfollowUser } from '../services/followService';
 import { getCurrentUser } from '../lib/firebase';
 import { deleteReview, reportReview, type FeedMediaItem } from '../services/reviewService';
@@ -164,6 +165,7 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
   const [isActionSheetOpen, setIsActionSheetOpen] = useState(false);
   const [showReceiptModal, setShowReceiptModal] = useState(false);
   const [isDishNameExpanded, setIsDishNameExpanded] = useState(false);
+  const [showCommentSheet, setShowCommentSheet] = useState(false);
 
   // NEW: Follow state management
   const [isFollowingUser, setIsFollowingUser] = useState(isFollowingAuthor);
@@ -1190,7 +1192,7 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
                   <HeartIcon size={22} className="text-dark-gray" />
                   <span className="ml-1 text-sm">{engagement.likes}</span>
                 </button>
-                <button onClick={() => navigate(`/post/${id}`)} className="flex items-center">
+                <button onClick={() => setShowCommentSheet(true)} className="flex items-center">
                   <MessageCircleIcon size={22} className="text-dark-gray" />
                   <span className="ml-1 text-sm">{engagement.comments}</span>
                 </button>
@@ -1223,7 +1225,7 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
                   <span className="text-sm">{likeCount}</span>
                 </button>
                 <button
-                  onClick={() => navigate(`/post/${id}`)}
+                  onClick={() => setShowCommentSheet(true)}
                   className="flex items-center text-gray-600 hover:text-primary transition-colors"
                 >
                   <MessageCircleIcon size={20} className="mr-1" />
@@ -1379,6 +1381,13 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
           const urls = await uploadReviewProofs(id, files);
           await markReviewPendingProof(id, urls);
         }}
+      />
+
+      <CommentSheet
+        isOpen={showCommentSheet}
+        onClose={() => setShowCommentSheet(false)}
+        reviewId={id}
+        reviewAuthorName={author.name}
       />
     </div>
   );
@@ -1850,7 +1859,7 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
                   <HeartIcon size={22} className="text-dark-gray" />
                   <span className="ml-1 text-sm">{engagement.likes}</span>
                 </button>
-                <button onClick={() => navigate(`/post/${id}`)} className="flex items-center">
+                <button onClick={() => setShowCommentSheet(true)} className="flex items-center">
                   <MessageCircleIcon size={22} className="text-dark-gray" />
                   <span className="ml-1 text-sm">{engagement.comments}</span>
                 </button>
@@ -1883,7 +1892,7 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
                   <span className="text-sm">{likeCount}</span>
                 </button>
                 <button
-                  onClick={() => navigate(`/post/${id}`)}
+                  onClick={() => setShowCommentSheet(true)}
                   className="flex items-center text-gray-600 hover:text-primary transition-colors"
                 >
                   <MessageCircleIcon size={20} className="mr-1" />
@@ -2039,6 +2048,13 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
           const urls = await uploadReviewProofs(id, files);
           await markReviewPendingProof(id, urls);
         }}
+      />
+
+      <CommentSheet
+        isOpen={showCommentSheet}
+        onClose={() => setShowCommentSheet(false)}
+        reviewId={id}
+        reviewAuthorName={author.name}
       />
     </div>
   );

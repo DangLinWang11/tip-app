@@ -2589,3 +2589,131 @@ export const deleteReview = async (reviewInput: string | { id?: string | null; r
     throw error;
   }
 };
+
+// ============================================================================
+// COMMENT SYSTEM
+// ============================================================================
+
+export interface Comment {
+  id: string;
+  userId: string;
+  text: string;
+  createdAt: any;
+  isDeleted: boolean;
+  // Populated by getComments
+  userName?: string;
+  userPhoto?: string;
+}
+
+/**
+ * Add a comment to a review
+ */
+export const addComment = async (reviewId: string, text: string): Promise<string> => {
+  try {
+    const currentUser = getCurrentUser();
+    if (!currentUser) {
+      throw new Error('User must be authenticated to comment');
+    }
+
+    const trimmedText = text.trim();
+    if (!trimmedText) {
+      throw new Error('Comment text cannot be empty');
+    }
+
+    const commentData = {
+      userId: currentUser.uid,
+      text: trimmedText,
+      createdAt: serverTimestamp(),
+      isDeleted: false,
+    };
+
+    const commentsRef = collection(db, 'reviews', reviewId, 'comments');
+    const commentDoc = await addDoc(commentsRef, commentData);
+
+    console.log('[addComment] Comment added:', commentDoc.id);
+    return commentDoc.id;
+  } catch (error) {
+    console.error('Error adding comment:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get all non-deleted comments for a review, ordered by creation time
+ * Attaches commenter's name and photo
+ */
+export const getComments = async (reviewId: string): Promise<Comment[]> => {
+  try {
+    const commentsRef = collection(db, 'reviews', reviewId, 'comments');
+    const q = query(
+      commentsRef,
+      where('isDeleted', '==', false),
+      orderBy('createdAt', 'asc')
+    );
+
+    const snapshot = await getDocs(q);
+    const comments: Comment[] = [];
+
+    for (const doc of snapshot.docs) {
+      const data = doc.data();
+      const comment: Comment = {
+        id: doc.id,
+        userId: data.userId,
+        text: data.text,
+        createdAt: data.createdAt,
+        isDeleted: data.isDeleted,
+      };
+
+      // Attach user profile info
+      if (data.userId) {
+        const userProfile = await getCachedUserProfile(data.userId);
+        if (userProfile) {
+          comment.userName = userProfile.name;
+          comment.userPhoto = userProfile.image;
+        }
+      }
+
+      comments.push(comment);
+    }
+
+    console.log('[getComments] Fetched', comments.length, 'comments for review', reviewId);
+    return comments;
+  } catch (error) {
+    console.error('Error getting comments:', error);
+    throw error;
+  }
+};
+
+/**
+ * Soft delete a comment (sets isDeleted to true)
+ */
+export const deleteComment = async (reviewId: string, commentId: string): Promise<void> => {
+  try {
+    const currentUser = getCurrentUser();
+    if (!currentUser) {
+      throw new Error('User must be authenticated to delete comment');
+    }
+
+    const commentRef = doc(db, 'reviews', reviewId, 'comments', commentId);
+    const commentSnapshot = await getDoc(commentRef);
+
+    if (!commentSnapshot.exists()) {
+      throw new Error('Comment not found');
+    }
+
+    const commentData = commentSnapshot.data();
+    if (commentData.userId !== currentUser.uid) {
+      throw new Error('Not authorized to delete this comment');
+    }
+
+    await updateDoc(commentRef, {
+      isDeleted: true,
+      updatedAt: serverTimestamp(),
+    });
+
+    console.log('[deleteComment] Comment soft deleted:', commentId);
+  } catch (error) {
+    console.error('Error deleting comment:', error);
+    throw error;
+  }
+};

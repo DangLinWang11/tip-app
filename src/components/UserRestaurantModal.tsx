@@ -74,14 +74,9 @@ const UserRestaurantModal: React.FC<UserRestaurantModalProps> = ({
           >
             <X size={20} className="text-gray-600" />
           </button>
-          
-          {/* Date in top-right */}
-          <div className="absolute top-4 left-4 text-sm text-gray-500">
-            {new Date(restaurant.lastVisit).toLocaleDateString()}
-          </div>
-          
+
           {/* Restaurant name */}
-          <div className="flex items-center justify-center mb-4 mt-2">
+          <div className="flex items-center justify-center mb-4">
             <button
               onClick={() => navigate(`/restaurant/${restaurant.id}`)}
               className="text-xl font-bold text-primary cursor-pointer hover:opacity-75 transition-opacity"
