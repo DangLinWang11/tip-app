@@ -713,7 +713,7 @@ const RestaurantMap: React.FC<RestaurantMapProps> = ({
   return (
     <div className={`w-full h-full ${className}`}>
       <Wrapper
-        apiKey="AIzaSyDH-MgeMBC3_yvge3yLz_gaCl_2x8Ra6PY"
+        apiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY}
         render={render}
         libraries={['places']}
       />
