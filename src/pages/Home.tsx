@@ -49,6 +49,10 @@ const Home: React.FC = () => {
   const [authUser, setAuthUser] = useState(() => getCurrentUser());
   const [followingIds, setFollowingIds] = useState<Set<string>>(new Set());
 
+  // NEW: Non-blocking hydration state
+  const [isHydrated, setIsHydrated] = useState(false);
+  const [feedReady, setFeedReady] = useState(false);
+
   // Pull-to-refresh state
   const [refreshing, setRefreshing] = useState(false);
   const [pullY, setPullY] = useState(0);
@@ -66,6 +70,66 @@ const Home: React.FC = () => {
   const circumference = 2 * Math.PI * radius;
   const pullProgress = Math.max(0, Math.min(1, pullY / PULL_TRIGGER));
 
+  // NEW: Non-blocking hydration effect - wait for store to hydrate from localStorage
+  useEffect(() => {
+    const checkHydration = async () => {
+      const tHydrationStart = performance.now?.() ?? Date.now();
+      console.log('[Home][hydration] Checking store hydration...', {
+        ts: new Date().toISOString(),
+      });
+
+      // Zustand persist provides hasHydrated via the store's persist property
+      // Wait for hydration to complete (should be very fast now with minimal localStorage)
+      const hydrated = useReviewStore.persist?.hasHydrated();
+
+      if (hydrated) {
+        const tHydrationEnd = performance.now?.() ?? Date.now();
+        console.log('[Home][hydration] ✅ Store hydrated', {
+          ts: new Date().toISOString(),
+          durationMs: tHydrationEnd - tHydrationStart,
+        });
+        setIsHydrated(true);
+      } else {
+        // If not hydrated yet, wait for the onFinishHydration callback
+        console.log('[Home][hydration] ⏳ Waiting for hydration to complete...');
+        useReviewStore.persist?.onFinishHydration(() => {
+          const tHydrationEnd = performance.now?.() ?? Date.now();
+          console.log('[Home][hydration] ✅ Store hydrated (via callback)', {
+            ts: new Date().toISOString(),
+            durationMs: tHydrationEnd - tHydrationStart,
+          });
+          setIsHydrated(true);
+        });
+      }
+    };
+
+    checkHydration();
+  }, []);
+
+  // NEW: "Wait for Frame" trick - delay feed render until browser is ready to paint
+  useEffect(() => {
+    if (!isHydrated) return;
+
+    const tFrameStart = performance.now?.() ?? Date.now();
+    console.log('[Home][frame-wait] Store hydrated, waiting for browser frame...', {
+      ts: new Date().toISOString(),
+    });
+
+    // Use double requestAnimationFrame to ensure we wait for TWO frames
+    // Frame 1: Browser draws the basic page structure (header, map preview, etc.)
+    // Frame 2: Browser is ready to inject the heavy feed list
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        const tFrameEnd = performance.now?.() ?? Date.now();
+        console.log('[Home][frame-wait] ✅ Browser ready, rendering feed now', {
+          ts: new Date().toISOString(),
+          durationMs: tFrameEnd - tFrameStart,
+        });
+        setFeedReady(true);
+      });
+    });
+  }, [isHydrated]);
+
   useEffect(() => {
     isFirstLoad.current = false;
     const mountEnd = performance.now?.() ?? Date.now();
@@ -78,14 +142,6 @@ const Home: React.FC = () => {
       'sinceRenderMs=',
       mountEnd - mountStart
     );
-    if (typeof requestAnimationFrame === 'function') {
-      requestAnimationFrame(() => {
-        console.log('[Home][raf] painted', {
-          ts: new Date().toISOString(),
-          perfNow: performance.now?.(),
-        });
-      });
-    }
   }, []);
 
   useLayoutEffect(() => {
@@ -121,7 +177,14 @@ const Home: React.FC = () => {
   }, [clearCache]);
   
   // Initialize data on mount: load from network only if cache is stale or missing
+  // IMPORTANT: Only run after store hydration is complete to avoid race conditions
   useEffect(() => {
+    // Wait for hydration before initializing data
+    if (!isHydrated) {
+      console.log('[Home][init] Waiting for store hydration before initializing data...');
+      return;
+    }
+
     const initializeData = async () => {
       if (!authUser) {
         console.log('[Home][init] No authenticated user yet, waiting...');
@@ -270,7 +333,7 @@ const Home: React.FC = () => {
 
     initializeData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [authUser]);
+  }, [authUser, isHydrated]); // Re-run when auth changes OR when hydration completes
   
   // Fetch reviews from Firebase (used for first load and manual refresh)
   const loadReviews = async (silent: boolean = false) => {
@@ -857,8 +920,21 @@ const Home: React.FC = () => {
           )}
           
           {/* Feed Posts */}
-          {/* OPTIMIZATION: Use renderedFeedPosts (memoized) if available, fallback to feedPosts */}
-          {(renderedFeedPosts.length > 0 || feedPosts.length > 0) ? (
+          {/* NON-BLOCKING RENDER: Only show feed after hydration + frame wait */}
+          {!feedReady ? (
+            // Show skeleton/placeholder while waiting for hydration and frame
+            <div className="space-y-4">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="bg-white rounded-2xl overflow-hidden shadow-sm animate-pulse">
+                  <div className="h-64 bg-gray-200"></div>
+                  <div className="p-4 space-y-3">
+                    <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                    <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (renderedFeedPosts.length > 0 || feedPosts.length > 0) ? (
             <VirtualizedFeed
               posts={renderedFeedPosts.length > 0 ? renderedFeedPosts : feedPosts}
               followingMap={followingMap}

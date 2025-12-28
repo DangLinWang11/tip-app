@@ -73,30 +73,18 @@ export const useReviewStore = create<ReviewState>()(
     }),
     {
       name: 'tip-review-storage',
-      // Custom serialization to handle Firestore Timestamps
+      // OPTIMIZATION: Only persist minimal data to keep localStorage small and fast
+      // Heavy arrays (reviews, feedPosts, renderedFeedPosts) stay in memory only
       partialize: (state) => ({
-        reviews: state.reviews.map(review => ({
-          ...review,
-          // Convert Timestamp to plain object for storage
-          createdAt: serializeTimestamp(review.createdAt),
-          timestamp: serializeTimestamp(review.timestamp),
-          updatedAt: serializeTimestamp((review as any).updatedAt),
-        })),
-        feedPosts: state.feedPosts.map(post => ({
-          ...post,
-          review: {
-            ...post.review,
-            createdAt: serializeTimestamp(post.review?.createdAt),
-          }
-        })),
-        renderedFeedPosts: state.renderedFeedPosts.map(post => ({
-          ...post,
-          review: {
-            ...post.review,
-            createdAt: serializeTimestamp(post.review?.createdAt),
-          }
-        })),
-        lastFetched: state.lastFetched,
+        // EXCLUDED from localStorage to prevent bloat and main thread blocking:
+        // - reviews (can be large, refetched easily)
+        // - feedPosts (can be large, refetched easily)
+        // - renderedFeedPosts (memory-only, rebuilt on demand)
+
+        // INCLUDED in localStorage (small, critical):
+        lastFetched: state.lastFetched, // Just a timestamp, tiny
+        // Note: We keep the cache timestamp so we know when to refetch
+        // but we don't persist the actual data to avoid slow JSON.parse
       }),
     }
   )
