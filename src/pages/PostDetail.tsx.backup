@@ -1,12 +1,11 @@
-import React, { useState, useEffect, useMemo, startTransition } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeftIcon, HeartIcon, MessageCircleIcon, BookmarkIcon, ShareIcon, CheckCircleIcon, MapPinIcon } from 'lucide-react';
 import { doc, getDoc } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { db, getUserProfile } from '../lib/firebase';
 import { FirebaseReview } from '../services/reviewService';
 import RatingBadge from '../components/RatingBadge';
 import { getAvatarUrl } from '../utils/avatarUtils';
-import { useUserStore } from '../stores/userStore';
 
 interface PostDetailProps {}
 
@@ -20,7 +19,6 @@ interface FeedPostAuthor {
 const PostDetail: React.FC<PostDetailProps> = () => {
   const { postId } = useParams<{ postId: string }>();
   const navigate = useNavigate();
-  const getProfileCached = useUserStore(state => state.getProfileCached);
   
   const [post, setPost] = useState<FirebaseReview | null>(null);
   const [author, setAuthor] = useState<FeedPostAuthor | null>(null);
@@ -29,12 +27,6 @@ const PostDetail: React.FC<PostDetailProps> = () => {
   const [liked, setLiked] = useState(false);
   const [saved, setSaved] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
-
-  // Optimized: Memoize avatar generation - only recalculate when author changes
-  const authorAvatar = useMemo(() => {
-    if (!author) return '';
-    return author.image;
-  }, [author]);
 
   // Function to get quality circle color based on percentage
   const getQualityColor = (percentage: number): string => {
@@ -79,7 +71,7 @@ const PostDetail: React.FC<PostDetailProps> = () => {
       }
 
       try {
-        console.log('[PostDetail] Fetching post with ID:', postId);
+        console.log('Fetching post with ID:', postId);
         
         // Fetch the review document from Firestore
         const postRef = doc(db, 'reviews', postId);
@@ -96,59 +88,43 @@ const PostDetail: React.FC<PostDetailProps> = () => {
           ...postSnap.data()
         } as FirebaseReview;
 
-        // Set post data immediately with startTransition for non-blocking update
-        startTransition(() => {
-          setPost(postData);
-          setLikeCount(Math.floor(Math.random() * 50) + 10);
-          setLoading(false); // Show UI immediately
-        });
+        setPost(postData);
+        setLikeCount(Math.floor(Math.random() * 50) + 10); // Placeholder engagement
 
-        // Set placeholder author immediately (silent update pattern)
+        // Fetch author information
         if (postData.userId) {
-          const placeholderImage = getAvatarUrl({ username: postData.userId });
-          setAuthor({
-            id: postData.userId,
-            name: 'Loading...',
-            image: placeholderImage,
-            isVerified: false
-          });
-
-          // Fetch user profile from cache asynchronously
-          getProfileCached(postData.userId).then(profile => {
-            if (profile) {
-              startTransition(() => {
-                setAuthor({
-                  id: postData.userId,
-                  name: profile.displayName || profile.username,
-                  image: getAvatarUrl(profile),
-                  isVerified: (profile as any).isVerified || false
-                });
+          try {
+            const userProfileResult = await getUserProfile(postData.userId);
+            if (userProfileResult.success && userProfileResult.profile) {
+              const profile = userProfileResult.profile;
+              setAuthor({
+                id: postData.userId,
+                name: profile.displayName || profile.username,
+                image: getAvatarUrl(profile),
+                isVerified: profile.isVerified || false
               });
             } else {
-              startTransition(() => {
-                setAuthor({
-                  id: postData.userId,
-                  name: 'Anonymous User',
-                  image: placeholderImage,
-                  isVerified: false
-                });
-              });
-            }
-          }).catch(error => {
-            console.warn('[PostDetail] Failed to fetch author:', error);
-            startTransition(() => {
+              // Fallback author
               setAuthor({
                 id: postData.userId,
                 name: 'Anonymous User',
-                image: placeholderImage,
+                image: getAvatarUrl({ username: postData.userId }),
                 isVerified: false
               });
+            }
+          } catch (error) {
+            console.warn('Failed to fetch author profile:', error);
+            setAuthor({
+              id: postData.userId,
+              name: 'Anonymous User',
+              image: getAvatarUrl({ username: postData.userId }),
+              isVerified: false
             });
-          });
+          }
         }
 
       } catch (error) {
-        console.error('[PostDetail] Error fetching post:', error);
+        console.error('Error fetching post:', error);
         setError('Failed to load post');
       } finally {
         setLoading(false);
@@ -156,13 +132,9 @@ const PostDetail: React.FC<PostDetailProps> = () => {
     };
 
     fetchPost();
-  }, [postId, getProfileCached]);
+  }, [postId]);
 
   const handleBack = () => {
-    // Abort any pending network requests
-    if (window.stop) {
-      window.stop();
-    }
     navigate(-1);
   };
 
@@ -249,7 +221,7 @@ const PostDetail: React.FC<PostDetailProps> = () => {
         {/* Author header */}
         <div className="p-6 flex items-center gap-4">
           <img
-            src={authorAvatar}
+            src={author?.image}
             alt={author?.name}
             loading="lazy"
             decoding="async"

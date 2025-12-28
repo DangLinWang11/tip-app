@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useRef, useMemo, startTransition } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { db, getUserProfile } from '../lib/firebase';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeftIcon, StarIcon, MapPinIcon, PhoneIcon, ClockIcon, BookmarkIcon, ShareIcon, ChevronRightIcon, ChevronLeftIcon, Utensils, Soup, Salad, Coffee, Cake, Fish, Pizza, Sandwich, ChefHat, ChevronDown, Globe, DollarSign } from 'lucide-react';
 import BottomNavigation from '../components/BottomNavigation';
@@ -9,7 +9,6 @@ import SaveToListModal from '../components/SaveToListModal';
 import { calculateRestaurantQualityScore } from '../services/reviewService';
 import RatingBadge from '../components/RatingBadge';
 import { getAvatarUrl } from '../utils/avatarUtils';
-import { useUserStore } from '../stores/userStore';
 
 interface Restaurant {
   id: string;
@@ -63,7 +62,6 @@ const RestaurantDetail: React.FC = () => {
     id: string;
   }>();
   const navigate = useNavigate();
-  const getProfileCached = useUserStore(state => state.getProfileCached);
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
@@ -294,12 +292,11 @@ const getCurrentDayHours = (hours: Record<string, string>) => {
       const ids = Array.from(new Set(reviews.map(r => r.userId).filter(Boolean)));
       if (!ids.length) return;
       const up: Record<string, ReviewAuthor> = {};
-      // Use cached profiles to avoid N+1 waterfall
       await Promise.all(ids.map(async (uid) => {
         try {
-          const profile = await getProfileCached(uid);
-          if (profile) {
-            up[uid] = { id: uid, name: profile.displayName || profile.username, username: profile.username, image: getAvatarUrl(profile) };
+          const res = await getUserProfile(uid);
+          if (res.success && res.profile) {
+            up[uid] = { id: uid, name: res.profile.displayName || res.profile.username, username: res.profile.username, image: getAvatarUrl(res.profile) };
           } else {
             up[uid] = { id: uid, name: 'Anonymous', username: 'anonymous', image: getAvatarUrl({ username: uid }) } as any;
           }
