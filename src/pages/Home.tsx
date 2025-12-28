@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo, useLayoutEffect, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useLayoutEffect, useCallback, useTransition } from 'react';
 import { MapIcon, PlusIcon, MapPinIcon, Star, ChevronRight, Store } from 'lucide-react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -26,20 +26,21 @@ const Home: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Zustand store
-  const {
-    reviews: firebaseReviews,
-    feedPosts,
-    loading,
-    error,
-    isStale,
-    setReviews: setFirebaseReviews,
-    setFeedPosts,
-    setLoading,
-    setError,
-    updateLastFetched,
-    clearCache
-  } = useReviewStore();
+  // TRANSITION GUARD: Use React 18 useTransition for non-blocking updates
+  const [isPending, startTransition] = useTransition();
+
+  // STABILITY: Use specific Zustand selectors to prevent unnecessary re-renders
+  const firebaseReviews = useReviewStore(state => state.reviews);
+  const feedPosts = useReviewStore(state => state.feedPosts);
+  const loading = useReviewStore(state => state.loading);
+  const error = useReviewStore(state => state.error);
+  const isStale = useReviewStore(state => state.isStale);
+  const setFirebaseReviews = useReviewStore(state => state.setReviews);
+  const setFeedPosts = useReviewStore(state => state.setFeedPosts);
+  const setLoading = useReviewStore(state => state.setLoading);
+  const setError = useReviewStore(state => state.setError);
+  const updateLastFetched = useReviewStore(state => state.updateLastFetched);
+  const clearCache = useReviewStore(state => state.clearCache);
 
   // Local state (not in Zustand)
   const [userReviews, setUserReviews] = useState<FirebaseReview[]>([]);
@@ -136,6 +137,11 @@ const Home: React.FC = () => {
         return () => clearTimeout(timeoutId);
       }
 
+      // SETTLING DELAY: Wait 100ms for browser to settle after navigation
+      // Ensures the page transition completes before heavy data processing begins
+      await new Promise(resolve => setTimeout(resolve, 100));
+      console.log('[Home][init] 100ms settling delay complete, starting data fetch...');
+
       // Check for force refresh flag
       const url = new URL(window.location.href);
       const forceRefresh = url.searchParams.get('refresh') === '1';
@@ -231,10 +237,14 @@ const Home: React.FC = () => {
           durationMs: tConvertEnd - tConvertStart,
         });
 
-        // Update Zustand store
-        setFirebaseReviews(publicFeed);
-        setFeedPosts(posts);
-        updateLastFetched();
+        // TRANSITION GUARD: Wrap feed updates in startTransition for smooth animations
+        // This lowers render priority, allowing back-navigation animations to complete first
+        startTransition(() => {
+          console.log('[Home][init] Starting low-priority feed update via useTransition');
+          setFirebaseReviews(publicFeed);
+          setFeedPosts(posts);
+          updateLastFetched();
+        });
 
         const tInitEnd = performance.now?.() ?? Date.now();
         console.log('[Home][init] complete, Zustand store updated', {
@@ -289,11 +299,14 @@ const Home: React.FC = () => {
         durationMs: tConvertEnd - tConvertStart,
       });
 
-      // Update Zustand store
-      setFirebaseReviews(publicFeed);
-      setFeedPosts(posts);
-      updateLastFetched();
-      setError(null);
+      // TRANSITION GUARD: Wrap feed updates in startTransition
+      startTransition(() => {
+        console.log('[Home][refresh] Starting low-priority feed update via useTransition');
+        setFirebaseReviews(publicFeed);
+        setFeedPosts(posts);
+        updateLastFetched();
+        setError(null);
+      });
     } catch (err) {
       console.error('Failed to load reviews:', err);
       setError('Failed to load reviews');
@@ -386,32 +399,46 @@ const Home: React.FC = () => {
     };
   }, []); // ✅ Create once on mount, clean up on unmount
 
-  // Calculate user stats from their own reviews and profile data
+  // STABILITY: Memoize computed user stats to prevent recalculation on every render
   const currentUser = authUser;
-  const userStats = currentUser ? {
-    averageRating: userProfile?.stats?.averageRating 
-      ? userProfile.stats.averageRating.toFixed(1) 
-      : userReviews.length > 0 
-        ? (userReviews.reduce((sum, review) => sum + review.rating, 0) / userReviews.length).toFixed(1)
-        : "0.0",
-    totalRestaurants: userProfile?.stats?.totalRestaurants ||
-      new Set(
-        userReviews
-          .map((r: any) => r?.restaurantId || r?.restaurant || r?.restaurantName)
-          .filter(Boolean)
-      ).size,
-    totalDishes: userReviews.length, // Use user's actual review count for dishes
-    pointsEarned: userProfile?.stats?.pointsEarned || 0
-  } : {
-    // Default stats for unauthenticated users
-    averageRating: "0.0",
-    totalRestaurants: 0,
-    totalDishes: 0,
-    pointsEarned: 0
-  };
+  const userStats = useMemo(() => {
+    console.log('[Home][useMemo] Recalculating userStats', {
+      ts: new Date().toISOString(),
+      hasUser: !!currentUser,
+      reviewsCount: userReviews.length
+    });
 
-  // Get user's recent reviews for personal section (use actual user reviews)
-  const userRecentReviews = userReviews.slice(0, 3);
+    return currentUser ? {
+      averageRating: userProfile?.stats?.averageRating
+        ? userProfile.stats.averageRating.toFixed(1)
+        : userReviews.length > 0
+          ? (userReviews.reduce((sum, review) => sum + review.rating, 0) / userReviews.length).toFixed(1)
+          : "0.0",
+      totalRestaurants: userProfile?.stats?.totalRestaurants ||
+        new Set(
+          userReviews
+            .map((r: any) => r?.restaurantId || r?.restaurant || r?.restaurantName)
+            .filter(Boolean)
+        ).size,
+      totalDishes: userReviews.length, // Use user's actual review count for dishes
+      pointsEarned: userProfile?.stats?.pointsEarned || 0
+    } : {
+      // Default stats for unauthenticated users
+      averageRating: "0.0",
+      totalRestaurants: 0,
+      totalDishes: 0,
+      pointsEarned: 0
+    };
+  }, [currentUser, userReviews, userProfile?.stats]);
+
+  // STABILITY: Memoize user recent reviews to prevent slice recalculation
+  const userRecentReviews = useMemo(() => {
+    console.log('[Home][useMemo] Recalculating userRecentReviews', {
+      ts: new Date().toISOString(),
+      reviewsCount: userReviews.length
+    });
+    return userReviews.slice(0, 3);
+  }, [userReviews]);
 
   useEffect(() => {
     console.log('[Home][state] feedPosts length changed', {

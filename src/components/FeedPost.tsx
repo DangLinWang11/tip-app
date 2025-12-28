@@ -129,9 +129,25 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
   isFollowingAuthor = false,
   onFollowChange,
 }) => {
-  // SAFE START: Defensive prop validation to prevent crashes
-  if (!author || !dish || !review || !engagement) {
-    console.error('[FeedPost] Missing required props:', { author, dish, review, engagement, id });
+  // SAFE RENDER: Comprehensive defensive validation to prevent crashes during navigation
+  // Check all critical props with optional chaining to prevent TypeErrors
+  if (!author?.id || !author?.name) {
+    console.error('[FeedPost] Invalid author data:', { author, id });
+    return null; // Could return <FeedPostSkeleton /> here if needed
+  }
+
+  if (!restaurant?.name && !restaurant) {
+    console.error('[FeedPost] Missing restaurant data:', { restaurant, id });
+    return null;
+  }
+
+  if (!dish?.name && !dish) {
+    console.error('[FeedPost] Missing dish data:', { dish, id });
+    return null;
+  }
+
+  if (!review || !engagement) {
+    console.error('[FeedPost] Missing review or engagement data:', { review, engagement, id });
     return null;
   }
 
