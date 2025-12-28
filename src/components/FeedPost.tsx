@@ -2081,7 +2081,337 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
     </div>
   );
 
+  // NEW: Calculate average rating for compact layout (no photos)
+  const compactAverageRating = useMemo(() => {
+    if (visitDishes && visitDishes.length > 0) {
+      const sum = visitDishes.reduce((acc, dish) => acc + dish.rating, 0);
+      return sum / visitDishes.length;
+    }
+    // Fallback: use current item rating or display rating
+    return displayRating ?? heroRating ?? 0;
+  }, [visitDishes, displayRating, heroRating]);
+
+  // NEW: Compact Layout (for posts without photos - text-only reviews)
+  const compactLayout = (
+    <div ref={containerRef} className="relative bg-white rounded-2xl overflow-hidden shadow-sm mb-4">
+      {/* Top-right average rating */}
+      <div className="pointer-events-none absolute top-5 right-5 z-10">
+        <RatingBadge rating={compactAverageRating} size="xl" />
+      </div>
+
+      {/* Header */}
+      <div className="p-4 pb-3">
+        <div className="flex items-center gap-3 mb-3">
+          <img
+            src={author.image}
+            alt={displayAuthorName}
+            loading="lazy"
+            decoding="async"
+            className="w-10 h-10 rounded-full object-cover"
+          />
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-1.5">
+              {/* Username area with follow button */}
+              <div className="relative flex items-center">
+                <span
+                  onClick={handleUsernameClick}
+                  className="font-medium cursor-pointer hover:text-primary"
+                >
+                  {displayAuthorName}
+                </span>
+                {!isOwnPost && (
+                  <button
+                    onClick={handleFollowToggle}
+                    disabled={followLoading}
+                    className={`ml-2 -mt-0.5 flex items-center justify-center transition-all duration-200 ${
+                      isFollowingUser
+                        ? 'text-green-600'
+                        : 'px-2.5 py-0.5 rounded-full border text-xs font-medium border-gray-300 text-gray-600 bg-white hover:border-gray-400'
+                    } ${followLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                  >
+                    {isFollowingUser ? (
+                      <CheckCircleIcon size={14} />
+                    ) : (
+                      'Follow'
+                    )}
+                  </button>
+                )}
+              </div>
+              {author.isVerified && (
+                <CheckCircleIcon
+                  size={16}
+                  className={isFollowingUser ? 'text-green-500' : 'text-gray-400'}
+                />
+              )}
+            </div>
+            {/* Compact header: "username rated restaurantName" */}
+            <p className="text-xs text-gray-500 mt-0.5">
+              rated{' '}
+              <span
+                onClick={() => {
+                  if (restaurantId) {
+                    navigate(`/restaurant/${restaurantId}`);
+                  }
+                }}
+                className={`font-medium text-gray-800 ${restaurantId ? 'hover:text-primary cursor-pointer' : ''}`}
+              >
+                {restaurant?.name}
+              </span>
+              {' · '}
+              {formatRelativeTime(
+                (review as any).createdAt ??
+                (review as any).createdAtMs ??
+                review.date
+              )}
+            </p>
+          </div>
+          {/* Dots menu */}
+          <button
+            type="button"
+            onClick={() => setIsActionSheetOpen(true)}
+            className="p-1 text-gray-400 hover:text-gray-600"
+            aria-label="More options"
+          >
+            <DotsIcon size={20} />
+          </button>
+        </div>
+
+        {/* Caption */}
+        {(visitCaption || currentItem.review.caption) && (
+          <p className="text-sm text-gray-900 mb-3 leading-snug border-l-4 border-gray-600 rounded-l-md pl-3 bg-gray-50 py-2 pr-2">
+            {visitCaption || currentItem.review.caption}
+          </p>
+        )}
+
+        {/* Dish list with category grouping */}
+        {visitDishes && visitDishes.length > 0 && (
+          <div className="space-y-3">
+            {groupDishesByCategory(visitDishes).map(([category, dishes]) => (
+              <div key={category}>
+                {/* Category label */}
+                <p className="text-[11px] tracking-wide text-gray-500 uppercase pl-4 mb-1">
+                  {category}
+                </p>
+                {/* Dishes in this category */}
+                <div className="space-y-1">
+                  {dishes.map((dish: any) => (
+                    <button
+                      key={dish.id}
+                      onClick={() => navigateToDishReview(dish.id, dish.dishId)}
+                      className="flex items-center justify-between w-full py-1.5 px-4 text-sm hover:bg-gray-50 rounded"
+                    >
+                      <span className="font-medium text-gray-900 truncate text-left">
+                        {dish.name}
+                      </span>
+                      <span className="flex-shrink-0 ml-3 mr-6 text-xs font-semibold text-white bg-red-500 rounded-full px-2.5 py-[2px]">
+                        {dish.rating.toFixed(1)}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Fallback: single dish if visitDishes not available */}
+        {(!visitDishes || visitDishes.length === 0) && currentItem.dish && displayRating !== null && (
+          <div className="mb-2">
+            {/* Category label for single dish */}
+            {(() => {
+              const dishCategory =
+                (currentItem.dish as any)?.dishCategory ??
+                (currentItem.review as any)?.dishCategory ??
+                undefined;
+
+              return dishCategory ? (
+                <p className="text-[11px] tracking-wide text-gray-500 uppercase pl-4 mb-1">
+                  {dishCategory}
+                </p>
+              ) : null;
+            })()}
+
+            <button
+              type="button"
+              onClick={handleDishClickEnhanced}
+              className="flex items-center justify-between w-full py-1.5 px-4 text-sm hover:bg-gray-50 rounded"
+            >
+              <span className="font-medium text-gray-900 truncate text-left">
+                {currentItem.dish.name}
+              </span>
+              <span className="flex-shrink-0 ml-3 mr-6 text-xs font-semibold text-white bg-red-500 rounded-full px-2.5 py-[2px]">
+                {displayRating.toFixed(1)}
+              </span>
+            </button>
+          </div>
+        )}
+
+        {/* Engagement buttons */}
+        <div className="flex justify-between items-center pt-3 mt-3 border-t border-light-gray">
+          <div className="flex items-center space-x-4">
+            <button
+              onClick={() => {
+                setLiked(!liked);
+                setLikeCount(prev => liked ? prev - 1 : prev + 1);
+              }}
+              className="flex items-center text-gray-600 hover:text-red-500 transition-colors"
+            >
+              <HeartIcon
+                size={20}
+                className={`mr-1 ${liked ? 'fill-red-500 text-red-500' : ''}`}
+              />
+              <span className="text-sm">{likeCount}</span>
+            </button>
+            <button
+              onClick={() => setShowCommentSheet(true)}
+              className="flex items-center text-gray-600 hover:text-primary transition-colors"
+            >
+              <MessageCircleIcon size={20} className="mr-1" />
+              <span className="text-sm">{engagement.comments}</span>
+            </button>
+          </div>
+          <div className="flex items-center space-x-3">
+            <button
+              onClick={() => setShowSaveModal(true)}
+              className="flex items-center text-sm text-gray-600 hover:text-primary"
+            >
+              <BookmarkIcon size={18} className={saved ? 'text-primary fill-primary mr-1' : 'text-gray-600 mr-1'} />
+              {saved ? 'Saved' : 'Save'}
+            </button>
+            <button
+              onClick={() => {
+                if (navigator.share) {
+                  navigator.share({
+                    title: `${currentItem.dish.name} at ${restaurant?.name}`,
+                    text: `Check out this review!`,
+                    url: window.location.href
+                  });
+                }
+              }}
+              className="text-gray-600 hover:text-blue-500 transition-colors"
+            >
+              <ShareIcon size={18} />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Modals (reuse from other layouts) */}
+      {isActionSheetOpen && (
+        <div
+          className="fixed inset-0 z-[60] flex items-end justify-center bg-black/40"
+          onClick={() => setIsActionSheetOpen(false)}
+        >
+          <div
+            className="w-full max-w-md rounded-t-2xl bg-white shadow-lg p-2 pb-4 animate-[slideUp_160ms_ease-out] mx-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mx-auto mb-2 mt-1 h-1.5 w-10 rounded-full bg-neutral-200" />
+            <div className="divide-y divide-neutral-100">
+              <button
+                className="w-full px-4 py-3 text-left text-[15px] hover:bg-neutral-50"
+                onClick={() => {
+                  setIsActionSheetOpen(false);
+                  const shareData = {
+                    title: `Review at ${restaurant?.name}`,
+                    text: `Check out this review!`,
+                    url: window.location.origin + `/post/${id}`,
+                  };
+                  if (navigator.share) {
+                    navigator.share(shareData).catch(() => {});
+                  } else {
+                    navigator.clipboard?.writeText(shareData.url).then(() => {
+                      alert('Link copied to clipboard');
+                    });
+                  }
+                }}
+              >
+                Share
+              </button>
+              <button
+                className="w-full px-4 py-3 text-left text-[15px] hover:bg-neutral-50"
+                onClick={async () => {
+                  setIsActionSheetOpen(false);
+                  const reason = window.prompt('Report reason (spam, inappropriate, incorrect info):');
+                  if (!reason) return;
+                  const details = window.prompt('Optional details for our team:') || '';
+                  try {
+                    await reportReview(id, reason.trim(), details.trim());
+                    alert('Thanks! This post has been flagged for review.');
+                  } catch {
+                    alert('Failed to submit report. Please try again.');
+                  }
+                }}
+              >
+                Report
+              </button>
+              {isOwnPost && (
+                <button
+                  className="w-full px-4 py-3 text-left text-[15px] text-red-600 hover:bg-red-50"
+                  onClick={() => {
+                    setIsActionSheetOpen(false);
+                    handleDeletePost();
+                  }}
+                >
+                  Delete Post
+                </button>
+              )}
+            </div>
+            <button
+              className="mt-2 w-full rounded-xl bg-neutral-100 px-4 py-3 text-[15px] font-medium hover:bg-neutral-200"
+              onClick={() => setIsActionSheetOpen(false)}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {showSaveModal && (
+        <SaveToListModal
+          isOpen={showSaveModal}
+          restaurantId={restaurantId}
+          restaurantName={restaurant?.name}
+          dishId={currentItem.dishId}
+          dishName={currentItem.dish.name}
+          postId={id}
+          onClose={() => setShowSaveModal(false)}
+        />
+      )}
+
+      <ReceiptUploadModal
+        isOpen={showReceiptModal}
+        onClose={() => setShowReceiptModal(false)}
+        onUpload={async (files) => {
+          const urls = await uploadReviewProofs(id, files);
+          await markReviewPendingProof(id, urls);
+        }}
+      />
+
+      <CommentSheet
+        isOpen={showCommentSheet}
+        onClose={() => setShowCommentSheet(false)}
+        reviewId={id}
+        reviewAuthorName={author.name}
+      />
+    </div>
+  );
+
   const renderVisitLayout = () => visitLayout;
+
+  // NEW: Layout selection logic - choose compact for non-photo posts
+  const isCompactPost = !hasMediaItems && (visitDishes && visitDishes.length > 0);
+
+  if (isCompactPost) {
+    const tEnd = performance.now?.() ?? Date.now();
+    console.log('[FeedPost][render-end]', {
+      ts: new Date().toISOString(),
+      id,
+      layout: 'compact',
+      durationMs: tEnd - renderStart,
+    });
+    return compactLayout;
+  }
 
   if (isVisitPost) {
     const tEnd = performance.now?.() ?? Date.now();
