@@ -962,7 +962,7 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
                   className="ml-1 w-8 h-5 flex items-center justify-center rounded-full flex-shrink-0"
                   style={{ backgroundColor: qualityColor }}
                 >
-                  <span className="text-xs font-medium text-white">
+                  <span className="text-[11px] font-medium text-white">
                     {restaurant.qualityScore}%
                   </span>
                 </div>
@@ -1487,7 +1487,7 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
                   className="ml-1 w-8 h-5 flex items-center justify-center rounded-full flex-shrink-0"
                   style={{ backgroundColor: qualityColor }}
                 >
-                  <span className="text-xs font-medium text-white">
+                  <span className="text-[11px] font-medium text-white">
                     {restaurant.qualityScore}%
                   </span>
                 </div>
