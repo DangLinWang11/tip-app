@@ -33,6 +33,7 @@ const Home: React.FC = () => {
   const loading = useReviewStore(state => state.loading);
   const error = useReviewStore(state => state.error);
   const isStale = useReviewStore(state => state.isStale);
+  const scrollPosition = useReviewStore(state => state.scrollPosition); // NEW: Saved scroll position
   const setFirebaseReviews = useReviewStore(state => state.setReviews);
   const setFeedPosts = useReviewStore(state => state.setFeedPosts);
   const setRenderedFeed = useReviewStore(state => state.setRenderedFeed); // NEW: Action to set rendered posts
@@ -40,6 +41,7 @@ const Home: React.FC = () => {
   const setError = useReviewStore(state => state.setError);
   const updateLastFetched = useReviewStore(state => state.updateLastFetched);
   const clearCache = useReviewStore(state => state.clearCache);
+  const setScrollPosition = useReviewStore(state => state.setScrollPosition); // NEW: Action to save scroll
 
   // Local state (not in Zustand)
   const [userReviews, setUserReviews] = useState<FirebaseReview[]>([]);
@@ -129,6 +131,59 @@ const Home: React.FC = () => {
       });
     });
   }, [isHydrated]);
+
+  // NEW: Scroll restoration - restore saved scroll position after feed is ready
+  useEffect(() => {
+    if (!feedReady || scrollPosition === 0) return;
+
+    const tScrollStart = performance.now?.() ?? Date.now();
+    console.log('[Home][scroll-restore] Feed ready, restoring scroll position...', {
+      ts: new Date().toISOString(),
+      scrollPosition,
+    });
+
+    // Wait one more tick to ensure VirtualizedFeed has rendered
+    requestAnimationFrame(() => {
+      const tScrollEnd = performance.now?.() ?? Date.now();
+      console.log('[Home][scroll-restore] ✅ Restoring scroll to position', {
+        ts: new Date().toISOString(),
+        position: scrollPosition,
+        durationMs: tScrollEnd - tScrollStart,
+      });
+      window.scrollTo(0, scrollPosition);
+    });
+  }, [feedReady, scrollPosition]);
+
+  // NEW: Debounced scroll listener - save scroll position every 100ms
+  useEffect(() => {
+    let scrollTimeout: NodeJS.Timeout | null = null;
+
+    const handleScroll = () => {
+      // Debounce: clear previous timeout
+      if (scrollTimeout) {
+        clearTimeout(scrollTimeout);
+      }
+
+      // Set new timeout to save scroll position after 100ms of no scrolling
+      scrollTimeout = setTimeout(() => {
+        const currentScroll = window.scrollY || document.documentElement.scrollTop;
+        if (currentScroll > 0) {
+          setScrollPosition(currentScroll);
+          console.log('[Home][scroll-save] Saved scroll position:', currentScroll);
+        }
+      }, 100); // Debounce delay: 100ms
+    };
+
+    // Add scroll listener
+    window.addEventListener('scroll', handleScroll, { passive: true });
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      if (scrollTimeout) {
+        clearTimeout(scrollTimeout);
+      }
+    };
+  }, [setScrollPosition]);
 
   useEffect(() => {
     isFirstLoad.current = false;

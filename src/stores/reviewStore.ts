@@ -10,6 +10,7 @@ interface ReviewState {
   loading: boolean;
   error: string | null;
   lastFetched: number | null;
+  scrollPosition: number; // NEW: Saved scroll position for restoration
 
   // Actions
   setReviews: (reviews: FirebaseReview[]) => void;
@@ -20,6 +21,7 @@ interface ReviewState {
   updateLastFetched: () => void;
   clearCache: () => void;
   addReview: (review: FirebaseReview) => void;
+  setScrollPosition: (position: number) => void; // NEW: Save scroll position
 
   // Helpers
   isStale: () => boolean;
@@ -37,6 +39,7 @@ export const useReviewStore = create<ReviewState>()(
       loading: false,
       error: null,
       lastFetched: null,
+      scrollPosition: 0, // NEW: Scroll position for restoration
 
       // Actions
       setReviews: (reviews) => set({ reviews }),
@@ -52,11 +55,15 @@ export const useReviewStore = create<ReviewState>()(
 
       updateLastFetched: () => set({ lastFetched: Date.now() }),
 
+      // NEW: Save scroll position for restoration on "Back"
+      setScrollPosition: (position) => set({ scrollPosition: position }),
+
       clearCache: () => set({
         reviews: [],
         feedPosts: [],
         renderedFeedPosts: [], // NEW: Clear rendered feed on cache clear
         lastFetched: null,
+        scrollPosition: 0, // NEW: Reset scroll position
         error: null
       }),
 
@@ -83,6 +90,7 @@ export const useReviewStore = create<ReviewState>()(
 
         // INCLUDED in localStorage (small, critical):
         lastFetched: state.lastFetched, // Just a timestamp, tiny
+        scrollPosition: state.scrollPosition, // Just a number, tiny
         // Note: We keep the cache timestamp so we know when to refetch
         // but we don't persist the actual data to avoid slow JSON.parse
       }),
