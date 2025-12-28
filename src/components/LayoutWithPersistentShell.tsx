@@ -1,5 +1,5 @@
+// File: src/components/LayoutWithPersistentShell.tsx
 import React, { useEffect, useLayoutEffect } from 'react';
-import { Outlet, useLocation } from 'react-router-dom';
 import BottomNavigation from './BottomNavigation';
 import { PersistentShell } from './layout/PersistentShell';
 import Home from '../pages/Home';
@@ -8,9 +8,13 @@ import Profile from '../pages/Profile';
 import FoodMap from '../pages/FoodMap';
 import RecentActivity from '../pages/RecentActivity';
 
-const Layout: React.FC = () => {
-  const location = useLocation();
-
+/**
+ * Layout with PersistentShell - keeps main tab components mounted
+ * and toggles visibility instead of unmounting on navigation.
+ *
+ * This eliminates the Gray Screen by keeping Home and other tabs warm.
+ */
+const LayoutWithPersistentShell: React.FC = () => {
   useEffect(() => {
     // Defensive: ensure scrolling is enabled whenever the layout mounts
     document.body.style.overflow = '';
@@ -19,10 +23,10 @@ const Layout: React.FC = () => {
 
   useLayoutEffect(() => {
     const ts = new Date().toISOString();
-    console.log('[Layout][layout-effect]', { ts });
+    console.log('[LayoutWithPersistentShell][layout-effect]', { ts });
     if (typeof requestAnimationFrame === 'function') {
       requestAnimationFrame(() => {
-        console.log('[Layout][raf]', {
+        console.log('[LayoutWithPersistentShell][raf]', {
           ts: new Date().toISOString(),
           perfNow: performance.now?.(),
         });
@@ -30,7 +34,7 @@ const Layout: React.FC = () => {
     }
   }, []);
 
-  // Define main tab routes that should persist (never unmount)
+  // Define main tab routes that should persist
   const persistentRoutes = [
     { path: '/', element: <Home /> },
     { path: '/discover/list', element: <DiscoverList /> },
@@ -40,27 +44,16 @@ const Layout: React.FC = () => {
     { path: '/recent-activity', element: <RecentActivity /> },
   ];
 
-  // Check if current route is a persistent tab route
-  const isPersistentRoute = persistentRoutes.some(route => {
-    if (route.path === '/') {
-      return location.pathname === '/';
-    }
-    return location.pathname.startsWith(route.path);
-  });
-
   return (
     <div className="app-container">
       <main className="pb-20 touch-pan-y">
-        {isPersistentRoute ? (
-          <PersistentShell>
-            {persistentRoutes}
-          </PersistentShell>
-        ) : (
-          <Outlet />
-        )}
+        <PersistentShell>
+          {persistentRoutes}
+        </PersistentShell>
       </main>
       <BottomNavigation />
     </div>
   );
 };
-export default Layout;
+
+export default LayoutWithPersistentShell;

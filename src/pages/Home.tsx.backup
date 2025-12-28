@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo, useLayoutEffect, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useLayoutEffect, useCallback, useTransition } from 'react';
 import { MapIcon, PlusIcon, MapPinIcon, Star, ChevronRight, Store } from 'lucide-react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -25,6 +25,9 @@ const Home: React.FC = () => {
 
   const navigate = useNavigate();
   const location = useLocation();
+
+  // TRANSITION GUARD: Use React 18 useTransition for non-blocking updates
+  const [isPending, startTransition] = useTransition();
 
   // STABILITY: Use specific Zustand selectors to prevent unnecessary re-renders
   const firebaseReviews = useReviewStore(state => state.reviews);
@@ -134,6 +137,10 @@ const Home: React.FC = () => {
         return () => clearTimeout(timeoutId);
       }
 
+      // SETTLING DELAY: Wait 100ms for browser to settle after navigation
+      // Ensures the page transition completes before heavy data processing begins
+      await new Promise(resolve => setTimeout(resolve, 100));
+      console.log('[Home][init] 100ms settling delay complete, starting data fetch...');
 
       // Check for force refresh flag
       const url = new URL(window.location.href);
@@ -228,9 +235,16 @@ const Home: React.FC = () => {
           ts: new Date().toISOString(),
           count: posts.length,
           durationMs: tConvertEnd - tConvertStart,
-        });          setFirebaseReviews(publicFeed);
+        });
+
+        // TRANSITION GUARD: Wrap feed updates in startTransition for smooth animations
+        // This lowers render priority, allowing back-navigation animations to complete first
+        startTransition(() => {
+          console.log('[Home][init] Starting low-priority feed update via useTransition');
+          setFirebaseReviews(publicFeed);
           setFeedPosts(posts);
           updateLastFetched();
+        });
 
         const tInitEnd = performance.now?.() ?? Date.now();
         console.log('[Home][init] complete, Zustand store updated', {
@@ -251,16 +265,14 @@ const Home: React.FC = () => {
   }, [authUser]);
   
   // Fetch reviews from Firebase (used for first load and manual refresh)
-  const loadReviews = async (silent: boolean = false) => {
+  const loadReviews = async () => {
     try {
       const tLoadStart = performance.now?.() ?? Date.now();
       console.log('[Home][refresh] loadReviews start', {
         ts: new Date().toISOString(),
         perfMs: tLoadStart,
       });
-      if (!silent) {
-        setLoading(true);
-      }
+      setLoading(true);
       const currentUser = authUser;
 
       // Load current user's reviews once and reuse for state + stats
@@ -285,18 +297,22 @@ const Home: React.FC = () => {
         ts: new Date().toISOString(),
         count: posts.length,
         durationMs: tConvertEnd - tConvertStart,
-      });        setFirebaseReviews(publicFeed);
+      });
+
+      // TRANSITION GUARD: Wrap feed updates in startTransition
+      startTransition(() => {
+        console.log('[Home][refresh] Starting low-priority feed update via useTransition');
+        setFirebaseReviews(publicFeed);
         setFeedPosts(posts);
         updateLastFetched();
         setError(null);
+      });
     } catch (err) {
       console.error('Failed to load reviews:', err);
       setError('Failed to load reviews');
     } finally {
-      if (!silent) {
-        setLoading(false);
-        setRefreshing(false);
-      }
+      setLoading(false);
+      setRefreshing(false);
     }
   };
 
@@ -490,38 +506,6 @@ const Home: React.FC = () => {
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, [authUser, isStale]);
-
-  // PersistentShell visibility detection: refresh when returning after 5+ minutes
-  const lastHiddenTime = useRef<number | null>(null);
-  const STALE_THRESHOLD_MS = 5 * 60 * 1000; // 5 minutes
-
-  useEffect(() => {
-    // Detect when Home becomes visible/hidden via PersistentShell (location.pathname changes)
-    if (location.pathname === '/') {
-      // Home is now visible
-      if (lastHiddenTime.current !== null && authUser) {
-        const hiddenDuration = Date.now() - lastHiddenTime.current;
-        
-        if (hiddenDuration > STALE_THRESHOLD_MS) {
-          console.log('[Home][persistent-visibility] Home visible after', hiddenDuration, 'ms, refreshing feed silently');
-          // Silent refresh - no loading spinner
-          loadReviews(true).catch(err => {
-            console.error('[Home][persistent-visibility] Background refresh failed:', err);
-          });
-        } else {
-          console.log('[Home][persistent-visibility] Home visible after', hiddenDuration, 'ms, skipping refresh (< 5min)');
-        }
-        
-        lastHiddenTime.current = null;
-      }
-    } else {
-      // Home is now hidden (user navigated away)
-      if (lastHiddenTime.current === null) {
-        lastHiddenTime.current = Date.now();
-        console.log('[Home][persistent-visibility] Home hidden at', new Date().toISOString());
-      }
-    }
-  }, [location.pathname, authUser]);
 
   // Stable map of follow status keyed by authorId, for FeedPost components.
   const followingMap = useMemo(() => {
