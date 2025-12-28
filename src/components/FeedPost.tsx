@@ -129,12 +129,18 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
   isFollowingAuthor = false,
   onFollowChange,
 }) => {
+  // SAFE START: Defensive prop validation to prevent crashes
+  if (!author || !dish || !review || !engagement) {
+    console.error('[FeedPost] Missing required props:', { author, dish, review, engagement, id });
+    return null;
+  }
+
   const renderStart = performance.now?.() ?? Date.now();
   console.log('[FeedPost][render-start]', {
     ts: new Date().toISOString(),
     renderStart,
     id,
-    authorId: author.id,
+    authorId: author?.id,
   });
 
   // State for image loading
@@ -171,8 +177,8 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
   const [isFollowingUser, setIsFollowingUser] = useState(isFollowingAuthor);
   const [followLoading, setFollowLoading] = useState(false);
   const currentUser = getCurrentUser();
-  const isOwnPost = currentUser?.uid === author.id;
-  const displayAuthorName = isOwnPost ? 'You' : author.name;
+  const isOwnPost = currentUser?.uid === author?.id;
+  const displayAuthorName = isOwnPost ? 'You' : (author?.name || 'Unknown');
 
   // Feature flags
   const showLikesComments = useFeature('LIKES_COMMENTS');
@@ -392,10 +398,10 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
           }
         }
       } else {
-        const success = await followUser(author.id, author.name);
+        const success = await followUser(author?.id, author?.name || 'Unknown');
         if (success) {
           setIsFollowingUser(true);
-          if (onFollowChange) {
+          if (onFollowChange && author?.id) {
             onFollowChange(author.id, true);
           }
         }
@@ -411,7 +417,7 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
   const handleUsernameClick = () => {
     if (isOwnPost) {
       navigate('/profile');
-    } else {
+    } else if (author?.name) {
       navigate(`/user/${author.name}`);
     }
   };

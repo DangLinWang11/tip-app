@@ -223,9 +223,19 @@ export function App() {
           }>
             <Routes>
               <Route path="/" element={<Layout />}>
-                <Route index element={<Home />} />
+                {/* STRICT AUTH GUARD: Only mount Home when fully authenticated */}
+                <Route index element={
+                  !authState.isLoading && authState.isAuthenticated ?
+                    <Home /> :
+                    <LoadingScreen label="Loading feed..." />
+                } />
                 <Route path="discover" element={<Discover />} />
-                <Route path="discover/list" element={<DiscoverList />} />
+                {/* STRICT AUTH GUARD: Only mount DiscoverList when fully authenticated */}
+                <Route path="discover/list" element={
+                  !authState.isLoading && authState.isAuthenticated ?
+                    <DiscoverList /> :
+                    <LoadingScreen label="Loading discover..." />
+                } />
                 <Route path="create" element={<Create />} />
                 <Route 
                   path="notifications" 

@@ -19,6 +19,12 @@ export const VirtualizedFeed: React.FC<VirtualizedFeedProps> = ({
   hasMore = false,
   loadingMore = false,
 }) => {
+  // SAFE START: Defensive check to prevent crashes from undefined/invalid posts
+  if (!posts || !Array.isArray(posts)) {
+    console.warn('[VirtualizedFeed] Invalid posts prop:', posts);
+    return null;
+  }
+
   const observerRef = useRef<IntersectionObserver | null>(null);
   const loadMoreRef = useRef<HTMLDivElement>(null);
 
@@ -47,11 +53,20 @@ export const VirtualizedFeed: React.FC<VirtualizedFeedProps> = ({
     };
   }, [onLoadMore, hasMore, loadingMore]);
 
+  // VIRTUALIZED LIST SAFETY: Explicit item count for safety
+  const itemCount = posts?.length || 0;
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" data-item-count={itemCount}>
       {posts.map((post) => {
+        // Defensive: skip posts with missing data
+        if (!post || !post.id) {
+          console.warn('[VirtualizedFeed] Skipping invalid post:', post);
+          return null;
+        }
+
         const isFollowingAuthor = !!(
-          post.author && followingMap.has(post.author.id)
+          post?.author && followingMap.has(post.author.id)
         );
 
         return (
@@ -75,9 +90,16 @@ export const VirtualizedFeed: React.FC<VirtualizedFeedProps> = ({
       )}
 
       {/* End of feed */}
-      {!hasMore && posts.length > 0 && (
+      {!hasMore && itemCount > 0 && (
         <div className="py-8 text-center text-gray-400">
           You've seen all posts
+        </div>
+      )}
+
+      {/* Empty state */}
+      {!loadingMore && itemCount === 0 && (
+        <div className="py-8 text-center text-gray-400">
+          No posts to display
         </div>
       )}
     </div>
