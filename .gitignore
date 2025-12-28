@@ -26,3 +26,8 @@ serviceAccountKey.json
 *.njsproj
 *.sln
 *.sw?
+.vercel
+
+# Capacitor (mobile) - not used in PWA version
+android/
+ios/
