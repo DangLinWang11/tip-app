@@ -755,7 +755,7 @@ const Home: React.FC = () => {
         <div className="bg-white rounded-xl shadow-sm p-5 mb-6">
           <div className="flex items-center gap-2 mb-5">
             <MapIcon size={24} className="text-primary" />
-            <h2 className="text-2xl font-bold text-gray-900">Your Food Journey</h2>
+            <h2 className="text-2xl font-bold text-gray-900">Food Journey</h2>
           </div>
           <div
             className="h-52 rounded-2xl border border-gray-100 overflow-hidden relative cursor-pointer hover:border-gray-200 hover:shadow-md transition-all duration-200"
