@@ -6,6 +6,7 @@ interface ReviewState {
   // State
   reviews: FirebaseReview[];
   feedPosts: any[];
+  renderedFeedPosts: any[]; // NEW: Memoized, ready-to-render feed posts
   loading: boolean;
   error: string | null;
   lastFetched: number | null;
@@ -13,6 +14,7 @@ interface ReviewState {
   // Actions
   setReviews: (reviews: FirebaseReview[]) => void;
   setFeedPosts: (posts: any[]) => void;
+  setRenderedFeed: (posts: any[]) => void; // NEW: Set the rendered feed posts
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
   updateLastFetched: () => void;
@@ -31,6 +33,7 @@ export const useReviewStore = create<ReviewState>()(
       // Initial state
       reviews: [],
       feedPosts: [],
+      renderedFeedPosts: [], // NEW: Memoized rendered posts
       loading: false,
       error: null,
       lastFetched: null,
@@ -39,6 +42,9 @@ export const useReviewStore = create<ReviewState>()(
       setReviews: (reviews) => set({ reviews }),
 
       setFeedPosts: (posts) => set({ feedPosts: posts }),
+
+      // NEW: Set the rendered feed posts (already processed, ready to display)
+      setRenderedFeed: (posts) => set({ renderedFeedPosts: posts }),
 
       setLoading: (loading) => set({ loading }),
 
@@ -49,6 +55,7 @@ export const useReviewStore = create<ReviewState>()(
       clearCache: () => set({
         reviews: [],
         feedPosts: [],
+        renderedFeedPosts: [], // NEW: Clear rendered feed on cache clear
         lastFetched: null,
         error: null
       }),
@@ -76,6 +83,13 @@ export const useReviewStore = create<ReviewState>()(
           updatedAt: serializeTimestamp((review as any).updatedAt),
         })),
         feedPosts: state.feedPosts.map(post => ({
+          ...post,
+          review: {
+            ...post.review,
+            createdAt: serializeTimestamp(post.review?.createdAt),
+          }
+        })),
+        renderedFeedPosts: state.renderedFeedPosts.map(post => ({
           ...post,
           review: {
             ...post.review,

@@ -29,11 +29,13 @@ const Home: React.FC = () => {
   // STABILITY: Use specific Zustand selectors to prevent unnecessary re-renders
   const firebaseReviews = useReviewStore(state => state.reviews);
   const feedPosts = useReviewStore(state => state.feedPosts);
+  const renderedFeedPosts = useReviewStore(state => state.renderedFeedPosts); // NEW: Memoized rendered posts
   const loading = useReviewStore(state => state.loading);
   const error = useReviewStore(state => state.error);
   const isStale = useReviewStore(state => state.isStale);
   const setFirebaseReviews = useReviewStore(state => state.setReviews);
   const setFeedPosts = useReviewStore(state => state.setFeedPosts);
+  const setRenderedFeed = useReviewStore(state => state.setRenderedFeed); // NEW: Action to set rendered posts
   const setLoading = useReviewStore(state => state.setLoading);
   const setError = useReviewStore(state => state.setError);
   const updateLastFetched = useReviewStore(state => state.updateLastFetched);
@@ -146,13 +148,29 @@ const Home: React.FC = () => {
         perfMs: tInitStart,
         isStale: stale,
         forceRefresh,
-        hasCachedPosts: feedPosts.length > 0
+        hasCachedPosts: feedPosts.length > 0,
+        hasRenderedPosts: renderedFeedPosts.length > 0
       });
 
-      // If we have valid cache and no force refresh, skip fetch entirely
+      // OPTIMIZATION: If we have rendered posts in store, use them immediately (no CPU work)
+      if (!forceRefresh && !stale && renderedFeedPosts.length > 0) {
+        console.log(
+          '[Home][init] ⚡ Using memoized renderedFeedPosts from Zustand - ZERO CPU work!',
+          'ts=',
+          new Date().toISOString(),
+          'count=',
+          renderedFeedPosts.length
+        );
+        // State is already hydrated from Zustand, just ensure loading is false
+        setLoading(false);
+        setProfileLoading(false);
+        return;
+      }
+
+      // Fallback: If we have valid feedPosts cache but no rendered posts, skip fetch but we'll need to render
       if (!forceRefresh && !stale && feedPosts.length > 0) {
         console.log(
-          '[Home][init] Using Zustand cached data, skipping fetch',
+          '[Home][init] Using Zustand feedPosts cache, skipping fetch',
           'ts=',
           new Date().toISOString()
         );
@@ -228,9 +246,13 @@ const Home: React.FC = () => {
           ts: new Date().toISOString(),
           count: posts.length,
           durationMs: tConvertEnd - tConvertStart,
-        });          setFirebaseReviews(publicFeed);
-          setFeedPosts(posts);
-          updateLastFetched();
+        });
+
+        // Store both raw and rendered posts
+        setFirebaseReviews(publicFeed);
+        setFeedPosts(posts);
+        setRenderedFeed(posts); // NEW: Store the rendered posts for instant reuse on "Back"
+        updateLastFetched();
 
         const tInitEnd = performance.now?.() ?? Date.now();
         console.log('[Home][init] complete, Zustand store updated', {
@@ -285,10 +307,14 @@ const Home: React.FC = () => {
         ts: new Date().toISOString(),
         count: posts.length,
         durationMs: tConvertEnd - tConvertStart,
-      });        setFirebaseReviews(publicFeed);
-        setFeedPosts(posts);
-        updateLastFetched();
-        setError(null);
+      });
+
+      // Store both raw and rendered posts
+      setFirebaseReviews(publicFeed);
+      setFeedPosts(posts);
+      setRenderedFeed(posts); // NEW: Store the rendered posts for instant reuse
+      updateLastFetched();
+      setError(null);
     } catch (err) {
       console.error('Failed to load reviews:', err);
       setError('Failed to load reviews');
@@ -321,9 +347,10 @@ const Home: React.FC = () => {
             durationMs: tConvertEnd - tConvertStart,
           });
 
-          // Update Zustand store
+          // Update Zustand store with both raw and rendered posts
           setFirebaseReviews(items);
           setFeedPosts(posts);
+          setRenderedFeed(posts); // NEW: Store rendered posts for instant reuse
           updateLastFetched();
           setLoading(false);
 
@@ -350,7 +377,9 @@ const Home: React.FC = () => {
 
           // Handle removed posts
           if (removed.length) {
-            setFeedPosts(feedPosts.filter(post => !removed.includes(post.id)));
+            const updatedPosts = feedPosts.filter(post => !removed.includes(post.id));
+            setFeedPosts(updatedPosts);
+            setRenderedFeed(updatedPosts); // NEW: Update rendered feed
           }
 
           // Handle modified posts (re-convert and replace)
@@ -364,12 +393,15 @@ const Home: React.FC = () => {
               }
             });
             setFeedPosts(updated);
+            setRenderedFeed(updated); // NEW: Update rendered feed
           }
 
           // Handle new posts (convert and prepend to top)
           if (added.length) {
             const newPosts = await convertReviewsToFeedPosts(added);
-            setFeedPosts([...newPosts, ...feedPosts]);
+            const updatedPosts = [...newPosts, ...feedPosts];
+            setFeedPosts(updatedPosts);
+            setRenderedFeed(updatedPosts); // NEW: Update rendered feed
           }
         } catch (e) {
           console.error('[Home][listener] Delta update failed', e);
@@ -557,7 +589,9 @@ const Home: React.FC = () => {
       }
 
       const newPosts = await convertReviewsToFeedPosts(reviews);
-      setFeedPosts(prev => [...prev, ...newPosts]);
+      const updatedPosts = [...feedPosts, ...newPosts];
+      setFeedPosts(updatedPosts);
+      setRenderedFeed(updatedPosts); // NEW: Update rendered feed with pagination
       setLastDoc(newLastDoc);
       setHasMore(newLastDoc !== null);
     } catch (error) {
@@ -607,6 +641,7 @@ const Home: React.FC = () => {
   );
 
   const hasAnyContent =
+    renderedFeedPosts.length > 0 ||
     feedPosts.length > 0 ||
     firebaseReviews.length > 0 ||
     userReviews.length > 0;
@@ -822,9 +857,10 @@ const Home: React.FC = () => {
           )}
           
           {/* Feed Posts */}
-          {feedPosts.length > 0 ? (
+          {/* OPTIMIZATION: Use renderedFeedPosts (memoized) if available, fallback to feedPosts */}
+          {(renderedFeedPosts.length > 0 || feedPosts.length > 0) ? (
             <VirtualizedFeed
-              posts={feedPosts}
+              posts={renderedFeedPosts.length > 0 ? renderedFeedPosts : feedPosts}
               followingMap={followingMap}
               onFollowChange={handleFollowChange}
               onLoadMore={loadMorePosts}
