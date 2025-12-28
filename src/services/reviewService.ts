@@ -1305,14 +1305,14 @@ export const fetchReviewsWithCache = async (limitCount = 20): Promise<FirebaseRe
       limit(limitCount * 3)
     );
 
-    console.log('[fetchReviewsWithCache] Attempting cache-first fetch...');
+    console.log('[fetchReviewsWithCache] 🎯 STRICT CACHE-FIRST: Attempting cache-only fetch...');
 
-    // Try cache first
+    // STEP A: Perform explicit cache-only fetch with { source: 'cache' }
     try {
-      const cacheSnapshot = await getDocs(q);
+      const cacheSnapshot = await getDocs(q, { source: 'cache' });
 
-      if (cacheSnapshot.metadata.fromCache && !cacheSnapshot.empty) {
-        console.log('[fetchReviewsWithCache] ✅ Serving from cache:', cacheSnapshot.docs.length, 'docs');
+      if (!cacheSnapshot.empty) {
+        console.log('[fetchReviewsWithCache] ⚡ INSTANT from cache:', cacheSnapshot.docs.length, 'docs');
 
         const raw = cacheSnapshot.docs.map((d) => ({ id: d.id, ...(d.data() as any) }));
         const validDocs = raw.filter((doc: any) => {
@@ -1342,22 +1342,28 @@ export const fetchReviewsWithCache = async (limitCount = 20): Promise<FirebaseRe
           } as FirebaseReview;
         });
 
-        // Fetch from server in background to update cache
-        getDocs(q).catch((err) => {
-          console.warn('[fetchReviewsWithCache] Background server fetch failed:', err);
+        // STEP C: Background server fetch with { source: 'server' } to silently update
+        console.log('[fetchReviewsWithCache] 🔄 Triggering background server fetch...');
+        getDocs(q, { source: 'server' }).then((serverSnapshot) => {
+          console.log('[fetchReviewsWithCache] ✅ Background update complete:', serverSnapshot.docs.length, 'docs');
+        }).catch((err) => {
+          console.warn('[fetchReviewsWithCache] ⚠️ Background server fetch failed:', err);
         });
 
+        // STEP B: Return cached data immediately
         return reviews;
+      } else {
+        console.log('[fetchReviewsWithCache] ⚠️ Cache empty, falling through to server...');
       }
     } catch (cacheError) {
-      console.warn('[fetchReviewsWithCache] Cache fetch failed, falling back to server:', cacheError);
+      console.warn('[fetchReviewsWithCache] ⚠️ Cache fetch failed (likely no cache available):', cacheError);
     }
 
-    // Fallback to server
-    console.log('[fetchReviewsWithCache] Fetching from server...');
+    // Fallback to server when no cache exists
+    console.log('[fetchReviewsWithCache] 🌐 First load or cache miss - fetching from server...');
     return await fetchReviews(limitCount);
   } catch (error) {
-    console.error('[fetchReviewsWithCache] Error:', error);
+    console.error('[fetchReviewsWithCache] ❌ Error:', error);
     throw new Error('Failed to fetch reviews');
   }
 };
