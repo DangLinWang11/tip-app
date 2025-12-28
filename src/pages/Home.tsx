@@ -47,6 +47,9 @@ const Home: React.FC = () => {
   const [authUser, setAuthUser] = useState(() => getCurrentUser());
   const [followingIds, setFollowingIds] = useState<Set<string>>(new Set());
 
+  // STAGGERED HYDRATION: Prevent navigation freeze by delaying heavy UI rendering
+  const [isNavigating, setIsNavigating] = useState(true);
+
   // Pull-to-refresh state
   const [refreshing, setRefreshing] = useState(false);
   const [pullY, setPullY] = useState(0);
@@ -84,6 +87,17 @@ const Home: React.FC = () => {
         });
       });
     }
+  }, []);
+
+  // STAGGERED HYDRATION: Delay heavy UI rendering by 150ms to let navigation settle
+  useEffect(() => {
+    console.log('[Home][staggered-hydration] Starting 150ms delay before rendering feed');
+    const timer = setTimeout(() => {
+      console.log('[Home][staggered-hydration] 150ms elapsed, enabling feed rendering');
+      setIsNavigating(false);
+    }, 150);
+
+    return () => clearTimeout(timer);
   }, []);
 
   useLayoutEffect(() => {
@@ -822,7 +836,24 @@ const Home: React.FC = () => {
           )}
           
           {/* Feed Posts */}
-          {feedPosts.length > 0 ? (
+          {isNavigating ? (
+            // STAGGERED HYDRATION: Show lightweight skeleton during navigation delay
+            <div className="space-y-4">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="bg-white rounded-xl shadow-sm p-4 animate-pulse">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-10 h-10 bg-gray-200 rounded-full"></div>
+                    <div className="flex-1">
+                      <div className="h-4 bg-gray-200 rounded w-1/3 mb-2"></div>
+                      <div className="h-3 bg-gray-200 rounded w-1/4"></div>
+                    </div>
+                  </div>
+                  <div className="h-48 bg-gray-200 rounded-lg mb-3"></div>
+                  <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                </div>
+              ))}
+            </div>
+          ) : feedPosts.length > 0 ? (
             <VirtualizedFeed
               posts={feedPosts}
               followingMap={followingMap}
@@ -838,8 +869,8 @@ const Home: React.FC = () => {
               </div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">No Reviews Yet</h3>
               <p className="text-gray-600 mb-6">Be the first to share a review!</p>
-              <Link 
-                to="/create" 
+              <Link
+                to="/create"
                 className="inline-block bg-primary text-white py-2 px-6 rounded-full font-medium hover:bg-red-600 transition-colors"
               >
                 Create First Review
