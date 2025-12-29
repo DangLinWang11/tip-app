@@ -456,7 +456,14 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
     };
   }, [isCarousel, carouselItems, currentIndex, id, dishId, dish, review]);
   const isVisitPost = Boolean(visitId) && isCarousel && (carouselItems?.length ?? 0) > 1;
-  const hasMediaItems = Array.isArray(mediaItems) && mediaItems.length > 0;
+
+  // Helper function: comprehensive check for posts with no photos
+  const hasNoPhotos = !mediaItems ||
+                      mediaItems.length === 0 ||
+                      (mediaItems.length === 1 && !mediaItems[0]) ||
+                      (mediaItems.length === 1 && typeof mediaItems[0] === 'object' && !mediaItems[0]?.imageUrl);
+
+  const hasMediaItems = Array.isArray(mediaItems) && mediaItems.length > 0 && !hasNoPhotos;
   const activeMediaItem =
     hasMediaItems &&
     Array.isArray(mediaItems) &&
@@ -2177,9 +2184,9 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
         </div>
 
         {/* Caption */}
-        {(visitCaption || currentItem.review.caption) && (
+        {(visitCaption || currentItem?.review?.caption) && (
           <p className="text-sm text-gray-900 mb-3 leading-snug border-l-4 border-gray-600 rounded-l-md pl-3 bg-gray-50 py-2 pr-2">
-            {visitCaption || currentItem.review.caption}
+            {visitCaption || currentItem?.review?.caption}
           </p>
         )}
 
@@ -2215,13 +2222,13 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
         )}
 
         {/* Fallback: single dish if visitDishes not available */}
-        {(!visitDishes || visitDishes.length === 0) && currentItem.dish && displayRating !== null && (
+        {(!visitDishes || visitDishes.length === 0) && currentItem?.dish && displayRating !== null && (
           <div className="mb-2">
             {/* Category label for single dish */}
             {(() => {
               const dishCategory =
-                (currentItem.dish as any)?.dishCategory ??
-                (currentItem.review as any)?.dishCategory ??
+                (currentItem?.dish as any)?.dishCategory ??
+                (currentItem?.review as any)?.dishCategory ??
                 undefined;
 
               return dishCategory ? (
@@ -2237,10 +2244,10 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
               className="flex items-center justify-between w-full py-1.5 px-4 text-sm hover:bg-gray-50 rounded"
             >
               <span className="font-medium text-gray-900 truncate text-left">
-                {currentItem.dish.name}
+                {currentItem?.dish?.name}
               </span>
               <span className="flex-shrink-0 ml-3 mr-6 text-xs font-semibold text-white bg-red-500 rounded-full px-2.5 py-[2px]">
-                {displayRating.toFixed(1)}
+                {displayRating?.toFixed(1)}
               </span>
             </button>
           </div>
@@ -2399,8 +2406,13 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
 
   const renderVisitLayout = () => visitLayout;
 
-  // NEW: Layout selection logic - choose compact for non-photo posts
-  const isCompactPost = !hasMediaItems && (visitDishes && visitDishes.length > 0);
+  // NEW: Layout selection logic - choose compact for ALL non-photo posts
+  // This applies to: visit posts with no photos, single dish reviews with no photos
+  const isCompactPost = hasNoPhotos && (
+    (visitDishes && visitDishes.length > 0) || // Visit with dishes but no photos
+    (dishId && !hasMediaItems) || // Single dish review with no photos
+    (review && !hasMediaItems) // Any review with no photos
+  );
 
   if (isCompactPost) {
     const tEnd = performance.now?.() ?? Date.now();
