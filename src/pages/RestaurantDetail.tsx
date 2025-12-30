@@ -158,10 +158,12 @@ const RestaurantDetail: React.FC = () => {
     if (categoryLower.includes('soup') || categoryLower.includes('bowl')) return Soup;
     if (categoryLower.includes('salad') || categoryLower.includes('green') || categoryLower.includes('vegetable')) return Salad;
     if (categoryLower.includes('coffee') || categoryLower.includes('tea') || categoryLower.includes('drink') || categoryLower.includes('beverage')) return Coffee;
-    if (categoryLower.includes('dessert') || categoryLower.includes('cake') || categoryLower.includes('sweet')) return Cake;
+    if (categoryLower.includes('dessert') || categoryLower.includes('cake') || categoryLower.includes('sweet') || categoryLower.includes('pastry')) return Cake;
     if (categoryLower.includes('fish') || categoryLower.includes('seafood')) return Fish;
     if (categoryLower.includes('pizza')) return Pizza;
-    if (categoryLower.includes('sandwich') || categoryLower.includes('burger')) return Sandwich;
+    if (categoryLower.includes('sandwich') || categoryLower.includes('burger') || categoryLower.includes('handheld') || categoryLower.includes('wrap')) return Sandwich;
+    if (categoryLower.includes('appetizer') || categoryLower.includes('starter') || categoryLower.includes('small plate')) return ChefHat;
+    if (categoryLower.includes('entree') || categoryLower.includes('entrée') || categoryLower.includes('main') || categoryLower.includes('plato fuerte')) return Utensils;
     if (categoryLower.includes('chef') || categoryLower.includes('special')) return ChefHat;
     return Utensils; // Default icon
   };
@@ -544,11 +546,8 @@ const getCurrentDayHours = (hours: Record<string, string>) => {
           </div>
           <div className="flex items-center">
             <div className="mr-2 inline-flex items-center gap-2 bg-light-gray px-3 py-1.5 rounded-full">
-              <span className="text-sm text-dark-gray">Average Dish</span>
-              <span className="inline-flex items-center gap-1">
-                <StarIcon size={16} className="text-accent fill-accent" />
-                <span className="font-semibold">{avgDishRating !== null ? avgDishRating.toFixed(1) : 'N/A'}</span>
-              </span>
+              <span className="text-sm text-dark-gray">Average Dish Rating</span>
+              <span className="text-base font-bold text-primary">{avgDishRating !== null ? avgDishRating.toFixed(1) : 'N/A'}</span>
             </div>
           </div>
         </div>
@@ -714,19 +713,27 @@ const getCurrentDayHours = (hours: Record<string, string>) => {
                     />
                   </button>
                   {isOpen && (
-                    <div className="px-6 pb-6 space-y-4">
-                      {items.map(item => (
-                        <div 
-                          key={item.id} 
-                          className="flex cursor-pointer hover:bg-gray-50 p-4 rounded-xl transition-colors group"
+                    <div className="px-6 pb-6 space-y-3">
+                      {items.map(item => {
+                        const ItemIcon = getCategoryIcon(item.category || category);
+                        return (
+                        <div
+                          key={item.id}
+                          className="flex cursor-pointer hover:bg-gray-50 p-3 rounded-xl transition-colors group"
                           onClick={() => navigate(`/dish/${item.id}`)}
                         >
-                          <img 
-                            src={item.coverImage || "https://source.unsplash.com/100x100/food"} 
-                            alt={item.name} 
-                            className="w-20 h-20 rounded-xl object-cover" 
-                          />
-                          <div className="ml-4 flex-1">
+                          {item.coverImage ? (
+                            <img
+                              src={item.coverImage}
+                              alt={item.name}
+                              className="w-16 h-16 rounded-xl object-cover flex-shrink-0"
+                            />
+                          ) : (
+                            <div className="w-16 h-16 rounded-xl bg-gray-100 flex items-center justify-center flex-shrink-0">
+                              <ItemIcon size={24} className="text-gray-400" />
+                            </div>
+                          )}
+                          <div className="ml-3 flex-1 min-w-0">
                             <div className="flex justify-between items-start">
                               <h4 className="font-semibold text-gray-900 flex-1 mr-2 group-hover:text-red-500 transition-colors" style={{ color: isOpen ? undefined : '#ff3131' }}>{item.name}</h4>
                               <div className="text-right">
@@ -769,7 +776,8 @@ const getCurrentDayHours = (hours: Record<string, string>) => {
                             })()}
                           </div>
                         </div>
-                      ))}
+                      );
+                      })}
                     </div>
                   )}
                 </div>
@@ -798,29 +806,17 @@ const getCurrentDayHours = (hours: Record<string, string>) => {
           <div className="grid grid-cols-3 gap-1">
             {reviewImages.slice(0, 6).map((image, index) => (
               <div key={index} className="aspect-square bg-medium-gray rounded-md overflow-hidden">
-                <img 
-                  src={image} 
-                  alt="Food" 
-                  className="w-full h-full object-cover" 
-                />
-              </div>
-            ))}
-          </div>
-        ) : reviews.length > 0 ? (
-          <div className="grid grid-cols-3 gap-1">
-            {Array.from({ length: 6 }).map((_, index) => (
-              <div key={index} className="aspect-square bg-medium-gray rounded-md overflow-hidden">
-                <img 
-                  src={`https://source.unsplash.com/collection/1353633/300x300?sig=${index}`} 
-                  alt="Food" 
-                  className="w-full h-full object-cover" 
+                <img
+                  src={image}
+                  alt="Food"
+                  className="w-full h-full object-cover"
                 />
               </div>
             ))}
           </div>
         ) : (
           <div className="text-center py-8">
-            <p className="text-dark-gray">No photos yet. Share the first photo of this restaurant!</p>
+            <p className="text-dark-gray">No photos yet. Add photos now to see them here!</p>
           </div>
         )}
         {reviewImages.length > 0 && (
