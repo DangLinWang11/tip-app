@@ -10,6 +10,12 @@ import {
   SavedList 
 } from '../services/savedListsService';
 
+interface DishOption {
+  dishId?: string;
+  dishName: string;
+  postId?: string; // For saving specific posts/reviews
+}
+
 interface SaveToListModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -18,6 +24,7 @@ interface SaveToListModalProps {
   dishId?: string;
   dishName?: string;
   postId?: string; // For saving specific posts/reviews
+  dishes?: DishOption[]; // NEW: Array of dishes for multi-dish saves
   onSaved?: (r: { entity: 'dish' | 'restaurant'; listName?: string }) => void;
 }
 
@@ -31,10 +38,12 @@ const SaveToListModal: React.FC<SaveToListModalProps> = ({
   dishId,
   dishName,
   postId,
+  dishes,
   onSaved
 }) => {
   const [step, setStep] = useState<'select_type' | 'select_list'>('select_type');
   const [saveType, setSaveType] = useState<SaveType>(null);
+  const [selectedDish, setSelectedDish] = useState<DishOption | null>(null);
   const [lists, setLists] = useState<SavedList[]>([]);
   const [loading, setLoading] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -42,6 +51,12 @@ const SaveToListModal: React.FC<SaveToListModalProps> = ({
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+
+  // Helper function to truncate text
+  const truncateText = (text: string, maxLength: number = 40) => {
+    if (text.length <= maxLength) return text;
+    return text.slice(0, maxLength) + '...';
+  };
 
   // Load user's saved lists when modal opens
   useEffect(() => {
@@ -70,6 +85,7 @@ const SaveToListModal: React.FC<SaveToListModalProps> = ({
     if (!isOpen) {
       setStep('select_type');
       setSaveType(null);
+      setSelectedDish(null);
       setShowCreateForm(false);
       setNewListName('');
       setError(null);
@@ -99,8 +115,11 @@ const SaveToListModal: React.FC<SaveToListModalProps> = ({
     }
   };
 
-  const handleTypeSelection = (type: SaveType) => {
+  const handleTypeSelection = (type: SaveType, dish?: DishOption) => {
     setSaveType(type);
+    if (type === 'dish' && dish) {
+      setSelectedDish(dish);
+    }
     setStep('select_list');
   };
 
@@ -112,22 +131,26 @@ const SaveToListModal: React.FC<SaveToListModalProps> = ({
 
     try {
       let result;
-      
+      let savedItemName = '';
+
       if (saveType === 'restaurant' && restaurantId) {
         result = await addRestaurantToList(listId, restaurantId);
-      } else if (saveType === 'dish' && (dishId || postId)) {
-        // Use dishId if available, otherwise use postId for specific review/post
-        const idToSave = dishId || postId;
+        savedItemName = restaurantName || 'Restaurant';
+      } else if (saveType === 'dish') {
+        // Use selectedDish if available (from multi-dish selection), otherwise fall back to single dish props
+        const dishToSave = selectedDish || { dishId, dishName, postId };
+        const idToSave = dishToSave.dishId || dishToSave.postId;
+
         console.log('💾 [SaveToListModal] Saving dish to list:', {
           listId,
-          dishId,
-          postId,
-          idToSave,
-          dishName
+          selectedDish,
+          dishToSave,
+          idToSave
         });
-        
+
         if (idToSave) {
           result = await addDishToList(listId, idToSave);
+          savedItemName = dishToSave.dishName || 'Dish';
           console.log('💾 [SaveToListModal] Save result:', result);
         } else {
           console.error('❌ [SaveToListModal] No dish or post ID available');
@@ -140,8 +163,7 @@ const SaveToListModal: React.FC<SaveToListModalProps> = ({
       }
 
       if (result?.success) {
-        const itemName = saveType === 'restaurant' ? restaurantName : dishName;
-        setSuccess(`${itemName} saved successfully!`);
+        setSuccess(`${savedItemName} saved successfully!`);
         try {
           const savedEntity: 'dish' | 'restaurant' = saveType;
           const listObj = lists.find(l => l.id === listId);
@@ -153,7 +175,7 @@ const SaveToListModal: React.FC<SaveToListModalProps> = ({
         } catch (e) {
           // no-op: optional callback
         }
-      
+
         // Close modal after short delay
         setTimeout(() => {
           onClose();
@@ -218,7 +240,7 @@ const SaveToListModal: React.FC<SaveToListModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl max-w-md w-full max-h-[80vh] overflow-hidden">
+      <div className="bg-white rounded-2xl max-w-lg w-full max-h-[85vh] overflow-hidden">
         
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-200">
@@ -240,37 +262,60 @@ const SaveToListModal: React.FC<SaveToListModalProps> = ({
           {step === 'select_type' && (
             <div className="p-4 space-y-3">
               <p className="text-sm text-gray-600 mb-4">What would you like to save?</p>
-              
+
               {/* Save Restaurant Option */}
               {restaurantId && restaurantName && (
                 <button
                   onClick={() => handleTypeSelection('restaurant')}
                   className="w-full p-4 border border-gray-200 rounded-xl hover:border-primary hover:bg-red-50 transition-colors text-left flex items-center"
                 >
-                  <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mr-3">
+                  <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
                     <Store size={20} className="text-blue-600" />
                   </div>
-                  <div>
+                  <div className="flex-1 min-w-0">
                     <div className="font-medium">Save Restaurant</div>
-                    <div className="text-sm text-gray-600 truncate">{restaurantName}</div>
+                    <div className="text-sm text-gray-600 truncate">{truncateText(restaurantName)}</div>
                   </div>
                 </button>
               )}
 
-              {/* Save Dish Option */}
-              {(dishId || postId) && dishName && (
-                <button
-                  onClick={() => handleTypeSelection('dish')}
-                  className="w-full p-4 border border-gray-200 rounded-xl hover:border-primary hover:bg-red-50 transition-colors text-left flex items-center"
-                >
-                  <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center mr-3">
-                    <UtensilsCrossed size={20} className="text-orange-600" />
+              {/* Save Dishes Options - Show all dishes if multiple, otherwise single */}
+              {dishes && dishes.length > 0 ? (
+                <div className="border border-gray-200 rounded-xl p-4">
+                  <div className="font-medium mb-3">Save Dish</div>
+                  <div className="max-h-[200px] overflow-y-auto space-y-2">
+                    {dishes.map((dish, index) => (
+                      <button
+                        key={index}
+                        onClick={() => handleTypeSelection('dish', dish)}
+                        className="w-full p-3 border border-gray-200 rounded-lg hover:border-primary hover:bg-red-50 transition-colors text-left flex items-center"
+                      >
+                        <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
+                          <UtensilsCrossed size={18} className="text-orange-600" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm text-gray-900 truncate">{truncateText(dish.dishName, 35)}</div>
+                        </div>
+                      </button>
+                    ))}
                   </div>
-                  <div>
-                    <div className="font-medium">Save Dish</div>
-                    <div className="text-sm text-gray-600 truncate">{dishName}</div>
-                  </div>
-                </button>
+                </div>
+              ) : (
+                /* Single dish fallback */
+                (dishId || postId) && dishName && (
+                  <button
+                    onClick={() => handleTypeSelection('dish', { dishId, dishName, postId })}
+                    className="w-full p-4 border border-gray-200 rounded-xl hover:border-primary hover:bg-red-50 transition-colors text-left flex items-center"
+                  >
+                    <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
+                      <UtensilsCrossed size={20} className="text-orange-600" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium">Save Dish</div>
+                      <div className="text-sm text-gray-600 truncate">{truncateText(dishName)}</div>
+                    </div>
+                  </button>
+                )
               )}
             </div>
           )}

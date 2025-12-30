@@ -1389,17 +1389,27 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
       )}
 
       {showSaveModal && (() => {
+        // Build dishes array from carousel items if available
+        const dishesArray = isCarousel && carouselItems && carouselItems.length > 1
+          ? carouselItems.map(item => ({
+              dishId: item.dishId,
+              dishName: item.dish.name,
+              postId: item.reviewId || item.id
+            }))
+          : undefined;
+
         const modalProps = {
           isOpen: showSaveModal,
           restaurantId: restaurantId,
           restaurantName: restaurant?.name,
           dishId: currentItem.dishId,
           dishName: currentItem.dish.name,
-          postId: id
+          postId: id,
+          dishes: dishesArray
         };
-        
+
         console.log('💾 [FeedPost] Rendering SaveToListModal with props:', modalProps);
-        
+
         return (
           <SaveToListModal
             {...modalProps}
@@ -2056,17 +2066,27 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
       )}
 
       {showSaveModal && (() => {
+        // Build dishes array from carousel items if available
+        const dishesArray = isCarousel && carouselItems && carouselItems.length > 1
+          ? carouselItems.map(item => ({
+              dishId: item.dishId,
+              dishName: item.dish.name,
+              postId: item.reviewId || item.id
+            }))
+          : undefined;
+
         const modalProps = {
           isOpen: showSaveModal,
           restaurantId: restaurantId,
           restaurantName: restaurant?.name,
           dishId: currentItem.dishId,
           dishName: currentItem.dish.name,
-          postId: id
+          postId: id,
+          dishes: dishesArray
         };
-        
+
         console.log('💾 [FeedPost] Rendering SaveToListModal with props:', modalProps);
-        
+
         return (
           <SaveToListModal
             {...modalProps}
