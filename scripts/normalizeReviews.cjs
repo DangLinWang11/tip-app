@@ -22,9 +22,12 @@
     - updatedAt = serverTimestamp() (always)
 
   If userId or restaurantId is missing:
-    - NEW: Check for username and restaurantName as fallback
-    - If both human-readable names exist: recover review (clear errors, continue normalization)
-    - If missing human-readable names: quarantine (isDeleted=true, normalizeError="missing foreign key")
+    - NEW: Enhanced ID validation recognizes Google Places IDs (e.g., "ChIJIQ2iRxBAw4gRjUzOb2f_KIE")
+    - NEW: Multiple recovery paths to prevent false deletion:
+      1. Has username AND restaurantName (human-readable fallback)
+      2. Has valid content (photos or caption) - keep review visible
+    - If recovery criteria met: clear errors, set isDeleted=false, continue normalization
+    - If no recovery criteria: quarantine (isDeleted=true, normalizeError="missing foreign key")
 
   Output totals at end: changed, skipped, quarantined.
 */
@@ -71,6 +74,15 @@ function stringArray(arr) {
   return arr.map((x) => String(x)).filter((s) => s.length > 0);
 }
 
+// NEW: Validate if a string is a Google Places ID
+// Google Places IDs start with "ChIJ" and are base64-like strings
+function isGooglePlacesId(str) {
+  if (typeof str !== 'string') return false;
+  const trimmed = str.trim();
+  // Google Places IDs typically start with "ChIJ" and are 20-30 characters
+  return trimmed.startsWith('ChIJ') && trimmed.length >= 20 && trimmed.length <= 40;
+}
+
 async function* iterateDocs(db, pageSize, startAfterId) {
   const col = db.collection('reviews');
   let q = col.orderBy(admin.firestore.FieldPath.documentId()).limit(pageSize);
@@ -88,23 +100,34 @@ function buildUpdates(data) {
   const updates = {};
   let quarantined = false;
 
+  // NEW: Enhanced ID validation to recognize Google Places IDs
   const hasUserId = typeof data.userId === 'string' && data.userId.trim().length > 0;
-  const hasRestaurantId = typeof data.restaurantId === 'string' && data.restaurantId.trim().length > 0;
+  const hasRestaurantId = (typeof data.restaurantId === 'string' && data.restaurantId.trim().length > 0) ||
+                          isGooglePlacesId(data.restaurantId);
 
-  // NEW: Check for human-readable fallback fields
+  // Check for human-readable fallback fields
   const hasUsername = typeof data.username === 'string' && data.username.trim().length > 0;
   const hasRestaurantName = typeof data.restaurantName === 'string' && data.restaurantName.trim().length > 0;
 
   if (!hasUserId || !hasRestaurantId) {
-    // NEW: If we have human-readable names, allow recovery instead of deletion
-    if (hasUsername && hasRestaurantName) {
-      console.log(`[recover] Review has username="${data.username}" and restaurantName="${data.restaurantName}" but missing IDs - allowing normalization`);
+    // NEW: Multiple recovery paths to prevent false deletion
+    const canRecover = hasUsername && hasRestaurantName; // Has human-readable names
+    const hasValidContent = (Array.isArray(data.images) && data.images.length > 0) || // Has photos
+                           (data.media && Array.isArray(data.media.photos) && data.media.photos.length > 0) ||
+                           (typeof data.caption === 'string' && data.caption.trim().length > 0); // Has caption
+
+    if (canRecover || hasValidContent) {
+      // Recover this review - it has useful content
+      const reason = canRecover ? `has username="${data.username}" and restaurantName="${data.restaurantName}"` :
+                                  'has valid content (photos or caption)';
+      console.log(`[recover] Review ${reason} but missing standard IDs - allowing normalization`);
+
       // Clear any previous error state and continue with normalization
       if (data.normalizeError) updates.normalizeError = admin.firestore.FieldValue.delete();
       if (data.isDeleted === true) updates.isDeleted = false;
       // Continue to normal normalization below (don't return early)
     } else {
-      // No human-readable names - mark as quarantined
+      // No recovery criteria met - mark as quarantined
       quarantined = true;
       if (data.isDeleted !== true) updates.isDeleted = true;
       if (data.normalizeError !== 'missing foreign key') updates.normalizeError = 'missing foreign key';
