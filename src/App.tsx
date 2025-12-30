@@ -33,6 +33,7 @@ import { runBackfillCuisines } from './dev/backfillCuisines';
 import { undeleteAllReviews } from './utils/undeleteReviews';
 import { debugRinglingGrill } from './utils/debugRinglingGrill';
 import { fixRinglingGrillSimple } from './utils/fixRinglingGrillSimple';
+import { diagnoseFollowers } from './utils/followerDiagnostic';
 
 if (import.meta.env.DEV) {
   (window as any).runBackfillSoftDelete = runBackfillSoftDelete;
@@ -40,6 +41,7 @@ if (import.meta.env.DEV) {
   (window as any).undeleteAllReviews = undeleteAllReviews;
   (window as any).debugRinglingGrill = debugRinglingGrill;
   (window as any).fixRinglingGrillSimple = fixRinglingGrillSimple;
+  (window as any).diagnoseFollowers = diagnoseFollowers;
 }
 
 // MVP Coming Soon component for disabled features
