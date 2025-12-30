@@ -4,6 +4,7 @@ import { GoogleFallbackPlace } from '../services/googlePlacesService';
 interface RestaurantWithExtras {
   id: string;
   name: string;
+  address: string;
   coverImage: string | null;
   headerImage?: string | null;
   googlePhotos?: string[];
@@ -82,7 +83,7 @@ export function tipRestaurantToCardModel(restaurant: RestaurantWithExtras): Rest
     priceText: restaurant.priceRange,
     priceBadge,
     distanceLabel: restaurant.distanceLabel ?? null,
-    subtitleText: restaurant.mostReviewedCuisine || '',
+    subtitleText: restaurant.address || '',
     badgeText: q !== null ? `${q}%` : null,
     badgeColor: q !== null ? getQualityColor(q) : null,
     limitedRatingsText,

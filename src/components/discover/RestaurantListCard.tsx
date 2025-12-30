@@ -158,10 +158,10 @@ const RestaurantListCard: React.FC<RestaurantListCardProps> = ({ card, onClick }
 
   return (
     <div
-      className="bg-white rounded-xl shadow-sm flex items-center overflow-hidden border cursor-pointer hover:bg-gray-50 transition-colors h-[116px]"
+      className="bg-white rounded-xl shadow-sm flex items-center overflow-hidden border cursor-pointer hover:bg-gray-50 transition-colors h-[100px]"
       onClick={onClick}
     >
-      <div className="relative w-20 h-20 flex-shrink-0 ml-2">
+      <div className="relative w-16 h-16 flex-shrink-0 ml-2">
         <div className="w-full h-full bg-slate-100 flex items-center justify-center rounded-2xl overflow-hidden">
           {card.coverImage && !imgError ? (
             <img
@@ -171,7 +171,7 @@ const RestaurantListCard: React.FC<RestaurantListCardProps> = ({ card, onClick }
               onError={() => setImgError(true)}
             />
           ) : (
-            <Store size={32} className="text-slate-400" />
+            <Store size={28} className="text-slate-400" />
           )}
         </div>
         {card.priceBadge && (
@@ -183,46 +183,25 @@ const RestaurantListCard: React.FC<RestaurantListCardProps> = ({ card, onClick }
           </div>
         )}
       </div>
-      <div className="px-2 py-1.5 flex-1 relative overflow-hidden">
+      <div className="px-2.5 py-2 flex-1 relative overflow-hidden flex flex-col justify-between h-full">
         <div className="flex justify-between items-start gap-2">
-          <div className="flex-1 min-w-0 max-w-[calc(100%-70px)]">
-            <h3 className="font-medium truncate">{card.name}</h3>
-            {(card.source === 'google' || card.limitedRatingsText || card.reviewCountText || card.serviceSpeedLabel || (card.tags && card.tags.length > 0)) && (
-              <div className="mt-0.5 flex items-center gap-1.5 flex-wrap">
-                {/* Source badge - show for Google Places */}
-                {card.source === 'google' && (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-[10px] text-blue-700 font-semibold">
-                    New to You
-                  </span>
-                )}
-                {/* Source badge - show for Visited restaurants */}
-                {card.source === 'tip' && (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2 py-0.5 text-[10px] text-green-700 font-semibold">
-                    Visited
-                  </span>
-                )}
-                {/* Review badge */}
-                {(card.limitedRatingsText || card.reviewCountText) && (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] text-slate-600">
-                    {card.reviewCountText || card.limitedRatingsText}
-                  </span>
-                )}
-                {/* Service Speed badge */}
-                {card.serviceSpeedLabel && (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-[11px] text-blue-700 font-medium">
-                    {card.serviceSpeedLabel}
-                  </span>
-                )}
-                {/* Restaurant tags (1-2 most used) */}
-                {card.tags && card.tags.length > 0 && card.tags.map(tag => (
-                  <span key={tag} className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[10px] text-slate-600">
-                    {getTagLabel(tag)}
-                  </span>
-                ))}
+          <div className="flex-1 min-w-0">
+            <h3 className="font-medium text-[15px] truncate leading-tight">{card.name}</h3>
+            {/* Mileage and review count row */}
+            <div className="mt-0.5 flex items-center gap-1.5">
+              <div className="flex items-center text-xs text-slate-500">
+                <MapPin size={12} className="text-slate-500 mr-0.5" />
+                <span>{card.distanceLabel ?? '-'}</span>
               </div>
-            )}
+              {/* Review badge */}
+              {(card.limitedRatingsText || card.reviewCountText) && (
+                <span className="inline-flex items-center rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-600">
+                  {card.reviewCountText || card.limitedRatingsText}
+                </span>
+              )}
+            </div>
           </div>
-          <div className="absolute right-2 top-1.5">
+          <div className="absolute right-2 top-2">
             {card.badgeText && (
               <div
                 className="px-2 py-0.5 rounded-full"
@@ -233,17 +212,43 @@ const RestaurantListCard: React.FC<RestaurantListCardProps> = ({ card, onClick }
             )}
           </div>
         </div>
-        <div className="flex items-center justify-between mt-0.5">
-          <div className="flex items-center text-sm text-slate-600 space-x-2 pr-2">
+
+        {/* Address line with truncation */}
+        <div className="flex items-center justify-between mt-auto">
+          <div className="flex-1 min-w-0 pr-2">
             {card.subtitleText && (
-              <span ref={subtitleRef} className="line-clamp-2">
+              <span className="text-xs text-slate-600 truncate block">
                 {displaySubtitle}
               </span>
             )}
           </div>
-          <div className="flex items-center text-xs text-slate-500">
-            <MapPin size={14} className="text-slate-500 mr-1" />
-            <span>{card.distanceLabel ?? '-'}</span>
+
+          {/* Bottom right badges container */}
+          <div className="flex items-center gap-1 flex-shrink-0">
+            {/* Source badge - show for Google Places */}
+            {card.source === 'google' && (
+              <span className="inline-flex items-center rounded-full bg-blue-50 px-1.5 py-0.5 text-[9px] text-blue-700 font-semibold whitespace-nowrap">
+                New to You
+              </span>
+            )}
+            {/* Source badge - show for Visited restaurants */}
+            {card.source === 'tip' && (
+              <span className="inline-flex items-center rounded-full bg-green-50 px-1.5 py-0.5 text-[9px] text-green-700 font-semibold whitespace-nowrap">
+                Visited
+              </span>
+            )}
+            {/* Service Speed badge */}
+            {card.serviceSpeedLabel && (
+              <span className="inline-flex items-center rounded-full bg-blue-50 px-1.5 py-0.5 text-[9px] text-blue-700 font-medium whitespace-nowrap">
+                {card.serviceSpeedLabel}
+              </span>
+            )}
+            {/* Restaurant tags (1-2 most used) */}
+            {card.tags && card.tags.length > 0 && card.tags.slice(0, 2).map(tag => (
+              <span key={tag} className="inline-flex items-center rounded-full bg-slate-100 px-1.5 py-0.5 text-[9px] text-slate-600 whitespace-nowrap">
+                {getTagLabel(tag)}
+              </span>
+            ))}
           </div>
         </div>
       </div>
