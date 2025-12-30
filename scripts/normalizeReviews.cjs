@@ -17,14 +17,14 @@
     - createdAt: if missing but legacy `timestamp` exists (Timestamp or ISO string) -> set createdAt
     - isDeleted: if missing -> false
     - dishName: if missing and `dish` exists -> set dishName
-    - images[] -> media.photos[] if media.photos missing
+    - images[] -> media.photos[] (always set, even if empty array)
     - schemaVersion = 2
     - updatedAt = serverTimestamp() (always)
 
   If userId or restaurantId is missing:
-    - set isDeleted = true
-    - set normalizeError = "missing foreign key"
-    - do not attempt other inference
+    - NEW: Check for username and restaurantName as fallback
+    - If both human-readable names exist: recover review (clear errors, continue normalization)
+    - If missing human-readable names: quarantine (isDeleted=true, normalizeError="missing foreign key")
 
   Output totals at end: changed, skipped, quarantined.
 */
@@ -91,13 +91,27 @@ function buildUpdates(data) {
   const hasUserId = typeof data.userId === 'string' && data.userId.trim().length > 0;
   const hasRestaurantId = typeof data.restaurantId === 'string' && data.restaurantId.trim().length > 0;
 
+  // NEW: Check for human-readable fallback fields
+  const hasUsername = typeof data.username === 'string' && data.username.trim().length > 0;
+  const hasRestaurantName = typeof data.restaurantName === 'string' && data.restaurantName.trim().length > 0;
+
   if (!hasUserId || !hasRestaurantId) {
-    quarantined = true;
-    if (data.isDeleted !== true) updates.isDeleted = true;
-    if (data.normalizeError !== 'missing foreign key') updates.normalizeError = 'missing foreign key';
-    if (data.schemaVersion !== 2) updates.schemaVersion = 2;
-    updates.updatedAt = admin.firestore.FieldValue.serverTimestamp();
-    return { updates, quarantined };
+    // NEW: If we have human-readable names, allow recovery instead of deletion
+    if (hasUsername && hasRestaurantName) {
+      console.log(`[recover] Review has username="${data.username}" and restaurantName="${data.restaurantName}" but missing IDs - allowing normalization`);
+      // Clear any previous error state and continue with normalization
+      if (data.normalizeError) updates.normalizeError = admin.firestore.FieldValue.delete();
+      if (data.isDeleted === true) updates.isDeleted = false;
+      // Continue to normal normalization below (don't return early)
+    } else {
+      // No human-readable names - mark as quarantined
+      quarantined = true;
+      if (data.isDeleted !== true) updates.isDeleted = true;
+      if (data.normalizeError !== 'missing foreign key') updates.normalizeError = 'missing foreign key';
+      if (data.schemaVersion !== 2) updates.schemaVersion = 2;
+      updates.updatedAt = admin.firestore.FieldValue.serverTimestamp();
+      return { updates, quarantined };
+    }
   }
 
   // createdAt normalization
@@ -120,9 +134,15 @@ function buildUpdates(data) {
 
   // images -> media.photos (if media.photos missing)
   const photosMissing = !(data.media && Array.isArray(data.media.photos));
-  if (photosMissing && Array.isArray(data.images)) {
-    const photos = stringArray(data.images);
-    if (photos.length > 0) updates['media.photos'] = photos;
+  if (photosMissing) {
+    // NEW: Always set media.photos, even if empty, to prevent UI crashes
+    if (Array.isArray(data.images)) {
+      const photos = stringArray(data.images);
+      updates['media.photos'] = photos; // Set even if empty array
+    } else {
+      // No images array at all - set empty photos array
+      updates['media.photos'] = [];
+    }
   }
 
   // schema version

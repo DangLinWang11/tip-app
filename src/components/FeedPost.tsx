@@ -457,11 +457,19 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
   }, [isCarousel, carouselItems, currentIndex, id, dishId, dish, review]);
   const isVisitPost = Boolean(visitId) && isCarousel && (carouselItems?.length ?? 0) > 1;
 
-  // Helper function: comprehensive check for posts with no photos
+  // Helper function: comprehensive check for posts with no valid photos
   const hasNoPhotos = !mediaItems ||
                       mediaItems.length === 0 ||
                       (mediaItems.length === 1 && !mediaItems[0]) ||
-                      (mediaItems.length === 1 && typeof mediaItems[0] === 'object' && !mediaItems[0]?.imageUrl);
+                      (mediaItems.length === 1 && typeof mediaItems[0] === 'object' && !mediaItems[0]?.imageUrl) ||
+                      // Check if all mediaItems have invalid/empty imageUrls
+                      (Array.isArray(mediaItems) && mediaItems.every(item =>
+                        !item ||
+                        !item.imageUrl ||
+                        item.imageUrl === '' ||
+                        item.imageUrl === 'undefined' ||
+                        item.imageUrl === 'null'
+                      ));
 
   const hasMediaItems = Array.isArray(mediaItems) && mediaItems.length > 0 && !hasNoPhotos;
   const activeMediaItem =
@@ -2408,10 +2416,17 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
 
   // NEW: Layout selection logic - choose compact for ALL non-photo posts
   // This applies to: visit posts with no photos, single dish reviews with no photos
-  const isCompactPost = hasNoPhotos && (
+  const hasValidDishImage = dish?.image &&
+                            typeof dish.image === 'string' &&
+                            dish.image !== '' &&
+                            dish.image !== 'undefined' &&
+                            dish.image !== 'null';
+
+  const isCompactPost = (hasNoPhotos || !hasValidDishImage) && (
     (visitDishes && visitDishes.length > 0) || // Visit with dishes but no photos
     (dishId && !hasMediaItems) || // Single dish review with no photos
-    (review && !hasMediaItems) // Any review with no photos
+    (review && !hasMediaItems) || // Any review with no photos
+    (!hasValidDishImage && dish?.name) // Single dish with no valid image
   );
 
   if (isCompactPost) {
