@@ -2180,15 +2180,6 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
               )}
             </p>
           </div>
-          {/* Dots menu */}
-          <button
-            type="button"
-            onClick={() => setIsActionSheetOpen(true)}
-            className="p-1 text-gray-400 hover:text-gray-600"
-            aria-label="More options"
-          >
-            <DotsIcon size={20} />
-          </button>
         </div>
 
         {/* Caption */}
@@ -2285,7 +2276,7 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
               <span className="text-sm">{engagement.comments}</span>
             </button>
           </div>
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-2">
             <button
               onClick={() => setShowSaveModal(true)}
               className="flex items-center text-sm text-gray-600 hover:text-primary"
@@ -2306,6 +2297,14 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
               className="text-gray-600 hover:text-blue-500 transition-colors"
             >
               <ShareIcon size={18} />
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsActionSheetOpen(true)}
+              className="p-1 text-gray-400 hover:text-gray-600"
+              aria-label="More options"
+            >
+              <DotsIcon size={20} />
             </button>
           </div>
         </div>
