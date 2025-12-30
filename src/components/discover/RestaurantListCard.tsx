@@ -185,14 +185,20 @@ const RestaurantListCard: React.FC<RestaurantListCardProps> = ({ card, onClick }
       </div>
       <div className="px-2.5 py-2 flex-1 relative overflow-hidden flex flex-col justify-between h-full">
         <div className="flex justify-between items-start gap-2">
-          <div className="flex-1 min-w-0">
+          <div className="flex-1 min-w-0 max-w-[calc(100%-50px)]">
             <h3 className="font-medium text-[15px] truncate leading-tight">{card.name}</h3>
             {/* Mileage and review count row */}
-            <div className="mt-0.5 flex items-center gap-1.5">
+            <div className="mt-0.5 flex items-center gap-1.5 flex-wrap">
               <div className="flex items-center text-xs text-slate-500">
                 <MapPin size={12} className="text-slate-500 mr-0.5" />
                 <span>{card.distanceLabel ?? '-'}</span>
               </div>
+              {/* Restaurant tags (for Tip restaurants) - shown before review badge */}
+              {card.source === 'tip' && card.tags && card.tags.length > 0 && card.tags.slice(0, 2).map(tag => (
+                <span key={tag} className="inline-flex items-center rounded-full bg-slate-100 px-1.5 py-0.5 text-[9px] text-slate-600 whitespace-nowrap">
+                  {getTagLabel(tag)}
+                </span>
+              ))}
               {/* Review badge */}
               {(card.limitedRatingsText || card.reviewCountText) && (
                 <span className="inline-flex items-center rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-600">
@@ -223,7 +229,7 @@ const RestaurantListCard: React.FC<RestaurantListCardProps> = ({ card, onClick }
             )}
           </div>
 
-          {/* Bottom right badges container */}
+          {/* Bottom right: Only source badges (Visited/New to You) */}
           <div className="flex items-center gap-1 flex-shrink-0">
             {/* Source badge - show for Google Places */}
             {card.source === 'google' && (
@@ -237,18 +243,6 @@ const RestaurantListCard: React.FC<RestaurantListCardProps> = ({ card, onClick }
                 Visited
               </span>
             )}
-            {/* Service Speed badge */}
-            {card.serviceSpeedLabel && (
-              <span className="inline-flex items-center rounded-full bg-blue-50 px-1.5 py-0.5 text-[9px] text-blue-700 font-medium whitespace-nowrap">
-                {card.serviceSpeedLabel}
-              </span>
-            )}
-            {/* Restaurant tags (1-2 most used) */}
-            {card.tags && card.tags.length > 0 && card.tags.slice(0, 2).map(tag => (
-              <span key={tag} className="inline-flex items-center rounded-full bg-slate-100 px-1.5 py-0.5 text-[9px] text-slate-600 whitespace-nowrap">
-                {getTagLabel(tag)}
-              </span>
-            ))}
           </div>
         </div>
       </div>

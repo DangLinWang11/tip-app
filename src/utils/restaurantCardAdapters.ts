@@ -76,6 +76,12 @@ export function tipRestaurantToCardModel(restaurant: RestaurantWithExtras): Rest
     priceBadge = '$'.repeat(restaurant.priceLevel);
   }
 
+  // Handle address display - show "User added location" for missing or placeholder addresses
+  let subtitleText = restaurant.address || '';
+  if (!subtitleText || subtitleText.toLowerCase().includes('restaurant added')) {
+    subtitleText = 'User added location';
+  }
+
   return {
     id: restaurant.id,
     name: restaurant.name,
@@ -83,7 +89,7 @@ export function tipRestaurantToCardModel(restaurant: RestaurantWithExtras): Rest
     priceText: restaurant.priceRange,
     priceBadge,
     distanceLabel: restaurant.distanceLabel ?? null,
-    subtitleText: restaurant.address || '',
+    subtitleText,
     badgeText: q !== null ? `${q}%` : null,
     badgeColor: q !== null ? getQualityColor(q) : null,
     limitedRatingsText,
