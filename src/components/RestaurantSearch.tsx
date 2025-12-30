@@ -48,7 +48,7 @@ const RestaurantSearch: React.FC<RestaurantSearchProps> = ({
   const [selectedCuisine, setSelectedCuisine] = useState<string | null>(null);
   const [pendingRestaurantName, setPendingRestaurantName] = useState('');
   const { isLoaded: mapsLoaded } = useLoadScript({
-    googleMapsApiKey: 'AIzaSyDH-MgeMBC3_yvge3yLz_gaCl_2x8Ra6PY',
+    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
     libraries: ['places']
   });
   const [googlePlacePredictions, setGooglePlacePredictions] = useState<google.maps.places.AutocompletePrediction[]>([]);

@@ -5,14 +5,13 @@ import { getAnalytics } from 'firebase/analytics';
 
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBEzuZLNQo0SJ-zfq6IsBPbYKFj6NV6sAM",
-  authDomain: "tip-sarasotav2.firebaseapp.com",
-  projectId: "tip-sarasotav2",
-  // storageBucket must be the bucket name, not a URL/domain
-  storageBucket: "tip-sarasotav2.firebasestorage.app",
-  messagingSenderId: "279316450534",
-  appId: "1:279316450534:web:6386a22fe38591ef84ff27",
-  measurementId: "G-9RQW6H7238"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
 };
 
 // Initialize Firebase with error handling

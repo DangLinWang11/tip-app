@@ -69,7 +69,7 @@ export function FoodJourneyDialog({ open, onClose, markers, apiKey }: Props) {
 
   // Load Google Maps script
   const { isLoaded, loadError } = useLoadScript({
-    googleMapsApiKey: apiKey || 'AIzaSyDH-MgeMBC3_yvge3yLz_gaCl_2x8Ra6PY',
+    googleMapsApiKey: apiKey || import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
     libraries: ['places'],
   });
 

@@ -423,7 +423,7 @@ const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
 
           <div className="relative z-0 w-full h-full">
             <Wrapper
-              apiKey="AIzaSyDH-MgeMBC3_yvge3yLz_gaCl_2x8Ra6PY"
+              apiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY}
               render={render}
               libraries={['places']}
             />

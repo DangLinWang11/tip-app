@@ -1,7 +1,7 @@
 import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 
-const GOOGLE_MAPS_API_KEY = 'AIzaSyDH-MgeMBC3_yvge3yLz_gaCl_2x8Ra6PY';
+const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 const GOOGLE_MAPS_LIBRARIES = ['places'];
 
 type LatLngLiteral = { lat: number; lng: number };

@@ -67,7 +67,7 @@ const Step1Basic: React.FC = () => {
   const [dishCuisineOption, setDishCuisineOption] = useState('');
   const [customDishCuisine, setCustomDishCuisine] = useState('');
   const { isLoaded: mapsLoaded } = useLoadScript({
-    googleMapsApiKey: 'AIzaSyDH-MgeMBC3_yvge3yLz_gaCl_2x8Ra6PY',
+    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
     libraries
   });
   const [placePredictions, setPlacePredictions] = useState<google.maps.places.AutocompletePrediction[]>([]);
