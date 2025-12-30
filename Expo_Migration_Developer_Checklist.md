@@ -356,7 +356,7 @@ cp .env.example .env
 **Fill in values from your current PWA:**
 ```bash
 # Copy from tip/src/lib/firebase.ts
-EXPO_PUBLIC_FIREBASE_API_KEY=AIzaSyBEzuZLNQo0SJ-zfq6IsBPbYKFj6NV6sAM
+EXPO_PUBLIC_FIREBASE_API_KEY=your_actual_firebase_api_key_here
 EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN=tip-sarasotav2.firebaseapp.com
 EXPO_PUBLIC_FIREBASE_PROJECT_ID=tip-sarasotav2
 EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET=tip-sarasotav2.firebasestorage.app
@@ -449,7 +449,7 @@ View keystore
 **What to do:**
 ```bash
 # Set Firebase secrets
-eas secret:create --scope project --name EXPO_PUBLIC_FIREBASE_API_KEY --value "AIzaSyBEzuZLNQo0SJ-zfq6IsBPbYKFj6NV6sAM"
+eas secret:create --scope project --name EXPO_PUBLIC_FIREBASE_API_KEY --value "your_actual_firebase_api_key_here"
 
 eas secret:create --scope project --name EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN --value "tip-sarasotav2.firebaseapp.com"
 

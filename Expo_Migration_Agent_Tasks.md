@@ -444,7 +444,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 **File:** `.env.example`
 ```bash
 # Firebase Web SDK Config
-EXPO_PUBLIC_FIREBASE_API_KEY=AIzaSyBEzuZLNQo0SJ-zfq6IsBPbYKFj6NV6sAM
+EXPO_PUBLIC_FIREBASE_API_KEY=your_actual_firebase_api_key_here
 EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN=tip-sarasotav2.firebaseapp.com
 EXPO_PUBLIC_FIREBASE_PROJECT_ID=tip-sarasotav2
 EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET=tip-sarasotav2.firebasestorage.app
