@@ -28,20 +28,43 @@ const RecentActivity: React.FC = () => {
     loadRecentActivity();
   }, []);
 
+  // Helper to convert various timestamp formats to Date
+  const toDate = (timestamp: any): Date => {
+    if (!timestamp) return new Date();
+
+    // Already a Date object
+    if (timestamp instanceof Date) {
+      return timestamp;
+    }
+
+    // Firestore Timestamp with toDate method
+    if (timestamp.toDate && typeof timestamp.toDate === 'function') {
+      return timestamp.toDate();
+    }
+
+    // Plain object with seconds (Firestore Timestamp serialized)
+    if (timestamp.seconds) {
+      return new Date(timestamp.seconds * 1000);
+    }
+
+    // String or number
+    return new Date(timestamp);
+  };
+
   const loadRecentActivity = async () => {
     try {
       setLoading(true);
       const activityData = await getFollowingActivity(50); // Get more to filter to 30 days
-      
+
       // Filter to last 30 days
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      
+
       const recentActivities = activityData.filter((activity: any) => {
-        const activityDate = activity.timestamp.toDate();
+        const activityDate = toDate(activity.timestamp);
         return activityDate >= thirtyDaysAgo;
       });
-      
+
       setActivities(recentActivities);
       setError(null);
     } catch (err) {
@@ -54,7 +77,7 @@ const RecentActivity: React.FC = () => {
 
   const formatTimestamp = (timestamp: any): string => {
     const now = new Date();
-    const activityTime = timestamp.toDate();
+    const activityTime = toDate(timestamp);
     const diffInMs = now.getTime() - activityTime.getTime();
     const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
     const diffInDays = Math.floor(diffInHours / 24);

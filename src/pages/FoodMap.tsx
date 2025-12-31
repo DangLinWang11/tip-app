@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { MapIcon, TrendingUpIcon, StarIcon, ClockIcon, MessageCircleIcon, PlusIcon, MapPinIcon, ArrowLeft, Star, X, Edit2 } from 'lucide-react';
+import { MapIcon, TrendingUpIcon, StarIcon, ClockIcon, MessageCircleIcon, PlusIcon, ArrowLeft, Star, X, Edit2, MapPinIcon } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { fetchUserReviews, convertUserReviewsToFeedPosts, FirebaseReview, PersonalNote, addPersonalNote, updatePersonalNote, deletePersonalNote } from '../services/reviewService';
 import { getUserProfile, getCurrentUser } from '../lib/firebase';
+import LocationPinIcon from '../components/icons/LocationPinIcon';
 
 const FoodMap: React.FC = () => {
   const navigate = useNavigate();
@@ -93,7 +94,7 @@ const FoodMap: React.FC = () => {
     console.log(`Add note for visit ${visitId}`);
   };
 
-  // Feed-style compact timestamp (m, h, or MM/DD/YY)
+  // Feed-style compact timestamp (m, h, d, or MM/DD/YY)
   function formatRelativeTime(input: Date | number | string | any): string {
     const toMillis = (v: any) =>
       v && typeof v.seconds === 'number' && typeof v.nanoseconds === 'number'
@@ -109,9 +110,11 @@ const FoodMap: React.FC = () => {
     const diffMs = Math.max(0, now - then);
     const diffMin = Math.floor(diffMs / 60000);
     const diffHrs = Math.floor(diffMin / 60);
+    const diffDays = Math.floor(diffHrs / 24);
 
     if (diffHrs < 1) return `${Math.max(1, diffMin)}m`;
     if (diffHrs < 24) return `${diffHrs}h`;
+    if (diffDays < 30) return `${diffDays}d`;
 
     const d = new Date(then);
     const mm = d.getMonth() + 1;
@@ -229,21 +232,21 @@ const FoodMap: React.FC = () => {
       {/* Stats Cards */}
       <div className="px-4 py-6">
         <div className="grid grid-cols-4 gap-3 mb-6">
-          <div className="bg-white rounded-xl p-3 shadow-sm text-center">
+          <div className="bg-white rounded-xl p-3 shadow-sm border-2 border-gray-200 flex flex-col items-center justify-center">
             <p className="text-2xl font-bold text-primary">{userStats.averageRating}</p>
-            <p className="text-xs text-gray-500 font-medium">Average Rating</p>
+            <p className="text-xs text-gray-500 font-medium text-center">Average Rating</p>
           </div>
-          <div className="bg-white rounded-xl p-3 shadow-sm text-center">
+          <div className="bg-white rounded-xl p-3 shadow-sm border-2 border-gray-200 flex flex-col items-center justify-center">
             <p className="text-2xl font-bold text-primary">{userStats.totalRestaurants}</p>
-            <p className="text-xs text-gray-500 font-medium">Restaurants</p>
+            <p className="text-xs text-gray-500 font-medium text-center">Restaurants</p>
           </div>
-          <div className="bg-white rounded-xl p-3 shadow-sm text-center">
+          <div className="bg-white rounded-xl p-3 shadow-sm border-2 border-gray-200 flex flex-col items-center justify-center">
             <p className="text-2xl font-bold text-primary">{userStats.totalDishes}</p>
-            <p className="text-xs text-gray-500 font-medium">Dishes</p>
+            <p className="text-xs text-gray-500 font-medium text-center">Dishes</p>
           </div>
-          <div className="bg-white rounded-xl p-3 shadow-sm text-center">
+          <div className="bg-white rounded-xl p-3 shadow-sm border-2 border-gray-200 flex flex-col items-center justify-center">
             <p className="text-2xl font-bold text-primary">{userStats.pointsEarned}</p>
-            <p className="text-xs text-gray-500 font-medium">Points Earned</p>
+            <p className="text-xs text-gray-500 font-medium text-center">Points Earned</p>
           </div>
         </div>
 
@@ -289,42 +292,39 @@ const FoodMap: React.FC = () => {
                   filteredReviews.map((visit, index) => {
                   console.log('visit object:', visit);
                   return (
-                  <div 
+                  <div
                     key={visit.id || index}
                     onClick={() => handleVisitClick(index)}
-                    className="bg-white rounded-xl shadow-sm p-4 cursor-pointer hover:shadow-md transition-shadow"
+                    className="bg-white rounded-xl shadow-sm border-2 border-gray-200 p-4 cursor-pointer hover:shadow-md transition-shadow"
                   >
                     <div className="flex items-start justify-between mb-3">
-                      <div className="flex-1">
-                        <div className="flex items-center mb-1">
-                          <div className="w-10 h-10 min-w-[40px] min-h-[40px] bg-primary rounded-full flex items-center justify-center mr-3 flex-shrink-0">
-                            <span className="text-white font-bold text-[13px]">{Number(visit.dish?.rating ?? 0).toFixed(1)}</span>
-                          </div>
-                          <div>
-                            <h3 className="font-bold text-black">{visit.dish?.name || 'Unknown Dish'}</h3>
-                            <p className="text-sm text-gray-600 flex items-center">
-                              <MapPinIcon size={14} className="text-red-500 mr-1" />
-                              {visit.restaurant?.name || 'Unknown Restaurant'}
-                            </p>
-                          </div>
+                      <div className="flex-1 min-w-0 pr-3">
+                        <div className="mb-2">
+                          <h3 className="font-bold text-black truncate ml-6">{visit.dish?.name || 'Unknown Dish'}</h3>
+                          <p className="text-sm text-gray-600 flex items-center ml-6 truncate">
+                            <LocationPinIcon className="text-red-500 mr-1 flex-shrink-0" size={18} />
+                            <span className="truncate">{visit.restaurant?.name || 'Unknown Restaurant'}</span>
+                          </p>
                         </div>
-                        <div className="flex items-center gap-2 mb-2 ml-11">
+                        <div className="flex items-center gap-2 ml-6">
                           <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded-full text-xs">
                             Tried 1x
                           </span>
                           <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded-full text-xs">
                             Visited 1x
                           </span>
+                          <span className="text-xs text-gray-400 flex items-center">
+                            <span className="mx-1">•</span>
+                            {formatRelativeTime(
+                              (visit.review as any)?.createdAt ??
+                              (visit.review as any)?.createdAtMs ??
+                              visit.review?.date
+                            )}
+                          </span>
                         </div>
                       </div>
-                      <div className="text-right flex flex-col items-end">
-                        <p className="text-sm text-gray-500">{
-                          formatRelativeTime(
-                            (visit.review as any)?.createdAt ??
-                            (visit.review as any)?.createdAtMs ??
-                            visit.review?.date
-                          )
-                        }</p>
+                      <div className="ml-3 flex-shrink-0">
+                        <span className="text-primary font-bold text-2xl">{Number(visit.dish?.rating ?? 0).toFixed(1)}</span>
                       </div>
                     </div>
 

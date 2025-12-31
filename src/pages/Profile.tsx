@@ -763,12 +763,12 @@ const Profile: React.FC = () => {
           {/* Stats Cards - 2x2 Grid */}
           <div className="grid grid-cols-2 gap-3">
             {/* Reviews Card */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
-              <div className="flex items-center">
-                <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center mr-3">
+            <div className="bg-white rounded-2xl shadow-md border-2 border-gray-200 p-4">
+              <div className="flex items-center justify-center">
+                <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
                   <Star size={20} className="text-red-500" />
                 </div>
-                <div>
+                <div className="flex flex-col items-start">
                   <p className="text-2xl font-bold text-primary">{personalStats.totalReviews}</p>
                   <p className="text-sm text-gray-500">Reviews</p>
                 </div>
@@ -776,12 +776,12 @@ const Profile: React.FC = () => {
             </div>
 
             {/* Restaurants Card */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
-              <div className="flex items-center">
-                <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mr-3">
+            <div className="bg-white rounded-2xl shadow-md border-2 border-gray-200 p-4">
+              <div className="flex items-center justify-center">
+                <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
                   <StoreIcon size={20} className="text-blue-500" />
                 </div>
-                <div>
+                <div className="flex flex-col items-start">
                   <p className="text-2xl font-bold text-primary">{personalStats.restaurantsTried}</p>
                   <p className="text-sm text-gray-500">Restaurants</p>
                 </div>
@@ -789,12 +789,12 @@ const Profile: React.FC = () => {
             </div>
 
             {/* Average Rating Card */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
-              <div className="flex items-center">
-                <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center mr-3">
+            <div className="bg-white rounded-2xl shadow-md border-2 border-gray-200 p-4">
+              <div className="flex items-center justify-center">
+                <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
                   <TrendingUp size={20} className="text-green-500" />
                 </div>
-                <div>
+                <div className="flex flex-col items-start">
                   <p className="text-2xl font-bold text-primary">{personalStats.averageRating.toFixed(1)}</p>
                   <p className="text-sm text-gray-500">Avg Rating</p>
                 </div>
@@ -802,12 +802,12 @@ const Profile: React.FC = () => {
             </div>
 
             {/* Followers Card */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
-              <div className="flex items-center">
-                <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center mr-3">
+            <div className="bg-white rounded-2xl shadow-md border-2 border-gray-200 p-4">
+              <div className="flex items-center justify-center">
+                <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
                   <Users size={20} className="text-purple-500" />
                 </div>
-                <div>
+                <div className="flex flex-col items-start">
                   <p className="text-2xl font-bold text-primary">{followerCount}</p>
                   <p className="text-sm text-gray-500">Followers</p>
                 </div>
