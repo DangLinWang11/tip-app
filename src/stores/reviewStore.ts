@@ -80,19 +80,13 @@ export const useReviewStore = create<ReviewState>()(
     }),
     {
       name: 'tip-review-storage',
-      // OPTIMIZATION: Only persist minimal data to keep localStorage small and fast
-      // Heavy arrays (reviews, feedPosts, renderedFeedPosts) stay in memory only
+      // Persist feed data to prevent reload on navigation
       partialize: (state) => ({
-        // EXCLUDED from localStorage to prevent bloat and main thread blocking:
-        // - reviews (can be large, refetched easily)
-        // - feedPosts (can be large, refetched easily)
-        // - renderedFeedPosts (memory-only, rebuilt on demand)
-
-        // INCLUDED in localStorage (small, critical):
-        lastFetched: state.lastFetched, // Just a timestamp, tiny
-        scrollPosition: state.scrollPosition, // Just a number, tiny
-        // Note: We keep the cache timestamp so we know when to refetch
-        // but we don't persist the actual data to avoid slow JSON.parse
+        reviews: state.reviews,
+        feedPosts: state.feedPosts,
+        renderedFeedPosts: state.renderedFeedPosts,
+        lastFetched: state.lastFetched,
+        scrollPosition: state.scrollPosition,
       }),
     }
   )
