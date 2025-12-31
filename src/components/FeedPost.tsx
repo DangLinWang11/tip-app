@@ -196,6 +196,11 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
   const isOwnPost = currentUser?.uid === author?.id;
   const displayAuthorName = isOwnPost ? 'You' : (author?.name || 'Unknown');
 
+  // Sync local follow state when prop changes (e.g., when navigating back to home)
+  useEffect(() => {
+    setIsFollowingUser(isFollowingAuthor);
+  }, [isFollowingAuthor]);
+
   // Feature flags
   const showLikesComments = useFeature('LIKES_COMMENTS');
   const showSocialSharing = useFeature('SOCIAL_SHARING');

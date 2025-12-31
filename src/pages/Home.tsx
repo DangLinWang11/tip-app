@@ -9,6 +9,7 @@ import { fetchReviewsWithCache, fetchReviewsPaginated, convertReviewsToFeedPosts
 import { auth, getUserProfile, getCurrentUser } from '../lib/firebase';
 import { getFollowing } from '../services/followService';
 import { useReviewStore } from '../stores/reviewStore';
+import { useFollowStore } from '../stores/followStore';
 import mapPreview from "../assets/map-preview.png";
 // Defer heavy map code: code-split ExpandedMapModal and avoid inline map
 const ExpandedMapModal = React.lazy(() => import('../components/ExpandedMapModal'));
@@ -43,13 +44,21 @@ const Home: React.FC = () => {
   const clearCache = useReviewStore(state => state.clearCache);
   const setScrollPosition = useReviewStore(state => state.setScrollPosition); // NEW: Action to save scroll
 
+  // Follow state from Zustand (persisted)
+  const followingIds = useFollowStore(state => state.followingIds);
+  const setFollowingIds = useFollowStore(state => state.setFollowingIds);
+  const addFollowing = useFollowStore(state => state.addFollowing);
+  const removeFollowing = useFollowStore(state => state.removeFollowing);
+  const clearFollowing = useFollowStore(state => state.clearFollowing);
+  const updateFollowFetched = useFollowStore(state => state.updateLastFetched);
+  const isFollowStale = useFollowStore(state => state.isStale);
+
   // Local state (not in Zustand)
   const [userReviews, setUserReviews] = useState<FirebaseReview[]>([]);
   const [userProfile, setUserProfile] = useState<any>(null);
   const [profileLoading, setProfileLoading] = useState(true);
   const [showExpandedMap, setShowExpandedMap] = useState(false);
   const [authUser, setAuthUser] = useState(() => getCurrentUser());
-  const [followingIds, setFollowingIds] = useState<Set<string>>(new Set());
 
   // NEW: Non-blocking hydration state
   const [isHydrated, setIsHydrated] = useState(false);
@@ -223,13 +232,13 @@ const Home: React.FC = () => {
         setUserProfile(null);
         console.trace('[Home][auth] clearing userReviews/firebaseReviews/feedPosts due to sign-out');
         setUserReviews([]);
-        setFollowingIds(new Set());
+        clearFollowing();
       }
       setAuthUser(user);
     });
 
     return () => unsubscribe();
-  }, [clearCache]);
+  }, [clearCache, clearFollowing]);
   
   // Initialize data on mount: load from network only if cache is stale or missing
   // IMPORTANT: Only run after store hydration is complete to avoid race conditions
@@ -325,13 +334,22 @@ const Home: React.FC = () => {
             setUserProfile(profileResult.profile);
           }
 
-          // Load following relationships
+          // Load following relationships (only if stale or empty)
           try {
-            const followingList = await getFollowing(currentUser.uid);
-            followingSet = new Set(followingList.map((f) => f.followingId));
-            setFollowingIds(followingSet);
+            if (isFollowStale() || followingIds.size === 0) {
+              console.log('[Home][init] Fetching fresh following list...');
+              const followingList = await getFollowing(currentUser.uid);
+              followingSet = new Set(followingList.map((f) => f.followingId));
+              setFollowingIds(followingSet);
+              updateFollowFetched();
+            } else {
+              console.log('[Home][init] Using cached following list', { count: followingIds.size });
+              followingSet = followingIds;
+            }
           } catch (followErr) {
             console.error('[Home][init] Failed to load following list', followErr);
+            // Fall back to cached followingIds if fetch fails
+            followingSet = followingIds;
           }
         }
         setProfileLoading(false);
@@ -682,16 +700,12 @@ const Home: React.FC = () => {
 
   // Memoized callback - stable reference across renders
   const handleFollowChange = useCallback((userId: string, isFollowing: boolean) => {
-    setFollowingIds((prev) => {
-      const next = new Set(prev);
-      if (isFollowing) {
-        next.add(userId);
-      } else {
-        next.delete(userId);
-      }
-      return next;
-    });
-  }, []);
+    if (isFollowing) {
+      addFollowing(userId);
+    } else {
+      removeFollowing(userId);
+    }
+  }, [addFollowing, removeFollowing]);
 
   // Load more posts for infinite scroll
   const loadMorePosts = useCallback(async () => {
