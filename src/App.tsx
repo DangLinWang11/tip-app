@@ -177,7 +177,7 @@ export function App() {
         });
       }
     });
-    
+
     // Cleanup listener on unmount
     return () => unsubscribe();
   }, []);

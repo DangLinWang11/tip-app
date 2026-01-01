@@ -2,6 +2,7 @@ import './index.css';
 import React from "react";
 import { createRoot } from "react-dom/client";
 import { App } from "./App";
+import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
 
 // ZUSTAND CACHE CLEAR: Clear stale/corrupted localStorage data on version change
 const APP_VERSION = '1.0.1'; // Increment this to force cache clear
@@ -37,6 +38,13 @@ if (storedVersion !== APP_VERSION || resetFlag === 'true') {
 
   console.log('✅ [Cache] localStorage cleared and version updated');
 }
+
+// Initialize Google Auth
+GoogleAuth.initialize({
+  clientId: '279316450534-2o56qqf5vd4itng7av4nddp2mtln9clv.apps.googleusercontent.com',
+  scopes: ['profile', 'email'],
+  grantOfflineAccess: true,
+});
 
 const rootElement = document.getElementById("root");
 if (!rootElement) throw new Error('Failed to find the root element');

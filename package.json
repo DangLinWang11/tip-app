@@ -11,6 +11,10 @@
     "test:rules": "node tip/scripts/testFirestoreRules.js"
   },
   "dependencies": {
+    "@capacitor/android": "^8.0.0",
+    "@capacitor/cli": "^8.0.0",
+    "@capacitor/core": "^8.0.0",
+    "@codetrix-studio/capacitor-google-auth": "^3.4.0-rc.4",
     "@googlemaps/react-wrapper": "^1.2.0",
     "@react-google-maps/api": "^2.20.7",
     "@tanstack/react-virtual": "^3.13.13",

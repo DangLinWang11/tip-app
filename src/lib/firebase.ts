@@ -1,7 +1,9 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, User, updatePassword, reauthenticateWithCredential, EmailAuthProvider, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, User, updatePassword, reauthenticateWithCredential, EmailAuthProvider, signInWithPopup, signInWithCredential, GoogleAuthProvider } from 'firebase/auth';
 import { getFirestore, doc, setDoc, getDoc, updateDoc, deleteDoc, serverTimestamp, collection, query, where, getDocs, enableIndexedDbPersistence } from 'firebase/firestore';import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { getAnalytics } from 'firebase/analytics';
+import { Capacitor } from '@capacitor/core';
+import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
 
 
 const firebaseConfig = {
@@ -262,52 +264,36 @@ export const signInWithGoogle = async (): Promise<{ success: boolean; user?: Use
 
   try {
     console.log('🔐 Signing in with Google...');
-    
-    const provider = new GoogleAuthProvider();
-    const userCredential = await signInWithPopup(auth, provider);
-    const user = userCredential.user;
-    
-    console.log('✅ Google sign-in successful', { uid: user.uid, email: user.email });
-    return { success: true, user };
+
+    const isNativePlatform = Capacitor.isNativePlatform();
+
+    if (isNativePlatform) {
+      // Use Capacitor Google Auth plugin on mobile
+      const googleUser = await GoogleAuth.signIn();
+
+      // Create Firebase credential from Google token
+      const credential = GoogleAuthProvider.credential(googleUser.authentication.idToken);
+      const userCredential = await signInWithCredential(auth, credential);
+
+      console.log('✅ Google sign-in successful (native)', { uid: userCredential.user.uid });
+      return { success: true, user: userCredential.user };
+
+    } else {
+      // Use popup on web
+      const provider = new GoogleAuthProvider();
+      const userCredential = await signInWithPopup(auth, provider);
+
+      console.log('✅ Google sign-in successful (web)', { uid: userCredential.user.uid });
+      return { success: true, user: userCredential.user };
+    }
+
   } catch (error: any) {
     console.error('❌ Google sign-in failed:', error);
 
     let errorMessage = 'Failed to sign in with Google';
 
-    // Check if this is a popup cancellation (user closed the dialog)
-    const isPopupCancellation =
-      error.code === 'auth/popup-closed-by-user' ||
-      error.code === 'auth/cancelled-popup-request' ||
-      (error.message && error.message.toLowerCase().includes('popup') &&
-       (error.message.toLowerCase().includes('closed') || error.message.toLowerCase().includes('cancel')));
-
-    switch (error.code) {
-      case 'auth/popup-closed-by-user':
-      case 'auth/cancelled-popup-request':
-        errorMessage = 'Sign-in popup was closed';
-        break;
-      case 'auth/popup-blocked':
-        errorMessage = 'Sign-in popup was blocked by browser';
-        break;
-      case 'auth/network-request-failed':
-        // Only show network error if it's not a popup cancellation
-        if (!isPopupCancellation) {
-          errorMessage = 'Network error. Please check your internet connection';
-        } else {
-          errorMessage = 'Sign-in popup was closed';
-        }
-        break;
-      case 'auth/invalid-credential':
-        errorMessage = 'Invalid Google credentials';
-        break;
-      default:
-        // Check if the error message suggests popup cancellation
-        if (isPopupCancellation) {
-          errorMessage = 'Sign-in popup was closed';
-        } else {
-          errorMessage = error.message || 'Unknown error occurred during Google sign-in';
-          console.error('🔍 Unhandled Google auth error code:', error.code, error.message);
-        }
+    if (error.code === 'auth/popup-closed-by-user' || error.message?.includes('popup')) {
+      errorMessage = 'Sign-in popup was closed';
     }
 
     return { success: false, error: errorMessage };
