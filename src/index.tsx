@@ -41,7 +41,7 @@ if (storedVersion !== APP_VERSION || resetFlag === 'true') {
 
 // Initialize Google Auth
 GoogleAuth.initialize({
-  clientId: '279316450534-2o56qqf5vd4itng7av4nddp2mtln9clv.apps.googleusercontent.com',
+  clientId: '279316450534-fo43car2agmbd1p4uujgsoqegkjkb9b6.apps.googleusercontent.com',
   scopes: ['profile', 'email'],
   grantOfflineAccess: true,
 });
