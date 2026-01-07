@@ -8,9 +8,10 @@ interface ProgressStep {
 interface ProgressBarProps {
   steps: ProgressStep[];
   currentStep: number;
+  onStepClick?: (stepIndex: number) => void;
 }
 
-const ProgressBar: React.FC<ProgressBarProps> = ({ steps, currentStep }) => {
+const ProgressBar: React.FC<ProgressBarProps> = ({ steps, currentStep, onStepClick }) => {
   return (
     <div className="mb-2 pb-2">
       <div className="relative pt-2">
@@ -32,19 +33,32 @@ const ProgressBar: React.FC<ProgressBarProps> = ({ steps, currentStep }) => {
         <div className="relative z-10 flex justify-between px-4">
           {steps.map((step, index) => {
             const isActive = index <= currentStep;
+            const isCurrent = index === currentStep;
             return (
-              <div key={step.key} className="flex flex-col items-center">
+              <button
+                key={step.key}
+                type="button"
+                onClick={() => onStepClick?.(index)}
+                className="flex flex-col items-center cursor-pointer group"
+                disabled={!onStepClick}
+              >
                 <div
-                  className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold transition-colors ${
-                    isActive ? 'bg-red-500 text-white shadow-lg shadow-red-200/60' : 'bg-white border border-slate-200 text-slate-400'
-                  }`}
+                  className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold transition-all ${
+                    isActive
+                      ? 'bg-red-500 text-white shadow-lg shadow-red-200/60'
+                      : 'bg-white border border-slate-200 text-slate-400'
+                  } ${onStepClick && !isCurrent ? 'group-hover:scale-110 group-hover:shadow-xl' : ''}`}
                 >
                   {index + 1}
                 </div>
-                <span className={`mt-2 text-xs font-medium text-center ${isActive ? 'text-slate-900' : 'text-slate-400'}`}>
+                <span
+                  className={`mt-2 text-xs font-medium text-center transition-colors ${
+                    isActive ? 'text-slate-900' : 'text-slate-400'
+                  } ${onStepClick && !isCurrent ? 'group-hover:text-red-500' : ''}`}
+                >
                   {step.label}
                 </span>
-              </div>
+              </button>
             );
           })}
         </div>

@@ -565,6 +565,11 @@ const Wizard: React.FC = () => {
     setCurrentStep((step) => Math.max(step - 1, 0));
   }, [autosaveImmediate]);
 
+  const goToStep = useCallback((stepIndex: number) => {
+    autosaveImmediate(); // Save immediately before navigation
+    setCurrentStep(Math.max(0, Math.min(stepIndex, 2)));
+  }, [autosaveImmediate]);
+
   const toggleDishExpanded = useCallback((dishId: string) => {
     setExpandedDishIds(prev =>
       prev.includes(dishId)
@@ -800,7 +805,7 @@ const Wizard: React.FC = () => {
               {autosaveState === 'error' && t('createWizard.status.error')}
             </span>
           </div>
-          <div className="mb-3"><ProgressBar steps={steps} currentStep={currentStep} /></div>
+          <div className="mb-3"><ProgressBar steps={steps} currentStep={currentStep} onStepClick={goToStep} /></div>
         </div>
         <AnimatePresence mode="wait">
           <motion.div

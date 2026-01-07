@@ -19,6 +19,7 @@ const RatingSlider: React.FC<RatingSliderProps> = ({
 }) => {
   const sliderRef = useRef<HTMLDivElement>(null);
   const isDragging = useRef(false);
+  const [isActive, setIsActive] = React.useState(false);
 
   const clamp = useCallback((val: number) => Math.max(min, Math.min(max, val)), [min, max]);
 
@@ -35,6 +36,7 @@ const RatingSlider: React.FC<RatingSliderProps> = ({
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     isDragging.current = true;
+    setIsActive(true);
     updateValue(e.clientX);
     e.preventDefault();
   }, [updateValue]);
@@ -47,25 +49,32 @@ const RatingSlider: React.FC<RatingSliderProps> = ({
 
   const handleMouseUp = useCallback(() => {
     isDragging.current = false;
+    setIsActive(false);
   }, []);
 
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     isDragging.current = true;
+    setIsActive(true);
     const touch = e.touches[0];
-    updateValue(touch.clientX);
+    if (touch) {
+      updateValue(touch.clientX);
+    }
     e.preventDefault();
   }, [updateValue]);
 
   const handleTouchMove = useCallback((e: TouchEvent) => {
     if (isDragging.current && e.touches.length > 0) {
       const touch = e.touches[0];
-      updateValue(touch.clientX);
+      if (touch) {
+        updateValue(touch.clientX);
+      }
       e.preventDefault();
     }
   }, [updateValue]);
 
   const handleTouchEnd = useCallback(() => {
     isDragging.current = false;
+    setIsActive(false);
   }, []);
 
   React.useEffect(() => {
@@ -101,7 +110,7 @@ const RatingSlider: React.FC<RatingSliderProps> = ({
       ) : null}
       <div
         ref={sliderRef}
-        className="relative h-2 bg-light-gray rounded-full cursor-pointer select-none"
+        className="relative h-2 bg-slate-200 rounded-full cursor-pointer select-none py-4 -my-4"
         onMouseDown={handleMouseDown}
         onTouchStart={handleTouchStart}
         style={{ touchAction: 'none' }}
@@ -118,13 +127,29 @@ const RatingSlider: React.FC<RatingSliderProps> = ({
           tabIndex={0}
         />
         <div
-          className="absolute h-full bg-red-500 rounded-full transition-all duration-75 ease-out"
-          style={{ width: `${percentage}%` }}
+          className="absolute h-2 top-4 bg-red-500 rounded-full pointer-events-none"
+          style={{
+            width: `${percentage}%`,
+            transition: isDragging.current ? 'none' : 'width 0.1s ease-out'
+          }}
         />
         <div
-          className="absolute w-4 h-4 bg-white border-2 border-red-500 rounded-full -mt-1 transition-all duration-75 ease-out shadow-sm"
-          style={{ left: `calc(${percentage}% - 0.5rem)` }}
-        />
+          className="absolute top-1/2 flex items-center justify-center pointer-events-none"
+          style={{
+            left: `${percentage}%`,
+            transform: 'translate(-50%, -50%)',
+            transition: isDragging.current ? 'none' : 'left 0.1s ease-out'
+          }}
+        >
+          {/* Large invisible touch target */}
+          <div className="absolute w-12 h-12 rounded-full" />
+          {/* Visible handle with scale effect when active */}
+          <div
+            className={`w-6 h-6 bg-white border-2 border-red-500 rounded-full shadow-lg transition-transform ${
+              isActive ? 'scale-125' : 'scale-100'
+            }`}
+          />
+        </div>
       </div>
     </div>
   );
