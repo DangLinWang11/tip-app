@@ -213,6 +213,8 @@ const StepVisit: React.FC = () => {
     const fetchRestaurants = async () => {
       try {
         setLoadingRestaurants(true);
+        // Fetch all restaurants for now (Phase 1)
+        // TODO Phase 2: Use geohash queries to filter by location
         const snapshot = await getDocs(collection(db, 'restaurants'));
         const list: RestaurantOption[] = snapshot.docs.map((docSnap) => ({
           id: docSnap.id,
@@ -251,10 +253,56 @@ const StepVisit: React.FC = () => {
   }, [userLocation, showLocationBanner, requestingLocation, mapsLoaded, requestLocationPermission]);
 
   const filteredRestaurants = useMemo(() => {
-    if (!restaurantQuery.trim()) return restaurants.slice(0, 6);
-    const lower = restaurantQuery.toLowerCase();
-    return restaurants.filter((restaurant) => restaurant.name.toLowerCase().includes(lower)).slice(0, 6);
-  }, [restaurantQuery, restaurants]);
+    let filtered = restaurants;
+
+    // Apply search filter if query exists
+    if (restaurantQuery.trim()) {
+      const lower = restaurantQuery.toLowerCase();
+      filtered = filtered.filter((restaurant) => restaurant.name.toLowerCase().includes(lower));
+    }
+
+    // Calculate distances and sort intelligently
+    const restaurantsWithDistance = filtered.map((restaurant) => {
+      const distance = userLocation && restaurant.coordinates
+        ? calculateDistance(
+            userLocation.lat,
+            userLocation.lng,
+            restaurant.coordinates.lat || restaurant.coordinates.latitude || 0,
+            restaurant.coordinates.lng || restaurant.coordinates.longitude || 0
+          )
+        : undefined;
+
+      return {
+        ...restaurant,
+        calculatedDistance: distance
+      };
+    });
+
+    // Sort by: distance (if available), then quality score, then name
+    restaurantsWithDistance.sort((a, b) => {
+      // Priority 1: If user has location, sort by distance first
+      if (userLocation) {
+        const distA = a.calculatedDistance ?? Infinity;
+        const distB = b.calculatedDistance ?? Infinity;
+        if (distA !== distB) {
+          return distA - distB; // Closer restaurants first
+        }
+      }
+
+      // Priority 2: Sort by quality score (higher is better)
+      const scoreA = a.qualityScore ?? 0;
+      const scoreB = b.qualityScore ?? 0;
+      if (scoreA !== scoreB) {
+        return scoreB - scoreA; // Higher quality first
+      }
+
+      // Priority 3: Alphabetical by name
+      return a.name.localeCompare(b.name);
+    });
+
+    // Limit results
+    return restaurantsWithDistance.slice(0, 10);
+  }, [restaurantQuery, restaurants, userLocation]);
 
   const handleFileInput = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
@@ -607,20 +655,13 @@ const StepVisit: React.FC = () => {
                   </div>
                 )}
                 <div className="mb-4 space-y-1.5">
-                  <p className="text-xs uppercase tracking-wide text-slate-400">Saved Restaurants</p>
+                  <p className="text-xs uppercase tracking-wide text-slate-400">
+                    {userLocation ? 'Nearby Restaurants' : 'Popular Restaurants'}
+                  </p>
                   {filteredRestaurants.length > 0 ? (
                     filteredRestaurants.map((restaurant) => {
-                      const distanceFromUser =
-                        typeof restaurant.distance === 'number'
-                          ? restaurant.distance
-                          : userLocation && restaurant.coordinates
-                            ? calculateDistance(
-                                userLocation.lat,
-                                userLocation.lng,
-                                restaurant.coordinates.lat || restaurant.coordinates.latitude || 0,
-                                restaurant.coordinates.lng || restaurant.coordinates.longitude || 0
-                              )
-                            : undefined;
+                      // Use pre-calculated distance from filteredRestaurants
+                      const distanceFromUser = (restaurant as any).calculatedDistance;
 
                       return (
                       <button
@@ -634,8 +675,8 @@ const StepVisit: React.FC = () => {
                             <MapPin className="w-4 h-4 text-gray-400 flex-shrink-0 mt-0.5" />
                             <div className="min-w-0">
                               <p className="text-sm font-semibold text-slate-900 truncate">{restaurant.name}</p>
-                              {restaurant.location?.formatted && (
-                                <p className="text-xs text-slate-500 truncate">{restaurant.location.formatted}</p>
+                              {restaurant.address && (
+                                <p className="text-xs text-slate-500 truncate">{restaurant.address}</p>
                               )}
                             </div>
                           </div>

@@ -1743,6 +1743,7 @@ export const convertVisitToCarouselFeedPost = async (reviews: FirebaseReview[]) 
   });
 
   // Step 2: Build dish media items in original review order (preserve wizard order)
+  // IMPORTANT: Skip dish photos that are already in visitMedia to avoid duplicates
   const dishMediaItems: FeedMediaItem[] = [];
   reviews.forEach((review) => {
     const imgs = getReviewImages(review);
@@ -1750,6 +1751,10 @@ export const convertVisitToCarouselFeedPost = async (reviews: FirebaseReview[]) 
     // Ensure the first image is valid (getReviewImages already filters, but be defensive)
     const firstImage = imgs[0];
     if (typeof firstImage === 'string' && firstImage.trim().length > 0) {
+      // Skip if this image is already used as visitMedia
+      if (visitMediaUrls.has(firstImage)) {
+        return;
+      }
       const thumbnails = generateThumbnailUrls(firstImage);
       dishMediaItems.push({
         id: `dish-${review.id}`,
@@ -1765,6 +1770,7 @@ export const convertVisitToCarouselFeedPost = async (reviews: FirebaseReview[]) 
   });
 
   // Step 3: Fallback when no visitMedia photos exist
+  // Create a synthetic visit item using the first available dish photo
   if (visitMediaItems.length === 0) {
     const fallbackSource = reviews.find((r) => getReviewImages(r).length > 0) || mainReview;
     const fallbackImages = getReviewImages(fallbackSource);
@@ -1772,6 +1778,8 @@ export const convertVisitToCarouselFeedPost = async (reviews: FirebaseReview[]) 
       const fallbackUrl = fallbackImages[0];
       // Ensure fallback URL is valid before adding
       if (typeof fallbackUrl === 'string' && fallbackUrl.trim().length > 0) {
+        // Track this URL to prevent duplicates
+        visitMediaUrls.add(fallbackUrl);
         const thumbnails = generateThumbnailUrls(fallbackUrl);
         visitMediaItems.push({
           id: `visit-fallback-${fallbackSource.id}`,
@@ -1783,6 +1791,11 @@ export const convertVisitToCarouselFeedPost = async (reviews: FirebaseReview[]) 
           dishName: fallbackSource.dish,
           rating: fallbackSource.rating,
         });
+        // CRITICAL: Remove this dish from dishMediaItems to prevent duplicate
+        const duplicateIndex = dishMediaItems.findIndex(item => item.imageUrl === fallbackUrl);
+        if (duplicateIndex !== -1) {
+          dishMediaItems.splice(duplicateIndex, 1);
+        }
       }
     }
   }
