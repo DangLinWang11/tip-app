@@ -2,7 +2,7 @@ import './index.css';
 import React from "react";
 import { createRoot } from "react-dom/client";
 import { App } from "./App";
-import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
+import { Capacitor } from '@capacitor/core';
 
 // ZUSTAND CACHE CLEAR: Clear stale/corrupted localStorage data on version change
 const APP_VERSION = '1.0.1'; // Increment this to force cache clear
@@ -39,12 +39,22 @@ if (storedVersion !== APP_VERSION || resetFlag === 'true') {
   console.log('✅ [Cache] localStorage cleared and version updated');
 }
 
-// Initialize Google Auth
-GoogleAuth.initialize({
-  clientId: '279316450534-fo43car2agmbd1p4uujgsoqegkjkb9b6.apps.googleusercontent.com',
-  scopes: ['profile', 'email'],
-  grantOfflineAccess: true,
-});
+// Initialize Google Auth (only on native platforms - Android/iOS)
+// On web PWA, Firebase popup authentication is used instead
+if (Capacitor.isNativePlatform()) {
+  import('@codetrix-studio/capacitor-google-auth').then(({ GoogleAuth }) => {
+    GoogleAuth.initialize({
+      clientId: '279316450534-fo43car2agmbd1p4uujgsoqegkjkb9b6.apps.googleusercontent.com',
+      scopes: ['profile', 'email'],
+      grantOfflineAccess: true,
+    });
+    console.log('✅ GoogleAuth initialized for native platform');
+  }).catch(error => {
+    console.error('❌ Failed to initialize GoogleAuth:', error);
+  });
+} else {
+  console.log('ℹ️ Running on web - GoogleAuth skipped (using Firebase popup auth)');
+}
 
 const rootElement = document.getElementById("root");
 if (!rootElement) throw new Error('Failed to find the root element');
