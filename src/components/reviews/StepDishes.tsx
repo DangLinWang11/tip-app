@@ -24,6 +24,9 @@ const StepDishes: React.FC = () => {
     goBack,
     showReward,
     selectedRestaurant,
+    expandedDishIds,
+    toggleDishExpanded,
+    setExpandedDishIds,
   } = useReviewWizard();
 
   const [menuItems, setMenuItems] = useState<DishRecord[]>([]);
@@ -32,9 +35,6 @@ const StepDishes: React.FC = () => {
   const [addingMenuItem, setAddingMenuItem] = useState(false);
   const [customCuisineInputs, setCustomCuisineInputs] = useState<Record<string, string>>({});
   const [customCuisineSelections, setCustomCuisineSelections] = useState<Record<string, boolean>>({});
-
-  // Use expandedDishIds and toggleDishExpanded from context
-  const { expandedDishIds, toggleDishExpanded, setExpandedDishIds } = useWizardContext();
 
   // Initialize expandedDishIds with first dish if empty
   useEffect(() => {
