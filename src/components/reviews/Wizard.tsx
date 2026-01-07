@@ -11,7 +11,7 @@ import StepWrapUp from './StepWrapUp';
 import RewardToast from './RewardToast';
 import { fileToPreview, processAndUploadImage, processAndUploadVideo, revokePreview } from '../../lib/media';
 import { ReviewDraft, VisitDraft, DishDraft, DishCategory, MealTimeTag } from '../../dev/types/review';
-import { LocalMediaItem, RestaurantOption, WizardContextValue, WizardStepKey, MultiDishCreateState } from './types';
+import { LocalMediaItem, RestaurantOption, WizardContextValue, WizardStepKey, MultiDishCreateState, MediaItemDraft, WizardUIState } from './types';
 import { WizardContext } from './WizardContext';
 import { useFeature } from '../../utils/features';
 import { buildExplicitTags, buildDerivedTags, buildMealTimeTags, buildServiceSpeedTags } from '../../data/tagDefinitions';
@@ -210,6 +210,7 @@ const Wizard: React.FC = () => {
   const [rewardToast, setRewardToast] = useState<{ key: 'taste' | 'compare' | 'submit' | 'media' | 'dishes'; message: string } | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [autosaveState, setAutosaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const [expandedDishIds, setExpandedDishIds] = useState<string[]>([]);
   const autosaveTimeout = useRef<number>();
   const lastStorageKeyRef = useRef<string | null>(null);
   const rewardHistoryRef = useRef<Record<'taste' | 'compare' | 'submit' | 'media' | 'dishes', boolean>>({
@@ -311,8 +312,33 @@ const Wizard: React.FC = () => {
       const stored = localStorage.getItem(buildStorageKey(userId, null));
       if (stored) {
         const parsed = JSON.parse(stored) as MultiDishCreateState;
+
+        // Restore visit and dishes
         setVisitDraft(parsed.visit);
         setDishDrafts(parsed.dishes);
+
+        // Restore media items
+        if (parsed.mediaItems && parsed.mediaItems.length > 0) {
+          const restoredMedia: LocalMediaItem[] = parsed.mediaItems
+            .filter(m => m.downloadURL && !m.downloadURL.startsWith('blob:')) // Validate URLs
+            .map(m => ({
+              id: m.id,
+              kind: m.kind,
+              previewUrl: m.downloadURL,  // Use Firebase URL as preview
+              downloadURL: m.downloadURL,
+              storagePath: m.storagePath,
+              status: 'uploaded' as const
+            }));
+          setMediaItems(restoredMedia);
+        }
+
+        // Restore UI state
+        if (parsed.uiState) {
+          setCurrentStep(parsed.uiState.currentStep);
+          setActiveDishIndex(parsed.uiState.activeDishIndex);
+          setExpandedDishIds(parsed.uiState.expandedDishIds || []);
+        }
+
         setAutosaveState('saved');
       }
     } catch (error) {
@@ -336,23 +362,82 @@ const Wizard: React.FC = () => {
     setAutosaveState('saving');
     autosaveTimeout.current = window.setTimeout(() => {
       try {
-        const state: MultiDishCreateState = { visit: visitDraft, dishes: dishDrafts };
+        // Build media items draft (only uploaded with Firebase URLs)
+        const mediaItemsDraft: MediaItemDraft[] = mediaItems
+          .filter(m => {
+            // CRITICAL: Only save uploaded media with valid Firebase URLs
+            return m.status === 'uploaded' &&
+                   m.downloadURL &&
+                   !m.downloadURL.startsWith('blob:'); // Explicitly filter blob URLs
+          })
+          .map(m => ({
+            id: m.id,
+            kind: m.kind,
+            downloadURL: m.downloadURL!,
+            storagePath: m.storagePath,
+            status: 'uploaded' as const,
+            attachedToDishes: dishDrafts
+              .filter(dish => dish.mediaIds.includes(m.id))
+              .map(dish => dish.id)
+          }));
+
+        // Build UI state
+        const uiState: WizardUIState = {
+          currentStep,
+          activeDishIndex,
+          expandedDishIds
+        };
+
+        const state: MultiDishCreateState = {
+          visit: visitDraft,
+          dishes: dishDrafts,
+          mediaItems: mediaItemsDraft,
+          uiState
+        };
+
         localStorage.setItem(key, JSON.stringify(state));
         setAutosaveState('saved');
+
       } catch (error) {
-        console.warn('Failed to save draft', error);
+        console.error('Failed to save draft', error);
         setAutosaveState('error');
+
+        // Handle quota exceeded error
+        if (error instanceof Error && error.name === 'QuotaExceededError') {
+          // TODO: Show user-facing error message via toast/alert
+          console.error('localStorage quota exceeded. Draft autosave disabled.');
+        }
       }
     }, 400);
 
     return () => window.clearTimeout(autosaveTimeout.current);
-  }, [visitDraft, dishDrafts, userId]);
+  }, [visitDraft, dishDrafts, mediaItems, userId, currentStep, activeDishIndex, expandedDishIds]);
 
   useEffect(() => () => {
     mediaItemsRef.current.forEach((item) => revokePreview(item.previewUrl));
   }, []);
 
   const removeMedia = useCallback((id: string) => {
+    // CRITICAL: Check if media is attached to any dish
+    const attachedDishes = dishDrafts.filter(dish =>
+      dish.mediaIds.includes(id)
+    );
+
+    if (attachedDishes.length > 0) {
+      // Prevent deletion and show user-facing error
+      const dishNames = attachedDishes
+        .map(d => d.name || 'Unnamed dish')
+        .join(', ');
+
+      // TODO: Replace alert with proper toast/modal component
+      alert(
+        `Cannot delete this photo because it's attached to: ${dishNames}.\n\n` +
+        `Please remove it from the dish first in Step 2.`
+      );
+      return;
+    }
+
+    // Proceed with deletion
     let removed: LocalMediaItem | undefined;
     setMediaItems((prev) => {
       removed = prev.find((item) => item.id === id);
@@ -361,17 +446,7 @@ const Wizard: React.FC = () => {
       }
       return prev.filter((item) => item.id !== id);
     });
-
-    // Also remove from all dishes
-    if (removed) {
-      setDishDrafts(prev =>
-        prev.map(dish => ({
-          ...dish,
-          mediaIds: dish.mediaIds.filter(mid => mid !== removed!.id)
-        }))
-      );
-    }
-  }, [setDishDrafts]);
+  }, [dishDrafts]);
 
   const uploadMedia = useCallback(async (files: File[]) => {
     if (!userId) {
@@ -437,12 +512,65 @@ const Wizard: React.FC = () => {
     );
   }, [showReward, userId]);
 
+  // Immediate autosave helper (non-debounced) for navigation
+  const autosaveImmediate = useCallback(() => {
+    if (!userId) return;
+    const key = buildStorageKey(userId, visitDraft.restaurantId);
+
+    try {
+      // Build media items draft
+      const mediaItemsDraft: MediaItemDraft[] = mediaItems
+        .filter(m => m.status === 'uploaded' && m.downloadURL && !m.downloadURL.startsWith('blob:'))
+        .map(m => ({
+          id: m.id,
+          kind: m.kind,
+          downloadURL: m.downloadURL!,
+          storagePath: m.storagePath,
+          status: 'uploaded' as const,
+          attachedToDishes: dishDrafts
+            .filter(dish => dish.mediaIds.includes(m.id))
+            .map(dish => dish.id)
+        }));
+
+      const uiState: WizardUIState = {
+        currentStep,
+        activeDishIndex,
+        expandedDishIds
+      };
+
+      const state: MultiDishCreateState = {
+        visit: visitDraft,
+        dishes: dishDrafts,
+        mediaItems: mediaItemsDraft,
+        uiState
+      };
+
+      localStorage.setItem(key, JSON.stringify(state));
+      setAutosaveState('saved');
+    } catch (error) {
+      console.error('Failed to save draft immediately', error);
+      setAutosaveState('error');
+    }
+  }, [userId, visitDraft, dishDrafts, mediaItems, currentStep, activeDishIndex, expandedDishIds]);
+
   const goNext = useCallback(() => {
+    // Note: Validation removed to allow free navigation
+    // Data validation happens on final submit only
+    autosaveImmediate(); // Save immediately before navigation
     setCurrentStep((step) => Math.min(step + 1, 2));
-  }, []);
+  }, [autosaveImmediate]);
 
   const goBack = useCallback(() => {
+    autosaveImmediate(); // Save immediately, no validation needed
     setCurrentStep((step) => Math.max(step - 1, 0));
+  }, [autosaveImmediate]);
+
+  const toggleDishExpanded = useCallback((dishId: string) => {
+    setExpandedDishIds(prev =>
+      prev.includes(dishId)
+        ? prev.filter(id => id !== dishId)
+        : [...prev, dishId]
+    );
   }, []);
 
   const resetDraft = useCallback((keepRestaurant?: boolean) => {
@@ -465,6 +593,7 @@ const Wizard: React.FC = () => {
       return [];
     });
     setCurrentStep(0);
+    setExpandedDishIds([]);
     rewardHistoryRef.current = { media: false, taste: false, compare: false, submit: false, dishes: false };
   }, [selectedRestaurant, setDishDrafts, userId]);
 
@@ -560,6 +689,11 @@ const Wizard: React.FC = () => {
       clearCache();
       console.log('✅ Cleared review cache - new reviews will be fetched on next page load');
 
+      // Reset UI state
+      setCurrentStep(0);
+      setActiveDishIndex(0);
+      setExpandedDishIds([]);
+
       showReward('submit');
       return reviewIds;
     } catch (error) {
@@ -594,7 +728,10 @@ const Wizard: React.FC = () => {
     setIsSubmitting,
     resetDraft,
     submitReview,
-    autosaveState
+    autosaveState,
+    expandedDishIds,
+    setExpandedDishIds,
+    toggleDishExpanded
   }), [
     visitDraft,
     dishDrafts,
@@ -616,7 +753,9 @@ const Wizard: React.FC = () => {
     isSubmitting,
     resetDraft,
     submitReview,
-    autosaveState
+    autosaveState,
+    expandedDishIds,
+    toggleDishExpanded
   ]);
 
   const stepOrder = useMemo<WizardStepKey[]>(() => (

@@ -71,12 +71,34 @@ export interface WizardContextValue {
 
   // Autosave
   autosaveState: 'idle' | 'saving' | 'saved' | 'error';
+
+  // UI state for step navigation
+  expandedDishIds: string[];
+  setExpandedDishIds: React.Dispatch<React.SetStateAction<string[]>>;
+  toggleDishExpanded: (dishId: string) => void;
 }
 
 export type DraftUpdater = (draft: ReviewDraft) => ReviewDraft;
 export type DishDraftUpdater = (draft: DishDraft) => DishDraft;
 
+export interface WizardUIState {
+  currentStep: number;              // 0-2 for visit/dishes/wrapup
+  activeDishIndex: number;          // Which dish is being edited (default 0)
+  expandedDishIds: string[];        // Which dish cards are expanded
+}
+
+export interface MediaItemDraft {
+  id: string;
+  kind: 'photo' | 'video';
+  downloadURL: string;              // Firebase Storage URL only
+  storagePath?: string;
+  status: 'uploaded';               // Only save successfully uploaded media
+  attachedToDishes: string[];       // Track which dishes use this media
+}
+
 export type MultiDishCreateState = {
   visit: VisitDraft;
   dishes: DishDraft[];
+  mediaItems?: MediaItemDraft[];    // Add this field
+  uiState?: WizardUIState;          // Add this field
 };

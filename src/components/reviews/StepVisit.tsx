@@ -125,7 +125,13 @@ const StepVisit: React.FC = () => {
     goNext,
     currentStep,
     goBack,
+    dishDrafts,
   } = useReviewWizard();
+
+  // Helper function to count how many dishes use a specific media item
+  const getAttachedDishCount = (mediaId: string): number => {
+    return dishDrafts.filter(d => d.mediaIds.includes(mediaId)).length;
+  };
 
   const [restaurantQuery, setRestaurantQuery] = useState('');
   const [restaurants, setRestaurants] = useState<RestaurantOption[]>([]);
@@ -464,13 +470,18 @@ const StepVisit: React.FC = () => {
                     </div>
                   )}
                   <div className="absolute inset-0 flex flex-col justify-between p-3">
-                    <div className="flex justify-between text-xs">
+                    <div className="flex justify-between gap-2 text-xs">
                       <span className={`rounded-full px-2 py-1 text-white ${item.status === 'uploaded' ? 'bg-emerald-500' : item.status === 'uploading' ? 'bg-amber-500' : item.status === 'error' ? 'bg-red-500' : 'bg-slate-400'}`}>
                         {item.status === 'uploading' && t('createWizard.status.autosaving')}
                         {item.status === 'uploaded' && t('createWizard.status.saved')}
                         {item.status === 'error' && t('createWizard.status.error')}
                         {item.status === 'idle' && ''}
                       </span>
+                      {getAttachedDishCount(item.id) > 0 && (
+                        <span className="rounded-full bg-blue-500 px-2 py-1 text-white shadow-sm">
+                          Used in {getAttachedDishCount(item.id)} dish{getAttachedDishCount(item.id) > 1 ? 'es' : ''}
+                        </span>
+                      )}
                     </div>
                     <button type="button" onClick={() => removeMedia(item.id)} className="flex items-center gap-1 self-end rounded-full bg-white/90 px-2 py-1 text-xs font-medium text-red-500 opacity-0 transition group-hover:opacity-100">
                       <Trash2 className="h-3 w-3" />
