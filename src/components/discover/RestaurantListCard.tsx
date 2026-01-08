@@ -183,7 +183,7 @@ const RestaurantListCard: React.FC<RestaurantListCardProps> = ({ card, onClick }
           </div>
         )}
       </div>
-      <div className="px-2.5 py-2 flex-1 relative overflow-hidden flex flex-col justify-between h-full">
+      <div className="px-2.5 py-2 flex-1 relative overflow-hidden flex flex-col h-full">
         <div className="flex justify-between items-start gap-2">
           <div className="flex-1 min-w-0 max-w-[calc(100%-50px)]">
             <h3 className="font-medium text-[15px] truncate leading-tight">{card.name}</h3>
@@ -206,6 +206,14 @@ const RestaurantListCard: React.FC<RestaurantListCardProps> = ({ card, onClick }
                 </span>
               )}
             </div>
+            {/* Address line with truncation - moved inside the main content area */}
+            <div className="mt-0.5">
+              {card.subtitleText && (
+                <span className="text-xs text-slate-600 truncate block">
+                  {displaySubtitle}
+                </span>
+              )}
+            </div>
           </div>
           <div className="absolute right-2 top-2">
             {card.badgeText && (
@@ -219,17 +227,8 @@ const RestaurantListCard: React.FC<RestaurantListCardProps> = ({ card, onClick }
           </div>
         </div>
 
-        {/* Address line with truncation */}
-        <div className="flex items-center justify-between mt-auto">
-          <div className="flex-1 min-w-0 pr-2">
-            {card.subtitleText && (
-              <span className="text-xs text-slate-600 truncate block">
-                {displaySubtitle}
-              </span>
-            )}
-          </div>
-
-          {/* Bottom right: Only source badges (Visited/New to You) */}
+        {/* Bottom right: Only source badges (Visited/New to You) */}
+        <div className="flex items-center justify-end mt-auto">
           <div className="flex items-center gap-1 flex-shrink-0">
             {/* Source badge - show for Google Places */}
             {card.source === 'google' && (

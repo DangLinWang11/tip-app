@@ -622,17 +622,14 @@ const StepVisit: React.FC = () => {
                           className="w-full rounded-2xl border border-slate-200 px-3 py-2 text-left transition hover:border-slate-300 hover:bg-slate-50"
                         >
                           <div className="flex items-center justify-between w-full gap-2">
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 min-w-0">
-                                <MapPin
-                                  className="w-4 h-4 text-red-500 flex-shrink-0"
-                                  style={{ marginTop: '0.95rem' }}
-                                />
-                                <span className="text-sm truncate">{prediction.structured_formatting.main_text}</span>
+                            <div className="flex-1 min-w-0 flex items-center gap-2">
+                              <MapPin className="w-4 h-4 text-red-500 flex-shrink-0" />
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm truncate">{prediction.structured_formatting.main_text}</p>
+                                <p className="text-xs text-slate-500 truncate">
+                                  {prediction.structured_formatting.secondary_text}
+                                </p>
                               </div>
-                              <p className="text-xs text-slate-500 truncate pl-6">
-                                {prediction.structured_formatting.secondary_text}
-                              </p>
                             </div>
                             <div className="flex items-center gap-2 flex-shrink-0">
                               {typeof distance === 'number' && (
@@ -671,8 +668,8 @@ const StepVisit: React.FC = () => {
                         className={`w-full rounded-2xl border px-3 py-2 text-left transition ${selectedRestaurant?.id === restaurant.id ? 'border-red-400 bg-red-50' : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'}`}
                       >
                         <div className="flex items-center justify-between w-full gap-2">
-                          <div className="flex gap-2 flex-1 min-w-0 items-start">
-                            <MapPin className="w-4 h-4 text-gray-400 flex-shrink-0 mt-0.5" />
+                          <div className="flex gap-2 flex-1 min-w-0 items-center">
+                            <MapPin className="w-4 h-4 text-gray-400 flex-shrink-0" />
                             <div className="min-w-0">
                               <p className="text-sm font-semibold text-slate-900 truncate">{restaurant.name}</p>
                               {restaurant.address && (
