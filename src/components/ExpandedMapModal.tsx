@@ -5,11 +5,15 @@ import UserJourneyMap from './UserJourneyMap';
 interface ExpandedMapModalProps {
   isOpen: boolean;
   onClose: () => void;
+  userId?: string;        // optional userId for viewing other users' maps
+  userName?: string;      // optional userName for header display
 }
 
 const ExpandedMapModal: React.FC<ExpandedMapModalProps> = ({
   isOpen,
-  onClose
+  onClose,
+  userId,
+  userName
 }) => {
   // Don't render if not open
   if (!isOpen) return null;
@@ -73,8 +77,15 @@ const ExpandedMapModal: React.FC<ExpandedMapModalProps> = ({
           <div className="flex items-start gap-2">
             <MapIcon size={20} className="text-primary mt-0.5" />
             <div>
-              <h2 className="text-xl font-bold text-gray-900">Your Food Journey</h2>
-              <p className="text-sm text-gray-600">Click any restaurant pin to see your dishes</p>
+              <h2 className="text-xl font-bold text-gray-900">
+                {userName ? `${userName}'s Food Journey` : 'Your Food Journey'}
+              </h2>
+              <p className="text-sm text-gray-600">
+                {userName
+                  ? `Explore ${userName}'s dining experiences`
+                  : 'Click any restaurant pin to see your dishes'
+                }
+              </p>
             </div>
           </div>
           
@@ -88,10 +99,10 @@ const ExpandedMapModal: React.FC<ExpandedMapModalProps> = ({
         </div>
 
         {/* Expanded map content */}
-        <div 
+        <div
           className="w-full h-full pt-20"
         >
-          <UserJourneyMap className="w-full h-full" showLegend />
+          <UserJourneyMap className="w-full h-full" showLegend userId={userId} />
         </div>
 
 

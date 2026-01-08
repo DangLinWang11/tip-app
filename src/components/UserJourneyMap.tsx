@@ -39,7 +39,7 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({ className = '', showLeg
     };
 
     loadVisitedRestaurants();
-  }, []);
+  }, [userId]);
 
   // Handle restaurant pin click
   const handleRestaurantClick = (restaurantId: string) => {

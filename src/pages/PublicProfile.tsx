@@ -5,6 +5,7 @@ import FeedPost from '../components/FeedPost';
 import { fetchUserReviews, convertReviewsToFeedPosts, FirebaseReview } from '../services/reviewService';
 import { getFollowCounts, isFollowing, followUser, unfollowUser } from '../services/followService';
 import { getUserProfile, getCurrentUser, getUserByUsername } from '../lib/firebase';
+import ExpandedMapModal from '../components/ExpandedMapModal';
 
 // Cache for visited public profiles (username-keyed with LRU eviction)
 interface CachedPublicProfile {
@@ -130,7 +131,10 @@ const PublicProfile: React.FC = () => {
   const [isFollowingUser, setIsFollowingUser] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
   const [followerCount, setFollowerCount] = useState(0);
-  
+
+  // Food map modal state
+  const [showFoodMapModal, setShowFoodMapModal] = useState(false);
+
   const currentUser = getCurrentUser();
   const isOwnProfile = currentUser?.displayName === username || currentUser?.email?.split('@')[0] === username;
 
@@ -526,11 +530,7 @@ const PublicProfile: React.FC = () => {
         {!isOwnProfile && (
           <div className="mb-6">
             <button
-              onClick={() => {
-                startTransition(() => {
-                  navigate(`/profile/${username}/map`);
-                });
-              }}
+              onClick={() => setShowFoodMapModal(true)}
               className="w-full bg-gradient-to-r from-primary to-red-500 text-white py-3.5 px-6 rounded-xl font-medium shadow-sm hover:shadow-md transition-all duration-200 flex items-center justify-center"
             >
               <MapIcon size={18} className="mr-2" />
@@ -618,6 +618,16 @@ const PublicProfile: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Food Map Modal */}
+      {showFoodMapModal && (
+        <ExpandedMapModal
+          isOpen={showFoodMapModal}
+          onClose={() => setShowFoodMapModal(false)}
+          userId={userProfile.uid}
+          userName={userProfile.username || userProfile.displayName}
+        />
+      )}
     </div>
   );
 };
