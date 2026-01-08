@@ -3,6 +3,10 @@ import { Wrapper, Status } from '@googlemaps/react-wrapper';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { Navigation } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { useMapBottomSheet } from '../hooks/useMapBottomSheet';
+import MapBottomSheet from './discover/MapBottomSheet';
+import { createDishRatingPinIcon } from '../utils/mapIcons';
 
 const NYC_FALLBACK = { lat: 40.7060, lng: -74.0086 };
 
@@ -53,6 +57,7 @@ interface Dish {
   name: string;
   rating: number;
   restaurantName: string;
+  restaurantId?: string;
   location: {
     lat: number;
     lng: number;
@@ -73,6 +78,8 @@ interface MapProps {
   disableInfoWindows?: boolean;
   showMyLocationButton?: boolean;
   showGoogleControl?: boolean;
+  bottomSheetHook?: ReturnType<typeof useMapBottomSheet>;
+  navigate?: (path: string) => void;
 }
 
 const getQualityColor = (percentage: number): string => {
@@ -161,7 +168,7 @@ const createDishPinIcon = (rating: string, backgroundColor: string): string => {
   return 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg);
 };
 
-const Map: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishes, userLocation, onRestaurantClick, onDishClick, showQualityPercentages = true, disableInfoWindows = false, showMyLocationButton = true, showGoogleControl = true }) => {
+const Map: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishes, userLocation, onRestaurantClick, onDishClick, showQualityPercentages = true, disableInfoWindows = false, showMyLocationButton = true, showGoogleControl = true, bottomSheetHook, navigate }) => {
   const ref = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<google.maps.Map>();
   const [locationError, setLocationError] = useState<string>('');
@@ -386,7 +393,14 @@ const Map: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishes, u
             if (!disableInfoWindows) {
               infoWindow.open(map, marker);
             }
-            if (onRestaurantClick) {
+            // Open bottom sheet with nearby restaurants
+            if (bottomSheetHook) {
+              bottomSheetHook.openRestaurantSheet(
+                restaurant.location.lat,
+                restaurant.location.lng,
+                2000 // 2km radius
+              );
+            } else if (onRestaurantClick) {
               onRestaurantClick(restaurant.id.toString());
             }
           });
@@ -398,41 +412,25 @@ const Map: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishes, u
         // Show dish pins
         dishes.forEach((dish) => {
           const rating = dish.rating != null && typeof dish.rating === 'number' ? dish.rating : 0;
-          const ratingColor = getRatingColor(rating);
           const displayRating = rating > 0 ? rating.toFixed(1) : 'N/A';
 
           const marker = new window.google.maps.Marker({
             position: dish.location,
             map,
             icon: {
-              url: createDishPinIcon(displayRating, ratingColor),
-              scaledSize: new window.google.maps.Size(60, 44),
-              anchor: new window.google.maps.Point(30, 44)
+              url: createDishRatingPinIcon(displayRating),
+              scaledSize: new window.google.maps.Size(64, 48),
+              anchor: new window.google.maps.Point(32, 48)
             },
             title: dish.name,
             zIndex: rating * 10
           });
 
-          const infoWindow = new window.google.maps.InfoWindow({
-            content: `
-              <div style="padding: 8px; min-width: 200px;">
-                <h3 style="margin: 0 0 8px 0; font-size: 16px; font-weight: 600; cursor: pointer; color: #0066cc;" onclick="window.onDishClick('${dish.id}')">${dish.name}</h3>
-                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
-                  <span style="background: ${ratingColor}; color: white; padding: 2px 8px; border-radius: 12px; font-size: 12px; font-weight: bold;">
-                    ${displayRating}
-                  </span>
-                  <span style="color: #0066cc; font-size: 14px; cursor: pointer;" onclick="window.onRestaurantClick('${dish.restaurantId || ''}')">${dish.restaurantName || 'Unknown'}</span>
-                </div>
-                ${dish.price ? `<div style="color: #666; font-size: 14px;">${dish.price}</div>` : ''}
-              </div>
-            `
-          });
-
           marker.addListener('click', () => {
-            if (!disableInfoWindows) {
-              infoWindow.open(map, marker);
-            }
-            if (onDishClick) {
+            // Open bottom sheet with all dishes from this restaurant
+            if (bottomSheetHook && dish.restaurantId) {
+              bottomSheetHook.openDishSheet(dish.restaurantId);
+            } else if (onDishClick) {
               onDishClick(dish.id);
             }
           });
@@ -655,7 +653,7 @@ const getTopDishes = async (restaurants: Restaurant[]): Promise<Dish[]> => {
   return dishes;
 };
 
-const RestaurantMap: React.FC<RestaurantMapProps> = ({ 
+const RestaurantMap: React.FC<RestaurantMapProps> = ({
   className = '',
   mapType,
   restaurants = [],
@@ -670,7 +668,8 @@ const RestaurantMap: React.FC<RestaurantMapProps> = ({
 }) => {
   const [topDishes, setTopDishes] = useState<Dish[]>([]);
   const [initialCenter, setInitialCenter] = useState(NYC_FALLBACK);
-
+  const bottomSheet = useMapBottomSheet();
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (mapType === 'dish' && restaurants.length > 0) {
@@ -705,6 +704,8 @@ const RestaurantMap: React.FC<RestaurantMapProps> = ({
             disableInfoWindows={disableInfoWindows}
             showMyLocationButton={showMyLocationButton}
             showGoogleControl={showGoogleControl}
+            bottomSheetHook={bottomSheet}
+            navigate={navigate}
           />
         );
     }
@@ -716,6 +717,21 @@ const RestaurantMap: React.FC<RestaurantMapProps> = ({
         apiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY}
         render={render}
         libraries={['places']}
+      />
+      <MapBottomSheet
+        isOpen={bottomSheet.isOpen}
+        onClose={bottomSheet.closeSheet}
+        items={bottomSheet.items}
+        type={bottomSheet.type}
+        currentIndex={bottomSheet.currentIndex}
+        onSwipe={bottomSheet.swipeToIndex}
+        onItemClick={(id) => {
+          if (bottomSheet.type === 'dish') {
+            navigate(`/dish/${id}`);
+          } else {
+            navigate(`/restaurant/${id}`);
+          }
+        }}
       />
     </div>
   );
