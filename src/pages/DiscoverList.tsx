@@ -507,7 +507,7 @@ const DiscoverList: React.FC = () => {
 
         const restaurantMap = new Map(restaurants.map((restaurant) => [restaurant.id, restaurant]));
         const menuItemsRef = collection(db, 'menuItems');
-        const menuQuery = query(menuItemsRef, limit(40));
+        const menuQuery = query(menuItemsRef, limit(200));
         const menuSnapshot = await getDocs(menuQuery);
 
         const dishResults = await Promise.all(
@@ -692,6 +692,15 @@ const DiscoverList: React.FC = () => {
 
   const filteredDishes = useMemo(() => {
     return dishesWithDerived.filter((dish) => {
+      // Handle "Near Me" category - filter by distance
+      if (selectedCategory === 'nearme') {
+        // Only show dishes within reasonable distance (25 miles)
+        if (dish.distanceMiles == null || dish.distanceMiles > 25) {
+          return false;
+        }
+      }
+
+      // Handle specific categories (appetizer, entree, etc.)
       if (selectedCategory !== 'all' && selectedCategory !== 'nearme') {
         const dishCategoryNormalized = (dish.category || '').toLowerCase().trim();
         const selectedCategoryNormalized = selectedCategory.toLowerCase().trim();
@@ -718,7 +727,29 @@ const DiscoverList: React.FC = () => {
     });
   }, [dishesWithDerived, selectedCategory, searchQuery, parsed, queryTokens]);
 
-  const dishesForRender = filteredDishes;
+  const dishesForRender = useMemo(() => {
+    const dishesToSort = [...filteredDishes];
+
+    return dishesToSort.sort((dishA, dishB) => {
+      // Sort by distance when "Near Me" is selected
+      if (selectedCategory === 'nearme') {
+        const da = dishA.distanceMiles;
+        const db = dishB.distanceMiles;
+
+        // Prioritize items with known distances
+        if (da != null && db == null) return -1;
+        if (da == null && db != null) return 1;
+
+        // Sort by distance (closest first)
+        if (da != null && db != null && da !== db) {
+          return da - db;
+        }
+      }
+
+      // Default sort by rating (descending)
+      return (dishB.rating || 0) - (dishA.rating || 0);
+    });
+  }, [filteredDishes, selectedCategory]);
 
   const isLoading = viewMode === 'restaurant' ? loadingRestaurants : loadingRestaurants || loadingDishes;
 
