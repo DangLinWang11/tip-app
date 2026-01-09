@@ -88,7 +88,7 @@ const MapBottomSheet: React.FC<MapBottomSheetProps> = ({
             exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 30, stiffness: 300 }}
             className="fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-3xl shadow-2xl"
-            style={{ height: '40vh', maxHeight: '400px' }}
+            style={{ height: '60vh', maxHeight: '600px' }}
           >
             {/* Drag handle */}
             <div className="flex justify-center pt-3 pb-2">
@@ -105,7 +105,7 @@ const MapBottomSheet: React.FC<MapBottomSheetProps> = ({
             </button>
 
             {/* Swipeable card area */}
-            <div className="relative h-[calc(100%-60px)] px-4 pb-6 overflow-hidden">
+            <div className="relative h-[calc(100%-60px)] px-4 pb-6 overflow-y-auto">
               <AnimatePresence initial={false} custom={direction} mode="wait">
                 <motion.div
                   key={currentIndex}

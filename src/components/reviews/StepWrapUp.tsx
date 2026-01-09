@@ -81,7 +81,8 @@ const StepWrapUp: React.FC = () => {
   };
 
   const handleGoHome = () => {
-    navigate('/?refresh=1');
+    resetDraft(false); // Clear all draft data
+    navigate('/', { replace: true }); // Use replace to prevent back navigation to create
   };
 
   if (successIds) {

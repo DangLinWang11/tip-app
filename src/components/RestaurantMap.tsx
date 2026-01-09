@@ -315,10 +315,6 @@ const Map: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishes, u
 
       const markers: google.maps.Marker[] = [];
 
-      // Make onRestaurantClick and onDishClick available globally for info window clicks
-      (window as any).onRestaurantClick = onRestaurantClick;
-      (window as any).onDishClick = onDishClick;
-
       if (mapType === 'restaurant') {
         // Show restaurant pins
         restaurants.forEach((restaurant) => {
@@ -357,42 +353,7 @@ const Map: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishes, u
             zIndex: restaurant.qualityPercentage
           });
 
-          const infoWindow = new window.google.maps.InfoWindow({
-            content: `
-              <div style="padding: 0; min-width: 200px; border-radius: 8px; overflow: hidden;">
-                ${restaurant.headerImage ? `<img src="${restaurant.headerImage}" style="width: 100%; height: 80px; object-fit: cover;" onerror="this.style.display='none'">` : ''}
-                <div style="padding: 8px;">
-                  <h3 style="margin: 0 0 8px 0; font-size: 16px; font-weight: 600; cursor: pointer; color: #0066cc;" onclick="window.onRestaurantClick('${restaurant.id}')">${restaurant.name}</h3>
-                  <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
-                    ${showQualityPercentages !== false ? `<span style="background: ${qualityColor}; color: white; padding: 2px 8px; border-radius: 12px; font-size: 12px; font-weight: bold;">
-                      ${restaurant.qualityPercentage}%
-                    </span>` : ''}
-                    ${restaurant.visitCount ? `<span style="background: #ff3131; color: white; padding: 2px 8px; border-radius: 12px; font-size: 12px; font-weight: bold;">
-                      ${restaurant.visitCount} Visit${restaurant.visitCount !== 1 ? 's' : ''}
-                    </span>` : ''}
-                    <span style="color: #666; font-size: 14px;">${restaurant.cuisine || 'Restaurant'} ${getCuisineIcon(restaurant.cuisine || '')}</span>
-                  </div>
-                  <div style="display: flex; align-items: center; gap: 8px; color: #666; font-size: 14px;">
-                    <span style="display: flex; align-items: center; gap: 4px;">
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="#FFD700" style="margin-right: 4px;">
-                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-                      </svg>
-                      ${(() => {
-                        const rating = restaurant.averageMenuRating || restaurant.rating;
-                        return rating != null && typeof rating === 'number' ? rating.toFixed(1) : 'N/A';
-                      })()}
-                    </span>
-                    <span>${restaurant.priceRange || ''}</span>
-                  </div>
-                </div>
-              </div>
-            `
-          });
-
           marker.addListener('click', () => {
-            if (!disableInfoWindows) {
-              infoWindow.open(map, marker);
-            }
             // Open bottom sheet with nearby restaurants
             if (bottomSheetHook) {
               bottomSheetHook.openRestaurantSheet(
