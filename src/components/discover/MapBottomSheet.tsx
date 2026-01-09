@@ -87,7 +87,7 @@ const MapBottomSheet: React.FC<MapBottomSheetProps> = ({
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-            className="fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-3xl shadow-2xl"
+            className="fixed bottom-[68px] left-0 right-0 z-50 bg-white rounded-t-3xl shadow-2xl"
             style={{ height: '60vh', maxHeight: '600px' }}
           >
             {/* Drag handle */}
@@ -105,7 +105,7 @@ const MapBottomSheet: React.FC<MapBottomSheetProps> = ({
             </button>
 
             {/* Swipeable card area */}
-            <div className="relative h-[calc(100%-60px)] px-4 pb-6 overflow-y-auto">
+            <div className="relative h-[calc(100%-100px)] px-4 pb-4 overflow-y-auto">
               <AnimatePresence initial={false} custom={direction} mode="wait">
                 <motion.div
                   key={currentIndex}
@@ -131,29 +131,29 @@ const MapBottomSheet: React.FC<MapBottomSheetProps> = ({
                   )}
                 </motion.div>
               </AnimatePresence>
-
-              {/* Pagination dots */}
-              {items.length > 1 && (
-                <div className="absolute bottom-0 left-0 right-0 flex justify-center gap-2 pb-2">
-                  {items.map((_, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => {
-                        const newDirection = idx > currentIndex ? 1 : -1;
-                        setPage([idx, newDirection]);
-                        onSwipe(idx);
-                      }}
-                      className={`h-2 rounded-full transition-all duration-300 ${
-                        idx === currentIndex
-                          ? 'w-6 bg-primary'
-                          : 'w-2 bg-gray-300 hover:bg-gray-400'
-                      }`}
-                      aria-label={`Go to item ${idx + 1}`}
-                    />
-                  ))}
-                </div>
-              )}
             </div>
+
+            {/* Pagination dots */}
+            {items.length > 1 && (
+              <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-2 z-10">
+                {items.map((_, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => {
+                      const newDirection = idx > currentIndex ? 1 : -1;
+                      setPage([idx, newDirection]);
+                      onSwipe(idx);
+                    }}
+                    className={`h-3 rounded-full transition-all duration-300 shadow-md ${
+                      idx === currentIndex
+                        ? 'w-8 bg-primary'
+                        : 'w-3 bg-gray-400 hover:bg-gray-500'
+                    }`}
+                    aria-label={`Go to item ${idx + 1}`}
+                  />
+                ))}
+              </div>
+            )}
           </motion.div>
         </>
       )}
