@@ -141,7 +141,7 @@ const RatingSlider: React.FC<RatingSliderProps> = ({
           className="absolute flex items-center justify-center pointer-events-none"
           style={{
             left: `${percentage}%`,
-            top: 'calc(2rem + 4px)',
+            top: 'calc(2rem - 6px)',
             transform: 'translateX(-50%)',
             transition: isDragging.current ? 'none' : 'left 0.1s ease-out'
           }}
