@@ -110,7 +110,7 @@ const RatingSlider: React.FC<RatingSliderProps> = ({
       ) : null}
       <div
         ref={sliderRef}
-        className="relative h-2 bg-slate-200 rounded-full cursor-pointer select-none py-4 -my-4"
+        className="relative h-2 bg-white rounded-full cursor-pointer select-none py-8 -my-8"
         onMouseDown={handleMouseDown}
         onTouchStart={handleTouchStart}
         style={{ touchAction: 'none' }}
@@ -127,7 +127,7 @@ const RatingSlider: React.FC<RatingSliderProps> = ({
           tabIndex={0}
         />
         <div
-          className="absolute h-2 top-4 bg-red-500 rounded-full pointer-events-none"
+          className="absolute h-2 top-8 bg-red-500 rounded-full pointer-events-none"
           style={{
             width: `${percentage}%`,
             transition: isDragging.current ? 'none' : 'width 0.1s ease-out'
@@ -145,7 +145,7 @@ const RatingSlider: React.FC<RatingSliderProps> = ({
           <div className="absolute w-12 h-12 rounded-full" />
           {/* Visible handle with scale effect when active */}
           <div
-            className={`w-6 h-6 bg-white border-2 border-red-500 rounded-full shadow-lg transition-transform ${
+            className={`w-5 h-5 bg-white border-2 border-red-500 rounded-full shadow-lg transition-transform ${
               isActive ? 'scale-125' : 'scale-100'
             }`}
           />

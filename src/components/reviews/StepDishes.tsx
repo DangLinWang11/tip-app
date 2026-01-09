@@ -434,7 +434,7 @@ const StepDishes: React.FC = () => {
                 </div>
 
                 {/* Rating */}
-                <div>
+                <div className="pb-4">
                   <label className="block text-xs font-medium text-slate-600 mb-2">Rating: {dish.rating.toFixed(1)}</label>
                   <RatingSlider
                     value={dish.rating}
@@ -444,7 +444,7 @@ const StepDishes: React.FC = () => {
                 </div>
 
                 {/* Caption */}
-                <div>
+                <div className="pt-2">
                   <label className="block text-xs font-medium text-slate-600 mb-1">Thoughts on this dish?</label>
                   <textarea
                     value={dish.caption || ''}
