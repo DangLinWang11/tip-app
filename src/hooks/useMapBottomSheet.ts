@@ -7,7 +7,6 @@ interface MapBottomSheetState {
   isOpen: boolean;
   type: 'dish' | 'restaurant';
   items: (DishCardData | RestaurantCardData)[];
-  currentIndex: number;
   sourceId: string;
   isLoading: boolean;
 }
@@ -17,7 +16,6 @@ export const useMapBottomSheet = () => {
     isOpen: false,
     type: 'dish',
     items: [],
-    currentIndex: 0,
     sourceId: '',
     isLoading: false
   });
@@ -38,7 +36,6 @@ export const useMapBottomSheet = () => {
         isOpen: true,
         type: 'dish',
         items: dishes,
-        currentIndex: 0,
         sourceId: restaurantId,
         isLoading: false
       });
@@ -64,7 +61,6 @@ export const useMapBottomSheet = () => {
         isOpen: true,
         type: 'restaurant',
         items: restaurants,
-        currentIndex: 0,
         sourceId: `${lat},${lng}`,
         isLoading: false
       });
@@ -82,24 +78,16 @@ export const useMapBottomSheet = () => {
         isOpen: false,
         type: 'dish',
         items: [],
-        currentIndex: 0,
         sourceId: '',
         isLoading: false
       });
     }, 300);
   };
 
-  const swipeToIndex = (newIndex: number) => {
-    if (newIndex >= 0 && newIndex < state.items.length) {
-      setState(prev => ({ ...prev, currentIndex: newIndex }));
-    }
-  };
-
   return {
     ...state,
     openDishSheet,
     openRestaurantSheet,
-    closeSheet,
-    swipeToIndex
+    closeSheet
   };
 };

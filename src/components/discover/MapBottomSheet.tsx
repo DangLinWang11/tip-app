@@ -1,6 +1,5 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { motion, AnimatePresence, PanInfo } from 'framer-motion';
-import { X } from 'lucide-react';
 import DishCard, { DishCardData } from './DishCard';
 import RestaurantCard, { RestaurantCardData } from './RestaurantCard';
 
@@ -9,60 +8,22 @@ interface MapBottomSheetProps {
   onClose: () => void;
   items: DishCardData[] | RestaurantCardData[];
   type: 'dish' | 'restaurant';
-  currentIndex: number;
-  onSwipe: (newIndex: number) => void;
   onItemClick?: (id: string) => void;
 }
-
-const SWIPE_CONFIDENCE_THRESHOLD = 10000;
-const SWIPE_POWER = (offset: number, velocity: number) => {
-  return Math.abs(offset) * velocity;
-};
 
 const MapBottomSheet: React.FC<MapBottomSheetProps> = ({
   isOpen,
   onClose,
   items,
   type,
-  currentIndex,
-  onSwipe,
   onItemClick
 }) => {
-  const [[page, direction], setPage] = useState([0, 0]);
-
-  const paginate = (newDirection: number) => {
-    const newIndex = currentIndex + newDirection;
-    if (newIndex >= 0 && newIndex < items.length) {
-      onSwipe(newIndex);
-      setPage([newIndex, newDirection]);
+  const handleDragEnd = (e: any, info: { offset: { y: number }, velocity: { y: number } }) => {
+    const { offset, velocity } = info;
+    // Dragged down > 80px OR fast downward swipe = dismiss
+    if (offset.y > 80 || (offset.y > 30 && velocity.y > 500)) {
+      onClose();
     }
-  };
-
-  const handleDragEnd = (e: any, { offset, velocity }: PanInfo) => {
-    const swipe = SWIPE_POWER(offset.x, velocity.x);
-
-    if (swipe < -SWIPE_CONFIDENCE_THRESHOLD && currentIndex < items.length - 1) {
-      paginate(1);
-    } else if (swipe > SWIPE_CONFIDENCE_THRESHOLD && currentIndex > 0) {
-      paginate(-1);
-    }
-  };
-
-  const variants = {
-    enter: (direction: number) => ({
-      x: direction > 0 ? 1000 : -1000,
-      opacity: 0
-    }),
-    center: {
-      zIndex: 1,
-      x: 0,
-      opacity: 1
-    },
-    exit: (direction: number) => ({
-      zIndex: 0,
-      x: direction < 0 ? 1000 : -1000,
-      opacity: 0
-    })
   };
 
   if (!isOpen || items.length === 0) return null;
@@ -87,6 +48,10 @@ const MapBottomSheet: React.FC<MapBottomSheetProps> = ({
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+            drag="y"
+            dragConstraints={{ top: 0, bottom: 0 }}
+            dragElastic={0.2}
+            onDragEnd={handleDragEnd}
             className="fixed bottom-[68px] left-0 right-0 z-50 bg-white rounded-t-3xl shadow-2xl"
             style={{ height: '60vh', maxHeight: '600px' }}
           >
@@ -95,65 +60,21 @@ const MapBottomSheet: React.FC<MapBottomSheetProps> = ({
               <div className="w-12 h-1.5 bg-gray-300 rounded-full" />
             </div>
 
-            {/* Close button */}
-            <button
-              onClick={onClose}
-              className="absolute top-4 right-4 z-10 p-2 bg-white/90 rounded-full shadow-md hover:bg-gray-100 transition-colors"
-              aria-label="Close"
-            >
-              <X size={20} className="text-gray-700" />
-            </button>
-
-            {/* Swipeable card area */}
-            <div className="relative h-[calc(100%-100px)] px-4 pb-4 overflow-y-auto">
-              <AnimatePresence initial={false} custom={direction} mode="wait">
-                <motion.div
-                  key={currentIndex}
-                  custom={direction}
-                  variants={variants}
-                  initial="enter"
-                  animate="center"
-                  exit="exit"
-                  transition={{
-                    x: { type: 'spring', stiffness: 300, damping: 30 },
-                    opacity: { duration: 0.2 }
-                  }}
-                  drag="x"
-                  dragConstraints={{ left: 0, right: 0 }}
-                  dragElastic={0.2}
-                  onDragEnd={handleDragEnd}
-                  className="h-full"
-                >
+            {/* Scrollable card list */}
+            <div className="overflow-y-auto h-[calc(100%-40px)] px-4 pb-4">
+              {items.map((item, idx) => (
+                <React.Fragment key={type === 'dish' ? (item as DishCardData).id : (item as RestaurantCardData).id}>
                   {type === 'dish' ? (
-                    <DishCard data={items[currentIndex] as DishCardData} onClick={onItemClick} />
+                    <DishCard data={item as DishCardData} onClick={onItemClick} />
                   ) : (
-                    <RestaurantCard data={items[currentIndex] as RestaurantCardData} onClick={onItemClick} />
+                    <RestaurantCard data={item as RestaurantCardData} onClick={onItemClick} />
                   )}
-                </motion.div>
-              </AnimatePresence>
+                  {idx < items.length - 1 && (
+                    <hr className="my-4 border-gray-200" />
+                  )}
+                </React.Fragment>
+              ))}
             </div>
-
-            {/* Pagination dots */}
-            {items.length > 1 && (
-              <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-2 z-10">
-                {items.map((_, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => {
-                      const newDirection = idx > currentIndex ? 1 : -1;
-                      setPage([idx, newDirection]);
-                      onSwipe(idx);
-                    }}
-                    className={`h-3 rounded-full transition-all duration-300 shadow-md ${
-                      idx === currentIndex
-                        ? 'w-8 bg-primary'
-                        : 'w-3 bg-gray-400 hover:bg-gray-500'
-                    }`}
-                    aria-label={`Go to item ${idx + 1}`}
-                  />
-                ))}
-              </div>
-            )}
           </motion.div>
         </>
       )}

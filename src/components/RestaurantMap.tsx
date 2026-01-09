@@ -684,8 +684,6 @@ const RestaurantMap: React.FC<RestaurantMapProps> = ({
         onClose={bottomSheet.closeSheet}
         items={bottomSheet.items}
         type={bottomSheet.type}
-        currentIndex={bottomSheet.currentIndex}
-        onSwipe={bottomSheet.swipeToIndex}
         onItemClick={(id) => {
           if (bottomSheet.type === 'dish') {
             navigate(`/dish/${id}`);
