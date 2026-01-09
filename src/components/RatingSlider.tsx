@@ -110,7 +110,7 @@ const RatingSlider: React.FC<RatingSliderProps> = ({
       ) : null}
       <div
         ref={sliderRef}
-        className="relative h-2 bg-white rounded-full cursor-pointer select-none py-8 -my-8"
+        className="relative h-2 cursor-pointer select-none py-8 -my-8"
         onMouseDown={handleMouseDown}
         onTouchStart={handleTouchStart}
         style={{ touchAction: 'none' }}
@@ -126,6 +126,9 @@ const RatingSlider: React.FC<RatingSliderProps> = ({
           style={{ pointerEvents: 'none' }}
           tabIndex={0}
         />
+        {/* Background track */}
+        <div className="absolute h-2 top-8 w-full bg-slate-200 rounded-full pointer-events-none" />
+        {/* Filled track */}
         <div
           className="absolute h-2 top-8 bg-red-500 rounded-full pointer-events-none"
           style={{
@@ -133,8 +136,9 @@ const RatingSlider: React.FC<RatingSliderProps> = ({
             transition: isDragging.current ? 'none' : 'width 0.1s ease-out'
           }}
         />
+        {/* Handle */}
         <div
-          className="absolute top-1/2 flex items-center justify-center pointer-events-none"
+          className="absolute top-8 flex items-center justify-center pointer-events-none"
           style={{
             left: `${percentage}%`,
             transform: 'translate(-50%, -50%)',
