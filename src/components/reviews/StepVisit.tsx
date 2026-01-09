@@ -50,6 +50,11 @@ const RestaurantSearchInput = React.memo(({
   placeholder: string;
   className: string;
 }) => {
+  const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
+    // Prevent page scroll when input focuses
+    e.target.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+  };
+
   return (
     <div className="relative">
       <input
@@ -59,6 +64,7 @@ const RestaurantSearchInput = React.memo(({
         placeholder={placeholder}
         className={className}
         autoComplete="off"
+        onFocus={handleFocus}
       />
       <MapPin className="absolute right-4 top-3.5 h-5 w-5 text-slate-400" />
     </div>
@@ -763,7 +769,11 @@ const StepVisit: React.FC = () => {
           <div className="flex gap-2">
             {(['slow', 'normal', 'fast'] as const).map((speed) => {
               const active = visitDraft.serviceSpeed === speed;
-              const labels = { slow: '🐌 Slow', normal: '⏱️ Average', fast: '⚡ Fast' };
+              const config = {
+                slow: { icon: '🐌', label: 'Slow' },
+                normal: { icon: '⏱️', label: 'Average' },
+                fast: { icon: '⚡', label: 'Fast' }
+              };
               return (
                 <button
                   key={speed}
@@ -772,13 +782,14 @@ const StepVisit: React.FC = () => {
                     ...prev,
                     serviceSpeed: prev.serviceSpeed === speed ? null : speed
                   }))}
-                  className={`flex-1 px-4 py-2 rounded-full text-sm font-semibold transition ${
+                  className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold transition ${
                     active
                       ? 'bg-red-500 text-white shadow-md shadow-red-200/60'
                       : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                   }`}
                 >
-                  {labels[speed]}
+                  <span>{config[speed].icon}</span>
+                  <span>{config[speed].label}</span>
                 </button>
               );
             })}
