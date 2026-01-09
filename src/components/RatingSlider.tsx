@@ -142,7 +142,7 @@ const RatingSlider: React.FC<RatingSliderProps> = ({
           style={{
             left: `${percentage}%`,
             top: 'calc(2rem + 4px)',
-            transform: 'translate(-50%, -50%)',
+            transform: 'translateX(-50%)',
             transition: isDragging.current ? 'none' : 'left 0.1s ease-out'
           }}
         >
