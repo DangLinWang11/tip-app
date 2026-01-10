@@ -93,6 +93,7 @@ export interface VisitDraft {
   serviceSpeed?: ServiceSpeed | null;
   visitId?: string;
   businessTags?: string[]; // Business highlight tags: Great Staff, Wonderful Atmosphere, etc.
+  isToGo?: boolean; // Whether the order was to-go/takeout
 }
 
 // Per-dish draft (multi-dish flow)
