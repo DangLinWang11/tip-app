@@ -551,7 +551,7 @@ const Step1Basic: React.FC = () => {
               value={restaurantQuery}
               onChange={handleRestaurantQueryChange}
               placeholder="Search for a restaurant..."
-              className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-base text-slate-700 focus:border-red-400 focus:outline-none focus:ring-2 focus:ring-red-100"
+              className="w-full rounded-2xl border border-slate-200 px-4 py-3 pr-12 text-base text-slate-700 focus:border-red-400 focus:outline-none focus:ring-2 focus:ring-red-100 truncate"
             />
             <MapPin className="absolute right-4 top-3.5 h-5 w-5 text-slate-400" />
           </div>
