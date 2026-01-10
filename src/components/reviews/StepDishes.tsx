@@ -527,7 +527,7 @@ const StepDishes: React.FC = () => {
 
                   {/* Positive Attributes */}
                   <div>
-                    <label className="block text-xs font-medium text-slate-600 mb-2">What stood out?</label>
+                    <label className="block text-xs font-bold text-slate-600 mb-2">What stood out?</label>
                     <div className="flex flex-wrap gap-1.5">
                       {POSITIVE_ATTRIBUTES.map((attr) => {
                         const isSelected = dish.explicit?.positiveTags?.includes(attr.value);
@@ -562,7 +562,7 @@ const StepDishes: React.FC = () => {
 
                   {/* Negative Attributes */}
                   <div>
-                    <label className="block text-xs font-medium text-slate-600 mb-2">Could be better?</label>
+                    <label className="block text-xs font-bold text-slate-600 mb-2">Could be better?</label>
                     <div className="flex flex-wrap gap-1.5">
                       {NEGATIVE_ATTRIBUTES.map((attr) => {
                         const isSelected = dish.explicit?.negativeTags?.includes(attr.value);
