@@ -84,6 +84,27 @@ export interface ReviewDraft {
   isDeleted?: boolean;
 }
 
+// Structured feedback types
+export type ToGoFeedbackScore = 'poor' | 'ok' | 'great';
+export type DineInWaitTime = 'too_long' | 'fine' | 'fast';
+export type DineInStaffFriendliness = 'low' | 'ok' | 'great';
+export type DineInNoiseLevel = 'too_loud' | 'fine' | 'quiet';
+
+export interface ToGoFeedback {
+  readyOnTime?: ToGoFeedbackScore;
+  orderAccurate?: ToGoFeedbackScore;
+  packagingQuality?: ToGoFeedbackScore;
+  foodTemperature?: ToGoFeedbackScore;
+  essentialsIncluded?: ToGoFeedbackScore;
+  pickupEase?: ToGoFeedbackScore;
+}
+
+export interface DineInFeedback {
+  waitTime?: DineInWaitTime;
+  staffFriendliness?: DineInStaffFriendliness;
+  noiseLevel?: DineInNoiseLevel;
+}
+
 // Visit-level draft (multi-dish flow)
 export interface VisitDraft {
   restaurantId?: string;
@@ -96,6 +117,8 @@ export interface VisitDraft {
   visitId?: string;
   businessTags?: string[]; // Business highlight tags: Great Staff, Wonderful Atmosphere, etc.
   isToGo?: boolean; // Whether the order was to-go/takeout
+  toGoFeedback?: ToGoFeedback; // Optional structured to-go feedback (only when isToGo === true)
+  dineInFeedback?: DineInFeedback; // Optional structured dine-in feedback (only when isToGo === false)
 }
 
 // Per-dish draft (multi-dish flow)

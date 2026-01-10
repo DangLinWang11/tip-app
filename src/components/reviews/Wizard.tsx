@@ -683,6 +683,9 @@ const Wizard: React.FC = () => {
           ...(visitLevelCaption ? { visitCaption: visitLevelCaption } : {}),
           ...(visitMediaUrls.length ? { visitMedia: visitMediaUrls } : {}),
           ...(visitDraft.businessTags?.length ? { businessTags: visitDraft.businessTags } : {}),
+          ...(visitDraft.isToGo !== undefined ? { isToGo: visitDraft.isToGo } : {}),
+          ...(visitDraft.toGoFeedback && Object.keys(visitDraft.toGoFeedback).length > 0 ? { toGoFeedback: visitDraft.toGoFeedback } : {}),
+          ...(visitDraft.dineInFeedback && Object.keys(visitDraft.dineInFeedback).length > 0 ? { dineInFeedback: visitDraft.dineInFeedback } : {}),
         };
 
         // Add to payload for saveReview
