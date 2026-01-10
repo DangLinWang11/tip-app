@@ -213,6 +213,7 @@ const Wizard: React.FC = () => {
   const [expandedDishIds, setExpandedDishIds] = useState<string[]>([]);
   const autosaveTimeout = useRef<number>();
   const lastStorageKeyRef = useRef<string | null>(null);
+  const submissionCompleteRef = useRef(false);
   const rewardHistoryRef = useRef<Record<'taste' | 'compare' | 'submit' | 'media' | 'dishes', boolean>>({
     media: false,
     taste: false,
@@ -308,6 +309,8 @@ const Wizard: React.FC = () => {
 
   useEffect(() => {
     if (!userId) return;
+    // Skip restoration if submission just completed
+    if (submissionCompleteRef.current) return;
     try {
       const stored = localStorage.getItem(buildStorageKey(userId, null));
       if (stored) {
@@ -348,6 +351,9 @@ const Wizard: React.FC = () => {
 
   useEffect(() => {
     if (!userId) return;
+    // Skip autosave if submission just completed
+    if (submissionCompleteRef.current) return;
+
     const key = buildStorageKey(userId, visitDraft.restaurantId);
     if (lastStorageKeyRef.current && lastStorageKeyRef.current !== key) {
       try {
@@ -600,6 +606,8 @@ const Wizard: React.FC = () => {
     setCurrentStep(0);
     setExpandedDishIds([]);
     rewardHistoryRef.current = { media: false, taste: false, compare: false, submit: false, dishes: false };
+    // Reset submission flag to allow draft restoration for next review
+    submissionCompleteRef.current = false;
   }, [selectedRestaurant, setDishDrafts, userId]);
 
   const submitReview = useCallback(async (): Promise<string[]> => {
@@ -683,9 +691,10 @@ const Wizard: React.FC = () => {
         reviewIds.push(reviewId);
       }
 
-      // Clear autosave for this restaurant
+      // Clear ALL localStorage keys (both generic and restaurant-specific)
       try {
         localStorage.removeItem(buildStorageKey(userId, visitDraft.restaurantId));
+        localStorage.removeItem(buildStorageKey(userId, null)); // Clear generic "new" key
       } catch (error) {
         console.warn('Failed to clear draft storage', error);
       }
@@ -694,10 +703,17 @@ const Wizard: React.FC = () => {
       clearCache();
       console.log('✅ Cleared review cache - new reviews will be fetched on next page load');
 
-      // Reset UI state
+      // Reset ALL state (not just UI state)
       setCurrentStep(0);
       setActiveDishIndex(0);
       setExpandedDishIds([]);
+      setVisitDraft(buildInitialVisitDraft());
+      setDishDrafts([buildInitialDishDraft()]);
+      setMediaItems([]);
+      setSelectedRestaurant(null);
+
+      // Set flag to prevent draft restoration
+      submissionCompleteRef.current = true;
 
       showReward('submit');
       return reviewIds;

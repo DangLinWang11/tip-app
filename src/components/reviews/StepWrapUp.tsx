@@ -1,8 +1,9 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 import { useI18n } from '../../lib/i18n/useI18n';
 import { useReviewWizard } from './WizardContext';
+import ConfettiEffect from './ConfettiEffect';
 
 const BUSINESS_TAGS = [
   'Great Staff',
@@ -35,6 +36,7 @@ const StepWrapUp: React.FC = () => {
   const [successIds, setSuccessIds] = useState<string[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [selectedBusinessTags, setSelectedBusinessTags] = useState<string[]>(visitDraft.businessTags || []);
+  const [countdown, setCountdown] = useState(5);
 
   const visitOnlyMediaItems = useMemo(() => {
     return mediaItems.filter((media) => {
@@ -85,9 +87,30 @@ const StepWrapUp: React.FC = () => {
     navigate('/', { replace: true }); // Use replace to prevent back navigation to create
   };
 
+  // Auto-redirect countdown effect
+  useEffect(() => {
+    if (!successIds) return;
+
+    const timer = setInterval(() => {
+      setCountdown(prev => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          handleGoHome();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [successIds]);
+
   if (successIds) {
     return (
       <div className="space-y-6">
+        {/* Confetti Effect */}
+        <ConfettiEffect visible={true} />
+
         {/* Success Message */}
         <div className="rounded-3xl border border-emerald-200 bg-emerald-50 p-8 text-center shadow-md">
           <div className="text-4xl mb-4">✨</div>
@@ -97,8 +120,11 @@ const StepWrapUp: React.FC = () => {
           <p className="text-emerald-700 mb-1">
             {successIds.length} dish review{successIds.length !== 1 ? 's' : ''} from your visit
           </p>
-          <p className="text-sm text-emerald-600">
+          <p className="text-sm text-emerald-600 mb-3">
             +XP awarded. Reward points pending verification.
+          </p>
+          <p className="text-xs text-emerald-500 mt-4">
+            Redirecting to home in {countdown}s...
           </p>
         </div>
 
