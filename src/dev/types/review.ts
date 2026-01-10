@@ -41,7 +41,9 @@ export interface ExplicitSelection {
   dishType: string | null;
   dishStyle: string | null;
   cuisine: string | null;
-  attributes: string[];
+  attributes?: string[]; // Deprecated: kept for backward compatibility
+  positiveTags: string[];
+  negativeTags: string[];
   occasions: string[];
   dietary: string[];
 }

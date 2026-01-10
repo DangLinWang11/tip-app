@@ -127,13 +127,13 @@ const MenuDetail: React.FC = () => {
   const reviewImages = getAllReviewImages(reviews);
 
   // Aggregate top tags from reviews
-  const { topTasteTags, topBestForTags } = useMemo(() => {
+  const { topPositiveTags, topNegativeTags, topBestForTags } = useMemo(() => {
     if (reviews.length === 0) {
-      return { topTasteTags: [], topBestForTags: [] };
+      return { topPositiveTags: [], topNegativeTags: [], topBestForTags: [] };
     }
 
     // Build label maps for tag translation
-    const attributeLabels: Record<string, string> = {
+    const positiveAttributeLabels: Record<string, string> = {
       spicy: 'Spicy',
       mild: 'Mild',
       sweet: 'Sweet',
@@ -141,14 +141,27 @@ const MenuDetail: React.FC = () => {
       umami_rich: 'Umami-rich',
       garlicky: 'Garlicky',
       well_seasoned: 'Well-seasoned',
-      under_seasoned: 'Under-seasoned',
       balanced: 'Balanced',
       fresh: 'Fresh',
       scratch_made: 'Scratch-made',
       high_quality_ingredients: 'High-quality ingredients',
       comfort_food: 'Comfort food',
       beautiful_presentation: 'Beautiful presentation',
-      consistent: 'Consistent',
+    };
+
+    const negativeAttributeLabels: Record<string, string> = {
+      under_seasoned: 'Under-seasoned',
+      needs_reheating: 'Needs reheating',
+      poor_quality_ingredients: 'Poor quality ingredients',
+      too_greasy: 'Too greasy',
+      dry: 'Dry',
+      soggy: 'Soggy',
+      served_cold: 'Served cold',
+      overcooked: 'Overcooked',
+      undercooked: 'Undercooked',
+      bland: 'Bland',
+      overpowering_flavors: 'Overpowering flavors',
+      not_as_described: 'Not as described',
     };
 
     const occasionLabels: Record<string, string> = {
@@ -171,16 +184,21 @@ const MenuDetail: React.FC = () => {
       group: 'Group hang',
     };
 
-    // Aggregate taste tags (from attr_* explicit tags)
-    const tasteFreq = new Map<string, number>();
+    // Aggregate taste tags - split into positive and negative
+    const positiveFreq = new Map<string, number>();
+    const negativeFreq = new Map<string, number>();
     reviews.forEach((review) => {
       if (Array.isArray(review.explicitTags)) {
         review.explicitTags.forEach((tag) => {
           if (tag.startsWith('attr_')) {
             const slug = tag.substring(5); // Remove 'attr_' prefix
-            const label = attributeLabels[slug];
-            if (label) {
-              tasteFreq.set(label, (tasteFreq.get(label) ?? 0) + 1);
+            const positiveLabel = positiveAttributeLabels[slug];
+            const negativeLabel = negativeAttributeLabels[slug];
+
+            if (positiveLabel) {
+              positiveFreq.set(positiveLabel, (positiveFreq.get(positiveLabel) ?? 0) + 1);
+            } else if (negativeLabel) {
+              negativeFreq.set(negativeLabel, (negativeFreq.get(negativeLabel) ?? 0) + 1);
             }
           }
         });
@@ -226,7 +244,8 @@ const MenuDetail: React.FC = () => {
     };
 
     return {
-      topTasteTags: sortByFreqAndLabel(tasteFreq),
+      topPositiveTags: sortByFreqAndLabel(positiveFreq),
+      topNegativeTags: sortByFreqAndLabel(negativeFreq),
       topBestForTags: sortByFreqAndLabel(bestForFreq),
     };
   }, [reviews]);
@@ -579,18 +598,36 @@ const MenuDetail: React.FC = () => {
       <div data-hero-end />
 
       {/* Top Tags Section */}
-      {(topTasteTags.length > 0 || topBestForTags.length > 0) && (
+      {(topPositiveTags.length > 0 || topNegativeTags.length > 0 || topBestForTags.length > 0) && (
         <div className="bg-white mt-2 p-4 shadow-sm">
-          {topTasteTags.length > 0 && (
+          {topPositiveTags.length > 0 && (
             <div className="mb-4">
               <p className="text-xs font-semibold text-gray-700 mb-2 uppercase tracking-wide">
-                Taste profile
+                What stood out
               </p>
               <div className="flex flex-wrap gap-1.5">
-                {topTasteTags.map((tag) => (
+                {topPositiveTags.map((tag) => (
                   <span
                     key={tag}
-                    className="inline-flex items-center rounded-full border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm"
+                    className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-700 shadow-sm"
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {topNegativeTags.length > 0 && (
+            <div className="mb-4">
+              <p className="text-xs font-semibold text-gray-700 mb-2 uppercase tracking-wide">
+                Could be better
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {topNegativeTags.map((tag) => (
+                  <span
+                    key={tag}
+                    className="inline-flex items-center rounded-full border border-slate-300 bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-700 shadow-sm"
                   >
                     {tag}
                   </span>

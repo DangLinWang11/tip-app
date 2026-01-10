@@ -6,7 +6,7 @@ import { DishDraft, DishCategory } from '../../dev/types/review';
 import { useReviewWizard } from './WizardContext';
 import RatingSlider from '../RatingSlider';
 import { CUISINES, getCuisineLabel } from '../../utils/taxonomy';
-import { ATTRIBUTES, OCCASIONS, DIETARY } from '../../data/tagDefinitions';
+import { POSITIVE_ATTRIBUTES, NEGATIVE_ATTRIBUTES } from '../../data/tagDefinitions';
 import { db } from '../../lib/firebase';
 import { DishRecord } from './AddDishInline';
 
@@ -525,31 +525,66 @@ const StepDishes: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Attributes */}
+                  {/* Positive Attributes */}
                   <div>
-                    <label className="block text-xs font-medium text-slate-600 mb-2">How would you describe this dish?</label>
+                    <label className="block text-xs font-medium text-slate-600 mb-2">What stood out?</label>
                     <div className="flex flex-wrap gap-1.5">
-                      {ATTRIBUTES.map((attr) => {
-                        const isSelected = dish.explicit?.attributes.includes(attr.value);
+                      {POSITIVE_ATTRIBUTES.map((attr) => {
+                        const isSelected = dish.explicit?.positiveTags?.includes(attr.value);
                         return (
                           <button
                             key={attr.value}
                             type="button"
                             onClick={() => updateDishDraft(dish.id, prev => {
-                              const attrs = prev.explicit?.attributes || [];
+                              const current = prev.explicit?.positiveTags || [];
                               return {
                                 ...prev,
                                 explicit: {
-                                  ...(prev.explicit || { dishType: null, dishStyle: null, cuisine: null, attributes: [], occasions: [], dietary: [] }),
-                                  attributes: isSelected
-                                    ? attrs.filter(a => a !== attr.value)
-                                    : [...attrs, attr.value]
+                                  ...(prev.explicit || { dishType: null, dishStyle: null, cuisine: null, positiveTags: [], negativeTags: [], occasions: [], dietary: [] }),
+                                  positiveTags: isSelected
+                                    ? current.filter(t => t !== attr.value)
+                                    : [...current, attr.value]
                                 }
                               };
                             })}
                             className={`px-2 py-1 rounded text-xs font-medium transition ${
                               isSelected
                                 ? 'bg-emerald-500 text-white'
+                                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                            }`}
+                          >
+                            {attr.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Negative Attributes */}
+                  <div>
+                    <label className="block text-xs font-medium text-slate-600 mb-2">Could be better?</label>
+                    <div className="flex flex-wrap gap-1.5">
+                      {NEGATIVE_ATTRIBUTES.map((attr) => {
+                        const isSelected = dish.explicit?.negativeTags?.includes(attr.value);
+                        return (
+                          <button
+                            key={attr.value}
+                            type="button"
+                            onClick={() => updateDishDraft(dish.id, prev => {
+                              const current = prev.explicit?.negativeTags || [];
+                              return {
+                                ...prev,
+                                explicit: {
+                                  ...(prev.explicit || { dishType: null, dishStyle: null, cuisine: null, positiveTags: [], negativeTags: [], occasions: [], dietary: [] }),
+                                  negativeTags: isSelected
+                                    ? current.filter(t => t !== attr.value)
+                                    : [...current, attr.value]
+                                }
+                              };
+                            })}
+                            className={`px-2 py-1 rounded text-xs font-medium transition ${
+                              isSelected
+                                ? 'bg-slate-400 text-white'
                                 : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                             }`}
                           >

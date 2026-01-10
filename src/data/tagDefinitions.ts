@@ -38,7 +38,7 @@ export const DISH_STYLES = [
   { value: 'birria_taco', label: 'Birria Taco', archetype: 'taco' }
 ] as const;
 
-export const ATTRIBUTES = [
+export const POSITIVE_ATTRIBUTES = [
   { value: 'spicy', label: 'Spicy' },
   { value: 'mild', label: 'Mild' },
   { value: 'sweet', label: 'Sweet' },
@@ -46,15 +46,31 @@ export const ATTRIBUTES = [
   { value: 'umami_rich', label: 'Umami-rich' },
   { value: 'garlicky', label: 'Garlicky' },
   { value: 'well_seasoned', label: 'Well-seasoned' },
-  { value: 'under_seasoned', label: 'Under-seasoned' },
   { value: 'balanced', label: 'Balanced' },
   { value: 'fresh', label: 'Fresh' },
   { value: 'scratch_made', label: 'Scratch-made' },
   { value: 'high_quality_ingredients', label: 'High-quality ingredients' },
   { value: 'comfort_food', label: 'Comfort food' },
   { value: 'beautiful_presentation', label: 'Beautiful presentation' },
-  { value: 'consistent', label: 'Consistent' },
 ] as const;
+
+export const NEGATIVE_ATTRIBUTES = [
+  { value: 'under_seasoned', label: 'Under-seasoned' },
+  { value: 'needs_reheating', label: 'Needs reheating' },
+  { value: 'poor_quality_ingredients', label: 'Poor quality ingredients' },
+  { value: 'too_greasy', label: 'Too greasy' },
+  { value: 'dry', label: 'Dry' },
+  { value: 'soggy', label: 'Soggy' },
+  { value: 'served_cold', label: 'Served cold' },
+  { value: 'overcooked', label: 'Overcooked' },
+  { value: 'undercooked', label: 'Undercooked' },
+  { value: 'bland', label: 'Bland' },
+  { value: 'overpowering_flavors', label: 'Overpowering flavors' },
+  { value: 'not_as_described', label: 'Not as described' },
+] as const;
+
+// Legacy: Keep for backward compatibility
+export const ATTRIBUTES = [...POSITIVE_ATTRIBUTES, ...NEGATIVE_ATTRIBUTES] as const;
 
 export const OCCASIONS = [
   { value: 'date_night', label: 'Date Night', emoji: '💑' },
@@ -84,9 +100,15 @@ export function buildExplicitTags(explicit: ReviewDraft['explicit']): string[] {
   if (explicit.dishType) tags.push(`type_${explicit.dishType}`);
   if (explicit.dishStyle) tags.push(`style_${explicit.dishStyle}`);
 
-  explicit.attributes.forEach((attr) => tags.push(`attr_${attr}`));
-  explicit.occasions.forEach((occ) => tags.push(`occasion_${occ}`));
-  explicit.dietary.forEach((diet) => tags.push(`dietary_${diet}`));
+  // New format: positiveTags and negativeTags
+  (explicit.positiveTags || []).forEach((attr) => tags.push(`attr_${attr}`));
+  (explicit.negativeTags || []).forEach((attr) => tags.push(`attr_${attr}`));
+
+  // Backward compatibility: old attributes field
+  (explicit.attributes || []).forEach((attr) => tags.push(`attr_${attr}`));
+
+  (explicit.occasions || []).forEach((occ) => tags.push(`occasion_${occ}`));
+  (explicit.dietary || []).forEach((diet) => tags.push(`dietary_${diet}`));
 
   return tags;
 }

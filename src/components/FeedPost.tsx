@@ -21,6 +21,11 @@ import { uploadReviewProofs, markReviewPendingProof } from '../services/reviewVe
 import { collection, query, where, limit, getDocs } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { navigateToDish, navigateToRestaurant } from '../utils/navigationHelpers';
+import { POSITIVE_ATTRIBUTES, NEGATIVE_ATTRIBUTES } from '../data/tagDefinitions';
+
+// Helper to determine if a tag slug is positive or negative
+const POSITIVE_TAG_SLUGS = new Set(POSITIVE_ATTRIBUTES.map(attr => attr.value));
+const NEGATIVE_TAG_SLUGS = new Set(NEGATIVE_ATTRIBUTES.map(attr => attr.value));
 
 interface FeedPostReview {
   date: string;
@@ -337,19 +342,25 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
   };
 
   const getTagChipClass = (slug: string): string => {
+    // Check if it's an attr_ tag and determine if positive or negative
+    if (slug.startsWith('attr_')) {
+      const attrSlug = slug.substring(5); // Remove 'attr_' prefix
+      if (POSITIVE_TAG_SLUGS.has(attrSlug as any)) {
+        return 'bg-gradient-to-r from-green-50 to-emerald-50 text-emerald-700 border border-emerald-200';
+      }
+      if (NEGATIVE_TAG_SLUGS.has(attrSlug as any)) {
+        return 'bg-slate-100 text-slate-700 border border-slate-300';
+      }
+    }
+
+    // Legacy hardcoded values for backward compatibility
     const positive = new Set([
       'good_value',
       'very_fresh',
       'spicy_lovers',
       'served_hot',
       'val_good_value',
-      'val_fair',
-      'attr_crispy',
-      'attr_fresh',
-      'attr_scratch_made',
-      'attr_juicy',
-      'attr_tender',
-      'attr_light'
+      'val_fair'
     ]);
     const negativeRed = new Set(['overpriced', 'too_spicy', 'val_overpriced']);
     const negativeAmber = new Set(['lukewarm', 'not_fresh']);
