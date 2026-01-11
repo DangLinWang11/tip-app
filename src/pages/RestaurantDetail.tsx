@@ -843,7 +843,7 @@ const getCurrentDayHours = (hours: Record<string, string>) => {
               <div key={review.id} className="border-b border-light-gray pb-4 last:border-0">
                 <div className="flex items-start">
                   <img
-                    src={author?.image || getAvatarUrl({ username: review.userId })}
+                    src={author?.image || getAvatarUrl({ username: review.userId, displayName: author?.name })}
                     alt={author?.name || 'User'}
                     className="w-10 h-10 rounded-full object-cover cursor-pointer"
                     onClick={() => author?.username && navigate('/user/' + author.username)}
@@ -861,6 +861,11 @@ const getCurrentDayHours = (hours: Record<string, string>) => {
                       </div>
                       <RatingBadge rating={review.rating} size="md" />
                     </div>
+                    {review.dish && (
+                      <p className="text-sm font-medium text-gray-900 mb-1">
+                        {review.dish}
+                      </p>
+                    )}
                     {(review as any).caption && (
                       <p className="text-sm text-gray-700 mb-2">{(review as any).caption}</p>
                     )}
