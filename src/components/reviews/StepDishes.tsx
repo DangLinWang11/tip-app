@@ -265,32 +265,31 @@ const StepDishes: React.FC = () => {
         return rest;
       });
 
-      // Snapshot current media IDs before upload
-      const beforeIds = new Set(mediaItems.map(m => m.id));
+      // Snapshot current media count before upload
+      const beforeCount = mediaItems.length;
 
       // Upload to shared pool (from WizardContext)
+      // Note: uploadMedia adds items to mediaItems synchronously with preview URLs
       await uploadMedia(validFiles);
 
-      // Small delay to ensure state updates have propagated
-      await new Promise(resolve => setTimeout(resolve, 100));
+      // The uploadMedia function adds items synchronously, so we can access them via a small delay
+      // and then attach based on the new items that appeared
+      setTimeout(() => {
+        // Get new media items that were added (they'll be at the end of the array)
+        const newMediaIds = mediaItems.slice(beforeCount).map(m => m.id);
 
-      // Find newly added media items that were successfully uploaded
-      const newMediaIds = mediaItems
-        .filter(m => !beforeIds.has(m.id) && m.status === 'uploaded')
-        .map(m => m.id);
+        if (newMediaIds.length > 0) {
+          setDishDrafts(prev => prev.map(dish => {
+            if (dish.id !== dishId) return dish;
 
-      // Auto-attach all successfully uploaded media to this dish
-      if (newMediaIds.length > 0) {
-        setDishDrafts(prev => prev.map(dish => {
-          if (dish.id !== dishId) return dish;
-
-          // Add new media IDs at the start (first = cover image)
-          return {
-            ...dish,
-            mediaIds: [...newMediaIds, ...dish.mediaIds]
-          };
-        }));
-      }
+            // Add new media IDs at the start (first = cover image)
+            return {
+              ...dish,
+              mediaIds: [...newMediaIds, ...dish.mediaIds]
+            };
+          }));
+        }
+      }, 100);
     } catch (error) {
       console.error('Failed to upload media for dish:', error);
       const message = error instanceof Error
@@ -298,11 +297,13 @@ const StepDishes: React.FC = () => {
         : 'Failed to upload. Please try again.';
       setUploadErrorForDish(prev => ({ ...prev, [dishId]: message }));
     } finally {
-      // Clear uploading state
-      setUploadingForDish(prev => {
-        const { [dishId]: _, ...rest } = prev;
-        return rest;
-      });
+      // Clear uploading state after a small delay to show the upload feedback
+      setTimeout(() => {
+        setUploadingForDish(prev => {
+          const { [dishId]: _, ...rest } = prev;
+          return rest;
+        });
+      }, 100);
     }
   };
 
@@ -436,9 +437,10 @@ const StepDishes: React.FC = () => {
                   <h3 className="truncate text-sm font-semibold text-slate-900">
                     {dish.dishName || 'Unnamed dish'}
                   </h3>
-                  <div className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-amber-50 text-amber-700">
-                    <span className="leading-none">⭐</span>
-                    <span>{dish.rating.toFixed(1)}</span>
+                  <div className="flex-shrink-0">
+                    <span className="text-base font-bold text-red-500">
+                      {dish.rating.toFixed(1)}
+                    </span>
                   </div>
                 </div>
                 <div className="mt-1 flex items-center gap-2 text-xs text-slate-500 flex-wrap">
