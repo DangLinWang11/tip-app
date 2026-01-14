@@ -188,6 +188,19 @@ const StepDishes: React.FC = () => {
     );
   };
 
+  const removeMediaFromDish = (dishId: string) => {
+    setDishDrafts(prev =>
+      prev.map(dish => {
+        if (dish.id !== dishId) return dish;
+        // Remove the first media item (cover image)
+        return {
+          ...dish,
+          mediaIds: dish.mediaIds.slice(1)
+        };
+      })
+    );
+  };
+
   const handleThumbnailClick = (dishId: string) => {
     const input = fileInputRefs.current[dishId];
     if (input) {
@@ -383,33 +396,41 @@ const StepDishes: React.FC = () => {
                 isExpanded ? 'bg-rose-50/60 border-rose-100' : 'bg-rose-50/40 border-transparent hover:bg-rose-50/70'
               }`}
             >
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleThumbnailClick(dish.id);
-                }}
-                disabled={uploadingForDish[dish.id]}
-                className={`relative flex-shrink-0 w-16 h-16 rounded-2xl flex items-center justify-center overflow-hidden transition-all cursor-pointer group focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-offset-2 ${
-                  coverImage
-                    ? 'hover:brightness-95'
-                    : 'bg-slate-100 hover:bg-slate-200'
-                } ${uploadingForDish[dish.id] ? 'cursor-wait opacity-75' : ''}`}
-                aria-label={coverImage ? "Add more photos to this dish" : "Upload photo for this dish"}
-              >
-                {coverImage ? (
-                  <>
-                    <img
-                      src={coverImage}
-                      alt="Dish"
-                      className="w-full h-full object-cover"
-                    />
-                    {/* Plus badge visible on hover */}
-                    <div className="absolute top-1 right-1 bg-red-500 rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Plus className="h-3 w-3 text-white" strokeWidth={3} />
-                    </div>
-                  </>
-                ) : (
+              {coverImage ? (
+                // Photo is attached - show non-clickable thumbnail with X button
+                <div className="relative flex-shrink-0 w-16 h-16 rounded-2xl overflow-hidden">
+                  <img
+                    src={coverImage}
+                    alt="Dish"
+                    className="w-full h-full object-cover"
+                  />
+                  {/* X button to remove photo - always visible */}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      removeMediaFromDish(dish.id);
+                    }}
+                    className="absolute top-1 right-1 bg-red-500 hover:bg-red-600 rounded-full p-1 transition-colors shadow-sm"
+                    aria-label="Remove photo from this dish"
+                  >
+                    <X className="h-3 w-3 text-white" strokeWidth={3} />
+                  </button>
+                </div>
+              ) : (
+                // No photo - clickable to upload
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleThumbnailClick(dish.id);
+                  }}
+                  disabled={uploadingForDish[dish.id]}
+                  className={`relative flex-shrink-0 w-16 h-16 rounded-2xl flex items-center justify-center bg-slate-100 hover:bg-slate-200 transition-all cursor-pointer group focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-offset-2 ${
+                    uploadingForDish[dish.id] ? 'cursor-wait opacity-75' : ''
+                  }`}
+                  aria-label="Upload photo for this dish"
+                >
                   <div className="relative">
                     <Camera className="h-10 w-10 text-slate-400 group-hover:text-slate-600 transition" />
                     {/* Plus badge at top-right corner of camera icon */}
@@ -417,20 +438,19 @@ const StepDishes: React.FC = () => {
                       <Plus className="h-3 w-3 text-white" strokeWidth={3} />
                     </div>
                   </div>
-                )}
-
-                {/* Loading overlay during upload */}
-                {uploadingForDish[dish.id] && (
-                  <>
-                    <div className="absolute inset-0 bg-white/80 flex items-center justify-center">
-                      <Loader2 className="h-5 w-5 animate-spin text-red-500" />
-                    </div>
-                    <span className="sr-only" role="status" aria-live="polite">
-                      Uploading photos for {dish.dishName || 'dish'}
-                    </span>
-                  </>
-                )}
-              </button>
+                  {/* Loading overlay during upload */}
+                  {uploadingForDish[dish.id] && (
+                    <>
+                      <div className="absolute inset-0 bg-white/80 flex items-center justify-center">
+                        <Loader2 className="h-5 w-5 animate-spin text-red-500" />
+                      </div>
+                      <span className="sr-only" role="status" aria-live="polite">
+                        Uploading photos for {dish.dishName || 'dish'}
+                      </span>
+                    </>
+                  )}
+                </button>
+              )}
 
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between gap-2">
