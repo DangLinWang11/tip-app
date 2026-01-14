@@ -437,11 +437,6 @@ const StepDishes: React.FC = () => {
                   <h3 className="truncate text-sm font-semibold text-slate-900">
                     {dish.dishName || 'Unnamed dish'}
                   </h3>
-                  <div className="flex-shrink-0 flex items-center">
-                    <span className="text-xl font-bold text-red-500 leading-none">
-                      {dish.rating.toFixed(1)}
-                    </span>
-                  </div>
                 </div>
                 <div className="mt-1 flex items-center gap-2 text-xs text-slate-500 flex-wrap">
                   <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-slate-100 text-slate-700">
@@ -451,7 +446,10 @@ const StepDishes: React.FC = () => {
                 </div>
               </div>
 
-              <div className="flex-shrink-0 flex items-center">
+              <div className="flex-shrink-0 flex items-center gap-3">
+                <span className="text-2xl font-bold text-red-500 leading-none" style={{ transform: 'translateY(0.175rem)' }}>
+                  {dish.rating.toFixed(1)}
+                </span>
                 {isExpanded ? (
                   <ChevronUp className="h-4 w-4 text-slate-500" />
                 ) : (
