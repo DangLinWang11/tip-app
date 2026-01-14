@@ -116,6 +116,7 @@ export interface VisitDraft {
   serviceSpeed?: ServiceSpeed | null;
   visitId?: string;
   businessTags?: string[]; // Business highlight tags: Great Staff, Wonderful Atmosphere, etc.
+  businessLowlights?: string[]; // Business lowlight tags: Rude Staff, Very Loud Environment, etc.
   isToGo?: boolean; // Whether the order was to-go/takeout
   toGoFeedback?: ToGoFeedback; // Optional structured to-go feedback (only when isToGo === true)
   dineInFeedback?: DineInFeedback; // Optional structured dine-in feedback (only when isToGo === false)
