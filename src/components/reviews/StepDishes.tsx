@@ -437,8 +437,8 @@ const StepDishes: React.FC = () => {
                   <h3 className="truncate text-sm font-semibold text-slate-900">
                     {dish.dishName || 'Unnamed dish'}
                   </h3>
-                  <div className="flex-shrink-0">
-                    <span className="text-base font-bold text-red-500">
+                  <div className="flex-shrink-0 flex items-center">
+                    <span className="text-xl font-bold text-red-500 leading-none">
                       {dish.rating.toFixed(1)}
                     </span>
                   </div>
