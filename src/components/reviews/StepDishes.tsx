@@ -278,31 +278,21 @@ const StepDishes: React.FC = () => {
         return rest;
       });
 
-      // Snapshot current media count before upload
-      const beforeCount = mediaItems.length;
+      // Upload to shared pool and get the IDs of newly created media items
+      const newMediaIds = await uploadMedia(validFiles);
 
-      // Upload to shared pool (from WizardContext)
-      // Note: uploadMedia adds items to mediaItems synchronously with preview URLs
-      await uploadMedia(validFiles);
+      // Attach new media to dish - first photo becomes thumbnail (at index 0)
+      if (newMediaIds.length > 0) {
+        setDishDrafts(prev => prev.map(dish => {
+          if (dish.id !== dishId) return dish;
 
-      // The uploadMedia function adds items synchronously, so we can access them via a small delay
-      // and then attach based on the new items that appeared
-      setTimeout(() => {
-        // Get new media items that were added (they'll be at the end of the array)
-        const newMediaIds = mediaItems.slice(beforeCount).map(m => m.id);
-
-        if (newMediaIds.length > 0) {
-          setDishDrafts(prev => prev.map(dish => {
-            if (dish.id !== dishId) return dish;
-
-            // Add new media IDs at the start (first = cover image)
-            return {
-              ...dish,
-              mediaIds: [...newMediaIds, ...dish.mediaIds]
-            };
-          }));
-        }
-      }, 100);
+          // Add new media IDs at the start (first = cover image)
+          return {
+            ...dish,
+            mediaIds: [...newMediaIds, ...dish.mediaIds]
+          };
+        }));
+      }
     } catch (error) {
       console.error('Failed to upload media for dish:', error);
       const message = error instanceof Error

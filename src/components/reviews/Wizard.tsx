@@ -512,6 +512,9 @@ const Wizard: React.FC = () => {
         }
       })
     );
+
+    // Return the IDs of newly created media items so callers can use them immediately
+    return newItems.map(item => item.id);
   }, [showReward, userId]);
 
   // Immediate autosave helper (non-debounced) for navigation

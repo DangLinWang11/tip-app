@@ -588,16 +588,46 @@ const StepVisit: React.FC = () => {
         )}
 
         <div className="space-y-2">
-          <div className="mt-4">
-            <RestaurantSearchInput
-              value={restaurantQuery}
-              onChange={handleRestaurantQueryChange}
-              placeholder="Search for a restaurant..."
-              className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-base text-slate-700 focus:border-red-400 focus:outline-none focus:ring-2 focus:ring-red-100"
-            />
-          </div>
-          {restaurantError ? <p className="text-sm text-red-500">{restaurantError}</p> : null}
-          <div className="mt-4">
+          {/* Selected Restaurant Display */}
+          {selectedRestaurant ? (
+            <div className="mt-4">
+              <div className="w-full rounded-2xl border-2 border-red-400 bg-red-50 px-4 py-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <MapPin className="w-5 h-5 text-red-500" />
+                    <div>
+                      <p className="text-base font-semibold text-slate-900">{selectedRestaurant.name}</p>
+                      {selectedRestaurant.address && (
+                        <p className="text-sm text-slate-600">{selectedRestaurant.address}</p>
+                      )}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      selectRestaurant(null);
+                      setRestaurantQuery('');
+                      setPlacePredictions([]);
+                    }}
+                    className="text-sm font-medium text-red-600 hover:text-red-700"
+                  >
+                    Change
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="mt-4">
+                <RestaurantSearchInput
+                  value={restaurantQuery}
+                  onChange={handleRestaurantQueryChange}
+                  placeholder="Search for a restaurant..."
+                  className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-base text-slate-700 focus:border-red-400 focus:outline-none focus:ring-2 focus:ring-red-100"
+                />
+              </div>
+              {restaurantError ? <p className="text-sm text-red-500">{restaurantError}</p> : null}
+              <div className="mt-4">
             {loadingRestaurants || fetchingPlaceDetails ? (
               <div className="flex items-center gap-2 text-slate-500 text-sm">
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -671,7 +701,7 @@ const StepVisit: React.FC = () => {
                         key={restaurant.id}
                         type="button"
                         onClick={() => onRestaurantSelected(restaurant)}
-                        className={`w-full rounded-2xl border px-3 py-2 text-left transition ${selectedRestaurant?.id === restaurant.id ? 'border-red-400 bg-red-50' : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'}`}
+                        className="w-full rounded-2xl border px-3 py-2 text-left transition border-slate-200 hover:border-slate-300 hover:bg-slate-50"
                       >
                         <div className="flex items-center justify-between w-full gap-2">
                           <div className="flex gap-2 flex-1 min-w-0 items-center">
@@ -723,7 +753,9 @@ const StepVisit: React.FC = () => {
                 )}
               </>
             )}
-          </div>
+              </div>
+            </>
+          )}
         </div>
       </section>
 
