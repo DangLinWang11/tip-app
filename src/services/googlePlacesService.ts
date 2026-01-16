@@ -368,6 +368,59 @@ export const searchNearbyForDish = async (
   });
 };
 
+/**
+ * Search for nearby restaurants without a keyword filter
+ * Used for preloading nearby restaurant suggestions
+ * @param location - User's current location
+ * @param radiusMiles - Search radius in miles (default 5)
+ * @param maxResults - Maximum number of results (default 10)
+ */
+export const searchNearbyRestaurants = async (
+  location: LatLngLiteral,
+  radiusMiles: number = 5,
+  maxResults: number = 10
+): Promise<GoogleFallbackPlace[]> => {
+  if (!location) {
+    return [];
+  }
+
+  await ensureGoogleMapsLoaded();
+
+  const radiusMeters = radiusMiles * 1609.34; // Convert miles to meters
+
+  return new Promise<GoogleFallbackPlace[]>((resolve) => {
+    const service = createPlacesService();
+    const request: google.maps.places.PlaceSearchRequest = {
+      location: new google.maps.LatLng(location.lat, location.lng),
+      radius: radiusMeters,
+      type: 'restaurant',
+    };
+
+    service.nearbySearch(request, (results, status) => {
+      if (status === google.maps.places.PlacesServiceStatus.OK && results) {
+        const mapped = results.slice(0, maxResults).map((result) => ({
+          place_id: result.place_id || `google_${Math.random()}`,
+          name: result.name || 'Unknown',
+          vicinity: result.vicinity || '',
+          rating: result.rating,
+          user_ratings_total: result.user_ratings_total,
+          price_level: result.price_level,
+          photos: result.photos,
+          geometry: result.geometry,
+          types: result.types
+        }));
+        // Filter out non-restaurant noise
+        resolve(filterRestaurantNoise(mapped));
+      } else if (status === google.maps.places.PlacesServiceStatus.ZERO_RESULTS) {
+        resolve([]);
+      } else {
+        console.warn(`Nearby restaurant search failed: ${status}`);
+        resolve([]);
+      }
+    });
+  });
+};
+
 export const searchByText = async (
   query: string,
   location?: LatLngLiteral
