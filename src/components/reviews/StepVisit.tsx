@@ -814,7 +814,9 @@ const StepVisit: React.FC = () => {
                                     </span>
                                   </div>
                                 ) : (
-                                  <span className="text-xs text-gray-500">Be first to review</span>
+                                  <div className="px-2 py-0.5 rounded-full bg-gray-200 flex items-center">
+                                    <span className="text-xs font-medium text-gray-600">New</span>
+                                  </div>
                                 )}
                                 {typeof distanceFromUser === 'number' && (
                                   <span className="text-xs text-gray-500 whitespace-nowrap">

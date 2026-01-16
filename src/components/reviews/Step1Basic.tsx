@@ -28,12 +28,16 @@ const calculateDistance = (lat1: number, lng1: number, lat2: number, lng2: numbe
 };
 
 const getQualityColor = (score: number | null | undefined): string => {
-  if (score === null || score === undefined) return 'bg-slate-200';
-  if (score >= 90) return 'bg-green-500';
-  if (score >= 80) return 'bg-green-400';
-  if (score >= 70) return 'bg-yellow-400';
-  if (score >= 60) return 'bg-orange-400';
-  return 'bg-red-400';
+  if (score === null || score === undefined) return '#94a3b8'; // slate-400
+  const clampedScore = Math.max(0, Math.min(100, score));
+
+  if (clampedScore >= 90) return '#2F6F4E'; // Premium / Excellent (forest green)
+  if (clampedScore >= 80) return '#4F9B75'; // Very Good
+  if (clampedScore >= 70) return '#9FD3B5'; // Good / Reliable
+  if (clampedScore >= 60) return '#E4D96F'; // Average / Caution
+  if (clampedScore >= 50) return '#F0A43C'; // Declining
+  if (clampedScore >= 36) return '#E06B2D'; // Poor
+  return '#C92A2A';                          // Hard Red / Avoid
 };
 
 const Step1Basic: React.FC = () => {
@@ -597,7 +601,7 @@ const Step1Basic: React.FC = () => {
                                   <p className="text-xs text-slate-500 truncate">{prediction.structured_formatting.secondary_text}</p>
                                 </div>
                             {existingRestaurant ? (
-                              <div className={`flex-shrink-0 flex items-center justify-center rounded-full px-2.5 py-1 ${getQualityColor(existingRestaurant.qualityScore)}`}>
+                              <div className="flex-shrink-0 flex items-center justify-center rounded-full px-2.5 py-1" style={{ backgroundColor: getQualityColor(existingRestaurant.qualityScore) }}>
                                 <span className="text-xs font-semibold text-white">{existingRestaurant.qualityScore || 0}%</span>
                               </div>
                             ) : (
@@ -661,7 +665,7 @@ const Step1Basic: React.FC = () => {
                               ) : null}
                             </div>
                             {restaurant.qualityScore !== null && restaurant.qualityScore !== undefined ? (
-                              <div className={`flex-shrink-0 flex items-center justify-center rounded-full px-2.5 py-1 ${getQualityColor(restaurant.qualityScore)}`}>
+                              <div className="flex-shrink-0 flex items-center justify-center rounded-full px-2.5 py-1" style={{ backgroundColor: getQualityColor(restaurant.qualityScore) }}>
                                 <span className="text-xs font-semibold text-white">{restaurant.qualityScore}%</span>
                               </div>
                             ) : (

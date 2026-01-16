@@ -538,16 +538,15 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
 
   // Function to get quality circle color based on percentage
   const getQualityColor = (percentage: number): string => {
-    if (percentage >= 95) return '#059669'; // Bright Green (95-100%)
-    if (percentage >= 90) return '#10B981'; // Green (90-94%)
-    if (percentage >= 85) return '#34D399'; // Light Green (85-89%)
-    if (percentage >= 80) return '#6EE7B7'; // Yellow-Green (80-84%)
-    if (percentage >= 75) return '#FDE047'; // Yellow (75-79%)
-    if (percentage >= 70) return '#FACC15'; // Orange-Yellow (70-74%)
-    if (percentage >= 65) return '#F59E0B'; // Orange (65-69%)
-    if (percentage >= 60) return '#F97316'; // Red-Orange (60-64%)
-    if (percentage >= 55) return '#FB7185'; // Light Red (55-59%)
-    return '#EF4444'; // Red (0-54%)
+    const clampedScore = Math.max(0, Math.min(100, percentage));
+
+    if (clampedScore >= 90) return '#2F6F4E'; // Premium / Excellent (forest green)
+    if (clampedScore >= 80) return '#4F9B75'; // Very Good
+    if (clampedScore >= 70) return '#9FD3B5'; // Good / Reliable
+    if (clampedScore >= 60) return '#E4D96F'; // Average / Caution
+    if (clampedScore >= 50) return '#F0A43C'; // Declining
+    if (clampedScore >= 36) return '#E06B2D'; // Poor
+    return '#C92A2A';                          // Hard Red / Avoid
   };
 
   // Memoize quality color calculation
