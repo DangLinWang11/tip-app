@@ -23,7 +23,7 @@ const ProfileStats: React.FC<ProfileStatsProps> = ({
         onClick={onReviewsClick}
         className="text-center focus:outline-none"
       >
-        <p className="text-lg font-bold text-gray-900">{reviewCount}</p>
+        <p className="text-lg font-normal text-gray-900">{reviewCount}</p>
         <p className="text-xs text-gray-500">Reviews</p>
       </button>
 
@@ -31,7 +31,7 @@ const ProfileStats: React.FC<ProfileStatsProps> = ({
         onClick={onFollowersClick}
         className="text-center focus:outline-none"
       >
-        <p className="text-lg font-bold text-gray-900">{followersCount}</p>
+        <p className="text-lg font-normal text-gray-900">{followersCount}</p>
         <p className="text-xs text-gray-500">Followers</p>
       </button>
 
@@ -39,7 +39,7 @@ const ProfileStats: React.FC<ProfileStatsProps> = ({
         onClick={onFollowingClick}
         className="text-center focus:outline-none"
       >
-        <p className="text-lg font-bold text-gray-900">{followingCount}</p>
+        <p className="text-lg font-normal text-gray-900">{followingCount}</p>
         <p className="text-xs text-gray-500">Following</p>
       </button>
     </div>

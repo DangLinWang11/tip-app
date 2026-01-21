@@ -17,12 +17,15 @@ const UserRestaurants: React.FC = () => {
     const loadUserId = async () => {
       if (!username) return;
       try {
-        const user = await getUserByUsername(username);
-        if (user) {
-          setUserId(user.uid);
+        const result = await getUserByUsername(username);
+        if (result.success && result.profile) {
+          setUserId(result.profile.uid);
+        } else {
+          setLoading(false);
         }
       } catch (error) {
         console.error('Error loading user:', error);
+        setLoading(false);
       }
     };
     loadUserId();
