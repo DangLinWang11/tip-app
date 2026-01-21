@@ -394,6 +394,10 @@ const Profile: React.FC = () => {
   const [followingCount, setFollowingCount] = useState(0);
   const isFirstLoad = useRef(true);
   const reviewsSectionRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
   
   useEffect(() => {
     isFirstLoad.current = false;
