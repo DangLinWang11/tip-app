@@ -91,7 +91,7 @@ export function FoodJourneyDialog({ open, onClose, markers, apiKey }: Props) {
       <div
         ref={cardRef}
         tabIndex={-1}
-        className="fixed left-4 right-4 top-20 bottom-6 bg-white rounded-2xl shadow-2xl pointer-events-auto flex flex-col overflow-hidden focus:outline-none"
+        className="fixed left-4 right-4 top-6 bottom-4 bg-white rounded-2xl shadow-2xl pointer-events-auto flex flex-col overflow-hidden focus:outline-none"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-4 py-3 border-b">
