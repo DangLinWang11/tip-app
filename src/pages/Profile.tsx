@@ -22,6 +22,7 @@ import {
 import EditListNameModal from '../components/EditListNameModal';
 import { getFollowCounts } from '../services/followService';
 import ProfileHeader from '../components/ProfileHeader';
+import ExpandedMapModal from '../components/ExpandedMapModal';
 import ProfileStats from '../components/ProfileStats';
 import StatPills from '../components/StatPills';
 
@@ -392,6 +393,7 @@ const Profile: React.FC = () => {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [followerCount, setFollowerCount] = useState(0);
   const [followingCount, setFollowingCount] = useState(0);
+  const [showFoodMapModal, setShowFoodMapModal] = useState(false);
   const isFirstLoad = useRef(true);
   const reviewsSectionRef = useRef<HTMLDivElement>(null);
 
@@ -762,9 +764,7 @@ const Profile: React.FC = () => {
         <div className="px-4 pb-4">
           <button
             onClick={() => {
-              startTransition(() => {
-                navigate(`/profile/${userProfile.username}/map`);
-              });
+              setShowFoodMapModal(true);
             }}
             className="w-full bg-gradient-to-r from-primary to-red-500 text-white py-3 px-6 rounded-xl font-medium shadow-sm hover:shadow-md transition-all duration-200 flex items-center justify-center"
           >
@@ -863,8 +863,17 @@ const Profile: React.FC = () => {
           )}
         </div>
       ) : (
-  <SavedListsTab />
-)}
+        <SavedListsTab />
+      )}
+
+      {showFoodMapModal && userProfile && (
+        <ExpandedMapModal
+          isOpen={showFoodMapModal}
+          onClose={() => setShowFoodMapModal(false)}
+          userId={userProfile.uid}
+          userName={userProfile.username || userProfile.displayName}
+        />
+      )}
     </div>
   );
 };
