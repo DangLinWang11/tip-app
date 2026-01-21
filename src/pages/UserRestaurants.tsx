@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Store, Star, MapPin } from 'lucide-react';
+import { ArrowLeft, Store } from 'lucide-react';
 import { getUserVisitedRestaurants, UserVisitedRestaurant } from '../services/reviewService';
 import { getUserByUsername } from '../lib/firebase';
 
@@ -76,14 +76,13 @@ const UserRestaurants: React.FC = () => {
                 <span className="mx-1">·</span>
               </>
             )}
-            <span>{restaurant.visitCount} {restaurant.visitCount === 1 ? 'visit' : 'visits'}</span>
+            <span>{restaurant.visitCount} {restaurant.visitCount === 1 ? 'review' : 'reviews'}</span>
           </div>
         </div>
 
         {/* Average rating */}
-        <div className="flex items-center ml-2 bg-green-50 px-2 py-1 rounded-lg">
-          <Star size={14} className="text-green-500 mr-1" fill="currentColor" />
-          <span className="text-sm font-medium text-green-700">
+        <div className="ml-2">
+          <span className="text-base font-bold text-primary">
             {restaurant.averageRating.toFixed(1)}
           </span>
         </div>
@@ -111,7 +110,9 @@ const UserRestaurants: React.FC = () => {
       {/* Subheader */}
       <div className="bg-white px-4 py-3 border-b border-gray-100">
         <p className="text-sm text-gray-500">
-          Restaurants reviewed by @{username}
+          {!loading && restaurants.length > 0
+            ? `${restaurants.length} ${restaurants.length === 1 ? 'restaurant' : 'restaurants'} reviewed by @${username}`
+            : `Restaurants reviewed by @${username}`}
         </p>
       </div>
 
@@ -135,14 +136,6 @@ const UserRestaurants: React.FC = () => {
         )}
       </div>
 
-      {/* Footer stats */}
-      {!loading && restaurants.length > 0 && (
-        <div className="px-4 py-4 text-center">
-          <p className="text-sm text-gray-500">
-            {restaurants.length} {restaurants.length === 1 ? 'restaurant' : 'restaurants'} reviewed
-          </p>
-        </div>
-      )}
     </div>
   );
 };

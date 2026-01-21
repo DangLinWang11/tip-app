@@ -18,13 +18,13 @@ const ProfileStats: React.FC<ProfileStatsProps> = ({
   onFollowingClick
 }) => {
   return (
-    <div className="flex items-center justify-start gap-6 mt-1">
+    <div className="flex items-center justify-start gap-6 mt-1 ml-4">
       <button
         onClick={onReviewsClick}
         className="text-center focus:outline-none"
       >
         <p className="text-lg font-normal text-gray-900">{reviewCount}</p>
-        <p className="text-xs text-gray-500">Reviews</p>
+        <p className="text-xs text-primary">Reviews</p>
       </button>
 
       <button
@@ -32,7 +32,7 @@ const ProfileStats: React.FC<ProfileStatsProps> = ({
         className="text-center focus:outline-none"
       >
         <p className="text-lg font-normal text-gray-900">{followersCount}</p>
-        <p className="text-xs text-gray-500">Followers</p>
+        <p className="text-xs text-primary">Followers</p>
       </button>
 
       <button
@@ -40,7 +40,7 @@ const ProfileStats: React.FC<ProfileStatsProps> = ({
         className="text-center focus:outline-none"
       >
         <p className="text-lg font-normal text-gray-900">{followingCount}</p>
-        <p className="text-xs text-gray-500">Following</p>
+        <p className="text-xs text-primary">Following</p>
       </button>
     </div>
   );
