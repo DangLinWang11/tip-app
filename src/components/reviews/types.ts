@@ -46,7 +46,7 @@ export interface WizardContextValue {
   // Media management
   mediaItems: LocalMediaItem[];
   setMediaItems: React.Dispatch<React.SetStateAction<LocalMediaItem[]>>;
-  uploadMedia: (files: File[]) => Promise<void>;
+  uploadMedia: (files: File[]) => Promise<string[]>;
   removeMedia: (id: string) => void;
   pendingUploads: boolean;
   pendingUploadCount: number;

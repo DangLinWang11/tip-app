@@ -9,7 +9,7 @@ import { useReviewWizard } from './WizardContext';
 import CreateRestaurantModal from './CreateRestaurantModal';
 import AddDishInline from './AddDishInline';
 import { CUISINES, getCuisineLabel } from '../../utils/taxonomy';
-import { saveGooglePlaceToFirestore } from '../../services/googlePlacesService';
+import { saveGooglePlaceToFirestore, searchNearbyRestaurants, GoogleFallbackPlace } from '../../services/googlePlacesService';
 import { MealTimeTag } from '../../dev/types/review';
 import { getQualityColor } from '../../utils/qualityScore';
 
@@ -24,6 +24,9 @@ const MEAL_TIME_OPTIONS: Array<{ value: MealTimeTag; labelKey: string; emoji: st
 ];
 
 const PRICE_LEVELS: Array<'$' | '$$' | '$$$' | '$$$$'> = ['$', '$$', '$$$', '$$$$'];
+
+const NEARBY_RADIUS_MILES = 5;
+const MAX_NEARBY_RESULTS = 10;
 
 const calculateDistance = (lat1: number, lng1: number, lat2: number, lng2: number): number => {
   const R = 3959;
@@ -156,6 +159,8 @@ const StepVisit: React.FC = () => {
   const [showLocationBanner, setShowLocationBanner] = useState(!userLocation);
   const [locationError, setLocationError] = useState<string | null>(null);
   const [requestingLocation, setRequestingLocation] = useState(false);
+  const [nearbyGooglePlaces, setNearbyGooglePlaces] = useState<GoogleFallbackPlace[]>([]);
+  const [loadingNearbyPlaces, setLoadingNearbyPlaces] = useState(false);
 
   const requestLocationPermission = React.useCallback(async () => {
     if (typeof navigator === 'undefined' || !navigator.geolocation) {
@@ -215,18 +220,38 @@ const StepVisit: React.FC = () => {
     }
   };
 
+  // Fetch Firebase restaurants - only when location is available, filtered to nearby
   useEffect(() => {
-    const fetchRestaurants = async () => {
+    // If no location, don't preload restaurants (user will still see results when they search)
+    if (!userLocation) {
+      setRestaurants([]);
+      return;
+    }
+
+    const fetchNearbyRestaurants = async () => {
       try {
         setLoadingRestaurants(true);
-        // Fetch all restaurants for now (Phase 1)
-        // TODO Phase 2: Use geohash queries to filter by location
+        // Fetch all restaurants from Firebase
         const snapshot = await getDocs(collection(db, 'restaurants'));
-        const list: RestaurantOption[] = snapshot.docs.map((docSnap) => ({
+        const allRestaurants: RestaurantOption[] = snapshot.docs.map((docSnap) => ({
           id: docSnap.id,
           ...(docSnap.data() as RestaurantOption)
         }));
-        setRestaurants(list);
+
+        // Filter to only restaurants within radius that have quality scores
+        const nearbyWithQuality = allRestaurants.filter((restaurant) => {
+          if (!restaurant.coordinates) return false;
+
+          const lat = restaurant.coordinates.lat || (restaurant.coordinates as any).latitude || 0;
+          const lng = restaurant.coordinates.lng || (restaurant.coordinates as any).longitude || 0;
+
+          if (!lat || !lng) return false;
+
+          const distance = calculateDistance(userLocation.lat, userLocation.lng, lat, lng);
+          return distance <= NEARBY_RADIUS_MILES && restaurant.qualityScore != null;
+        });
+
+        setRestaurants(nearbyWithQuality);
       } catch (error) {
         console.error('Failed to load restaurants', error);
         setRestaurantError(t('createWizard.status.error'));
@@ -234,8 +259,35 @@ const StepVisit: React.FC = () => {
         setLoadingRestaurants(false);
       }
     };
-    fetchRestaurants();
-  }, [t]);
+    fetchNearbyRestaurants();
+  }, [userLocation, t]);
+
+  // Fetch nearby Google Places when location is available
+  useEffect(() => {
+    if (!userLocation || !mapsLoaded) {
+      setNearbyGooglePlaces([]);
+      return;
+    }
+
+    const fetchNearbyGooglePlaces = async () => {
+      setLoadingNearbyPlaces(true);
+      try {
+        const places = await searchNearbyRestaurants(
+          userLocation,
+          NEARBY_RADIUS_MILES,
+          MAX_NEARBY_RESULTS
+        );
+        setNearbyGooglePlaces(places);
+      } catch (error) {
+        console.error('Failed to fetch nearby Google Places:', error);
+        setNearbyGooglePlaces([]);
+      } finally {
+        setLoadingNearbyPlaces(false);
+      }
+    };
+
+    fetchNearbyGooglePlaces();
+  }, [userLocation, mapsLoaded]);
 
   useEffect(() => {
     if (selectedRestaurant) {
@@ -258,57 +310,91 @@ const StepVisit: React.FC = () => {
     }
   }, [userLocation, showLocationBanner, requestingLocation, mapsLoaded, requestLocationPermission]);
 
-  const filteredRestaurants = useMemo(() => {
-    let filtered = restaurants;
-
-    // Apply search filter if query exists
-    if (restaurantQuery.trim()) {
+  const nearbyRestaurants = useMemo(() => {
+    // If user is searching, filter and return search results
+    if (restaurantQuery.trim().length >= 2) {
       const lower = restaurantQuery.toLowerCase();
-      filtered = filtered.filter((restaurant) => restaurant.name.toLowerCase().includes(lower));
+      const filtered = restaurants.filter((restaurant) =>
+        restaurant.name.toLowerCase().includes(lower)
+      );
+
+      // Add distance calculation and sorting
+      const withDistance = filtered.map((restaurant) => {
+        const lat = restaurant.coordinates?.lat || (restaurant.coordinates as any)?.latitude || 0;
+        const lng = restaurant.coordinates?.lng || (restaurant.coordinates as any)?.longitude || 0;
+        const distance = userLocation && lat && lng
+          ? calculateDistance(userLocation.lat, userLocation.lng, lat, lng)
+          : undefined;
+        return { ...restaurant, calculatedDistance: distance };
+      });
+
+      withDistance.sort((a, b) => {
+        // Sort by distance first, then quality score
+        if (userLocation) {
+          const distA = a.calculatedDistance ?? Infinity;
+          const distB = b.calculatedDistance ?? Infinity;
+          if (distA !== distB) return distA - distB;
+        }
+        const scoreA = a.qualityScore ?? 0;
+        const scoreB = b.qualityScore ?? 0;
+        return scoreB - scoreA;
+      });
+
+      return withDistance.slice(0, MAX_NEARBY_RESULTS);
     }
 
-    // Calculate distances and sort intelligently
-    const restaurantsWithDistance = filtered.map((restaurant) => {
-      const distance = userLocation && restaurant.coordinates
-        ? calculateDistance(
-            userLocation.lat,
-            userLocation.lng,
-            restaurant.coordinates.lat || restaurant.coordinates.latitude || 0,
-            restaurant.coordinates.lng || restaurant.coordinates.longitude || 0
-          )
-        : undefined;
+    // No search query - show hybrid nearby results
+    if (!userLocation) {
+      return []; // No preloaded results without location
+    }
 
-      return {
-        ...restaurant,
-        calculatedDistance: distance
-      };
+    // Firebase restaurants with quality scores (already filtered in fetch)
+    const firebaseNearby = restaurants.map((restaurant) => {
+      const lat = restaurant.coordinates?.lat || (restaurant.coordinates as any)?.latitude || 0;
+      const lng = restaurant.coordinates?.lng || (restaurant.coordinates as any)?.longitude || 0;
+      const distance = calculateDistance(userLocation.lat, userLocation.lng, lat, lng);
+      return { ...restaurant, calculatedDistance: distance };
     });
 
-    // Sort by: distance (if available), then quality score, then name
-    restaurantsWithDistance.sort((a, b) => {
-      // Priority 1: If user has location, sort by distance first
-      if (userLocation) {
-        const distA = a.calculatedDistance ?? Infinity;
-        const distB = b.calculatedDistance ?? Infinity;
-        if (distA !== distB) {
-          return distA - distB; // Closer restaurants first
-        }
-      }
+    // Sort Firebase results by quality score (distance already filtered)
+    firebaseNearby.sort((a, b) => (b.qualityScore ?? 0) - (a.qualityScore ?? 0));
 
-      // Priority 2: Sort by quality score (higher is better)
-      const scoreA = a.qualityScore ?? 0;
-      const scoreB = b.qualityScore ?? 0;
-      if (scoreA !== scoreB) {
-        return scoreB - scoreA; // Higher quality first
-      }
+    // Calculate how many slots Google Places should fill
+    const firebaseCount = firebaseNearby.length;
+    const googleSlotsNeeded = Math.max(0, MAX_NEARBY_RESULTS - firebaseCount);
 
-      // Priority 3: Alphabetical by name
-      return a.name.localeCompare(b.name);
-    });
+    // Convert Google Places to RestaurantOption format
+    const googlePlacesAsOptions: (RestaurantOption & { calculatedDistance?: number })[] = nearbyGooglePlaces
+      .slice(0, googleSlotsNeeded)
+      .filter((place) => {
+        // Exclude places that already exist in Firebase results
+        return !firebaseNearby.some((r) => r.googlePlaceId === place.place_id);
+      })
+      .map((place) => {
+        const lat = typeof place.geometry?.location?.lat === 'function'
+          ? place.geometry.location.lat()
+          : (place.geometry?.location as any)?.lat || 0;
+        const lng = typeof place.geometry?.location?.lng === 'function'
+          ? place.geometry.location.lng()
+          : (place.geometry?.location as any)?.lng || 0;
 
-    // Limit results
-    return restaurantsWithDistance.slice(0, 10);
-  }, [restaurantQuery, restaurants, userLocation]);
+        const distance = calculateDistance(userLocation.lat, userLocation.lng, lat, lng);
+
+        return {
+          id: place.place_id,
+          name: place.name,
+          address: place.vicinity,
+          coordinates: { lat, lng, latitude: lat, longitude: lng },
+          googlePlaceId: place.place_id,
+          source: 'google_places' as const,
+          qualityScore: null,
+          calculatedDistance: distance,
+        };
+      });
+
+    // Combine: Firebase first (sorted by quality), then Google Places
+    return [...firebaseNearby, ...googlePlacesAsOptions].slice(0, MAX_NEARBY_RESULTS);
+  }, [restaurantQuery, restaurants, nearbyGooglePlaces, userLocation]);
 
   const handleFileInput = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
@@ -588,16 +674,46 @@ const StepVisit: React.FC = () => {
         )}
 
         <div className="space-y-2">
-          <div className="mt-4">
-            <RestaurantSearchInput
-              value={restaurantQuery}
-              onChange={handleRestaurantQueryChange}
-              placeholder="Search for a restaurant..."
-              className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-base text-slate-700 focus:border-red-400 focus:outline-none focus:ring-2 focus:ring-red-100"
-            />
-          </div>
-          {restaurantError ? <p className="text-sm text-red-500">{restaurantError}</p> : null}
-          <div className="mt-4">
+          {/* Selected Restaurant Display */}
+          {selectedRestaurant ? (
+            <div className="mt-4">
+              <div className="w-full rounded-2xl border-2 border-red-400 bg-red-50 px-4 py-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <MapPin className="w-5 h-5 text-red-500" />
+                    <div>
+                      <p className="text-base font-semibold text-slate-900">{selectedRestaurant.name}</p>
+                      {selectedRestaurant.address && (
+                        <p className="text-sm text-slate-600">{selectedRestaurant.address}</p>
+                      )}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      selectRestaurant(null);
+                      setRestaurantQuery('');
+                      setPlacePredictions([]);
+                    }}
+                    className="text-sm font-medium text-red-600 hover:text-red-700"
+                  >
+                    Change
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="mt-4">
+                <RestaurantSearchInput
+                  value={restaurantQuery}
+                  onChange={handleRestaurantQueryChange}
+                  placeholder="Search for a restaurant..."
+                  className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-base text-slate-700 focus:border-red-400 focus:outline-none focus:ring-2 focus:ring-red-100"
+                />
+              </div>
+              {restaurantError ? <p className="text-sm text-red-500">{restaurantError}</p> : null}
+              <div className="mt-4">
             {loadingRestaurants || fetchingPlaceDetails ? (
               <div className="flex items-center gap-2 text-slate-500 text-sm">
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -657,59 +773,77 @@ const StepVisit: React.FC = () => {
                     })}
                   </div>
                 )}
-                <div className="mb-4 space-y-1.5">
-                  <p className="text-xs uppercase tracking-wide text-slate-400">
-                    {userLocation ? 'Nearby Restaurants' : 'Popular Restaurants'}
-                  </p>
-                  {filteredRestaurants.length > 0 ? (
-                    filteredRestaurants.map((restaurant) => {
-                      // Use pre-calculated distance from filteredRestaurants
-                      const distanceFromUser = (restaurant as any).calculatedDistance;
+                {/* Only show nearby section when location is enabled OR user is searching */}
+                {(userLocation || restaurantQuery.trim().length >= 2) && (
+                  <div className="mb-4 space-y-1.5">
+                    <p className="text-xs uppercase tracking-wide text-slate-400">
+                      {restaurantQuery.trim().length >= 2 ? 'Matching Restaurants' : 'Nearby Restaurants'}
+                    </p>
+                    {loadingNearbyPlaces && !restaurantQuery.trim() ? (
+                      <div className="flex items-center gap-2 text-slate-500 text-sm py-2">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Finding nearby restaurants...
+                      </div>
+                    ) : nearbyRestaurants.length > 0 ? (
+                      nearbyRestaurants.map((restaurant) => {
+                        const distanceFromUser = (restaurant as any).calculatedDistance;
+                        const isGoogleOnly = restaurant.source === 'google_places' && restaurant.qualityScore == null;
 
-                      return (
-                      <button
-                        key={restaurant.id}
-                        type="button"
-                        onClick={() => onRestaurantSelected(restaurant)}
-                        className={`w-full rounded-2xl border px-3 py-2 text-left transition ${selectedRestaurant?.id === restaurant.id ? 'border-red-400 bg-red-50' : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'}`}
-                      >
-                        <div className="flex items-center justify-between w-full gap-2">
-                          <div className="flex gap-2 flex-1 min-w-0 items-center">
-                            <MapPin className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                            <div className="min-w-0">
-                              <p className="text-sm font-semibold text-slate-900 truncate">{restaurant.name}</p>
-                              {restaurant.address && (
-                                <p className="text-xs text-slate-500 truncate">{restaurant.address}</p>
-                              )}
+                        return (
+                          <button
+                            key={restaurant.id}
+                            type="button"
+                            onClick={() => onRestaurantSelected(restaurant)}
+                            className="w-full rounded-2xl border px-3 py-2 text-left transition border-slate-200 hover:border-slate-300 hover:bg-slate-50"
+                          >
+                            <div className="flex items-center justify-between w-full gap-2">
+                              <div className="flex gap-2 flex-1 min-w-0 items-center">
+                                <MapPin className={`w-4 h-4 flex-shrink-0 ${isGoogleOnly ? 'text-red-500' : 'text-gray-400'}`} />
+                                <div className="min-w-0">
+                                  <p className="text-sm font-semibold text-slate-900 truncate">{restaurant.name}</p>
+                                  {restaurant.address && (
+                                    <p className="text-xs text-slate-500 truncate">{restaurant.address}</p>
+                                  )}
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2 flex-shrink-0">
+                                {restaurant.qualityScore != null ? (
+                                  <div className={`px-2 py-0.5 rounded-full ${getQualityColor(restaurant.qualityScore)} flex items-center`}>
+                                    <span className="text-xs font-medium text-white">
+                                      {Math.round(restaurant.qualityScore)}%
+                                    </span>
+                                  </div>
+                                ) : (
+                                  <div className="px-2 py-0.5 rounded-full bg-gray-200 flex items-center">
+                                    <span className="text-xs font-medium text-gray-600">New</span>
+                                  </div>
+                                )}
+                                {typeof distanceFromUser === 'number' && (
+                                  <span className="text-xs text-gray-500 whitespace-nowrap">
+                                    {distanceFromUser.toFixed(1)} mi
+                                  </span>
+                                )}
+                              </div>
                             </div>
-                          </div>
-                          <div className="flex items-center gap-2 flex-shrink-0">
-                            {restaurant.qualityScore != null ? (
-                              <div className={`px-2 py-0.5 rounded-full ${getQualityColor(restaurant.qualityScore)} flex items-center`}>
-                                <span className="text-xs font-medium text-white">
-                                  {Math.round(restaurant.qualityScore)}%
-                                </span>
-                              </div>
-                            ) : (
-                              <div className="px-2 py-0.5 rounded-full bg-gray-200 flex items-center">
-                                <span className="text-xs font-medium text-gray-600">New</span>
-                              </div>
-                            )}
-                            {typeof distanceFromUser === 'number' && (
-                              <span className="text-xs text-gray-500 whitespace-nowrap">
-                                {distanceFromUser.toFixed(1)} mi
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </button>
-                    );
-                  })
-                  ) : (
-                    <p className="text-xs text-slate-500 py-2">No restaurants found</p>
-                  )}
-                </div>
-                {restaurantQuery.trim() && placePredictions.length === 0 && !filteredRestaurants.length && (
+                          </button>
+                        );
+                      })
+                    ) : (
+                      <p className="text-xs text-slate-500 py-2">
+                        {restaurantQuery.trim() ? 'No matching restaurants found' : 'No nearby restaurants found'}
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {/* Hint when no location and not searching */}
+                {!userLocation && restaurantQuery.trim().length < 2 && (
+                  <p className="text-xs text-slate-400 py-2 text-center">
+                    Enable location to see nearby restaurants, or search above
+                  </p>
+                )}
+
+                {restaurantQuery.trim() && placePredictions.length === 0 && !nearbyRestaurants.length && (
                   <button
                     type="button"
                     onClick={() => setShowCreateRestaurant(true)}
@@ -723,7 +857,9 @@ const StepVisit: React.FC = () => {
                 )}
               </>
             )}
-          </div>
+              </div>
+            </>
+          )}
         </div>
       </section>
 

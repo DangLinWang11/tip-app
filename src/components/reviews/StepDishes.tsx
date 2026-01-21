@@ -1,6 +1,6 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { collection, getDocs, query, where, addDoc, serverTimestamp } from 'firebase/firestore';
-import { Plus, ChevronDown, ChevronUp, Trash2, Camera, AlertCircle, Loader2 } from 'lucide-react';
+import { Plus, ChevronDown, ChevronUp, Trash2, Camera, AlertCircle, Loader2, X } from 'lucide-react';
 import { useI18n } from '../../lib/i18n/useI18n';
 import { DishDraft, DishCategory } from '../../dev/types/review';
 import { useReviewWizard } from './WizardContext';
@@ -20,6 +20,7 @@ const StepDishes: React.FC = () => {
     setActiveDishIndex,
     mediaItems,
     setMediaItems,
+    uploadMedia,
     goNext,
     goBack,
     showReward,
@@ -35,6 +36,11 @@ const StepDishes: React.FC = () => {
   const [addingMenuItem, setAddingMenuItem] = useState(false);
   const [customCuisineInputs, setCustomCuisineInputs] = useState<Record<string, string>>({});
   const [customCuisineSelections, setCustomCuisineSelections] = useState<Record<string, boolean>>({});
+
+  // Track uploading state per dish for direct thumbnail upload
+  const [uploadingForDish, setUploadingForDish] = useState<Record<string, boolean>>({});
+  const [uploadErrorForDish, setUploadErrorForDish] = useState<Record<string, string | null>>({});
+  const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   // Initialize expandedDishIds with first dish if empty
   useEffect(() => {
@@ -182,6 +188,128 @@ const StepDishes: React.FC = () => {
     );
   };
 
+  const removeMediaFromDish = (dishId: string) => {
+    setDishDrafts(prev =>
+      prev.map(dish => {
+        if (dish.id !== dishId) return dish;
+        // Remove the first media item (cover image)
+        return {
+          ...dish,
+          mediaIds: dish.mediaIds.slice(1)
+        };
+      })
+    );
+  };
+
+  const handleThumbnailClick = (dishId: string) => {
+    const input = fileInputRefs.current[dishId];
+    if (input) {
+      input.click();
+    }
+  };
+
+  const handleDishFileSelect = async (dishId: string, event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+
+    try {
+      await handleDishUpload(dishId, Array.from(files));
+    } finally {
+      // Reset input to allow same file to be selected again
+      event.target.value = '';
+    }
+  };
+
+  const handleDishUpload = async (dishId: string, files: File[]) => {
+    if (files.length === 0) return;
+
+    // Prevent concurrent uploads to same dish
+    if (uploadingForDish[dishId]) {
+      console.warn('Upload already in progress for this dish');
+      return;
+    }
+
+    // Validate files
+    const validFiles: File[] = [];
+    const errors: string[] = [];
+    const MAX_IMAGE_SIZE = 8 * 1024 * 1024; // 8MB
+    const MAX_VIDEO_SIZE = 50 * 1024 * 1024; // 50MB
+
+    for (const file of files) {
+      const isImage = file.type.startsWith('image/');
+      const isVideo = file.type.startsWith('video/');
+
+      if (!isImage && !isVideo) {
+        errors.push(`${file.name}: Unsupported file type`);
+        continue;
+      }
+
+      if (isImage && file.size > MAX_IMAGE_SIZE) {
+        errors.push(`${file.name}: Image too large (max 8MB)`);
+        continue;
+      }
+
+      if (isVideo && file.size > MAX_VIDEO_SIZE) {
+        errors.push(`${file.name}: Video too large (max 50MB)`);
+        continue;
+      }
+
+      validFiles.push(file);
+    }
+
+    // Show validation errors if any
+    if (errors.length > 0) {
+      setUploadErrorForDish(prev => ({
+        ...prev,
+        [dishId]: errors.join('; ')
+      }));
+    }
+
+    // Only proceed if we have valid files
+    if (validFiles.length === 0) return;
+
+    // Mark dish as uploading
+    setUploadingForDish(prev => ({ ...prev, [dishId]: true }));
+
+    try {
+      // Clear any previous errors
+      setUploadErrorForDish(prev => {
+        const { [dishId]: _, ...rest } = prev;
+        return rest;
+      });
+
+      // Upload to shared pool and get the IDs of newly created media items
+      const newMediaIds = await uploadMedia(validFiles);
+
+      // Attach new media to dish - first photo becomes thumbnail (at index 0)
+      if (newMediaIds.length > 0) {
+        setDishDrafts(prev => prev.map(dish => {
+          if (dish.id !== dishId) return dish;
+
+          // Add new media IDs at the start (first = cover image)
+          return {
+            ...dish,
+            mediaIds: [...newMediaIds, ...dish.mediaIds]
+          };
+        }));
+      }
+    } catch (error) {
+      console.error('Failed to upload media for dish:', error);
+      const message = error instanceof Error
+        ? error.message
+        : 'Failed to upload. Please try again.';
+      setUploadErrorForDish(prev => ({ ...prev, [dishId]: message }));
+    } finally {
+      // Clear uploading state after a small delay to show the upload feedback
+      setTimeout(() => {
+        setUploadingForDish(prev => {
+          const { [dishId]: _, ...rest } = prev;
+          return rest;
+        });
+      }, 100);
+    }
+  };
+
   const getMediaCountText = (dishId: string): string => {
     const dish = dishDrafts.find(d => d.id === dishId);
     const count = dish ? new Set(dish.mediaIds).size : 0;
@@ -258,27 +386,67 @@ const StepDishes: React.FC = () => {
                 isExpanded ? 'bg-rose-50/60 border-rose-100' : 'bg-rose-50/40 border-transparent hover:bg-rose-50/70'
               }`}
             >
-              <div className="flex-shrink-0 w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center overflow-hidden">
-                {coverImage ? (
+              {coverImage ? (
+                // Photo is attached - show non-clickable thumbnail with X button
+                <div className="relative flex-shrink-0 w-16 h-16 rounded-2xl overflow-hidden">
                   <img
                     src={coverImage}
                     alt="Dish"
                     className="w-full h-full object-cover"
                   />
-                ) : (
-                  <Camera className="h-6 w-6 text-slate-400" />
-                )}
-              </div>
+                  {/* X button to remove photo - always visible */}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      removeMediaFromDish(dish.id);
+                    }}
+                    className="absolute top-1 right-1 bg-red-500 hover:bg-red-600 rounded-full p-1 transition-colors shadow-sm"
+                    aria-label="Remove photo from this dish"
+                  >
+                    <X className="h-3 w-3 text-white" strokeWidth={3} />
+                  </button>
+                </div>
+              ) : (
+                // No photo - clickable to upload
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleThumbnailClick(dish.id);
+                  }}
+                  disabled={uploadingForDish[dish.id]}
+                  className={`relative flex-shrink-0 w-16 h-16 rounded-2xl flex items-center justify-center bg-slate-100 hover:bg-slate-200 transition-all cursor-pointer group focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-offset-2 ${
+                    uploadingForDish[dish.id] ? 'cursor-wait opacity-75' : ''
+                  }`}
+                  aria-label="Upload photo for this dish"
+                >
+                  <div className="relative">
+                    <Camera className="h-10 w-10 text-slate-400 group-hover:text-slate-600 transition" />
+                    {/* Plus badge at top-right corner of camera icon */}
+                    <div className="absolute -top-1 -right-1 bg-red-500 rounded-full p-1">
+                      <Plus className="h-3 w-3 text-white" strokeWidth={3} />
+                    </div>
+                  </div>
+                  {/* Loading overlay during upload */}
+                  {uploadingForDish[dish.id] && (
+                    <>
+                      <div className="absolute inset-0 bg-white/80 flex items-center justify-center">
+                        <Loader2 className="h-5 w-5 animate-spin text-red-500" />
+                      </div>
+                      <span className="sr-only" role="status" aria-live="polite">
+                        Uploading photos for {dish.dishName || 'dish'}
+                      </span>
+                    </>
+                  )}
+                </button>
+              )}
 
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between gap-2">
                   <h3 className="truncate text-sm font-semibold text-slate-900">
                     {dish.dishName || 'Unnamed dish'}
                   </h3>
-                  <div className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-amber-50 text-amber-700">
-                    <span className="leading-none">⭐</span>
-                    <span>{dish.rating.toFixed(1)}</span>
-                  </div>
                 </div>
                 <div className="mt-1 flex items-center gap-2 text-xs text-slate-500 flex-wrap">
                   <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-slate-100 text-slate-700">
@@ -288,7 +456,10 @@ const StepDishes: React.FC = () => {
                 </div>
               </div>
 
-              <div className="flex-shrink-0 flex items-center">
+              <div className="flex-shrink-0 flex items-center gap-3">
+                <span className="text-2xl font-bold text-red-500 leading-none" style={{ transform: 'translateY(0.175rem)' }}>
+                  {dish.rating.toFixed(1)}
+                </span>
                 {isExpanded ? (
                   <ChevronUp className="h-4 w-4 text-slate-500" />
                 ) : (
@@ -296,6 +467,27 @@ const StepDishes: React.FC = () => {
                 )}
               </div>
             </div>
+
+            {/* Upload Error Banner */}
+            {uploadErrorForDish[dish.id] && (
+              <div className="px-4 py-3 bg-red-50 border-t border-red-100 flex items-start gap-2">
+                <AlertCircle className="h-4 w-4 text-red-500 flex-shrink-0 mt-0.5" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-red-700">{uploadErrorForDish[dish.id]}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setUploadErrorForDish(prev => {
+                    const { [dish.id]: _, ...rest } = prev;
+                    return rest;
+                  })}
+                  className="text-red-400 hover:text-red-600 transition"
+                  aria-label="Dismiss error"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            )}
 
             {/* Expanded Content */}
             {isExpanded && (
@@ -637,6 +829,17 @@ const StepDishes: React.FC = () => {
                 )}
               </div>
             )}
+
+            {/* Hidden file input for direct upload */}
+            <input
+              ref={(el) => { fileInputRefs.current[dish.id] = el; }}
+              type="file"
+              accept="image/*,video/mp4,video/webm"
+              multiple
+              className="hidden"
+              onChange={(e) => handleDishFileSelect(dish.id, e)}
+              aria-hidden="true"
+            />
           </div>
         );
         })}

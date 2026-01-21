@@ -18,6 +18,23 @@ const BUSINESS_TAGS = [
 
 const MAX_BUSINESS_TAGS = 3;
 
+const BUSINESS_LOWLIGHTS = [
+  'Rude Staff',
+  'Very Loud Environment',
+  'Overcrowded',
+  'Dirty',
+  'Poor Parking',
+  'Slow Service',
+  'Overpriced'
+];
+
+const MAX_BUSINESS_LOWLIGHTS = 3;
+
+const formatTagLabel = (tag: string): string => {
+  // Replace underscores and hyphens with spaces
+  return tag.replace(/_/g, ' ').replace(/-/g, ' ');
+};
+
 const StepWrapUp: React.FC = () => {
   const { t } = useI18n();
   const navigate = useNavigate();
@@ -39,6 +56,7 @@ const StepWrapUp: React.FC = () => {
   const [successIds, setSuccessIds] = useState<string[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [selectedBusinessTags, setSelectedBusinessTags] = useState<string[]>(visitDraft.businessTags || []);
+  const [selectedBusinessLowlights, setSelectedBusinessLowlights] = useState<string[]>(visitDraft.businessLowlights || []);
   const [countdown, setCountdown] = useState(5);
 
   // Structured feedback state
@@ -65,6 +83,19 @@ const StepWrapUp: React.FC = () => {
           ? prev // Don't add if already at max
           : [...prev, tag];
       setVisitDraft(draft => ({ ...draft, businessTags: newTags }));
+      return newTags;
+    });
+  };
+
+  const toggleBusinessLowlight = (tag: string) => {
+    setSelectedBusinessLowlights(prev => {
+      const isRemoving = prev.includes(tag);
+      const newTags = isRemoving
+        ? prev.filter(t => t !== tag)
+        : prev.length >= MAX_BUSINESS_LOWLIGHTS
+          ? prev // Don't add if already at max
+          : [...prev, tag];
+      setVisitDraft(draft => ({ ...draft, businessLowlights: newTags }));
       return newTags;
     });
   };
@@ -277,7 +308,7 @@ const StepWrapUp: React.FC = () => {
                         key={`pos-${idx}`}
                         className="inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700"
                       >
-                        ✓ {tag}
+                        ✓ {formatTagLabel(tag)}
                       </span>
                     ))}
                     {negativeTags.slice(0, 2).map((tag, idx) => (
@@ -285,7 +316,7 @@ const StepWrapUp: React.FC = () => {
                         key={`neg-${idx}`}
                         className="inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-700"
                       >
-                        ⚠ {tag}
+                        ⚠ {formatTagLabel(tag)}
                       </span>
                     ))}
                   </div>
@@ -513,7 +544,36 @@ const StepWrapUp: React.FC = () => {
                   disabled={isMaxed}
                   className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
                     isSelected
-                      ? 'bg-slate-900 text-white shadow-sm'
+                      ? 'bg-green-100 text-green-700 shadow-sm'
+                      : isMaxed
+                        ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                        : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                  }`}
+                >
+                  {tag}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* What could be better? (Lowlights) */}
+        <div>
+          <h2 className="text-lg font-semibold text-slate-900 mb-2">Any lowlights?</h2>
+          <p className="text-xs text-slate-500 mb-3">Select up to {MAX_BUSINESS_LOWLIGHTS} lowlights (optional)</p>
+          <div className="flex flex-wrap gap-2">
+            {BUSINESS_LOWLIGHTS.map(tag => {
+              const isSelected = selectedBusinessLowlights.includes(tag);
+              const isMaxed = selectedBusinessLowlights.length >= MAX_BUSINESS_LOWLIGHTS && !isSelected;
+              return (
+                <button
+                  key={tag}
+                  type="button"
+                  onClick={() => toggleBusinessLowlight(tag)}
+                  disabled={isMaxed}
+                  className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                    isSelected
+                      ? 'bg-red-100 text-red-700 shadow-sm'
                       : isMaxed
                         ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
                         : 'bg-slate-100 text-slate-700 hover:bg-slate-200'

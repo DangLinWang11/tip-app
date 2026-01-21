@@ -424,26 +424,22 @@ const Wizard: React.FC = () => {
   }, []);
 
   const removeMedia = useCallback((id: string) => {
-    // CRITICAL: Check if media is attached to any dish
+    // Auto-detach from all dishes before deletion
     const attachedDishes = dishDrafts.filter(dish =>
       dish.mediaIds.includes(id)
     );
 
     if (attachedDishes.length > 0) {
-      // Prevent deletion and show user-facing error
-      const dishNames = attachedDishes
-        .map(d => d.name || 'Unnamed dish')
-        .join(', ');
-
-      // TODO: Replace alert with proper toast/modal component
-      alert(
-        `Cannot delete this photo because it's attached to: ${dishNames}.\n\n` +
-        `Please remove it from the dish first in Step 2.`
+      // Remove photo from all dishes that use it
+      setDishDrafts(prev =>
+        prev.map(dish => ({
+          ...dish,
+          mediaIds: dish.mediaIds.filter(mediaId => mediaId !== id)
+        }))
       );
-      return;
     }
 
-    // Proceed with deletion
+    // Proceed with deletion from media pool
     let removed: LocalMediaItem | undefined;
     setMediaItems((prev) => {
       removed = prev.find((item) => item.id === id);
@@ -452,7 +448,7 @@ const Wizard: React.FC = () => {
       }
       return prev.filter((item) => item.id !== id);
     });
-  }, [dishDrafts]);
+  }, [dishDrafts, setDishDrafts]);
 
   const uploadMedia = useCallback(async (files: File[]) => {
     if (!userId) {
@@ -516,6 +512,9 @@ const Wizard: React.FC = () => {
         }
       })
     );
+
+    // Return the IDs of newly created media items so callers can use them immediately
+    return newItems.map(item => item.id);
   }, [showReward, userId]);
 
   // Immediate autosave helper (non-debounced) for navigation

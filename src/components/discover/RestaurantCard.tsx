@@ -19,16 +19,15 @@ interface RestaurantCardProps {
 }
 
 const getQualityColor = (percentage: number): string => {
-  if (percentage >= 95) return '#059669';
-  if (percentage >= 90) return '#10B981';
-  if (percentage >= 85) return '#34D399';
-  if (percentage >= 80) return '#6EE7B7';
-  if (percentage >= 75) return '#FDE047';
-  if (percentage >= 70) return '#FACC15';
-  if (percentage >= 65) return '#F59E0B';
-  if (percentage >= 60) return '#F97316';
-  if (percentage >= 55) return '#FB7185';
-  return '#EF4444';
+  const clampedScore = Math.max(0, Math.min(100, percentage));
+
+  if (clampedScore >= 90) return '#2F6F4E'; // Premium / Excellent (forest green)
+  if (clampedScore >= 80) return '#4F9B75'; // Very Good
+  if (clampedScore >= 70) return '#9FD3B5'; // Good / Reliable
+  if (clampedScore >= 60) return '#E4D96F'; // Average / Caution
+  if (clampedScore >= 50) return '#F0A43C'; // Declining
+  if (clampedScore >= 36) return '#E06B2D'; // Poor
+  return '#C92A2A';                          // Hard Red / Avoid
 };
 
 const RestaurantCard: React.FC<RestaurantCardProps> = ({ data, onClick }) => {

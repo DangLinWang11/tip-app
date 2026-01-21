@@ -50,16 +50,15 @@ const FALLBACK_IMAGE = 'https://source.unsplash.com/80x80/?restaurant,food';
 
 const getQualityColor = (score: number | null | undefined): string => {
   if (score === null || score === undefined) return '#9CA3AF';
-  if (score >= 95) return '#059669'; // Bright Green
-  if (score >= 90) return '#10B981'; // Green
-  if (score >= 85) return '#34D399'; // Light Green
-  if (score >= 80) return '#6EE7B7'; // Yellow-Green
-  if (score >= 75) return '#FDE047'; // Yellow
-  if (score >= 70) return '#FACC15'; // Orange-Yellow
-  if (score >= 65) return '#F59E0B'; // Orange
-  if (score >= 60) return '#F97316'; // Red-Orange
-  if (score >= 55) return '#FB7185'; // Light Red
-  return '#EF4444'; // Red
+  const clampedScore = Math.max(0, Math.min(100, score));
+
+  if (clampedScore >= 90) return '#2F6F4E'; // Premium / Excellent (forest green)
+  if (clampedScore >= 80) return '#4F9B75'; // Very Good
+  if (clampedScore >= 70) return '#9FD3B5'; // Good / Reliable
+  if (clampedScore >= 60) return '#E4D96F'; // Average / Caution
+  if (clampedScore >= 50) return '#F0A43C'; // Declining
+  if (clampedScore >= 36) return '#E06B2D'; // Poor
+  return '#C92A2A';                          // Hard Red / Avoid
 };
 
 const calculateDistance = (lat1: number, lng1: number, lat2: number, lng2: number): number => {
