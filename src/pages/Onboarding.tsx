@@ -27,6 +27,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, needsUsernameOnly =
   const hasAuthenticatedUser = typeof window !== 'undefined' ? !!auth.currentUser : false;
   const [step, setStep] = useState(needsUsernameOnly && hasAuthenticatedUser ? 2 : 0); // Start at username if already authenticated
   const [username, setUsername] = useState('');
+  const [actualName, setActualName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -315,6 +316,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, needsUsernameOnly =
         
         const result = await createUserProfile(currentUser, {
           username: username.trim().toLowerCase(),
+          actualName: actualName.trim(),
           displayName: username.trim(),
           avatar: avatarUrl
         });
@@ -528,17 +530,30 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, needsUsernameOnly =
               </h1>
             </div>
             <div className="w-full mb-6">
+              <label className="block text-sm font-medium mb-2">Your Name</label>
+              <input
+                type="text"
+                value={actualName}
+                onChange={e => setActualName(e.target.value)}
+                className="w-full p-3 border border-gray-300 rounded-xl"
+                placeholder="Enter your full name"
+              />
+              <p className="text-xs text-gray-500 mt-2">
+                This is how others will see you on your profile
+              </p>
+            </div>
+            <div className="w-full mb-6">
               <label className="block text-sm font-medium mb-2">Username</label>
               <div className="flex items-center">
-                <input 
-                  type="text" 
-                  value={username} 
-                  onChange={e => setUsername(e.target.value)} 
-                  className="flex-1 p-3 border border-gray-300 rounded-l-xl" 
-                  placeholder="Choose a username" 
+                <input
+                  type="text"
+                  value={username}
+                  onChange={e => setUsername(e.target.value)}
+                  className="flex-1 p-3 border border-gray-300 rounded-l-xl"
+                  placeholder="Choose a username"
                 />
-                <button 
-                  onClick={generateRandomUsername} 
+                <button
+                  onClick={generateRandomUsername}
                   className="bg-secondary text-white p-3 rounded-r-xl hover:bg-opacity-90 transition-colors"
                 >
                   <ShuffleIcon size={24} />
@@ -587,7 +602,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, needsUsernameOnly =
         className="w-full bg-primary text-white py-4 rounded-xl font-medium flex items-center justify-center transition-colors hover:opacity-90 disabled:opacity-50"
         disabled={
           (step === 1 && (!email.trim() || !password.trim() || !isValidEmail(email) || (!isSignInMode && !isValidPassword(password)) || isAuthenticating)) ||
-          (step === 2 && (!username.trim() || isAuthenticating))
+          (step === 2 && (!username.trim() || !actualName.trim() || isAuthenticating))
         }
       >
         {isAuthenticating ? (

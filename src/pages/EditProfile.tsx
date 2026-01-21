@@ -7,6 +7,7 @@ import { getInitials } from '../utils/avatarUtils';
 
 interface EditProfileForm {
   username: string;
+  actualName: string;
   displayName: string;
   bio: string;
   avatar: string;
@@ -29,6 +30,7 @@ const EditProfile: React.FC = () => {
   const [originalProfile, setOriginalProfile] = useState<any>(null);
   const [formData, setFormData] = useState<EditProfileForm>({
     username: '',
+    actualName: '',
     displayName: '',
     bio: '',
     avatar: ''
@@ -66,6 +68,7 @@ const EditProfile: React.FC = () => {
           setOriginalProfile(profile);
           setFormData({
             username: profile.username || '',
+            actualName: profile.actualName || '',
             displayName: profile.displayName || '',
             bio: profile.bio || '',
             avatar: profile.avatar || ''
@@ -294,6 +297,7 @@ const EditProfile: React.FC = () => {
       // Update profile
       const updateData = {
         username: formData.username.trim(),
+        actualName: formData.actualName.trim(),
         displayName: formData.displayName.trim(),
         bio: formData.bio.trim(),
         avatar: avatarUrl
@@ -325,6 +329,7 @@ const EditProfile: React.FC = () => {
     
     return (
       formData.username !== (originalProfile.username || '') ||
+      formData.actualName !== (originalProfile.actualName || '') ||
       formData.displayName !== (originalProfile.displayName || '') ||
       formData.bio !== (originalProfile.bio || '') ||
       selectedImage !== null
@@ -467,6 +472,23 @@ const EditProfile: React.FC = () => {
             </div>
             <p className="text-xs text-gray-500 mt-1">
               Letters, numbers, and underscores only. Minimum 3 characters.
+            </p>
+          </div>
+
+          {/* Your Name */}
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Your Name
+            </label>
+            <input
+              type="text"
+              value={formData.actualName}
+              onChange={(e) => handleInputChange('actualName', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+              placeholder="Enter your full name"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              This is how others will see you on your profile
             </p>
           </div>
 

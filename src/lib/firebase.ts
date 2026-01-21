@@ -344,6 +344,7 @@ export interface UserProfile {
   uid: string;
   email: string;
   username: string;
+  actualName?: string;
   displayName?: string;
   avatar?: string;
   bio?: string;
@@ -365,6 +366,7 @@ export const createUserProfile = async (
   user: User,
   additionalData: {
     username: string;
+    actualName?: string;
     displayName?: string;
     avatar?: string;
     bio?: string;
@@ -395,6 +397,7 @@ export const createUserProfile = async (
       uid: user.uid,
       email: user.email || '',
       username: additionalData.username.trim(),
+      actualName: additionalData.actualName || '',
       displayName: additionalData.displayName || additionalData.username.trim(),
       avatar: additionalData.avatar || '',
       bio: additionalData.bio || '',

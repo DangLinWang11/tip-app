@@ -1,4 +1,4 @@
-import React, { useState, useEffect, startTransition } from 'react';
+import React, { useState, useEffect, useRef, startTransition } from 'react';
 import { ArrowLeftIcon, MapIcon, MapPinIcon, SearchIcon, PlusIcon, CheckIcon, EditIcon, Share, User, Star, Users, TrendingUp, Store } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import FeedPost from '../components/FeedPost';
@@ -6,6 +6,10 @@ import { fetchUserReviews, convertReviewsToFeedPosts, FirebaseReview } from '../
 import { getFollowCounts, isFollowing, followUser, unfollowUser } from '../services/followService';
 import { getUserProfile, getCurrentUser, getUserByUsername } from '../lib/firebase';
 import ExpandedMapModal from '../components/ExpandedMapModal';
+import ProfileHeader from '../components/ProfileHeader';
+import ProfileStats from '../components/ProfileStats';
+import StatPills from '../components/StatPills';
+import { getInitials } from '../utils/avatarUtils';
 
 // Cache for visited public profiles (username-keyed with LRU eviction)
 interface CachedPublicProfile {
@@ -13,6 +17,7 @@ interface CachedPublicProfile {
   reviews: FirebaseReview[];
   feedPosts: any[];
   followerCount: number;
+  followingCount: number;
   isFollowing: boolean;
   timestamp: number;
 }
@@ -131,9 +136,13 @@ const PublicProfile: React.FC = () => {
   const [isFollowingUser, setIsFollowingUser] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
   const [followerCount, setFollowerCount] = useState(0);
+  const [followingCount, setFollowingCount] = useState(0);
 
   // Food map modal state
   const [showFoodMapModal, setShowFoodMapModal] = useState(false);
+
+  // Ref for scrolling to reviews
+  const reviewsSectionRef = useRef<HTMLDivElement>(null);
 
   const currentUser = getCurrentUser();
   const isOwnProfile = currentUser?.displayName === username || currentUser?.email?.split('@')[0] === username;
@@ -161,6 +170,7 @@ const PublicProfile: React.FC = () => {
         setUserReviews(cached.reviews);
         setFeedPosts(cached.feedPosts);
         setFollowerCount(cached.followerCount);
+        setFollowingCount(cached.followingCount);
         if (!isOwnProfile) {
           setIsFollowingUser(cached.isFollowing);
         }
@@ -189,6 +199,7 @@ const PublicProfile: React.FC = () => {
         // Get follow counts and status
         const counts = await getFollowCounts(profileResult.profile.uid);
         setFollowerCount(counts.followers);
+        setFollowingCount(counts.following);
 
         let followingStatus = false;
         if (!isOwnProfile) {
@@ -203,6 +214,7 @@ const PublicProfile: React.FC = () => {
           reviews,
           feedPosts: posts,
           followerCount: counts.followers,
+          followingCount: counts.following,
           isFollowing: followingStatus,
           timestamp: Date.now()
         });
@@ -360,6 +372,44 @@ const PublicProfile: React.FC = () => {
     );
   }
 
+  // Calculate stats
+  const restaurantsCount = new Set(userReviews.map(r => r.restaurant).filter(Boolean)).size;
+  const averageRating = userReviews.length > 0
+    ? userReviews.reduce((sum, review) => sum + review.rating, 0) / userReviews.length
+    : 0;
+
+  // Scroll to reviews section handler
+  const handleScrollToReviews = () => {
+    setActiveTab('reviews');
+    setTimeout(() => {
+      reviewsSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, 100);
+  };
+
+  // Avatar component with fallback
+  const UserAvatar: React.FC = () => {
+    const [imageError, setImageError] = useState(false);
+
+    if (userProfile?.avatar && !imageError) {
+      return (
+        <img
+          src={userProfile.avatar}
+          alt={username}
+          className="w-20 h-20 rounded-full object-cover border-2 border-gray-200"
+          onError={() => setImageError(true)}
+        />
+      );
+    }
+
+    return (
+      <div className="w-20 h-20 rounded-full bg-primary flex items-center justify-center border-2 border-gray-200">
+        <span className="text-white font-semibold text-xl">
+          {getInitials(username || '', userProfile?.actualName || userProfile?.displayName)}
+        </span>
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 pb-16" style={{ animation: 'fadeIn 0.2s ease-in' }}>
       <style>{`
@@ -368,170 +418,109 @@ const PublicProfile: React.FC = () => {
           to { opacity: 1; }
         }
       `}</style>
-      {/* Header */}
-      <div className="bg-white px-4 py-4 shadow-sm">
-        <div className="flex items-center">
-          <button
-            onClick={() => {
-              startTransition(() => {
-                navigate('/');
-              });
-            }}
-            className="mr-2 p-2 hover:bg-gray-100 rounded-full transition-colors"
-          >
-            <ArrowLeftIcon size={20} className="text-gray-600" />
-          </button>
-          <h1 className="text-lg font-semibold text-black">Profile</h1>
-        </div>
-      </div>
 
-      <div className="px-4 py-6">
-        {/* Profile Info */}
-        <div className="bg-white rounded-xl shadow-sm p-5 mb-6">
-          <div className="flex items-start mb-3">
-            <img
-              src={userProfile?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${username}`}
-              alt={username}
-              className="w-20 h-20 rounded-full object-cover"
-            />
+      {/* New Instagram-style Header */}
+      <ProfileHeader
+        username={username || ''}
+        showMenu={false}
+        onBack={() => navigate(-1)}
+      />
+
+      <div className="bg-white shadow-sm">
+        {/* Profile Info Section - Instagram Style */}
+        <div className="p-4">
+          <div className="flex items-start">
+            {/* Avatar */}
+            <UserAvatar />
+
+            {/* Name and Stats */}
             <div className="ml-4 flex-1 min-w-0">
-              <div className="flex items-center">
-                <User size={16} className="text-primary mr-1.5" />
-                <h2 className="text-lg font-bold text-black">@{username}</h2>
-              </div>
-              <p className="text-gray-600 text-sm mt-1 whitespace-pre-line">
-                {userProfile?.bio || "Food enthusiast exploring local cuisine"}
-              </p>
+              {/* Actual Name */}
+              <h2 className="font-semibold text-lg text-gray-900">
+                {userProfile?.actualName || userProfile?.displayName || username}
+                {userProfile?.isVerified && (
+                  <span className="ml-1 text-blue-500" title="Verified user">✓</span>
+                )}
+              </h2>
+
+              {/* Stats Row */}
+              <ProfileStats
+                reviewCount={userReviews.length}
+                followersCount={followerCount}
+                followingCount={followingCount}
+                onReviewsClick={handleScrollToReviews}
+                onFollowersClick={() => navigate(`/user/${username}/connections?tab=followers`)}
+                onFollowingClick={() => navigate(`/user/${username}/connections?tab=following`)}
+              />
             </div>
           </div>
 
-          {/* Action Buttons - Positioned closer to bio */}
-          <div className="flex justify-center items-center mb-4">
-            <div className="flex space-x-2">
-              {isOwnProfile ? (
-                <>
-                  <button
-                    onClick={() => {
-                      startTransition(() => {
-                        navigate('/profile/edit');
-                      });
-                    }}
-                    className="px-4 py-2 border border-gray-200 rounded-full text-sm flex items-center hover:bg-gray-50 transition-colors"
-                  >
-                    <EditIcon size={14} className="mr-1.5" />
-                    Edit
-                  </button>
+          {/* Bio - Below avatar */}
+          {userProfile?.bio && (
+            <p className="text-sm text-gray-600 mt-3 whitespace-pre-line">{userProfile.bio}</p>
+          )}
 
-                  <button
-                    onClick={handleShareProfile}
-                    className="px-4 py-2 border border-gray-200 rounded-full text-sm flex items-center hover:bg-gray-50 transition-colors"
-                  >
-                    <Share size={14} className="mr-1.5" />
-                    Share
-                  </button>
-                </>
+          {/* Follow/Unfollow Button - Full width below bio */}
+          {!isOwnProfile && (
+            <button
+              onClick={handleFollowToggle}
+              disabled={followLoading}
+              className={`w-full mt-4 py-2.5 rounded-lg font-medium transition-colors flex items-center justify-center ${
+                isFollowingUser
+                  ? 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  : 'bg-primary text-white hover:bg-red-600'
+              } ${followLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+            >
+              {followLoading ? (
+                <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2" />
+              ) : isFollowingUser ? (
+                <CheckIcon size={16} className="mr-2" />
               ) : (
-                <>
-                  <button
-                    onClick={handleFollowToggle}
-                    disabled={followLoading}
-                    className={`px-4 py-2 rounded-full text-sm font-medium transition-colors flex items-center ${
-                      isFollowingUser
-                        ? 'bg-green-100 text-green-700 hover:bg-green-200 border border-green-200'
-                        : 'bg-primary text-white hover:bg-red-600'
-                    } ${followLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-                  >
-                    {followLoading ? (
-                      <div className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin mr-1.5" />
-                    ) : isFollowingUser ? (
-                      <CheckIcon size={14} className="mr-1.5" />
-                    ) : (
-                      <PlusIcon size={14} className="mr-1.5" />
-                    )}
-                    {isFollowingUser ? 'Following' : 'Follow'}
-                  </button>
-
-                  <button
-                    onClick={handleShareProfile}
-                    className="px-4 py-2 border border-gray-200 rounded-full text-sm flex items-center hover:bg-gray-50 transition-colors"
-                  >
-                    <Share size={14} className="mr-1.5" />
-                    Share
-                  </button>
-                </>
+                <PlusIcon size={16} className="mr-2" />
               )}
-            </div>
-          </div>
+              {isFollowingUser ? 'Following' : 'Follow'}
+            </button>
+          )}
 
-          {/* Stats Cards - 2x2 Grid - More Compact */}
-          <div className="grid grid-cols-2 gap-2.5">
-            {/* Reviews Card */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-3">
-              <div className="flex items-center">
-                <div className="w-9 h-9 bg-red-100 rounded-full flex items-center justify-center mr-2.5 flex-shrink-0">
-                  <Star size={18} className="text-red-500" />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-xl font-bold text-primary leading-tight">{userReviews.length}</p>
-                  <p className="text-xs text-gray-500 leading-tight">Reviews</p>
-                </div>
-              </div>
-            </div>
+          {/* Action buttons for own profile */}
+          {isOwnProfile && (
+            <div className="flex space-x-2 mt-4">
+              <button
+                onClick={() => {
+                  startTransition(() => {
+                    navigate('/profile/edit');
+                  });
+                }}
+                className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium flex items-center hover:bg-gray-50 transition-colors"
+              >
+                <EditIcon size={14} className="mr-1.5" />
+                Edit Profile
+              </button>
 
-            {/* Followers Card */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-3">
-              <div className="flex items-center">
-                <div className="w-9 h-9 bg-purple-100 rounded-full flex items-center justify-center mr-2.5 flex-shrink-0">
-                  <Users size={18} className="text-purple-500" />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-xl font-bold text-primary leading-tight">{followerCount}</p>
-                  <p className="text-xs text-gray-500 leading-tight">Followers</p>
-                </div>
-              </div>
+              <button
+                onClick={handleShareProfile}
+                className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium flex items-center hover:bg-gray-50 transition-colors"
+              >
+                <Share size={14} className="mr-1.5" />
+                Share
+              </button>
             </div>
+          )}
 
-            {/* Average Rating Card */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-3">
-              <div className="flex items-center">
-                <div className="w-9 h-9 bg-green-100 rounded-full flex items-center justify-center mr-2.5 flex-shrink-0">
-                  <TrendingUp size={18} className="text-green-500" />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-xl font-bold text-primary leading-tight">
-                    {userReviews.length > 0
-                      ? (userReviews.reduce((sum, review) => sum + review.rating, 0) / userReviews.length).toFixed(1)
-                      : "0.0"
-                    }
-                  </p>
-                  <p className="text-xs text-gray-500 leading-tight">Avg Rating</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Restaurants Card */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-3">
-              <div className="flex items-center">
-                <div className="w-9 h-9 bg-blue-100 rounded-full flex items-center justify-center mr-2.5 flex-shrink-0">
-                  <Store size={18} className="text-blue-500" />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-xl font-bold text-primary leading-tight">
-                    {new Set(userReviews.map(r => r.restaurant).filter(Boolean)).size}
-                  </p>
-                  <p className="text-xs text-gray-500 leading-tight">Restaurants</p>
-                </div>
-              </div>
-            </div>
-          </div>
+          {/* Stat Pills */}
+          <StatPills
+            restaurantsCount={restaurantsCount}
+            averageRating={averageRating}
+            username={username || ''}
+          />
         </div>
 
-        {/* Food Map Button - only show when viewing someone else's profile */}
+        {/* Food Map Button */}
         {!isOwnProfile && (
-          <div className="mb-6">
+          <div className="px-4 pb-4">
             <button
               onClick={() => setShowFoodMapModal(true)}
-              className="w-full bg-gradient-to-r from-primary to-red-500 text-white py-3.5 px-6 rounded-xl font-medium shadow-sm hover:shadow-md transition-all duration-200 flex items-center justify-center"
+              className="w-full bg-gradient-to-r from-primary to-red-500 text-white py-3 px-6 rounded-xl font-medium shadow-sm hover:shadow-md transition-all duration-200 flex items-center justify-center"
             >
               <MapIcon size={18} className="mr-2" />
               View their Food Map
@@ -540,75 +529,81 @@ const PublicProfile: React.FC = () => {
         )}
 
         {/* Tabs */}
-        <div className="bg-white rounded-xl shadow-sm mb-4">
-          <div className="flex border-b border-gray-200">
-            <button
-              onClick={() => setActiveTab('reviews')}
-              className={`flex-1 py-3 px-4 text-center font-medium ${
-                activeTab === 'reviews'
-                  ? 'text-primary border-b-2 border-primary'
-                  : 'text-gray-600'
-              }`}
-            >
-              Reviews ({userReviews.length})
-            </button>
-            <button
-              onClick={() => setActiveTab('saved')}
-              className={`flex-1 py-3 px-4 text-center font-medium ${
-                activeTab === 'saved'
-                  ? 'text-primary border-b-2 border-primary'
-                  : 'text-gray-600'
-              }`}
-            >
-              Saved Lists
-            </button>
-          </div>
-        </div>
-
-        {/* Tab Content */}
-        {activeTab === 'reviews' && (
-          <div className="space-y-4">
-            {/* Search */}
-            <div className="bg-white rounded-xl shadow-sm p-4">
-              <div className="relative">
-                <SearchIcon size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Search reviews..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                />
-              </div>
-            </div>
-
-            {/* Reviews */}
-            {filteredPosts.length > 0 ? (
-              <div className="space-y-4">
-                {filteredPosts.map(post => (
-                  <FeedPost key={post.id} {...post} />
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-12">
-                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <MapPinIcon size={24} className="text-gray-400" />
-                </div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                  {searchQuery ? 'No matching reviews' : 'No reviews yet'}
-                </h3>
-                <p className="text-gray-600">
-                  {searchQuery 
-                    ? 'Try adjusting your search terms'
-                    : `${username} hasn't shared any reviews yet.`
-                  }
-                </p>
-              </div>
+        <div className="flex border-t border-gray-200">
+          <button
+            onClick={() => setActiveTab('reviews')}
+            className={`flex-1 py-3 text-center font-medium transition-colors relative ${
+              activeTab === 'reviews'
+                ? 'text-primary'
+                : 'text-gray-600'
+            }`}
+          >
+            Reviews ({userReviews.length})
+            {activeTab === 'reviews' && (
+              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
             )}
-          </div>
-        )}
+          </button>
+          <button
+            onClick={() => setActiveTab('saved')}
+            className={`flex-1 py-3 text-center font-medium transition-colors relative ${
+              activeTab === 'saved'
+                ? 'text-primary'
+                : 'text-gray-600'
+            }`}
+          >
+            Saved Lists
+            {activeTab === 'saved' && (
+              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
+            )}
+          </button>
+        </div>
+      </div>
 
-        {activeTab === 'saved' && (
+      {/* Tab Content */}
+      {activeTab === 'reviews' && (
+        <div ref={reviewsSectionRef} className="p-4 space-y-4">
+          {/* Search */}
+          <div className="bg-white rounded-xl shadow-sm p-4">
+            <div className="relative">
+              <SearchIcon size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search reviews..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+              />
+            </div>
+          </div>
+
+          {/* Reviews */}
+          {filteredPosts.length > 0 ? (
+            <div className="space-y-4">
+              {filteredPosts.map(post => (
+                <FeedPost key={post.id} {...post} />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <MapPinIcon size={24} className="text-gray-400" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                {searchQuery ? 'No matching reviews' : 'No reviews yet'}
+              </h3>
+              <p className="text-gray-600">
+                {searchQuery
+                  ? 'Try adjusting your search terms'
+                  : `${username} hasn't shared any reviews yet.`
+                }
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {activeTab === 'saved' && (
+        <div className="p-4">
           <div className="text-center py-12">
             <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <MapPinIcon size={24} className="text-gray-400" />
@@ -616,8 +611,8 @@ const PublicProfile: React.FC = () => {
             <h3 className="text-lg font-semibold text-gray-900 mb-2">Private Content</h3>
             <p className="text-gray-600">Saved lists are private and not visible to other users.</p>
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Food Map Modal */}
       {showFoodMapModal && (

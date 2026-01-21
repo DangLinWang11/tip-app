@@ -25,6 +25,8 @@ import FoodMap from './pages/FoodMap';
 import AdminUpload from './pages/AdminUpload';
 import PostDetail from './pages/PostDetail';
 import FixRestaurants from './pages/FixRestaurants';
+import FollowersFollowing from './pages/FollowersFollowing';
+import UserRestaurants from './pages/UserRestaurants';
 import { LocationProvider } from './contexts/LocationContext';
 import { useFeature } from './utils/features';
 import { getRandomLoadingMessage } from './utils/loadingMessages';
@@ -250,6 +252,8 @@ export function App() {
                 <Route path="recent-activity" element={<RecentActivity />} />
                 <Route path="profile" element={<Profile />} />
                 <Route path="user/:username" element={<PublicProfile />} />
+                <Route path="user/:username/connections" element={<FollowersFollowing />} />
+                <Route path="user/:username/restaurants" element={<UserRestaurants />} />
                 <Route path="profile/:username/map" element={<UserFoodMapPage />} />
                 <Route path="rewards" element={<RewardsComingSoon />} />
                 <Route path="list/:id" element={<ListDetail />} />

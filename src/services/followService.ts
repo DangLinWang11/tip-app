@@ -28,6 +28,16 @@ export interface FollowCounts {
   followers: number;
 }
 
+export interface FollowWithProfile {
+  id: string;
+  userId: string;
+  username: string;
+  actualName?: string;
+  avatar?: string;
+  bio?: string;
+  isFollowing?: boolean;
+}
+
 // Check if current user is following a specific user
 export const isFollowing = async (targetUserId: string): Promise<boolean> => {
   try {
@@ -204,6 +214,129 @@ export const getFollowingActivity = async (limitCount: number = 20): Promise<any
     }));
   } catch (error) {
     console.error('Error getting following activity:', error);
+    return [];
+  }
+};
+
+// Get followers with their profile data
+export const getFollowersWithProfiles = async (userId?: string): Promise<FollowWithProfile[]> => {
+  try {
+    const targetUserId = userId || getCurrentUser()?.uid;
+    if (!targetUserId) return [];
+
+    // Get the followers list
+    const followers = await getFollowers(targetUserId);
+    console.log('[getFollowersWithProfiles] Found follower relationships:', followers.length);
+    if (followers.length === 0) return [];
+
+    // Fetch profile data for each follower
+    const currentUser = getCurrentUser();
+    const profilePromises = followers.map(async (follow) => {
+      const userRef = doc(db, 'users', follow.followerId);
+      const userSnap = await getDoc(userRef);
+
+      if (userSnap.exists()) {
+        const userData = userSnap.data();
+        // Check if current user is following this person
+        let isFollowingUser = false;
+        if (currentUser && currentUser.uid !== follow.followerId) {
+          const followsRef = collection(db, 'follows');
+          const q = query(
+            followsRef,
+            where('followerId', '==', currentUser.uid),
+            where('followingId', '==', follow.followerId)
+          );
+          const followSnap = await getDocs(q);
+          isFollowingUser = !followSnap.empty;
+        }
+
+        return {
+          id: follow.id,
+          userId: follow.followerId,
+          username: userData.username || '',
+          actualName: userData.actualName || userData.displayName || '',
+          avatar: userData.avatar || '',
+          bio: userData.bio || '',
+          isFollowing: isFollowingUser
+        } as FollowWithProfile;
+      }
+
+      // User profile doesn't exist - log it and return a placeholder profile
+      console.warn('[getFollowersWithProfiles] User profile not found for userId:', follow.followerId);
+
+      // Return a minimal profile with available data
+      return {
+        id: follow.id,
+        userId: follow.followerId,
+        username: 'Deleted User',
+        actualName: '',
+        avatar: '',
+        bio: '',
+        isFollowing: false,
+        profileMissing: true
+      } as FollowWithProfile & { profileMissing?: boolean };
+    });
+
+    const profiles = await Promise.all(profilePromises);
+    // Filter out null values but keep missing profiles
+    return profiles.filter((p): p is FollowWithProfile => p !== null);
+  } catch (error) {
+    console.error('Error getting followers with profiles:', error);
+    return [];
+  }
+};
+
+// Get following with their profile data
+export const getFollowingWithProfiles = async (userId?: string): Promise<FollowWithProfile[]> => {
+  try {
+    const targetUserId = userId || getCurrentUser()?.uid;
+    if (!targetUserId) return [];
+
+    // Get the following list
+    const following = await getFollowing(targetUserId);
+    console.log('[getFollowingWithProfiles] Found following relationships:', following.length);
+    if (following.length === 0) return [];
+
+    // Fetch profile data for each followed user
+    const currentUser = getCurrentUser();
+    const profilePromises = following.map(async (follow) => {
+      const userRef = doc(db, 'users', follow.followingId);
+      const userSnap = await getDoc(userRef);
+
+      if (userSnap.exists()) {
+        const userData = userSnap.data();
+        return {
+          id: follow.id,
+          userId: follow.followingId,
+          username: userData.username || follow.followingUsername || '',
+          actualName: userData.actualName || userData.displayName || '',
+          avatar: userData.avatar || '',
+          bio: userData.bio || '',
+          isFollowing: true // We are viewing "following" list, so we follow them
+        } as FollowWithProfile;
+      }
+
+      // User profile doesn't exist - log it and return a placeholder profile
+      console.warn('[getFollowingWithProfiles] User profile not found for userId:', follow.followingId, 'username:', follow.followingUsername);
+
+      // Return a minimal profile with available data from the follow relationship
+      return {
+        id: follow.id,
+        userId: follow.followingId,
+        username: follow.followingUsername || 'Deleted User',
+        actualName: '',
+        avatar: '',
+        bio: '',
+        isFollowing: true,
+        profileMissing: true
+      } as FollowWithProfile & { profileMissing?: boolean };
+    });
+
+    const profiles = await Promise.all(profilePromises);
+    // Filter out null values but keep missing profiles
+    return profiles.filter((p): p is FollowWithProfile => p !== null);
+  } catch (error) {
+    console.error('Error getting following with profiles:', error);
     return [];
   }
 };
