@@ -59,7 +59,7 @@ const ExpandedMapModal: React.FC<ExpandedMapModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center pt-2 pb-4 px-2 overscroll-contain"
+      className="fixed inset-0 bg-black bg-opacity-75 z-50 flex items-start justify-center pt-4 pb-16 px-2 overscroll-contain"
       onClick={handleBackdropClick}
       onTouchStart={(e) => { e.stopPropagation(); }}
       onTouchMove={(e) => { e.stopPropagation(); }}
@@ -70,7 +70,7 @@ const ExpandedMapModal: React.FC<ExpandedMapModalProps> = ({
       onWheel={(e) => { e.stopPropagation(); }}
     >
       <div
-        className="bg-white rounded-xl w-full h-full max-w-6xl max-h-[90vh] overflow-hidden shadow-2xl relative"
+        className="bg-white rounded-xl w-full h-full max-w-6xl max-h-[calc(100dvh-5rem)] overflow-hidden shadow-2xl relative"
       >
         {/* Header with close button */}
         <div className="absolute top-0 left-0 right-0 z-10 bg-white/95 backdrop-blur-sm border-b border-gray-200 p-4 flex items-center justify-between">
@@ -80,12 +80,6 @@ const ExpandedMapModal: React.FC<ExpandedMapModalProps> = ({
               <h2 className="text-xl font-bold text-gray-900">
                 {userName ? `${userName}'s Food Journey` : 'Your Food Journey'}
               </h2>
-              <p className="text-sm text-gray-600">
-                {userName
-                  ? `Explore ${userName}'s dining experiences`
-                  : 'Click any restaurant pin to see your dishes'
-                }
-              </p>
             </div>
           </div>
           
