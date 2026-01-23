@@ -4,6 +4,16 @@ import { ArrowLeft, Store } from 'lucide-react';
 import { getUserVisitedRestaurants, UserVisitedRestaurant } from '../services/reviewService';
 import { getUserByUsername } from '../lib/firebase';
 
+// Simple cache for restaurant data to enable instant "back" navigation
+let cachedRestaurantData: {
+  username: string;
+  userId: string;
+  restaurants: UserVisitedRestaurant[];
+  timestamp: number;
+} | null = null;
+
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
 const UserRestaurants: React.FC = () => {
   const { username } = useParams<{ username: string }>();
   const navigate = useNavigate();
@@ -34,14 +44,37 @@ const UserRestaurants: React.FC = () => {
   // Load restaurants data
   useEffect(() => {
     const loadRestaurants = async () => {
-      if (!userId) return;
+      if (!userId || !username) return;
 
-      setLoading(true);
+      // Check if we have valid cached data for this user
+      const now = Date.now();
+      if (cachedRestaurantData &&
+          cachedRestaurantData.username === username &&
+          cachedRestaurantData.userId === userId &&
+          (now - cachedRestaurantData.timestamp) < CACHE_DURATION) {
+        // Use cached data immediately for instant display
+        setRestaurants(cachedRestaurantData.restaurants);
+        setLoading(false);
+        // Still fetch fresh data in background, but don't show loading state
+      } else {
+        // No cache available, show loading state
+        setLoading(true);
+      }
+
+      // Fetch fresh data (either as background refresh or initial load)
       try {
         const data = await getUserVisitedRestaurants(userId);
         // Sort by visit count (most visited first)
         data.sort((a, b) => b.visitCount - a.visitCount);
         setRestaurants(data);
+
+        // Update cache
+        cachedRestaurantData = {
+          username,
+          userId,
+          restaurants: data,
+          timestamp: Date.now()
+        };
       } catch (error) {
         console.error('Error loading restaurants:', error);
       } finally {
@@ -50,7 +83,7 @@ const UserRestaurants: React.FC = () => {
     };
 
     loadRestaurants();
-  }, [userId]);
+  }, [userId, username]);
 
   // Restaurant list item component
   const RestaurantListItem: React.FC<{ restaurant: UserVisitedRestaurant }> = ({
