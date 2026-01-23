@@ -30,6 +30,7 @@ import UserRestaurants from './pages/UserRestaurants';
 import { LocationProvider } from './contexts/LocationContext';
 import { useFeature } from './utils/features';
 import { getRandomLoadingMessage } from './utils/loadingMessages';
+import { useReviewStore } from './stores/reviewStore';
 import { runBackfillSoftDelete } from './dev/backfillSoftDelete';
 import { runBackfillCuisines } from './dev/backfillCuisines';
 import { undeleteAllReviews } from './utils/undeleteReviews';
@@ -131,7 +132,16 @@ export function App() {
     needsUsername: false,
     isLoading: true
   });
-  
+
+  const setScrollPosition = useReviewStore((state) => state.setScrollPosition);
+
+  // Reset scroll position on initial app load (fresh launch)
+  useEffect(() => {
+    console.log('[App] Resetting scroll position on fresh app load');
+    setScrollPosition(0);
+    // Empty dependency array ensures this only runs once on mount
+  }, []);
+
   useEffect(() => {
     // Firebase Auth state listener - automatically handles session persistence
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
