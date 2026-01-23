@@ -1,17 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { MapIcon, TrendingUpIcon, StarIcon, ClockIcon, MessageCircleIcon, PlusIcon, ArrowLeft, Star, X, Edit2, MapPinIcon } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { fetchUserReviews, convertUserReviewsToFeedPosts, FirebaseReview, PersonalNote, addPersonalNote, updatePersonalNote, deletePersonalNote } from '../services/reviewService';
-import { getUserProfile, getCurrentUser } from '../lib/firebase';
+import { getUserProfile, getCurrentUser, getUserByUsername } from '../lib/firebase';
 import LocationPinIcon from '../components/icons/LocationPinIcon';
 
 const FoodMap: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [userReviews, setUserReviews] = useState<any[]>([]);
   const [userProfile, setUserProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [editingNote, setEditingNote] = useState<{reviewId: string, noteId: string} | null>(null);
+  const [isOwnProfile, setIsOwnProfile] = useState(true);
 
   // Load user data function
   const loadUserData = async () => {
@@ -26,14 +28,40 @@ const FoodMap: React.FC = () => {
         return;
       }
 
-      // Get user profile
-      const profileResult = await getUserProfile();
-      if (profileResult.success && profileResult.profile) {
-        setUserProfile(profileResult.profile);
+      // Get username from query params
+      const usernameParam = searchParams.get('user');
+
+      let targetUserId: string | undefined;
+      let targetProfile: any = null;
+
+      if (usernameParam) {
+        // Viewing another user's recent visits
+        const userResult = await getUserByUsername(usernameParam);
+        if (userResult.success && userResult.profile) {
+          targetProfile = userResult.profile;
+          targetUserId = userResult.profile.uid;
+          setIsOwnProfile(currentUser.uid === targetUserId);
+        } else {
+          console.error('User not found:', usernameParam);
+          setUserReviews([]);
+          setUserProfile(null);
+          setLoading(false);
+          return;
+        }
+      } else {
+        // Viewing own recent visits
+        const profileResult = await getUserProfile();
+        if (profileResult.success && profileResult.profile) {
+          targetProfile = profileResult.profile;
+          targetUserId = currentUser.uid;
+        }
+        setIsOwnProfile(true);
       }
 
-      // Get current user's reviews only
-      const userReviewsData = await fetchUserReviews(50);
+      setUserProfile(targetProfile);
+
+      // Get user's reviews (either current user or target user)
+      const userReviewsData = await fetchUserReviews(50, targetUserId);
       const userPosts = await convertUserReviewsToFeedPosts(userReviewsData);
       setUserReviews(userPosts);
     } catch (err) {
@@ -44,10 +72,10 @@ const FoodMap: React.FC = () => {
     }
   };
 
-  // Load user data on component mount
+  // Load user data on component mount and when username changes
   useEffect(() => {
     loadUserData();
-  }, []);
+  }, [searchParams]);
   
   // Stats calculation from actual user data
   // Calculate stats from actual user reviews and profile
@@ -199,7 +227,9 @@ const FoodMap: React.FC = () => {
             </button>
             <MapPinIcon size={28} className="text-secondary mr-3" />
             <div>
-              <h1 className="text-2xl font-bold text-black">Recent Visits</h1>
+              <h1 className="text-2xl font-bold text-black">
+                {isOwnProfile ? 'Recent Visits' : `${userProfile?.displayName || userProfile?.username || 'User'}'s Recent Visits`}
+              </h1>
             </div>
           </div>
           <div className="flex items-center">
@@ -328,7 +358,8 @@ const FoodMap: React.FC = () => {
                       </div>
                     </div>
 
-                    {/* Personal Notes */}
+                    {/* Personal Notes - Only show for own profile */}
+                    {isOwnProfile && (
                     <div className="ml-11">
                       {visit.isCarousel ? (
                         // Carousel posts: separate notes section for each dish
@@ -544,6 +575,7 @@ const FoodMap: React.FC = () => {
                         </div>
                       )}
                     </div>
+                    )}
                   </div>
                   );
                   })

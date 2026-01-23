@@ -29,7 +29,7 @@ const StatPills: React.FC<StatPillsProps> = ({
 
       {/* Average Rating Pill */}
       <button
-        onClick={() => navigate('/recent-activity')}
+        onClick={() => navigate(`/list-view?user=${username}`)}
         className="flex items-center px-3 py-1.5 bg-green-50 rounded-full text-sm hover:bg-green-100 transition-colors"
       >
         <TrendingUp size={14} className="mr-1.5 text-green-500" />
