@@ -60,10 +60,10 @@ const BadgeLadderModal: React.FC<BadgeLadderModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-2 py-4 sm:px-6"
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 px-2 py-6 sm:px-6"
       onClick={handleBackdropClick}
     >
-      <div className="flex h-full w-full flex-col overflow-hidden rounded-none bg-white shadow-2xl sm:h-auto sm:max-h-[90dvh] sm:max-w-2xl sm:rounded-2xl">
+      <div className="flex w-full flex-col overflow-hidden rounded-2xl bg-white shadow-2xl max-h-[calc(100dvh-8rem)] sm:h-auto sm:max-h-[90dvh] sm:max-w-2xl">
         <div className="flex items-center justify-between border-b border-gray-200 p-4">
           <div>
             <h2 className="text-lg font-semibold text-gray-900">{title}</h2>

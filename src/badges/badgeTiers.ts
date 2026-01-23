@@ -39,7 +39,7 @@ const BADGE_NAMES = [
   'Elite Gastronomad',
   'Dish Legend',
   'Mythic Palate',
-  'Crème de la Crème',
+  'CrÃ¨me de la CrÃ¨me',
   'Food Ascendant',
   'The Oracle of Flavor'
 ];
