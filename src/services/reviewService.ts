@@ -838,11 +838,93 @@ export interface UserVisitedRestaurant {
     lat: number;
     lng: number;
   };
-  cuisine: string;
-  visitCount: number;
+  cuisine: string;              // Primary cuisine (from reviews or restaurant data)
+  reviewCount: number;          // Number of dishes reviewed
+  visitCount: number;           // Number of distinct visits (dining occasions)
   lastVisit: string;
-  totalReviews: number;
+  totalReviews: number;         // DEPRECATED: Keep for compatibility, equals reviewCount
   averageRating: number;
+}
+
+/**
+ * Calculate unique visits from reviews by grouping dishes from same dining occasion
+ * Strategy: Use visitId when available, fall back to date grouping for legacy reviews
+ */
+function calculateUniqueVisits(reviews: FirebaseReview[]): number {
+  // Primary strategy: Group by visitId (modern reviews from Wizard)
+  const reviewsWithVisitId = reviews.filter(r => r.visitId);
+
+  if (reviewsWithVisitId.length > 0) {
+    const visitIds = new Set(reviewsWithVisitId.map(r => r.visitId));
+
+    // Count reviews without visitId as individual visits (conservative approach)
+    const reviewsWithoutVisitId = reviews.length - reviewsWithVisitId.length;
+
+    return visitIds.size + reviewsWithoutVisitId;
+  }
+
+  // Fallback strategy: Group by date (same calendar day = same visit)
+  const dateGroups = new Map<string, FirebaseReview[]>();
+
+  reviews.forEach(review => {
+    const dateStr = safeToISOString(review.createdAt).split('T')[0]; // YYYY-MM-DD
+    if (!dateGroups.has(dateStr)) {
+      dateGroups.set(dateStr, []);
+    }
+    dateGroups.get(dateStr)!.push(review);
+  });
+
+  return dateGroups.size;
+}
+
+/**
+ * Extract cuisine for restaurant using frequency analysis of user's review tags
+ * Priority: User review tags > Restaurant data > 'Restaurant' fallback
+ */
+function getCuisineForRestaurant(
+  reviews: FirebaseReview[],
+  restaurantData: any
+): string {
+  // Priority 1: Most common cuisine from user's reviews
+  const userCuisines: string[] = [];
+
+  reviews.forEach(review => {
+    const cuisines = review.cuisines || review.restaurantCuisines;
+    if (Array.isArray(cuisines) && cuisines.length > 0) {
+      userCuisines.push(...cuisines);
+    }
+  });
+
+  if (userCuisines.length > 0) {
+    // Count frequency of each cuisine tag
+    const cuisineFrequency = new Map<string, number>();
+    userCuisines.forEach(cuisine => {
+      const normalized = cuisine.trim();
+      cuisineFrequency.set(
+        normalized,
+        (cuisineFrequency.get(normalized) || 0) + 1
+      );
+    });
+
+    // Return most frequently tagged cuisine
+    const sortedCuisines = Array.from(cuisineFrequency.entries())
+      .sort((a, b) => b[1] - a[1]);
+
+    return sortedCuisines[0][0];
+  }
+
+  // Priority 2: Fall back to restaurant document cuisine field
+  if (restaurantData?.cuisine && restaurantData.cuisine !== 'User Added') {
+    return restaurantData.cuisine;
+  }
+
+  // Priority 3: Check restaurant's cuisines array
+  if (Array.isArray(restaurantData?.cuisines) && restaurantData.cuisines.length > 0) {
+    return restaurantData.cuisines[0];
+  }
+
+  // Final fallback
+  return 'Restaurant';
 }
 
 // NEW: Get restaurants the user has visited
@@ -903,9 +985,9 @@ export const getUserVisitedRestaurants = async (userId?: string): Promise<UserVi
       }
 
       // Calculate stats from user's reviews at this restaurant
-      const visitCount = reviews.length;
+      const reviewCount = reviews.length;
       const totalRating = reviews.reduce((sum, review) => sum + review.rating, 0);
-      const averageRating = totalRating / visitCount;
+      const averageRating = totalRating / reviewCount;
       const lastVisitReview = reviews.sort((a, b) =>
         new Date(safeToISOString(b.createdAt)).getTime() - new Date(safeToISOString(a.createdAt)).getTime()
       )[0];
@@ -952,10 +1034,11 @@ export const getUserVisitedRestaurants = async (userId?: string): Promise<UserVi
           lat,
           lng
         },
-        cuisine: restaurantData?.cuisine || 'Restaurant',
-        visitCount,
+        cuisine: getCuisineForRestaurant(reviews, restaurantData),
+        reviewCount,
+        visitCount: calculateUniqueVisits(reviews),
         lastVisit,
-        totalReviews: visitCount,
+        totalReviews: reviewCount,
         averageRating: Math.round(averageRating * 10) / 10 // Round to 1 decimal
       };
 

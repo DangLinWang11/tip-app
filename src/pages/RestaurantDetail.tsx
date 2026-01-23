@@ -514,9 +514,12 @@ const getCurrentDayHours = (hours: Record<string, string>) => {
 
         {/* Back button and quality badge */}
         <div className="absolute top-0 left-0 right-0 p-4 z-10">
-          <Link to="/" className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-md">
+          <button
+            onClick={() => navigate(-1)}
+            className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-md"
+          >
             <ArrowLeftIcon size={20} />
-          </Link>
+          </button>
         </div>
         <div className="absolute bottom-0 left-0 right-0 p-4 z-10">
           <div className="bg-white/95 px-3 py-1 rounded-full inline-flex items-center gap-2">

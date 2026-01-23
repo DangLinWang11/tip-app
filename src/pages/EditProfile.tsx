@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Camera, Shuffle, Lock, Save, X } from 'lucide-react';
+import { ArrowLeft, Camera, Lock, Save, X } from 'lucide-react';
 import { getUserProfile, updateUserProfile, getCurrentUser } from '../lib/firebase';
 import { uploadPhoto } from '../services/reviewService';
 import { getInitials } from '../utils/avatarUtils';
@@ -86,19 +86,6 @@ const EditProfile: React.FC = () => {
 
     loadProfile();
   }, []);
-
-  // Generate random username
-  const generateRandomUsername = () => {
-    const adjectives = ['Cool', 'Epic', 'Tasty', 'Fresh', 'Spicy', 'Sweet', 'Crispy', 'Juicy', 'Bold', 'Zesty'];
-    const nouns = ['Foodie', 'Eater', 'Chef', 'Critic', 'Lover', 'Hunter', 'Explorer', 'Guru', 'Expert', 'Fan'];
-    const numbers = Math.floor(Math.random() * 99) + 1;
-    
-    const randomAdjective = adjectives[Math.floor(Math.random() * adjectives.length)];
-    const randomNoun = nouns[Math.floor(Math.random() * nouns.length)];
-    
-    const newUsername = `${randomAdjective}${randomNoun}${numbers}`;
-    setFormData(prev => ({ ...prev, username: newUsername }));
-  };
 
   // Handle form input changes
   const handleInputChange = (field: keyof EditProfileForm, value: string) => {
@@ -454,22 +441,13 @@ const EditProfile: React.FC = () => {
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Username *
             </label>
-            <div className="flex space-x-2">
-              <input
-                type="text"
-                value={formData.username}
-                onChange={(e) => handleInputChange('username', e.target.value)}
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                placeholder="Enter username"
-              />
-              <button
-                onClick={generateRandomUsername}
-                className="px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
-                title="Generate random username"
-              >
-                <Shuffle size={16} />
-              </button>
-            </div>
+            <input
+              type="text"
+              value={formData.username}
+              onChange={(e) => handleInputChange('username', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+              placeholder="Enter username"
+            />
             <p className="text-xs text-gray-500 mt-1">
               Letters, numbers, and underscores only. Minimum 3 characters.
             </p>

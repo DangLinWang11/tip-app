@@ -61,22 +61,23 @@ const UserRestaurants: React.FC = () => {
         onClick={() => navigate(`/restaurant/${restaurant.id}`)}
         className="w-full flex items-center p-4 hover:bg-gray-50 transition-colors text-left"
       >
-        {/* Restaurant icon */}
-        <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0">
-          <Store size={24} className="text-blue-500" />
-        </div>
-
         {/* Restaurant info */}
-        <div className="ml-3 flex-1 min-w-0">
+        <div className="flex-1 min-w-0">
           <h3 className="font-medium text-gray-900 truncate">{restaurant.name}</h3>
           <div className="flex items-center text-sm text-gray-500 mt-0.5">
-            {restaurant.cuisine && (
+            {restaurant.cuisine && restaurant.cuisine !== 'Restaurant' && (
               <>
                 <span className="truncate">{restaurant.cuisine}</span>
                 <span className="mx-1">·</span>
               </>
             )}
-            <span>{restaurant.visitCount} {restaurant.visitCount === 1 ? 'review' : 'reviews'}</span>
+            <span>
+              {restaurant.reviewCount} {restaurant.reviewCount === 1 ? 'review' : 'reviews'}
+            </span>
+            <span className="mx-1">·</span>
+            <span>
+              {restaurant.visitCount} {restaurant.visitCount === 1 ? 'visit' : 'visits'}
+            </span>
           </div>
         </div>
 
