@@ -84,14 +84,14 @@ export function FoodJourneyDialog({ open, onClose, markers, apiKey }: Props) {
     <div
       ref={backdropRef}
       onClick={handleBackdropClick}
-      className="fixed inset-0 z-[9999] bg-black/45 pointer-events-auto overscroll-contain"
+      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/45 px-2 py-6 pointer-events-auto overscroll-contain"
       aria-modal="true"
       role="dialog"
     >
       <div
         ref={cardRef}
         tabIndex={-1}
-        className="fixed left-4 right-4 top-6 bottom-24 bg-white rounded-2xl shadow-2xl pointer-events-auto flex flex-col overflow-hidden focus:outline-none"
+        className="flex w-full flex-col overflow-hidden rounded-2xl bg-white shadow-2xl max-h-[calc(100dvh-8rem)] pointer-events-auto focus:outline-none"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-4 py-3 border-b">
