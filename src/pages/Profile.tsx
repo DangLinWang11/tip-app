@@ -25,6 +25,9 @@ import ProfileHeader from '../components/ProfileHeader';
 import ExpandedMapModal from '../components/ExpandedMapModal';
 import ProfileStats from '../components/ProfileStats';
 import StatPills from '../components/StatPills';
+import AvatarBadge from '../components/badges/AvatarBadge';
+import BadgeLadderModal from '../components/badges/BadgeLadderModal';
+import { getTierFromPoints } from '../badges/badgeTiers';
 
 // Simple cache for profile data to enable instant "back" navigation
 let cachedProfileData: {
@@ -394,6 +397,7 @@ const Profile: React.FC = () => {
   const [followerCount, setFollowerCount] = useState(0);
   const [followingCount, setFollowingCount] = useState(0);
   const [showFoodMapModal, setShowFoodMapModal] = useState(false);
+  const [showBadgeModal, setShowBadgeModal] = useState(false);
   const isFirstLoad = useRef(true);
   const reviewsSectionRef = useRef<HTMLDivElement>(null);
 
@@ -592,6 +596,7 @@ const Profile: React.FC = () => {
       : 0),
     pointsEarned: userProfile?.stats?.pointsEarned || 0
   };
+  const tierProgress = getTierFromPoints(personalStats.pointsEarned);
 
   // Avatar component with initials fallback
   const UserAvatar: React.FC<{ size?: 'sm' | 'md' | 'lg' }> = ({ size = 'lg' }) => {
@@ -685,7 +690,10 @@ const Profile: React.FC = () => {
         <div className="p-4">
           <div className="flex items-start">
             {/* Avatar */}
-            <UserAvatar size="lg" />
+            <div className="relative">
+              <UserAvatar size="lg" />
+              <AvatarBadge tierIndex={tierProgress.tierIndex} size="profile" />
+            </div>
 
             {/* Name and Stats */}
             <div className="ml-4 flex-1 min-w-0">
@@ -734,6 +742,14 @@ const Profile: React.FC = () => {
             >
               <Share size={14} className="mr-1.5" />
               Share
+            </button>
+
+            <button
+              onClick={() => setShowBadgeModal(true)}
+              className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium flex items-center hover:bg-gray-50 transition-colors"
+            >
+              <Award size={14} className="mr-1.5" />
+              Badges
             </button>
 
             {ownsAny && (
@@ -872,6 +888,15 @@ const Profile: React.FC = () => {
           onClose={() => setShowFoodMapModal(false)}
           userId={userProfile.uid}
           userName={userProfile.username || userProfile.displayName}
+        />
+      )}
+
+      {showBadgeModal && (
+        <BadgeLadderModal
+          isOpen={showBadgeModal}
+          onClose={() => setShowBadgeModal(false)}
+          points={personalStats.pointsEarned}
+          title="Your Rank"
         />
       )}
     </div>

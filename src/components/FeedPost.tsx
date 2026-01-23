@@ -14,6 +14,8 @@ import { useFeature } from '../utils/features';
 import SaveToListModal from './SaveToListModal';
 import ReceiptUploadModal from './ReceiptUploadModal';
 import CommentSheet from './comments/CommentSheet';
+import AvatarBadge from './badges/AvatarBadge';
+import { getTierFromPoints } from '../badges/badgeTiers';
 import { followUser, unfollowUser } from '../services/followService';
 import { getCurrentUser } from '../lib/firebase';
 import { deleteReview, reportReview, type FeedMediaItem } from '../services/reviewService';
@@ -67,6 +69,7 @@ interface FeedPostProps {
     image: string;
     isVerified?: boolean;
     isRestaurant?: boolean;
+    pointsEarned?: number;
   };
   restaurant?: {
     name: string;
@@ -200,6 +203,7 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
   const currentUser = getCurrentUser();
   const isOwnPost = currentUser?.uid === author?.id;
   const displayAuthorName = isOwnPost ? 'You' : (author?.name || 'Unknown');
+  const authorTier = getTierFromPoints(author?.pointsEarned ?? 0);
 
   // Sync local follow state when prop changes (e.g., when navigating back to home)
   useEffect(() => {
@@ -922,13 +926,16 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
 
       {/* Header */}
       <div className="p-4 flex items-center gap-4">
-        <img
-          src={author.image}
-          alt={displayAuthorName}
-          loading="lazy"
-          decoding="async"
-          className="w-10 h-10 rounded-full object-cover"
-        />
+        <div className="relative">
+          <img
+            src={author.image}
+            alt={displayAuthorName}
+            loading="lazy"
+            decoding="async"
+            className="w-10 h-10 rounded-full object-cover"
+          />
+          <AvatarBadge tierIndex={authorTier.tierIndex} size="feed" />
+        </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5">
             {/* NEW: Username area with follow button */}
@@ -1463,7 +1470,10 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
 
       {/* Header */}
       <div className="p-4 flex items-center gap-4">
-        <img src={author.image} alt={displayAuthorName} loading="lazy" decoding="async" className="w-10 h-10 rounded-full object-cover" />
+        <div className="relative">
+          <img src={author.image} alt={displayAuthorName} loading="lazy" decoding="async" className="w-10 h-10 rounded-full object-cover" />
+          <AvatarBadge tierIndex={authorTier.tierIndex} size="feed" />
+        </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5">
             {/* NEW: Username area with follow button */}
@@ -2152,13 +2162,16 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
       {/* Header */}
       <div className="p-4 pb-3">
         <div className="flex items-center gap-3 mb-3">
-          <img
-            src={author.image}
-            alt={displayAuthorName}
-            loading="lazy"
-            decoding="async"
-            className="w-10 h-10 rounded-full object-cover"
-          />
+          <div className="relative">
+            <img
+              src={author.image}
+              alt={displayAuthorName}
+              loading="lazy"
+              decoding="async"
+              className="w-10 h-10 rounded-full object-cover"
+            />
+            <AvatarBadge tierIndex={authorTier.tierIndex} size="feed" />
+          </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5">
               {/* Username area with follow button */}

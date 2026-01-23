@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, startTransition } from 'react';
-import { ArrowLeftIcon, MapIcon, MapPinIcon, SearchIcon, PlusIcon, CheckIcon, EditIcon, Share, User, Star, Users, TrendingUp, Store } from 'lucide-react';
+import { ArrowLeftIcon, MapIcon, MapPinIcon, SearchIcon, PlusIcon, CheckIcon, EditIcon, Share, User, Star, Users, TrendingUp, Store, Award } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import FeedPost from '../components/FeedPost';
 import { fetchUserReviews, convertReviewsToFeedPosts, FirebaseReview } from '../services/reviewService';
@@ -10,6 +10,9 @@ import ProfileHeader from '../components/ProfileHeader';
 import ProfileStats from '../components/ProfileStats';
 import StatPills from '../components/StatPills';
 import { getInitials } from '../utils/avatarUtils';
+import AvatarBadge from '../components/badges/AvatarBadge';
+import BadgeLadderModal from '../components/badges/BadgeLadderModal';
+import { getTierFromPoints } from '../badges/badgeTiers';
 
 // Cache for visited public profiles (username-keyed with LRU eviction)
 interface CachedPublicProfile {
@@ -140,6 +143,7 @@ const PublicProfile: React.FC = () => {
 
   // Food map modal state
   const [showFoodMapModal, setShowFoodMapModal] = useState(false);
+  const [showBadgeModal, setShowBadgeModal] = useState(false);
 
   // Ref for scrolling to reviews
   const reviewsSectionRef = useRef<HTMLDivElement>(null);
@@ -377,6 +381,8 @@ const PublicProfile: React.FC = () => {
   const averageRating = userReviews.length > 0
     ? userReviews.reduce((sum, review) => sum + review.rating, 0) / userReviews.length
     : 0;
+  const pointsEarned = userProfile?.stats?.pointsEarned ?? 0;
+  const tierProgress = getTierFromPoints(pointsEarned);
 
   // Scroll to reviews section handler
   const handleScrollToReviews = () => {
@@ -431,7 +437,10 @@ const PublicProfile: React.FC = () => {
         <div className="p-4">
           <div className="flex items-start">
             {/* Avatar */}
-            <UserAvatar />
+            <div className="relative">
+              <UserAvatar />
+              <AvatarBadge tierIndex={tierProgress.tierIndex} size="profile" />
+            </div>
 
             {/* Name and Stats */}
             <div className="ml-4 flex-1 min-w-0">
@@ -503,6 +512,26 @@ const PublicProfile: React.FC = () => {
               >
                 <Share size={14} className="mr-1.5" />
                 Share
+              </button>
+
+              <button
+                onClick={() => setShowBadgeModal(true)}
+                className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium flex items-center hover:bg-gray-50 transition-colors"
+              >
+                <Award size={14} className="mr-1.5" />
+                Badges
+              </button>
+            </div>
+          )}
+
+          {!isOwnProfile && (
+            <div className="mt-3">
+              <button
+                onClick={() => setShowBadgeModal(true)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium flex items-center justify-center hover:bg-gray-50 transition-colors"
+              >
+                <Award size={14} className="mr-1.5" />
+                View Rank
               </button>
             </div>
           )}
@@ -621,6 +650,16 @@ const PublicProfile: React.FC = () => {
           onClose={() => setShowFoodMapModal(false)}
           userId={userProfile.uid}
           userName={userProfile.username || userProfile.displayName}
+        />
+      )}
+
+      {showBadgeModal && (
+        <BadgeLadderModal
+          isOpen={showBadgeModal}
+          onClose={() => setShowBadgeModal(false)}
+          points={pointsEarned}
+          title={isOwnProfile ? 'Your Rank' : 'Rank'}
+          subtitle={isOwnProfile ? undefined : `${userProfile?.displayName || userProfile?.username || username || 'User'}'s badge ladder`}
         />
       )}
     </div>

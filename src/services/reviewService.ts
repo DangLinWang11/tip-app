@@ -2363,9 +2363,9 @@ export const convertReviewsToFeedPosts = async (reviews: FirebaseReview[]) => {
           author: {
             id: review.userId || "anonymous", // NEW: Include userId in fallback
             name: review.userId || "Anonymous User",
-          username: review.userId || "anonymous",
-          image: getAvatarUrl({ username: review.userId || "anonymous" }),
-          isVerified: false
+            username: review.userId || "anonymous",
+            image: getAvatarUrl({ username: review.userId || "anonymous" }),
+            isVerified: false
         },
         restaurant: {
           name: review.restaurant,
