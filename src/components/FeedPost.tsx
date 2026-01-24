@@ -947,7 +947,7 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
                 {displayAuthorName}
               </span>
               <AvatarBadge tierIndex={authorTier.tierIndex} size="inline" className="ml-1.5" />
-              {author.name === 'spicyfoodie339' && (
+              {author.name === 'SpicyFoodie339' && (
                 <Crown size={14} className="ml-1 text-amber-500" aria-label="Creator" />
               )}
               {/* Follow button: gray pill when not following, simple check icon when following */}
@@ -1488,7 +1488,7 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
                 {displayAuthorName}
               </span>
               <AvatarBadge tierIndex={authorTier.tierIndex} size="inline" className="ml-1.5" />
-              {author.name === 'spicyfoodie339' && (
+              {author.name === 'SpicyFoodie339' && (
                 <Crown size={14} className="ml-1 text-amber-500" aria-label="Creator" />
               )}
               {/* Follow button: gray pill when not following, simple check icon when following */}
@@ -2189,7 +2189,7 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
                   {displayAuthorName}
                 </span>
                 <AvatarBadge tierIndex={authorTier.tierIndex} size="inline" className="ml-1.5" />
-                {author.name === 'spicyfoodie339' && (
+                {author.name === 'SpicyFoodie339' && (
                   <Crown size={14} className="ml-1 text-amber-500" aria-label="Creator" />
                 )}
                 {!isOwnPost && (

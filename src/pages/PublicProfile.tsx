@@ -447,7 +447,7 @@ const PublicProfile: React.FC = () => {
               <h2 className="font-semibold text-lg text-gray-900 flex items-center">
                 {userProfile?.actualName || userProfile?.displayName || username}
                 <AvatarBadge tierIndex={tierProgress.tierIndex} size="inline" className="ml-1.5" />
-                {username === 'spicyfoodie339' && (
+                {username === 'SpicyFoodie339' && (
                   <Crown size={16} className="ml-1 text-amber-500" aria-label="Creator" />
                 )}
                 {userProfile?.isVerified && (
