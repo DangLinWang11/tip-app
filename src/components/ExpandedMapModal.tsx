@@ -70,7 +70,7 @@ const ExpandedMapModal: React.FC<ExpandedMapModalProps> = ({
       onWheel={(e) => { e.stopPropagation(); }}
     >
       <div
-        className="bg-white rounded-xl w-full max-w-6xl max-h-[calc(100dvh-8rem)] overflow-hidden shadow-2xl relative flex flex-col"
+        className="bg-white rounded-xl w-full max-w-6xl h-[calc(100dvh-8rem)] overflow-hidden shadow-2xl relative flex flex-col"
       >
         {/* Header with close button */}
         <div className="absolute top-0 left-0 right-0 z-10 bg-white/95 backdrop-blur-sm border-b border-gray-200 p-4 flex items-center justify-between">
