@@ -59,7 +59,7 @@ const ExpandedMapModal: React.FC<ExpandedMapModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 bg-black bg-opacity-75 z-[100] flex items-center justify-center px-2 py-6 overscroll-contain"
+      className="fixed inset-0 bg-black bg-opacity-75 z-[100] flex items-center justify-center px-2 pb-6 overscroll-contain"
       onClick={handleBackdropClick}
       onTouchStart={(e) => { e.stopPropagation(); }}
       onTouchMove={(e) => { e.stopPropagation(); }}
