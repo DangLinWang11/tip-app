@@ -6,6 +6,7 @@ import {
   BookmarkIcon,
   ShareIcon,
   CheckCircleIcon,
+  Crown,
 } from 'lucide-react';
 import { MoreHorizontal as DotsIcon } from 'lucide-react';
 import LocationPinIcon from './icons/LocationPinIcon';
@@ -934,18 +935,21 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
             decoding="async"
             className="w-10 h-10 rounded-full object-cover"
           />
-          <AvatarBadge tierIndex={authorTier.tierIndex} size="feed" />
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5">
             {/* NEW: Username area with follow button */}
             <div className="relative flex items-center">
-              <span 
+              <span
                 onClick={handleUsernameClick}
                 className="font-medium cursor-pointer hover:text-primary"
               >
                 {displayAuthorName}
               </span>
+              <AvatarBadge tierIndex={authorTier.tierIndex} size="inline" className="ml-1.5" />
+              {author.name === 'spicyfoodie339' && (
+                <Crown size={14} className="ml-1 text-amber-500" aria-label="Creator" />
+              )}
               {/* Follow button: gray pill when not following, simple check icon when following */}
               {!isOwnPost && (
                 <button
@@ -1472,18 +1476,21 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
       <div className="p-4 flex items-center gap-4">
         <div className="relative">
           <img src={author.image} alt={displayAuthorName} loading="lazy" decoding="async" className="w-10 h-10 rounded-full object-cover" />
-          <AvatarBadge tierIndex={authorTier.tierIndex} size="feed" />
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5">
             {/* NEW: Username area with follow button */}
             <div className="relative flex items-center">
-              <span 
+              <span
                 onClick={handleUsernameClick}
                 className="font-medium cursor-pointer hover:text-primary"
               >
                 {displayAuthorName}
               </span>
+              <AvatarBadge tierIndex={authorTier.tierIndex} size="inline" className="ml-1.5" />
+              {author.name === 'spicyfoodie339' && (
+                <Crown size={14} className="ml-1 text-amber-500" aria-label="Creator" />
+              )}
               {/* Follow button: gray pill when not following, simple check icon when following */}
               {!isOwnPost && (
                 <button
@@ -2170,7 +2177,6 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
               decoding="async"
               className="w-10 h-10 rounded-full object-cover"
             />
-            <AvatarBadge tierIndex={authorTier.tierIndex} size="feed" />
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5">
@@ -2182,6 +2188,10 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
                 >
                   {displayAuthorName}
                 </span>
+                <AvatarBadge tierIndex={authorTier.tierIndex} size="inline" className="ml-1.5" />
+                {author.name === 'spicyfoodie339' && (
+                  <Crown size={14} className="ml-1 text-amber-500" aria-label="Creator" />
+                )}
                 {!isOwnPost && (
                   <button
                     onClick={handleFollowToggle}

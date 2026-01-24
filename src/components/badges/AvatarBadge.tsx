@@ -3,11 +3,11 @@ import { getBadgeBandStyle, getRomanNumeral } from '../../badges/badgeTiers';
 
 export interface AvatarBadgeProps {
   tierIndex: number;
-  size?: 'profile' | 'feed' | 'small';
+  size?: 'profile' | 'feed' | 'small' | 'inline';
   className?: string;
 }
 
-const sizeClasses: Record<NonNullable<AvatarBadgeProps['size']>, { wrapper: string; text: string }> = {
+const sizeClasses: Record<NonNullable<AvatarBadgeProps['size']>, { wrapper: string; text: string; inline?: boolean }> = {
   profile: {
     wrapper: 'h-7 w-7 -top-1 -left-1',
     text: 'text-[10px]'
@@ -19,6 +19,11 @@ const sizeClasses: Record<NonNullable<AvatarBadgeProps['size']>, { wrapper: stri
   small: {
     wrapper: 'h-3 w-3 -top-0.5 -left-0.5',
     text: 'text-[7px]'
+  },
+  inline: {
+    wrapper: 'h-4 w-4',
+    text: 'text-[8px]',
+    inline: true
   }
 };
 
@@ -28,9 +33,11 @@ const AvatarBadge: React.FC<AvatarBadgeProps> = ({ tierIndex, size = 'feed', cla
   const theme = getBadgeBandStyle(safeTier);
   const sizing = sizeClasses[size];
 
+  const isInline = sizing.inline;
+
   return (
     <div
-      className={`absolute ${sizing.wrapper} ${theme.bg} ${theme.text} ${theme.border} ${theme.ring} ${sizing.text} flex items-center justify-center border shadow-md ring-2 font-semibold leading-none rounded-[6px] rounded-b-[10px] ${className || ''}`}
+      className={`${isInline ? 'inline-flex' : 'absolute'} ${sizing.wrapper} ${theme.bg} ${theme.text} ${theme.border} ${theme.ring} ${sizing.text} flex items-center justify-center border shadow-md ring-2 font-semibold leading-none rounded-[6px] rounded-b-[10px] ${className || ''}`}
       aria-label={`Badge tier ${safeTier}`}
     >
       {label}
