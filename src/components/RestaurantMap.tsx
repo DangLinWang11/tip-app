@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import { useMapBottomSheet } from '../hooks/useMapBottomSheet';
 import MapBottomSheet from './discover/MapBottomSheet';
 import { createDishRatingPinIcon } from '../utils/mapIcons';
+import { FOOD_JOURNEY_MAP_V2 } from '../config/featureFlags';
 
 const NYC_FALLBACK = { lat: 40.7060, lng: -74.0086 };
 
@@ -134,6 +135,130 @@ const createPinIcon = (text: string, backgroundColor: string, showQualityPercent
   return 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg);
 };
 
+type JourneyBadgeTheme = {
+  fill: string;
+  border: string;
+  text: string;
+  highlight: string;
+  sparkle: string;
+};
+
+const getJourneyBadgeTheme = (visitCount: number): JourneyBadgeTheme => {
+  if (visitCount >= 4) {
+    return {
+      fill: '#F1E8FF',
+      border: '#B98AF8',
+      text: '#6A3FAF',
+      highlight: '#FFFFFF',
+      sparkle: '#CDB3FF'
+    };
+  }
+  if (visitCount >= 2) {
+    return {
+      fill: '#FFF1DB',
+      border: '#F2B35E',
+      text: '#A56318',
+      highlight: '#FFFFFF',
+      sparkle: '#F6C885'
+    };
+  }
+  return {
+    fill: '#FFE8E6',
+    border: '#FF8B86',
+    text: '#B3413E',
+    highlight: '#FFFFFF',
+    sparkle: '#FFC6C2'
+  };
+};
+
+const createJourneyVisitBadgeIcon = (
+  visitCount: number,
+  opts?: { isSelected?: boolean }
+): string => {
+  const text = `${visitCount} visit${visitCount !== 1 ? 's' : ''}`;
+  const theme = getJourneyBadgeTheme(visitCount);
+  const minWidth = 84;
+  const charWidth = 6.3;
+  const width = Math.max(minWidth, Math.round(text.length * charWidth + 46));
+  const canvasHeight = 52;
+  const pillHeight = 30;
+  const pillRadius = 15;
+  const pillY = 6;
+  const pillX = 4;
+  const pillWidth = width - pillX * 2;
+  const baseWidth = Math.max(30, Math.round(pillWidth * 0.42));
+  const baseHeight = 8;
+  const baseX = (width - baseWidth) / 2;
+  const baseY = pillY + pillHeight + 4;
+  const pointerWidth = 10;
+  const pointerHeight = 6;
+  const pointerX = width / 2 - pointerWidth / 2;
+  const pointerY = baseY + baseHeight - 1;
+  const iconSize = 14;
+  const iconX = pillX + 10;
+  const iconY = pillY + 8;
+  const textX = iconX + iconSize + 7;
+  const textY = pillY + 20;
+  const ringStroke = opts?.isSelected ? theme.border : 'transparent';
+  const shadowOpacity = opts?.isSelected ? 0.2 : 0.16;
+  const svg = `
+    <svg width="${width}" height="${canvasHeight}" viewBox="0 0 ${width} ${canvasHeight}" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="badgeHighlight" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="${theme.highlight}" stop-opacity="0.7"/>
+          <stop offset="100%" stop-color="${theme.highlight}" stop-opacity="0"/>
+        </linearGradient>
+      </defs>
+      <rect x="${pillX}" y="${pillY + 4}" width="${pillWidth}" height="${pillHeight}" rx="${pillRadius}" fill="black" opacity="${shadowOpacity}" />
+      <rect x="${pillX}" y="${pillY}" width="${pillWidth}" height="${pillHeight}" rx="${pillRadius}" fill="#FFE7E5" stroke="#FF6B6B" stroke-width="1.2" />
+      <rect x="${pillX + 2}" y="${pillY + 2}" width="${pillWidth - 4}" height="${pillHeight / 2}" rx="${pillRadius - 2}" fill="url(#badgeHighlight)" />
+      <rect x="${pillX - 1}" y="${pillY - 1}" width="${pillWidth + 2}" height="${pillHeight + 2}" rx="${pillRadius + 1}" fill="none" stroke="${ringStroke}" stroke-width="1.4" />
+      <rect x="${baseX}" y="${baseY + 2}" width="${baseWidth}" height="${baseHeight}" rx="${baseHeight / 2}" fill="black" opacity="0.1" />
+      <rect x="${baseX}" y="${baseY}" width="${baseWidth}" height="${baseHeight}" rx="${baseHeight / 2}" fill="#FFD7D4" stroke="#FF6B6B" stroke-width="1.1" />
+      <circle cx="${baseX + baseWidth / 2 - 6}" cy="${baseY + baseHeight / 2}" r="1" fill="#FFB3AC" />
+      <circle cx="${baseX + baseWidth / 2}" cy="${baseY + baseHeight / 2}" r="1" fill="#FFB3AC" />
+      <circle cx="${baseX + baseWidth / 2 + 6}" cy="${baseY + baseHeight / 2}" r="1" fill="#FFB3AC" />
+      <path d="M ${pointerX} ${pointerY} Q ${width / 2} ${pointerY + pointerHeight} ${pointerX + pointerWidth} ${pointerY}" fill="#FF6B6B" />
+      <g transform="translate(${iconX},${iconY})" fill="none" stroke="#B3413E" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M7 1.5l1.8 3.6 4 .6-2.9 2.8.7 4-3.6-1.9-3.6 1.9.7-4-2.9-2.8 4-.6L7 1.5z"/>
+      </g>
+      <text x="${textX}" y="${textY}" font-family="Nunito, Arial, sans-serif" font-size="12.5" font-weight="600" letter-spacing="0.2" fill="#B3413E">${text}</text>
+      <circle cx="${width - 12}" cy="${pillY + 6}" r="1.6" fill="#FFC9C4" />
+      <path d="M ${width - 18} ${pillY + 8} l2 1.4 l-2 1.4 l-1.4-2 z" fill="#FFC9C4" opacity="0.7"/>
+    </svg>
+  `;
+
+  return 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg);
+};
+
+const hashString = (value: string): number => {
+  let hash = 0;
+  for (let i = 0; i < value.length; i += 1) {
+    hash = (hash << 5) - hash + value.charCodeAt(i);
+    hash |= 0;
+  }
+  return Math.abs(hash);
+};
+
+const applyCollisionJitter = (
+  position: { lat: number; lng: number },
+  id: string,
+  seen: Map<string, number>
+) => {
+  const key = `${position.lat.toFixed(6)},${position.lng.toFixed(6)}`;
+  const count = seen.get(key) ?? 0;
+  seen.set(key, count + 1);
+  if (count === 0) return position;
+
+  const hash = hashString(id);
+  const angle = ((hash % 360) * Math.PI) / 180;
+  const magnitude = 0.00003 + (count * 0.000008);
+  return {
+    lat: position.lat + Math.cos(angle) * magnitude,
+    lng: position.lng + Math.sin(angle) * magnitude
+  };
+};
+
 const createDishPinIcon = (rating: string, backgroundColor: string): string => {
   const airyColor = '#ff3131';
   const goldColor = '#FFD700';
@@ -167,9 +292,42 @@ const createDishPinIcon = (rating: string, backgroundColor: string): string => {
   return 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg);
 };
 
+const DEFAULT_MAP_STYLE: google.maps.MapTypeStyle[] = [
+  {
+    featureType: "water",
+    elementType: "geometry",
+    stylers: [{ color: "#e3f2fd" }]
+  },
+  {
+    featureType: "landscape",
+    elementType: "geometry",
+    stylers: [{ color: "#f5f5f5" }]
+  },
+  {
+    featureType: "road",
+    elementType: "geometry",
+    stylers: [{ color: "#ffffff" }]
+  },
+  {
+    featureType: "road",
+    elementType: "labels.text.fill",
+    stylers: [{ color: "#9e9e9e" }]
+  },
+  {
+    featureType: "poi",
+    elementType: "labels",
+    stylers: [{ visibility: "off" }]
+  },
+  {
+    featureType: "transit",
+    stylers: [{ visibility: "off" }]
+  }
+];
+
 const Map: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishes, userLocation, onRestaurantClick, onDishClick, showQualityPercentages = true, disableInfoWindows = false, showMyLocationButton = true, showGoogleControl = true, bottomSheetHook, navigate }) => {
   const ref = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<google.maps.Map>();
+  const styleLoggedRef = useRef(false);
   const [locationError, setLocationError] = useState<string>('');
   const [userLocationMarker, setUserLocationMarker] = useState<google.maps.Marker | null>(null);
   const [userAccuracyCircle, setUserAccuracyCircle] = useState<google.maps.Circle | null>(null);
@@ -184,45 +342,19 @@ const Map: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishes, u
         zoom,
         mapTypeControl: false,
         streetViewControl: false,
-        fullscreenControl: false,
+        fullscreenControl: showGoogleControl,
         zoomControl: false,
         rotateControl: false,
         scaleControl: false,
         gestureHandling: 'greedy',
         scrollwheel: true,
         disableDoubleClickZoom: false,
-        styles: [
-          {
-            featureType: "water",
-            elementType: "geometry",
-            stylers: [{ color: "#e3f2fd" }]
-          },
-          {
-            featureType: "landscape",
-            elementType: "geometry",
-            stylers: [{ color: "#f5f5f5" }]
-          },
-          {
-            featureType: "road",
-            elementType: "geometry",
-            stylers: [{ color: "#ffffff" }]
-          },
-          {
-            featureType: "road",
-            elementType: "labels.text.fill",
-            stylers: [{ color: "#9e9e9e" }]
-          },
-          {
-            featureType: "poi",
-            elementType: "labels",
-            stylers: [{ visibility: "off" }]
-          },
-          {
-            featureType: "transit",
-            stylers: [{ visibility: "off" }]
-          }
-        ]
+        styles: DEFAULT_MAP_STYLE
       });
+      if (!styleLoggedRef.current) {
+        console.log('Map style: DEFAULT');
+        styleLoggedRef.current = true;
+      }
       setMap(newMap);
     }
   }, [ref, map, center, zoom, showGoogleControl]);
@@ -316,6 +448,7 @@ const Map: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishes, u
 
       if (mapType === 'restaurant') {
         // Show restaurant pins
+        const positionCounts = new globalThis.Map<string, number>();
         restaurants.forEach((restaurant) => {
           // Validate location data before creating marker
           let position = restaurant.location;
@@ -333,20 +466,33 @@ const Map: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishes, u
           let pinWidth = 52;
           if (showQualityPercentages === false && restaurant.visitCount) {
             // Show review count for user journey maps
-            pinText = `${restaurant.visitCount} Review${restaurant.visitCount !== 1 ? 's' : ''}`;
-            pinWidth = 85;
+            if (FOOD_JOURNEY_MAP_V2) {
+              pinText = `${restaurant.visitCount} visit${restaurant.visitCount !== 1 ? 's' : ''}`;
+              pinWidth = Math.max(84, Math.round(pinText.length * 6.3 + 46));
+            } else {
+              pinText = `${restaurant.visitCount} Review${restaurant.visitCount !== 1 ? 's' : ''}`;
+              pinWidth = 85;
+            }
           } else if (showQualityPercentages !== false) {
             // Show quality percentage for regular restaurant maps
             pinText = `${restaurant.qualityPercentage}%`;
           }
 
-          const marker = new window.google.maps.Marker({
+          const markerPosition = applyCollisionJitter(
             position,
+            String(restaurant.id),
+            positionCounts
+          );
+
+          const marker = new window.google.maps.Marker({
+            position: markerPosition,
             map,
             icon: {
-              url: createPinIcon(pinText, showQualityPercentages === false ? '#ff3131' : qualityColor, showQualityPercentages),
+              url: (showQualityPercentages === false && FOOD_JOURNEY_MAP_V2)
+                ? createJourneyVisitBadgeIcon(restaurant.visitCount || 1)
+                : createPinIcon(pinText, showQualityPercentages === false ? '#ff3131' : qualityColor, showQualityPercentages),
               scaledSize: new window.google.maps.Size(pinWidth, 44),
-              anchor: new window.google.maps.Point(pinWidth / 2, 44)
+              anchor: new window.google.maps.Point(pinWidth / 2, 50)
             },
             title: restaurant.name,
             zIndex: restaurant.qualityPercentage
@@ -443,6 +589,12 @@ const Map: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishes, u
     );
   };
 
+  const navButtonClassName = showGoogleControl
+    ? 'absolute bottom-24 right-4 w-16 h-16 rounded-full bg-white shadow-lg flex items-center justify-center z-[40] border border-gray-100'
+    : 'absolute bottom-4 right-2 w-16 h-16 rounded-full bg-white shadow-lg flex items-center justify-center z-[40] border border-gray-100';
+
+  const navIconClassName = showGoogleControl ? 'w-8 h-8 text-blue-500' : 'w-8 h-8 text-blue-500';
+
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%' }}>
       <div ref={ref} style={{ width: '100%', height: '100%' }} />
@@ -456,11 +608,11 @@ const Map: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishes, u
       {showMyLocationButton && (
         <button
           onClick={centerOnMyLocation}
-          className="absolute bottom-24 right-4 w-12 h-12 rounded-full bg-white shadow-lg flex items-center justify-center z-[40] border border-gray-100"
+          className={navButtonClassName}
           title="My Location"
           aria-label="Center on my location"
         >
-          <Navigation className="w-6 h-6 text-blue-500" />
+          <Navigation className={navIconClassName} fill="currentColor" />
         </button>
       )}
 

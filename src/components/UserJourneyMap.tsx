@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import RestaurantMap from './RestaurantMap';
 import UserRestaurantModal from './UserRestaurantModal';
 import { getUserVisitedRestaurants, UserVisitedRestaurant } from '../services/reviewService';
+import { FOOD_JOURNEY_MAP_V2 } from '../config/featureFlags';
 
 interface UserJourneyMapProps {
   className?: string;
@@ -18,6 +19,7 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({ className = '', showLeg
   const [error, setError] = useState<string | null>(null);
   const [selectedRestaurant, setSelectedRestaurant] = useState<UserVisitedRestaurant | null>(null);
   const [showModal, setShowModal] = useState(false);
+  const isV2Enabled = FOOD_JOURNEY_MAP_V2;
 
   // Load user's visited restaurants on component mount
   useEffect(() => {
@@ -141,8 +143,19 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({ className = '', showLeg
           showQualityPercentages={false}
           className="w-full h-full"
           showMyLocationButton={showControls}
-          showGoogleControl={showControls}
+          showGoogleControl={false}
         />
+        {isV2Enabled && (
+          <div
+            className={`absolute ${showLegend ? 'bottom-20' : 'bottom-4'} left-4 z-10 pointer-events-none`}
+          >
+            <div className="bg-white/95 border border-gray-200 rounded-2xl shadow-md px-4 py-2.5">
+              <span className="text-sm font-medium text-gray-800">
+                {visitedRestaurants.length} places visited
+              </span>
+            </div>
+          </div>
+        )}
         {showLegend && (
           <div className="absolute bottom-4 left-4 z-10">
             <div className="bg-white rounded-lg shadow-lg px-4 py-3 flex items-center space-x-3">
