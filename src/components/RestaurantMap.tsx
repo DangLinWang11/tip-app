@@ -7,7 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import { useMapBottomSheet } from '../hooks/useMapBottomSheet';
 import MapBottomSheet from './discover/MapBottomSheet';
 import { createDishRatingPinIcon } from '../utils/mapIcons';
-import { FOOD_JOURNEY_MAP_V2 } from '../config/featureFlags';
+
 
 const NYC_FALLBACK = { lat: 40.7060, lng: -74.0086 };
 
@@ -135,98 +135,48 @@ const createPinIcon = (text: string, backgroundColor: string, showQualityPercent
   return 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg);
 };
 
-type JourneyBadgeTheme = {
-  fill: string;
-  border: string;
-  text: string;
-  highlight: string;
-  sparkle: string;
-};
+type GamifiedPinState = 'default' | 'hover' | 'clicked';
 
-const getJourneyBadgeTheme = (visitCount: number): JourneyBadgeTheme => {
-  if (visitCount >= 4) {
-    return {
-      fill: '#F1E8FF',
-      border: '#B98AF8',
-      text: '#6A3FAF',
-      highlight: '#FFFFFF',
-      sparkle: '#CDB3FF'
-    };
-  }
-  if (visitCount >= 2) {
-    return {
-      fill: '#FFF1DB',
-      border: '#F2B35E',
-      text: '#A56318',
-      highlight: '#FFFFFF',
-      sparkle: '#F6C885'
-    };
-  }
-  return {
-    fill: '#FFE8E6',
-    border: '#FF8B86',
-    text: '#B3413E',
-    highlight: '#FFFFFF',
-    sparkle: '#FFC6C2'
-  };
-};
-
-const createJourneyVisitBadgeIcon = (
+const createGamifiedPinIcon = (
   visitCount: number,
-  opts?: { isSelected?: boolean }
+  state: GamifiedPinState = 'default'
 ): string => {
-  const text = `${visitCount} visit${visitCount !== 1 ? 's' : ''}`;
-  const theme = getJourneyBadgeTheme(visitCount);
-  const minWidth = 84;
-  const charWidth = 6.3;
-  const width = Math.max(minWidth, Math.round(text.length * charWidth + 46));
-  const canvasHeight = 52;
-  const pillHeight = 30;
-  const pillRadius = 15;
-  const pillY = 6;
-  const pillX = 4;
-  const pillWidth = width - pillX * 2;
-  const baseWidth = Math.max(30, Math.round(pillWidth * 0.42));
-  const baseHeight = 8;
-  const baseX = (width - baseWidth) / 2;
-  const baseY = pillY + pillHeight + 4;
-  const pointerWidth = 10;
-  const pointerHeight = 6;
-  const pointerX = width / 2 - pointerWidth / 2;
-  const pointerY = baseY + baseHeight - 1;
-  const iconSize = 14;
-  const iconX = pillX + 10;
-  const iconY = pillY + 8;
-  const textX = iconX + iconSize + 7;
-  const textY = pillY + 20;
-  const ringStroke = opts?.isSelected ? theme.border : 'transparent';
-  const shadowOpacity = opts?.isSelected ? 0.2 : 0.16;
-  const svg = `
-    <svg width="${width}" height="${canvasHeight}" viewBox="0 0 ${width} ${canvasHeight}" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <linearGradient id="badgeHighlight" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="${theme.highlight}" stop-opacity="0.7"/>
-          <stop offset="100%" stop-color="${theme.highlight}" stop-opacity="0"/>
-        </linearGradient>
-      </defs>
-      <rect x="${pillX}" y="${pillY + 4}" width="${pillWidth}" height="${pillHeight}" rx="${pillRadius}" fill="black" opacity="${shadowOpacity}" />
-      <rect x="${pillX}" y="${pillY}" width="${pillWidth}" height="${pillHeight}" rx="${pillRadius}" fill="#FFE7E5" stroke="#FF6B6B" stroke-width="1.2" />
-      <rect x="${pillX + 2}" y="${pillY + 2}" width="${pillWidth - 4}" height="${pillHeight / 2}" rx="${pillRadius - 2}" fill="url(#badgeHighlight)" />
-      <rect x="${pillX - 1}" y="${pillY - 1}" width="${pillWidth + 2}" height="${pillHeight + 2}" rx="${pillRadius + 1}" fill="none" stroke="${ringStroke}" stroke-width="1.4" />
-      <rect x="${baseX}" y="${baseY + 2}" width="${baseWidth}" height="${baseHeight}" rx="${baseHeight / 2}" fill="black" opacity="0.1" />
-      <rect x="${baseX}" y="${baseY}" width="${baseWidth}" height="${baseHeight}" rx="${baseHeight / 2}" fill="#FFD7D4" stroke="#FF6B6B" stroke-width="1.1" />
-      <circle cx="${baseX + baseWidth / 2 - 6}" cy="${baseY + baseHeight / 2}" r="1" fill="#FFB3AC" />
-      <circle cx="${baseX + baseWidth / 2}" cy="${baseY + baseHeight / 2}" r="1" fill="#FFB3AC" />
-      <circle cx="${baseX + baseWidth / 2 + 6}" cy="${baseY + baseHeight / 2}" r="1" fill="#FFB3AC" />
-      <path d="M ${pointerX} ${pointerY} Q ${width / 2} ${pointerY + pointerHeight} ${pointerX + pointerWidth} ${pointerY}" fill="#FF6B6B" />
-      <g transform="translate(${iconX},${iconY})" fill="none" stroke="#B3413E" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M7 1.5l1.8 3.6 4 .6-2.9 2.8.7 4-3.6-1.9-3.6 1.9.7-4-2.9-2.8 4-.6L7 1.5z"/>
-      </g>
-      <text x="${textX}" y="${textY}" font-family="Nunito, Arial, sans-serif" font-size="12.5" font-weight="600" letter-spacing="0.2" fill="#B3413E">${text}</text>
-      <circle cx="${width - 12}" cy="${pillY + 6}" r="1.6" fill="#FFC9C4" />
-      <path d="M ${width - 18} ${pillY + 8} l2 1.4 l-2 1.4 l-1.4-2 z" fill="#FFC9C4" opacity="0.7"/>
-    </svg>
-  `;
+  const width = 36;
+  const height = 48;
+  // Extra vertical space for shadow + pulse animation
+  const svgHeight = 56;
+  const cx = width / 2; // 18
+  const cy = 20; // center of the bulb portion
+  const circleR = 12; // white circle radius (24px diameter)
+  const shadowStd = state === 'hover' ? 5 : 4;
+  const shadowOpacity = state === 'hover' ? 0.25 : 0.15;
+  const displayCount = visitCount || 1;
+
+  // Pulse animation for clicked state
+  const pulseAnim = state === 'clicked'
+    ? `<animateTransform attributeName="transform" type="scale" values="1;1.1;1" dur="0.3s" repeatCount="1" additive="sum" calcMode="spline" keySplines="0.4 0 0.2 1;0.4 0 0.2 1" />`
+    : '';
+
+  // Use a unique gradient ID per state to avoid SVG ID collisions when multiple pins render
+  const gradId = `pinGrad_${state}_${displayCount}`;
+
+  const svg = `<svg width="${width}" height="${svgHeight}" viewBox="0 0 ${width} ${svgHeight}" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="${gradId}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FFB5A0"/>
+      <stop offset="100%" stop-color="#FF3131"/>
+    </linearGradient>
+    <filter id="sh_${state}" x="-20%" y="-10%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="2" stdDeviation="${shadowStd}" flood-color="#000" flood-opacity="${shadowOpacity}"/>
+    </filter>
+  </defs>
+  <g filter="url(#sh_${state})" transform-origin="${cx} ${cy}">
+    ${pulseAnim}
+    <path d="M${cx},2 C${cx + 10},2 ${width - 2},8 ${width - 2},${cy} C${width - 2},${cy + 10} ${cx},${height - 2} ${cx},${height - 2} C${cx},${height - 2} 2,${cy + 10} 2,${cy} C2,8 ${cx - 10},2 ${cx},2 Z" fill="url(#${gradId})" />
+    <circle cx="${cx}" cy="${cy}" r="${circleR}" fill="white" />
+    <text x="${cx}" y="${cy + 5.5}" font-family="Arial, sans-serif" font-size="16" font-weight="bold" text-anchor="middle" fill="#FF3131">${displayCount}</text>
+  </g>
+</svg>`;
 
   return 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg);
 };
@@ -460,20 +410,15 @@ const Map: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishes, u
           }
 
           const qualityColor = getQualityColor(restaurant.qualityPercentage);
+          const isJourneyMode = showQualityPercentages === false;
 
           // Determine what text to show in the pin
           let pinText = '';
           let pinWidth = 52;
-          if (showQualityPercentages === false && restaurant.visitCount) {
-            // Show review count for user journey maps
-            if (FOOD_JOURNEY_MAP_V2) {
-              pinText = `${restaurant.visitCount} visit${restaurant.visitCount !== 1 ? 's' : ''}`;
-              pinWidth = Math.max(84, Math.round(pinText.length * 6.3 + 46));
-            } else {
-              pinText = `${restaurant.visitCount} Review${restaurant.visitCount !== 1 ? 's' : ''}`;
-              pinWidth = 85;
-            }
-          } else if (showQualityPercentages !== false) {
+          if (isJourneyMode && restaurant.visitCount) {
+            pinText = `${restaurant.visitCount}`;
+            pinWidth = 36;
+          } else if (!isJourneyMode) {
             // Show quality percentage for regular restaurant maps
             pinText = `${restaurant.qualityPercentage}%`;
           }
@@ -484,21 +429,69 @@ const Map: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishes, u
             positionCounts
           );
 
+          const journeyIconDefault = isJourneyMode
+            ? createGamifiedPinIcon(restaurant.visitCount || 1, 'default')
+            : '';
+          const journeyIconHover = isJourneyMode
+            ? createGamifiedPinIcon(restaurant.visitCount || 1, 'hover')
+            : '';
+          const journeyIconClicked = isJourneyMode
+            ? createGamifiedPinIcon(restaurant.visitCount || 1, 'clicked')
+            : '';
+
           const marker = new window.google.maps.Marker({
             position: markerPosition,
             map,
-            icon: {
-              url: (showQualityPercentages === false && FOOD_JOURNEY_MAP_V2)
-                ? createJourneyVisitBadgeIcon(restaurant.visitCount || 1)
-                : createPinIcon(pinText, showQualityPercentages === false ? '#ff3131' : qualityColor, showQualityPercentages),
-              scaledSize: new window.google.maps.Size(pinWidth, 44),
-              anchor: new window.google.maps.Point(pinWidth / 2, 50)
-            },
+            icon: isJourneyMode
+              ? {
+                  url: journeyIconDefault,
+                  scaledSize: new window.google.maps.Size(36, 56),
+                  anchor: new window.google.maps.Point(18, 48)
+                }
+              : {
+                  url: createPinIcon(pinText, qualityColor, showQualityPercentages),
+                  scaledSize: new window.google.maps.Size(pinWidth, 44),
+                  anchor: new window.google.maps.Point(pinWidth / 2, 50)
+                },
             title: restaurant.name,
             zIndex: restaurant.qualityPercentage
           });
 
+          // Journey mode: add hover and click icon swapping
+          if (isJourneyMode) {
+            marker.addListener('mouseover', () => {
+              marker.setIcon({
+                url: journeyIconHover,
+                scaledSize: new window.google.maps.Size(36, 56),
+                anchor: new window.google.maps.Point(18, 48)
+              });
+            });
+            marker.addListener('mouseout', () => {
+              marker.setIcon({
+                url: journeyIconDefault,
+                scaledSize: new window.google.maps.Size(36, 56),
+                anchor: new window.google.maps.Point(18, 48)
+              });
+            });
+          }
+
           marker.addListener('click', () => {
+            // Pulse animation for journey pins
+            if (isJourneyMode) {
+              marker.setIcon({
+                url: journeyIconClicked,
+                scaledSize: new window.google.maps.Size(36, 56),
+                anchor: new window.google.maps.Point(18, 48)
+              });
+              setTimeout(() => {
+                marker.setIcon({
+                  url: journeyIconDefault,
+                  scaledSize: new window.google.maps.Size(36, 56),
+                  anchor: new window.google.maps.Point(18, 48)
+                });
+              }, 300);
+            }
+
             // Open bottom sheet with nearby restaurants
             if (bottomSheetHook) {
               bottomSheetHook.openRestaurantSheet(
@@ -511,7 +504,6 @@ const Map: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishes, u
             }
           });
 
-          // Percentage text is now embedded in the pin icon
           markers.push(marker);
         });
       } else {
