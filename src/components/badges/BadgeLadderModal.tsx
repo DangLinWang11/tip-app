@@ -2,10 +2,9 @@ import React from 'react';
 import { X, CheckCircle, Lock } from 'lucide-react';
 import {
   BADGE_TIERS,
-  getBadgeBandStyle,
-  getRomanNumeral,
   getTierFromPoints
 } from '../../badges/badgeTiers';
+import AvatarBadge from './AvatarBadge';
 
 export interface BadgeLadderModalProps {
   isOpen: boolean;
@@ -25,8 +24,6 @@ const BadgeLadderModal: React.FC<BadgeLadderModalProps> = ({
   if (!isOpen) return null;
 
   const { tierIndex, tierName, currentMin, nextMin, progress } = getTierFromPoints(points ?? 0);
-  const roman = getRomanNumeral(tierIndex);
-  const theme = getBadgeBandStyle(tierIndex);
   const progressPercent = Math.round(progress * 100);
 
   const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -83,11 +80,7 @@ const BadgeLadderModal: React.FC<BadgeLadderModalProps> = ({
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5">
           <div className="rounded-2xl border border-gray-200 bg-gradient-to-br from-white to-gray-50 p-4 shadow-sm">
             <div className="flex items-center gap-4">
-              <div
-                className={`h-12 w-12 flex items-center justify-center border shadow-md ring-2 ${theme.bg} ${theme.text} ${theme.border} ${theme.ring} rounded-[8px] rounded-b-[14px] text-sm font-semibold`}
-              >
-                {roman}
-              </div>
+              <AvatarBadge tierIndex={tierIndex} size="ladder-lg" />
               <div className="flex-1 min-w-0">
                 <p className="text-xs uppercase tracking-wide text-gray-500">Current Tier</p>
                 <div className="flex items-center gap-2">
@@ -129,8 +122,6 @@ const BadgeLadderModal: React.FC<BadgeLadderModalProps> = ({
                 const isCurrent = tier.index === tierIndex;
                 const isUnlocked = tier.index < tierIndex;
                 const isLocked = tier.index > tierIndex;
-                const tierTheme = getBadgeBandStyle(tier.index);
-
                 return (
                   <div
                     key={tier.index}
@@ -141,11 +132,7 @@ const BadgeLadderModal: React.FC<BadgeLadderModalProps> = ({
                     } ${isLocked ? 'opacity-50' : ''}`}
                   >
                     <div className="flex items-center gap-3 min-w-0">
-                      <div
-                        className={`h-8 w-8 flex items-center justify-center border shadow-sm ring-1 ${tierTheme.bg} ${tierTheme.text} ${tierTheme.border} ${tierTheme.ring} rounded-[6px] rounded-b-[10px] text-[10px] font-semibold`}
-                      >
-                        {getRomanNumeral(tier.index)}
-                      </div>
+                      <AvatarBadge tierIndex={tier.index} size="ladder" />
                       <div className="min-w-0">
                         <p className={`text-sm font-medium ${isLocked ? 'text-gray-500' : 'text-gray-900'}`}>
                           {tier.name}

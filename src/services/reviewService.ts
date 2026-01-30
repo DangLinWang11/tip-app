@@ -1627,6 +1627,7 @@ interface FeedPostAuthor {
   username: string;
   image: string;
   isVerified: boolean;
+  pointsEarned?: number;
 }
 
 export type FeedMediaItemKind = 'dish' | 'visit';
@@ -1678,7 +1679,8 @@ const getCachedUserProfile = async (userId: string): Promise<FeedPostAuthor | nu
         name: profile.displayName || profile.username,
         username: profile.username,
         image: getAvatarUrl(profile),
-        isVerified: profile.isVerified || false
+        isVerified: profile.isVerified || false,
+        pointsEarned: profile.stats?.pointsEarned ?? 0
       };
 
       userProfileCache.set(userId, author);
@@ -2199,7 +2201,8 @@ export const convertUserReviewToFeedPost = async (review: FirebaseReview) => {
       name: profile.displayName || profile.username,
       username: profile.username,
       image: getAvatarUrl(profile),
-      isVerified: profile.isVerified || false
+      isVerified: profile.isVerified || false,
+      pointsEarned: profile.stats?.pointsEarned ?? 0
     };
   }
 
@@ -2276,7 +2279,8 @@ export const convertUserVisitsToCarouselFeedPosts = async (reviews: FirebaseRevi
           name: "You",
           username: "you",
           image: carouselPost.author.image,
-          isVerified: false
+          isVerified: false,
+          pointsEarned: carouselPost.author.pointsEarned ?? 0
         };
         feedPosts.push(carouselPost);
       }

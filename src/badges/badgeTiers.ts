@@ -98,28 +98,28 @@ const ROMAN_NUMERALS = [
 
 const BADGE_BAND_STYLES: Record<BadgeBand, BadgeBandStyle> = {
   early: {
-    bg: 'bg-stone-700',
-    text: 'text-stone-100',
-    border: 'border-stone-300/80',
-    ring: 'ring-stone-100/80'
+    bg: 'bg-[#EF2D2E]',
+    text: 'text-white',
+    border: 'border-[#FFC529]',
+    ring: 'ring-[#FFC529]'
   },
   mid: {
-    bg: 'bg-slate-400',
+    bg: 'bg-sky-400',
     text: 'text-white',
-    border: 'border-slate-200/90',
-    ring: 'ring-white/90'
+    border: 'border-[#FFC529]',
+    ring: 'ring-[#FFC529]'
   },
   high: {
-    bg: 'bg-amber-400',
-    text: 'text-amber-950',
-    border: 'border-amber-200/80',
-    ring: 'ring-white/80'
+    bg: 'bg-blue-700',
+    text: 'text-white',
+    border: 'border-[#FFC529]',
+    ring: 'ring-[#FFC529]'
   },
   endgame: {
     bg: 'bg-neutral-900',
-    text: 'text-amber-200',
-    border: 'border-amber-200/70',
-    ring: 'ring-amber-200/70'
+    text: 'text-white',
+    border: 'border-[#FFC529]',
+    ring: 'ring-[#FFC529]'
   }
 };
 
