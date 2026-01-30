@@ -41,6 +41,7 @@ const getStarCount = (tierIndex: number): number => {
   const posInBand = ((tierIndex - 1) % 5) + 1;
   // 1 = prestige base (no stars), 2 = 1 star, 3 = 2 stars, 4 = 3 stars, 5 = special (no stars)
   if (posInBand >= 2 && posInBand <= 4) return posInBand - 1;
+  if (posInBand === 5) return 3;
   return 0;
 };
 
@@ -168,13 +169,35 @@ const AvatarBadge: React.FC<AvatarBadgeProps> = ({ tierIndex, size = 'feed', cla
   const starCount = getStarCount(safeTier);
   const hasMilestoneIcon = isMilestoneTier(safeTier);
 
+  const starFontSize = size === 'small' ? '3.5px' : size === 'feed' || size === 'inline' ? '4.5px' : size === 'ladder' || size === 'ladder-lg' ? '5px' : '6px';
+  const starTop = size === 'small' ? 1 : size === 'feed' || size === 'inline' ? 1 : size === 'ladder' || size === 'ladder-lg' ? 2 : 2;
+  const labelShift = size === 'small' ? 2 : size === 'feed' || size === 'inline' ? 3 : size === 'ladder' || size === 'ladder-lg' ? 3 : 4;
+
   const badge = (
     <div
       className={`${isInline ? 'inline-flex' : 'absolute'} ${sizing.wrapper} ${theme.bg} ${theme.text} ${theme.border} ${theme.ring} ${sizing.text} flex items-center justify-center border shadow-md ring-1 font-semibold leading-none rounded-[6px] rounded-b-[10px] ${hasShine ? 'overflow-hidden' : ''} ${className || ''}`}
       aria-label={`Badge tier ${safeTier}`}
-      style={hasShine ? { position: 'relative' as const } : undefined}
+      style={{ position: 'relative' as const }}
     >
-      {label}
+      {starCount > 0 && (
+        <div
+          className="flex items-center justify-center"
+          style={{
+            position: 'absolute',
+            top: starTop,
+            left: 0,
+            right: 0,
+            gap: 0,
+            fontSize: starFontSize,
+            lineHeight: 1
+          }}
+        >
+          {Array.from({ length: starCount }, (_, i) => (
+            <span key={i} className="text-[#FFC529]" style={{ lineHeight: 1 }}>&#9733;</span>
+          ))}
+        </div>
+      )}
+      <span style={starCount > 0 ? { marginTop: labelShift } : undefined}>{label}</span>
       {hasShine && (
         <>
           <style>{`
@@ -220,29 +243,6 @@ const AvatarBadge: React.FC<AvatarBadgeProps> = ({ tierIndex, size = 'feed', cla
         >
           <MilestoneIcon tierIndex={safeTier} size={size} />
         </div>
-      </div>
-    );
-  }
-
-  // Star tiers (2-4, 7-9, 12-14, 17-19) get stars above
-  if (starCount > 0) {
-    return (
-      <div className={`${isInline ? 'inline-flex' : 'absolute'} flex-col items-center`} style={{ position: isInline ? undefined : 'absolute' as const }}>
-        <div
-          className="flex items-center justify-center gap-[1px]"
-          style={{
-            fontSize: size === 'small' ? '5px' : size === 'feed' || size === 'inline' ? '7px' : '8px',
-            marginBottom: 1,
-            width: '100%'
-          }}
-        >
-          {Array.from({ length: starCount }, (_, i) => (
-            <span key={i} className="text-[#FFC529]" style={{ lineHeight: 1 }}>&#9733;</span>
-          ))}
-        </div>
-        {React.cloneElement(badge as React.ReactElement<{ className?: string }>, {
-          className: `inline-flex ${sizing.wrapper} ${theme.bg} ${theme.text} ${theme.border} ${theme.ring} ${sizing.text} flex items-center justify-center border shadow-md ring-1 font-semibold leading-none rounded-[6px] rounded-b-[10px] ${hasShine ? 'overflow-hidden' : ''} ${className || ''}`
-        })}
       </div>
     );
   }
