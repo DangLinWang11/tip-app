@@ -227,8 +227,15 @@ const AvatarBadge: React.FC<AvatarBadgeProps> = ({ tierIndex, size = 'feed', cla
   // Star tiers (2-4, 7-9, 12-14, 17-19) get stars above
   if (starCount > 0) {
     return (
-      <div className={`${isInline ? 'inline-flex' : 'absolute'} flex-col items-center -mt-1`}>
-        <div className="flex items-center justify-center gap-[1px] mb-[1px]" style={{ fontSize: size === 'small' ? '5px' : size === 'feed' || size === 'inline' ? '7px' : '8px' }}>
+      <div className={`${isInline ? 'inline-flex' : 'absolute'} flex-col items-center`} style={{ position: isInline ? undefined : 'absolute' as const }}>
+        <div
+          className="flex items-center justify-center gap-[1px]"
+          style={{
+            fontSize: size === 'small' ? '5px' : size === 'feed' || size === 'inline' ? '7px' : '8px',
+            marginBottom: 1,
+            width: '100%'
+          }}
+        >
           {Array.from({ length: starCount }, (_, i) => (
             <span key={i} className="text-[#FFC529]" style={{ lineHeight: 1 }}>&#9733;</span>
           ))}
