@@ -690,7 +690,7 @@ const getDishPinIconCached = (rating: string): string => {
   return url;
 };
 
-const Map: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishes, userLocation, onRestaurantClick, onDishClick, showQualityPercentages = true, disableInfoWindows = false, showMyLocationButton = true, showGoogleControl = true, myLocationButtonOffset, bottomSheetHook, navigate }) => {
+const MapView: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishes, userLocation, onRestaurantClick, onDishClick, showQualityPercentages = true, disableInfoWindows = false, showMyLocationButton = true, showGoogleControl = true, myLocationButtonOffset, bottomSheetHook, navigate }) => {
   const ref = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<google.maps.Map>();
   const styleLoggedRef = useRef(false);
@@ -1229,7 +1229,7 @@ const RestaurantMap: React.FC<RestaurantMapProps> = ({
         return <ErrorComponent status={status} />;
       case Status.SUCCESS:
         return (
-          <Map
+          <MapView
             center={focusCenter || initialCenter}
             zoom={focusCenter ? 16 : 13}
             mapType={mapType}
