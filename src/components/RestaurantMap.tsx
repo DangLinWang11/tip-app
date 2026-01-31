@@ -224,19 +224,19 @@ const createCommunityPinWithLabel = (label: string, color: string = '#ef4444') =
   const viewBoxWidth = 24;
   const viewBoxHeight = 34;
   const height = 40;
-  const pinWidth = (height * viewBoxWidth) / viewBoxHeight;
+  const pinWidth = Math.round((height * viewBoxWidth) / viewBoxHeight);
   const gap = -2;
   const fontSize = 11;
   const textLen = Math.max(3, Math.min(label.length, 24));
   const labelWidth = Math.round(textLen * 7.2 + 6);
   const labelHeight = 14;
-  const labelX = pinWidth + gap;
+  const labelX = Math.round(pinWidth + gap);
   const labelY = 7;
-  const labelTextX = labelX + 2;
+  const labelTextX = Math.round(labelX + 2);
   const width = Math.round(pinWidth + gap + labelWidth);
 
   const svg = `
-    <svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">
+    <svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg" shape-rendering="geometricPrecision" text-rendering="geometricPrecision">
       <defs>
         <linearGradient id="pinGradLabel" x1="12" y1="2" x2="12" y2="30" gradientUnits="userSpaceOnUse">
           <stop offset="0%" stop-color="#ff6b6b" />
@@ -261,9 +261,6 @@ const createCommunityPinWithLabel = (label: string, color: string = '#ef4444') =
             <feMergeNode />
             <feMergeNode in="SourceGraphic" />
           </feMerge>
-        </filter>
-        <filter id="textShadowLabel" x="-50%" y="-50%" width="200%" height="200%">
-          <feDropShadow dx="0" dy="1" stdDeviation="1" flood-color="#000000" flood-opacity="0.1" />
         </filter>
       </defs>
       <!-- Pin shadow -->
@@ -296,13 +293,12 @@ const createCommunityPinWithLabel = (label: string, color: string = '#ef4444') =
       <text x="${labelTextX}" y="${labelY + labelHeight / 2}"
         font-family="'Poppins', sans-serif" font-size="${fontSize}" font-weight="700"
         text-anchor="start" dominant-baseline="central"
-        fill="${color}" stroke="#FFFFFF" stroke-width="3" paint-order="stroke fill"
-        filter="url(#textShadowLabel)">
+        fill="${color}" stroke="#FFFFFF" stroke-width="2.5" paint-order="stroke fill">
         ${label}
       </text>
       <text x="${labelTextX}" y="${labelY + labelHeight / 2}"
         font-family="'Poppins', sans-serif" font-size="${fontSize}" font-weight="700"
-        text-anchor="start" dominant-baseline="central" fill="${color}" filter="url(#textShadowLabel)">
+        text-anchor="start" dominant-baseline="central" fill="${color}">
         ${label}
       </text>
     </svg>
