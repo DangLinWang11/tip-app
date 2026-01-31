@@ -1,39 +1,114 @@
 import React, { useState, useEffect } from 'react';
-import { X, Star, Calendar, MapPin } from 'lucide-react';
+import { X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { getUserRestaurantReviews, FirebaseReview, type UserVisitedRestaurant } from '../services/reviewService';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '../lib/firebase';
+import { getUserRestaurantReviews, FirebaseReview, type UserVisitedRestaurant, calculateModalPriceLevel } from '../services/reviewService';
 
 interface UserRestaurantModalProps {
   restaurant: UserVisitedRestaurant;
   isOpen: boolean;
   onClose: () => void;
+  userId?: string;
 }
 
 const UserRestaurantModal: React.FC<UserRestaurantModalProps> = ({
   restaurant,
   isOpen,
-  onClose
+  onClose,
+  userId
 }) => {
   const navigate = useNavigate();
   const [reviews, setReviews] = useState<FirebaseReview[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [restaurantImage, setRestaurantImage] = useState<string | null>(null);
+  const [restaurantMeta, setRestaurantMeta] = useState<{ cuisine?: string; priceTag?: string; quality?: number | null } | null>(null);
 
-  // Load user's reviews for this restaurant
   useEffect(() => {
     if (isOpen && restaurant) {
       const loadRestaurantReviews = async () => {
         try {
           setLoading(true);
           setError(null);
-          
-          console.log(`🍽️ Loading reviews for restaurant: ${restaurant.name} (${restaurant.id})`);
-          const restaurantReviews = await getUserRestaurantReviews(restaurant.id);
+
+          const restaurantReviews = await getUserRestaurantReviews(restaurant.id, userId, restaurant.name);
           setReviews(restaurantReviews);
-          
-          console.log(`✅ Loaded ${restaurantReviews.length} reviews for ${restaurant.name}`);
+
+          let restaurantData: any = null;
+          if (restaurant.id && !restaurant.id.startsWith('manual_')) {
+            try {
+              const restaurantDoc = await getDoc(doc(db, 'restaurants', restaurant.id));
+              if (restaurantDoc.exists()) {
+                restaurantData = { id: restaurantDoc.id, ...restaurantDoc.data() };
+              }
+            } catch (err) {
+              console.warn('Failed to load restaurant metadata:', err);
+            }
+          }
+
+          const isValidImage = (url?: string | null): boolean => {
+            if (!url || typeof url !== 'string' || url.trim() === '') return false;
+            const urlLower = url.toLowerCase();
+            if (urlLower.includes('tip-logo') ||
+                urlLower.includes('/images/tip-logo') ||
+                urlLower.includes('tip_logo') ||
+                urlLower.includes('/tip-logo') ||
+                urlLower.includes('tiplogo') ||
+                urlLower.includes('placeholder')) {
+              return false;
+            }
+            if (urlLower.includes('maps.googleapis.com/maps/api/staticmap') ||
+                urlLower.includes('googleapis.com/maps/api/staticmap') ||
+                urlLower.includes('maps.gstatic') ||
+                urlLower.includes('gstatic.com/maps') ||
+                urlLower.includes('googleusercontent.com/maps') ||
+                urlLower.includes('streetview') ||
+                urlLower.includes('maptile') ||
+                urlLower.includes('maps/vt')) {
+              return false;
+            }
+            return true;
+          };
+
+          const reviewPhotoRaw =
+            restaurantReviews.find(r => Array.isArray(r.images) && r.images.length > 0)?.images?.[0] || null;
+          const reviewPhoto = isValidImage(reviewPhotoRaw) ? reviewPhotoRaw : null;
+
+          const coverCandidates = [
+            restaurantData?.coverImage,
+            restaurantData?.headerImage,
+            Array.isArray(restaurantData?.googlePhotos) && restaurantData.googlePhotos.length > 0 ? restaurantData.googlePhotos[0] : null,
+            restaurantData?.photoUrl
+          ];
+          const coverImage = coverCandidates.find((u: string | null | undefined) => isValidImage(u)) || null;
+
+          const priceLevel =
+            typeof restaurantData?.priceLevel === 'number' && restaurantData.priceLevel >= 1 && restaurantData.priceLevel <= 4
+              ? '$'.repeat(restaurantData.priceLevel)
+              : typeof restaurantData?.priceRange === 'string'
+              ? restaurantData.priceRange
+              : (() => {
+                  const modal = calculateModalPriceLevel(restaurantReviews);
+                  return modal ? '$'.repeat(modal) : null;
+                })();
+
+          const cuisine =
+            restaurantData?.cuisine ||
+            (Array.isArray(restaurantData?.cuisines) && restaurantData.cuisines.length > 0 ? restaurantData.cuisines[0] : null) ||
+            restaurant.cuisine;
+
+          const quality =
+            typeof restaurantData?.qualityScore === 'number'
+              ? Math.round(restaurantData.qualityScore)
+              : typeof restaurantData?.qualityPercentage === 'number'
+              ? Math.round(restaurantData.qualityPercentage)
+              : null;
+
+          setRestaurantImage(reviewPhoto || coverImage);
+          setRestaurantMeta({ cuisine: cuisine || undefined, priceTag: priceLevel || undefined, quality });
         } catch (err) {
-          console.error('❌ Error loading restaurant reviews:', err);
+          console.error('Error loading restaurant reviews:', err);
           setError('Failed to load your reviews for this restaurant');
         } finally {
           setLoading(false);
@@ -42,31 +117,35 @@ const UserRestaurantModal: React.FC<UserRestaurantModalProps> = ({
 
       loadRestaurantReviews();
     }
-  }, [isOpen, restaurant]);
+  }, [isOpen, restaurant, userId]);
 
-  // Close modal when clicking outside
   const handleBackdropClick = (e: React.MouseEvent) => {
     if (e.target === e.currentTarget) {
       onClose();
     }
   };
 
-  // Handle review card click to navigate to the post
-  const handleReviewClick = (review: FirebaseReview) => {
-    // Navigate to the review post - assuming the route is /post/{reviewId}
-    navigate(`/post/${review.id}`);
+  const formatReviewDate = (input: Date | number | string | any): string => {
+    const toMillis = (v: any) =>
+      v && typeof v.seconds === 'number' && typeof v.nanoseconds === 'number'
+        ? v.seconds * 1000 + Math.floor(v.nanoseconds / 1e6)
+        : typeof v === 'string'
+        ? Date.parse(v)
+        : typeof v === 'number'
+        ? v
+        : (v as Date)?.getTime?.() ?? Date.now();
+    const d = new Date(toMillis(input));
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   };
 
-  // Don't render if not open
   if (!isOpen) return null;
 
   return (
-    <div 
+    <div
       className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
       onClick={handleBackdropClick}
     >
-      <div className="bg-white rounded-xl max-w-lg w-full max-h-[80vh] overflow-hidden shadow-2xl">
-        {/* Header */}
+      <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[85vh] overflow-hidden shadow-2xl">
         <div className="bg-white p-6 relative">
           <button
             onClick={onClose}
@@ -75,33 +154,40 @@ const UserRestaurantModal: React.FC<UserRestaurantModalProps> = ({
             <X size={20} className="text-gray-600" />
           </button>
 
-          {/* Restaurant name */}
-          <div className="flex items-center justify-center mb-4">
-            <button
-              onClick={() => navigate(`/restaurant/${restaurant.id}`)}
-              className="text-xl font-bold text-primary cursor-pointer hover:opacity-75 transition-opacity"
-            >
-              {restaurant.name}
-            </button>
-          </div>
-          
-          {/* Stats row - visit count and cuisine only */}
-          <div className="flex items-center justify-center space-x-4 text-gray-600">
-            <div className="flex items-center">
-              <Calendar size={16} className="mr-1" />
-              <span>{restaurant.visitCount} visit{restaurant.visitCount !== 1 ? 's' : ''}</span>
+          <div className="flex items-start gap-4">
+            <div className="h-20 w-20 rounded-xl bg-gray-100 overflow-hidden flex-shrink-0">
+              {restaurantImage ? (
+                <img src={restaurantImage} alt={restaurant.name} className="h-full w-full object-cover" />
+              ) : (
+                <div className="h-full w-full bg-gray-100" />
+              )}
             </div>
-            <div className="flex items-center">
-              <MapPin size={16} className="mr-1" />
-              <span>{restaurant.cuisine}</span>
+            <div className="flex-1 min-w-0">
+              <button
+                onClick={() => navigate(`/restaurant/${restaurant.id}`)}
+                className="text-xl font-bold text-black leading-tight hover:opacity-80 transition-opacity text-left"
+              >
+                {restaurant.name}
+              </button>
+              <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
+                {restaurantMeta?.cuisine && (
+                  <span className="bg-gray-100 text-gray-700 px-2.5 py-1 rounded-full">{restaurantMeta.cuisine}</span>
+                )}
+                {restaurantMeta?.priceTag && (
+                  <span className="bg-gray-100 text-gray-700 px-2.5 py-1 rounded-full">{restaurantMeta.priceTag}</span>
+                )}
+                {restaurantMeta?.quality != null && (
+                  <span className="bg-primary/10 text-primary px-2.5 py-1 rounded-full font-semibold">
+                    {restaurantMeta.quality}%
+                  </span>
+                )}
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Content */}
         <div className="overflow-y-auto max-h-[60vh]">
           {loading ? (
-            // Loading state
             <div className="flex items-center justify-center py-12">
               <div className="text-center">
                 <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
@@ -109,25 +195,23 @@ const UserRestaurantModal: React.FC<UserRestaurantModalProps> = ({
               </div>
             </div>
           ) : error ? (
-            // Error state
             <div className="text-center py-12 px-6">
               <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <span className="text-red-600 text-2xl">⚠️</span>
+                <span className="text-red-600 text-2xl">!</span>
               </div>
               <h3 className="text-lg font-semibold text-red-900 mb-2">Unable to Load Reviews</h3>
               <p className="text-red-600 mb-4">{error}</p>
-              <button 
-                onClick={() => setLoading(true)} 
+              <button
+                onClick={() => setLoading(true)}
                 className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
               >
                 Try Again
               </button>
             </div>
           ) : reviews.length === 0 ? (
-            // Empty state
             <div className="text-center py-12 px-6">
               <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <span className="text-gray-400 text-2xl">🍽️</span>
+                <span className="text-gray-400 text-2xl">?</span>
               </div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">No Reviews Found</h3>
               <p className="text-gray-600 mb-4">
@@ -135,71 +219,34 @@ const UserRestaurantModal: React.FC<UserRestaurantModalProps> = ({
               </p>
             </div>
           ) : (
-            // Reviews list
-            <div className="px-4 py-6">
-              <div className="space-y-1">
+            <div className="px-4 pb-6">
+              <div className="space-y-3">
                 {reviews.map((review) => (
-                  <div 
-                    key={review.id} 
-                    onClick={() => handleReviewClick(review)}
-                    className="bg-white rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer border border-gray-100"
+                  <div
+                    key={review.id}
+                    className="bg-white rounded-xl p-4 shadow-sm border border-gray-200"
                   >
-                    <div className="flex items-start space-x-3">
-                      {/* Review image */}
-                      {review.images && Array.isArray(review.images) && review.images.length > 0 && (
-                        <div className="flex-shrink-0">
-                          <img
-                            src={review.images[0]}
-                            alt={review.dish}
-                            className="w-10 h-10 object-cover rounded-full"
-                          />
-                        </div>
-                      )}
-                      
-                      {/* Content */}
-                      <div className="flex-1 min-w-0">
-                        <div>
-                          <div className="flex items-center justify-between">
-                            <p className="text-sm text-gray-900 leading-5">
-                              <span className="font-medium">{review.dish}</span>
-                              {review.price && (
-                                <span className="text-gray-600"> - {review.price}</span>
-                              )}
-                            </p>
-
-                            {/* Dish Rating */}
-                            {review.rating != null && typeof review.rating === 'number' && (
-                              <span className="text-sm font-bold text-primary ml-2 flex-shrink-0">
-                                {review.rating.toFixed(1)}
-                              </span>
-                            )}
-                          </div>
-
-                          {/* Review notes preview */}
-                          {review.personalNote && (
-                            <p className="text-sm text-gray-600 mt-1 line-clamp-2">
-                              {review.personalNote}
-                            </p>
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="min-w-0">
+                        <p className="font-semibold text-gray-900 truncate">{review.dish}</p>
+                        {(review.personalNote || (review as any)?.personalNotes?.[0]?.text) && (
+                          <p className="text-sm text-gray-600 mt-1 line-clamp-2">
+                            {review.personalNote || (review as any)?.personalNotes?.[0]?.text}
+                          </p>
+                        )}
+                        <div className="text-xs text-gray-400 mt-2">
+                          {formatReviewDate(
+                            (review as any)?.createdAt ??
+                            (review as any)?.createdAtMs ??
+                            review.timestamp
                           )}
-
-                          {/* Timestamp at bottom-right */}
-                          <div className="flex justify-end mt-2">
-                            <div className="text-xs text-gray-500">
-                              {(() => {
-                                const v: any = (review as any).createdAt;
-                                const ms = v && typeof v.seconds === 'number' && typeof v.nanoseconds === 'number'
-                                  ? v.seconds * 1000 + Math.floor(v.nanoseconds / 1e6)
-                                  : typeof v === 'string'
-                                  ? Date.parse(v)
-                                  : typeof v === 'number'
-                                  ? v
-                                  : Date.now();
-                                return new Date(ms).toLocaleDateString();
-                              })()}
-                            </div>
-                          </div>
                         </div>
                       </div>
+                      {review.rating != null && typeof review.rating === 'number' && (
+                        <div className="text-primary font-bold text-xl flex-shrink-0">
+                          {review.rating.toFixed(1)}
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -208,12 +255,11 @@ const UserRestaurantModal: React.FC<UserRestaurantModalProps> = ({
           )}
         </div>
 
-        {/* Footer */}
-        <div className="border-t border-gray-200 p-4 bg-gray-50">
+        <div className="border-t border-gray-100 p-4 bg-white">
           <div className="flex items-center justify-end">
             <button
               onClick={onClose}
-              className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+              className="px-4 py-2 bg-gray-100 text-gray-700 rounded-full hover:bg-gray-200 transition-colors text-sm font-medium"
             >
               Close
             </button>

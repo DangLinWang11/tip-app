@@ -1066,20 +1066,24 @@ export const getUserVisitedRestaurants = async (userId?: string): Promise<UserVi
 };
 
 // NEW: Get user's reviews for a specific restaurant
-export const getUserRestaurantReviews = async (restaurantId: string): Promise<FirebaseReview[]> => {
+export const getUserRestaurantReviews = async (
+  restaurantId: string,
+  userId?: string,
+  restaurantName?: string
+): Promise<FirebaseReview[]> => {
   try {
     const currentUser = getCurrentUser();
-    if (!currentUser) {
+    const targetUserId = userId || currentUser?.uid;
+    if (!targetUserId) {
       console.log('No authenticated user found for restaurant reviews');
       return [];
     }
 
-    console.log(`🍽️ Fetching user reviews for restaurant: ${restaurantId}`);
+    console.log(`Fetching user reviews for restaurant: ${restaurantId}`);
 
-    // Query user's reviews for this specific restaurant
     const reviewsQuery = query(
       collection(db, 'reviews'),
-      where('userId', '==', currentUser.uid),
+      where('userId', '==', targetUserId),
       where('restaurantId', '==', restaurantId),
       where('isDeleted', '==', false),
       orderBy('createdAt', 'desc')
@@ -1090,13 +1094,11 @@ export const getUserRestaurantReviews = async (restaurantId: string): Promise<Fi
 
     reviewsSnapshot.forEach((doc) => {
       const data = doc.data();
-
-      // Map new media structure to old images array for backward compatibility
       const mappedData = {
         ...data,
         images: data.media?.photos && Array.isArray(data.media.photos) && data.media.photos.length > 0
           ? data.media.photos
-          : data.images || [] // Fallback to old images field or empty array
+          : data.images || []
       };
 
       reviews.push({
@@ -1109,26 +1111,45 @@ export const getUserRestaurantReviews = async (restaurantId: string): Promise<Fi
       } as FirebaseReview);
     });
 
-    console.log(`✅ Found ${reviews.length} user reviews for restaurant ${restaurantId}`);
+    if (reviews.length > 0) {
+      console.log(`Found ${reviews.length} user reviews for restaurant ${restaurantId}`);
+      return reviews;
+    }
+
+    if (restaurantName && restaurantName.trim().length > 0) {
+      const normalizedName = restaurantName.trim().toLowerCase();
+      const userReviews = await fetchUserReviews(200, targetUserId);
+      const byName = userReviews.filter(review => {
+        const rName = (review.restaurant || '').toLowerCase();
+        return rName === normalizedName;
+      });
+      console.log(`Name fallback found ${byName.length} reviews for ${restaurantName}`);
+      return byName;
+    }
+
+    console.log(`No reviews found for restaurant ${restaurantId}`);
     return reviews;
 
   } catch (error) {
-    console.error(`❌ Error fetching user restaurant reviews for ${restaurantId}:`, error);
-    
-    // Fallback: try to get reviews by restaurant name if ID query fails
+    console.error(`Error fetching user restaurant reviews for ${restaurantId}:`, error);
+
     try {
-      console.log('🔄 Trying fallback query by restaurant name...');
-      
-      const userReviews = await fetchUserReviews(100);
-      const restaurantReviews = userReviews.filter(review => 
-        review.restaurantId === restaurantId || review.restaurant.includes(restaurantId)
-      );
-      
-      console.log(`✅ Fallback found ${restaurantReviews.length} reviews`);
+      console.log('Trying fallback query by restaurant name...');
+
+      const userReviews = await fetchUserReviews(200, userId);
+      const restaurantReviews = userReviews.filter(review => {
+        if (review.restaurantId === restaurantId) return true;
+        if (restaurantName && review.restaurant) {
+          return review.restaurant.toLowerCase() === restaurantName.toLowerCase();
+        }
+        return false;
+      });
+
+      console.log(`Fallback found ${restaurantReviews.length} reviews`);
       return restaurantReviews;
-      
+
     } catch (fallbackError) {
-      console.error('❌ Fallback query also failed:', fallbackError);
+      console.error('Fallback query also failed:', fallbackError);
       return [];
     }
   }

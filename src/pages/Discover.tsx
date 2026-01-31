@@ -244,6 +244,8 @@ const Discover: React.FC = () => {
               onRestaurantClick={(id) => navigate(`/restaurant/${id}`)} 
               onDishClick={(id) => navigate(`/dish/${id}`)}
               focusRestaurantId={new URLSearchParams(location.search).get('focusRestaurantId') || undefined}
+              showGoogleControl={false}
+              myLocationButtonOffset={80}
             />
           ) : (
             <div className="flex-1 flex items-center justify-center h-full">

@@ -890,6 +890,7 @@ const Profile: React.FC = () => {
           onClose={() => setShowFoodMapModal(false)}
           userId={userProfile.uid}
           userName={userProfile.username || userProfile.displayName}
+          userTierIndex={tierProgress.tierIndex}
         />
       )}
 

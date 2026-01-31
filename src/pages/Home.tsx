@@ -11,6 +11,7 @@ import { getFollowing } from '../services/followService';
 import { useReviewStore } from '../stores/reviewStore';
 import { useFollowStore } from '../stores/followStore';
 import mapPreview from "../assets/map-preview.png";
+import { getTierFromPoints } from '../badges/badgeTiers';
 // Defer heavy map code: code-split ExpandedMapModal and avoid inline map
 const ExpandedMapModal = React.lazy(() => import('../components/ExpandedMapModal'));
 
@@ -1040,6 +1041,8 @@ const Home: React.FC = () => {
         <ExpandedMapModal
           isOpen={showExpandedMap}
           onClose={() => setShowExpandedMap(false)}
+          userName={userProfile?.username || userProfile?.displayName || undefined}
+          userTierIndex={getTierFromPoints(userStats.pointsEarned).tierIndex}
         />
       </React.Suspense>
     </div>

@@ -1,19 +1,22 @@
 import React from 'react';
 import { X, MapIcon } from 'lucide-react';
 import UserJourneyMap from './UserJourneyMap';
+import AvatarBadge from './badges/AvatarBadge';
 
 interface ExpandedMapModalProps {
   isOpen: boolean;
   onClose: () => void;
   userId?: string;        // optional userId for viewing other users' maps
   userName?: string;      // optional userName for header display
+  userTierIndex?: number; // badge tier index for header display
 }
 
 const ExpandedMapModal: React.FC<ExpandedMapModalProps> = ({
   isOpen,
   onClose,
   userId,
-  userName
+  userName,
+  userTierIndex
 }) => {
   // Don't render if not open
   if (!isOpen) return null;
@@ -74,13 +77,16 @@ const ExpandedMapModal: React.FC<ExpandedMapModalProps> = ({
       >
         {/* Header with close button */}
         <div className="absolute top-0 left-0 right-0 z-10 bg-white/95 backdrop-blur-sm border-b border-gray-200 p-4 flex items-center justify-between">
-          <div className="flex items-start gap-2">
-            <MapIcon size={20} className="text-primary mt-0.5" />
-            <div>
-              <h2 className="text-xl font-bold text-gray-900">
-                {userName ? `${userName}'s Food Journey` : 'Your Food Journey'}
-              </h2>
-            </div>
+          <div className="flex items-center gap-2">
+            <MapIcon size={20} className="text-primary" />
+            {userName ? (
+              <>
+                <h2 className="text-xl font-bold text-gray-900">{`${userName}'s`}</h2>
+                <h2 className="text-xl font-bold text-gray-900">Map</h2>
+              </>
+            ) : (
+              <h2 className="text-xl font-bold text-gray-900">Your Food Journey</h2>
+            )}
           </div>
           
           <button

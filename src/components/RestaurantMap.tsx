@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { MarkerClusterer, SuperClusterAlgorithm } from '@googlemaps/markerclusterer';
 import { Wrapper, Status } from '@googlemaps/react-wrapper';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../lib/firebase';
@@ -79,6 +80,7 @@ interface MapProps {
   disableInfoWindows?: boolean;
   showMyLocationButton?: boolean;
   showGoogleControl?: boolean;
+  myLocationButtonOffset?: number;
   bottomSheetHook?: ReturnType<typeof useMapBottomSheet>;
   navigate?: (path: string) => void;
 }
@@ -135,46 +137,335 @@ const createPinIcon = (text: string, backgroundColor: string, showQualityPercent
   return 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg);
 };
 
+const createCommunityPinIcon = (color: string = '#ef4444') => {
+  const viewBoxWidth = 24;
+  const viewBoxHeight = 34;
+  const height = 34;
+  const width = (height * viewBoxWidth) / viewBoxHeight;
+
+  const svg = `
+    <svg width="${width}" height="${height}" viewBox="0 0 ${viewBoxWidth} ${viewBoxHeight}" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="pinGrad" x1="12" y1="2" x2="12" y2="30" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stop-color="#ff6b6b" />
+          <stop offset="100%" stop-color="#ee2d2d" />
+        </linearGradient>
+        <radialGradient id="pinDepth" cx="40%" cy="35%" r="70%">
+          <stop offset="0%" stop-color="white" stop-opacity="0.12" />
+          <stop offset="100%" stop-color="white" stop-opacity="0" />
+        </radialGradient>
+        <radialGradient id="pinShine" cx="0%" cy="0%" r="100%">
+          <stop offset="0%" stop-color="white" stop-opacity="0.6" />
+          <stop offset="100%" stop-color="white" stop-opacity="0" />
+        </radialGradient>
+        <filter id="pinShadow" x="-10%" y="-10%" width="120%" height="140%">
+          <feOffset dx="0" dy="3" />
+          <feGaussianBlur stdDeviation="2" />
+          <feColorMatrix type="matrix" values="0 0 0 0 0
+                                               0 0 0 0 0
+                                               0 0 0 0 0
+                                               0 0 0 0.2 0" />
+          <feMerge>
+            <feMergeNode />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+      </defs>
+      <!-- Drop shadow -->
+      <path
+        d="M 12 2
+           C 6.5 2, 2 6.5, 2 12
+           C 2 17.5, 12 30, 12 30
+           C 12 30, 22 17.5, 22 12
+           C 22 6.5, 17.5 2, 12 2 Z"
+        fill="black"
+        opacity="1"
+        filter="url(#pinShadow)"
+      />
+      <path
+        d="M 12 2
+           C 6.5 2, 2 6.5, 2 12
+           C 2 17.5, 12 30, 12 30
+           C 12 30, 22 17.5, 22 12
+           C 22 6.5, 17.5 2, 12 2 Z"
+        fill="url(#pinGrad)"
+        stroke="white"
+        stroke-width="2.25"
+      />
+      <!-- Subtle depth overlay -->
+      <circle cx="12" cy="12" r="10" fill="url(#pinDepth)" />
+      <!-- Shine highlight -->
+      <circle cx="9.2" cy="7.6" r="2.6" fill="url(#pinShine)" />
+      <circle cx="12" cy="12" r="4" fill="white" />
+    </svg>
+  `;
+
+  return {
+    url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg),
+    width,
+    height
+  };
+};
+
+const createCommunityPinWithLabel = (label: string, color: string = '#ef4444') => {
+  const viewBoxWidth = 24;
+  const viewBoxHeight = 34;
+  const height = 40;
+  const pinWidth = (height * viewBoxWidth) / viewBoxHeight;
+  const gap = -2;
+  const fontSize = 11;
+  const textLen = Math.max(3, Math.min(label.length, 24));
+  const labelWidth = Math.round(textLen * 7.2 + 6);
+  const labelHeight = 14;
+  const labelX = pinWidth + gap;
+  const labelY = 7;
+  const labelTextX = labelX + 2;
+  const width = Math.round(pinWidth + gap + labelWidth);
+
+  const svg = `
+    <svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="pinGradLabel" x1="12" y1="2" x2="12" y2="30" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stop-color="#ff6b6b" />
+          <stop offset="100%" stop-color="#ee2d2d" />
+        </linearGradient>
+        <radialGradient id="pinDepthLabel" cx="40%" cy="35%" r="70%">
+          <stop offset="0%" stop-color="white" stop-opacity="0.12" />
+          <stop offset="100%" stop-color="white" stop-opacity="0" />
+        </radialGradient>
+        <radialGradient id="pinShineLabel" cx="0%" cy="0%" r="100%">
+          <stop offset="0%" stop-color="white" stop-opacity="0.6" />
+          <stop offset="100%" stop-color="white" stop-opacity="0" />
+        </radialGradient>
+        <filter id="pinShadowLabel" x="-10%" y="-10%" width="120%" height="140%">
+          <feOffset dx="0" dy="3" />
+          <feGaussianBlur stdDeviation="2" />
+          <feColorMatrix type="matrix" values="0 0 0 0 0
+                                               0 0 0 0 0
+                                               0 0 0 0 0
+                                               0 0 0 0.2 0" />
+          <feMerge>
+            <feMergeNode />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+        <filter id="textShadowLabel" x="-50%" y="-50%" width="200%" height="200%">
+          <feDropShadow dx="0" dy="1" stdDeviation="1" flood-color="#000000" flood-opacity="0.1" />
+        </filter>
+      </defs>
+      <!-- Pin shadow -->
+      <path
+        d="M 12 2
+           C 6.5 2, 2 6.5, 2 12
+           C 2 17.5, 12 30, 12 30
+           C 12 30, 22 17.5, 22 12
+           C 22 6.5, 17.5 2, 12 2 Z"
+        fill="black"
+        opacity="1"
+        filter="url(#pinShadowLabel)"
+      />
+      <!-- Pin -->
+      <path
+        d="M 12 2
+           C 6.5 2, 2 6.5, 2 12
+           C 2 17.5, 12 30, 12 30
+           C 12 30, 22 17.5, 22 12
+           C 22 6.5, 17.5 2, 12 2 Z"
+        fill="url(#pinGradLabel)"
+        stroke="white"
+        stroke-width="2.25"
+      />
+      <circle cx="12" cy="12" r="10" fill="url(#pinDepthLabel)" />
+      <circle cx="9.2" cy="7.6" r="2.6" fill="url(#pinShineLabel)" />
+      <circle cx="12" cy="12" r="4" fill="white" />
+
+      <!-- Label text with tight white halo -->
+      <text x="${labelTextX}" y="${labelY + labelHeight / 2}"
+        font-family="'Poppins', sans-serif" font-size="${fontSize}" font-weight="700"
+        text-anchor="start" dominant-baseline="central"
+        fill="${color}" stroke="#FFFFFF" stroke-width="3" paint-order="stroke fill"
+        filter="url(#textShadowLabel)">
+        ${label}
+      </text>
+      <text x="${labelTextX}" y="${labelY + labelHeight / 2}"
+        font-family="'Poppins', sans-serif" font-size="${fontSize}" font-weight="700"
+        text-anchor="start" dominant-baseline="central" fill="${color}" filter="url(#textShadowLabel)">
+        ${label}
+      </text>
+    </svg>
+  `;
+
+  return {
+    url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg),
+    width,
+    height
+  };
+};
+
 type GamifiedPinState = 'default' | 'hover' | 'clicked';
+
+// --- Progress & scaling helpers ---
+const getProgressInfo = (visitCount: number): { progress: number; nextTier: number } => {
+  if (visitCount >= 50) return { progress: 1, nextTier: 50 };
+  if (visitCount >= 20) return { progress: (visitCount - 20) / 30, nextTier: 50 };
+  if (visitCount >= 10) return { progress: (visitCount - 10) / 10, nextTier: 20 };
+  if (visitCount >= 5) return { progress: (visitCount - 5) / 5, nextTier: 10 };
+  return { progress: (visitCount - 1) / 4, nextTier: 5 };
+};
+
+const getJourneyPinScale = (visitCount: number): number => {
+  if (visitCount >= 20) return 1.5;
+  if (visitCount >= 10) return 1.3;
+  if (visitCount >= 5) return 1.15;
+  return 1.0;
+};
+
+// Base dimensions for circular badge pin
+const JOURNEY_PIN_W = 64;
+const JOURNEY_PIN_H = 76;
+const JOURNEY_ANCHOR_X = JOURNEY_PIN_W / 2; // 32
+const JOURNEY_ANCHOR_Y = 68; // tip of the small pointer
 
 const createGamifiedPinIcon = (
   visitCount: number,
   state: GamifiedPinState = 'default'
 ): string => {
-  const width = 36;
-  const height = 48;
-  // Extra vertical space for shadow + pulse animation
-  const svgHeight = 56;
-  const cx = width / 2; // 18
-  const cy = 20; // center of the bulb portion
-  const circleR = 12; // white circle radius (24px diameter)
-  const shadowStd = state === 'hover' ? 5 : 4;
-  const shadowOpacity = state === 'hover' ? 0.25 : 0.15;
+  const W = 64;
+  const H = 76;
+  const cx = W / 2;     // 32
+  const cy = 30;         // center of badge circle
+  const outerR = 22;     // outer gradient ring
+  const separatorR = 20; // white separator
+  const innerR = 16;     // inner white circle
+  const progressR = 25;  // progress ring outside badge
   const displayCount = visitCount || 1;
 
-  // Pulse animation for clicked state
-  const pulseAnim = state === 'clicked'
-    ? `<animateTransform attributeName="transform" type="scale" values="1;1.1;1" dur="0.3s" repeatCount="1" additive="sum" calcMode="spline" keySplines="0.4 0 0.2 1;0.4 0 0.2 1" />`
+  const displayText = displayCount >= 100 ? '99+' : `${displayCount}`;
+  const fontSize = displayText.length >= 3 ? 11 : displayText.length === 2 ? 14 : 17;
+
+  const { progress } = getProgressInfo(displayCount);
+
+  // Milestone tiers
+  const isLegendary = displayCount >= 50;
+  const isGold = displayCount >= 20;
+  const isPlatinum = displayCount >= 10;
+
+  // Color schemes per tier
+  let gradStart: string, gradEnd: string, progressStroke: string, textTop: string, textBot: string;
+  if (isLegendary) {
+    gradStart = '#A78BFA'; gradEnd = '#EC4899';
+    progressStroke = '#8B5CF6';
+    textTop = '#7C3AED'; textBot = '#EC4899';
+  } else if (isGold) {
+    gradStart = '#FBBF24'; gradEnd = '#F59E0B';
+    progressStroke = '#D97706';
+    textTop = '#B45309'; textBot = '#D97706';
+  } else if (isPlatinum) {
+    gradStart = '#FF5252'; gradEnd = '#FF1744';
+    progressStroke = '#E53935';
+    textTop = '#D32F2F'; textBot = '#EF5350';
+  } else {
+    gradStart = '#FF6B6B'; gradEnd = '#EE2D2D';
+    progressStroke = '#FF4757';
+    textTop = '#EE2D2D'; textBot = '#FF6B6B';
+  }
+
+  const uid = `gp2_${state}_${displayCount}`;
+
+  // Progress ring dash calculation
+  const progressCirc = 2 * Math.PI * progressR;
+  const progressDash = progress * progressCirc;
+  const progressGap = progressCirc - progressDash;
+
+  // Pointer position
+  const pointerTopY = cy + outerR + 2;
+  const pointerTipY = pointerTopY + 10;
+
+  // Click bounce
+  const clickAnim = state === 'clicked'
+    ? `<animateTransform attributeName="transform" type="scale" values="1;1.12;1" dur="0.3s" repeatCount="1" additive="sum" calcMode="spline" keySplines="0.4 0 0.2 1;0.4 0 0.2 1" />`
     : '';
 
-  // Use a unique gradient ID per state to avoid SVG ID collisions when multiple pins render
-  const gradId = `pinGrad_${state}_${displayCount}`;
+  // Hover: slightly bigger glow
+  const hoverScale = state === 'hover'
+    ? `<animateTransform attributeName="transform" type="scale" values="1;1.05" dur="0.15s" fill="freeze" additive="sum" />`
+    : '';
 
-  const svg = `<svg width="${width}" height="${svgHeight}" viewBox="0 0 ${width} ${svgHeight}" xmlns="http://www.w3.org/2000/svg">
+  // Sparkle dots for 10+ milestone (solid, no blur)
+  const sparkles = isPlatinum ? `
+    <circle cx="${cx - 18}" cy="${cy - 16}" r="1.5" fill="${progressStroke}">
+      <animate attributeName="opacity" values="1;0.2;1" dur="1.5s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="${cx + 20}" cy="${cy - 10}" r="1.2" fill="${progressStroke}">
+      <animate attributeName="opacity" values="0.8;0.1;0.8" dur="2s" begin="0.5s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="${cx + 16}" cy="${cy + 16}" r="1.3" fill="${progressStroke}">
+      <animate attributeName="opacity" values="0.9;0.15;0.9" dur="1.8s" begin="1s" repeatCount="indefinite"/>
+    </circle>
+  ` : '';
+
+  // Animated rainbow shimmer ring for 50+ legendary
+  const legendaryShimmer = isLegendary ? `
+    <circle cx="${cx}" cy="${cy}" r="${outerR + 1}" fill="none" stroke="url(#rainbow_${uid})" stroke-width="3" opacity="0.6">
+      <animateTransform attributeName="transform" type="rotate" from="0 ${cx} ${cy}" to="360 ${cx} ${cy}" dur="3s" repeatCount="indefinite"/>
+    </circle>
+  ` : '';
+
+  const svg = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" fill="none" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="${gradId}" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#FFB5A0"/>
-      <stop offset="100%" stop-color="#FF3131"/>
+    <linearGradient id="outer_${uid}" x1="${cx}" y1="${cy - outerR}" x2="${cx}" y2="${cy + outerR}" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="${gradStart}"/>
+      <stop offset="100%" stop-color="${gradEnd}"/>
     </linearGradient>
-    <filter id="sh_${state}" x="-20%" y="-10%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="2" stdDeviation="${shadowStd}" flood-color="#000" flood-opacity="${shadowOpacity}"/>
-    </filter>
+    <linearGradient id="numgrad_${uid}" x1="${cx}" y1="${cy - 8}" x2="${cx}" y2="${cy + 8}" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="${textTop}"/>
+      <stop offset="100%" stop-color="${textBot}"/>
+    </linearGradient>
+    ${isLegendary ? `
+    <linearGradient id="rainbow_${uid}" x1="0" y1="0" x2="${W}" y2="${H}" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FF6B6B"/>
+      <stop offset="20%" stop-color="#FBBF24"/>
+      <stop offset="40%" stop-color="#4ADE80"/>
+      <stop offset="60%" stop-color="#60A5FA"/>
+      <stop offset="80%" stop-color="#A78BFA"/>
+      <stop offset="100%" stop-color="#FF6B6B"/>
+    </linearGradient>` : ''}
   </defs>
-  <g filter="url(#sh_${state})" transform-origin="${cx} ${cy}">
-    ${pulseAnim}
-    <path d="M${cx},2 C${cx + 10},2 ${width - 2},8 ${width - 2},${cy} C${width - 2},${cy + 10} ${cx},${height - 2} ${cx},${height - 2} C${cx},${height - 2} 2,${cy + 10} 2,${cy} C2,8 ${cx - 10},2 ${cx},2 Z" fill="url(#${gradId})" />
-    <circle cx="${cx}" cy="${cy}" r="${circleR}" fill="white" />
-    <text x="${cx}" y="${cy + 5.5}" font-family="Arial, sans-serif" font-size="16" font-weight="bold" text-anchor="middle" fill="#FF3131">${displayCount}</text>
+  <g transform-origin="${cx} ${cy}">
+    ${clickAnim}
+    ${hoverScale}
+
+    <!-- Progress ring (XP bar around badge) -->
+    ${progress > 0 ? `
+    <circle cx="${cx}" cy="${cy}" r="${progressR}" fill="none" stroke="${progressStroke}" stroke-width="3" stroke-linecap="round"
+      stroke-dasharray="${progressDash} ${progressGap}"
+      transform="rotate(-90 ${cx} ${cy})" opacity="0.7">
+      ${state === 'default' ? `<animate attributeName="opacity" values="0.7;0.9;0.7" dur="3s" repeatCount="indefinite"/>` : ''}
+    </circle>` : ''}
+
+    <!-- Outer gradient ring (main color band) -->
+    <circle cx="${cx}" cy="${cy}" r="${outerR}" fill="url(#outer_${uid})"/>
+
+    <!-- White separator ring (2px gap) -->
+    <circle cx="${cx}" cy="${cy}" r="${separatorR}" fill="white"/>
+
+    <!-- Inner white circle -->
+    <circle cx="${cx}" cy="${cy}" r="${innerR}" fill="white"/>
+
+    <!-- Subtle inner border for depth -->
+    <circle cx="${cx}" cy="${cy}" r="${innerR}" fill="none" stroke="#e5e7eb" stroke-width="0.5"/>
+
+    <!-- Legendary rainbow shimmer -->
+    ${legendaryShimmer}
+
+    <!-- Visit count number with gradient -->
+    <text x="${cx}" y="${cy}" font-family="'Poppins', sans-serif" font-size="${fontSize}" font-weight="800" text-anchor="middle" dominant-baseline="central" fill="url(#numgrad_${uid})" letter-spacing="0.5">${displayText}</text>
+
+    <!-- Sparkle dots (10+ milestone) -->
+    ${sparkles}
+
+    <!-- Small pointer arrow at bottom -->
+    <path d="M ${cx - 5} ${pointerTopY} L ${cx} ${pointerTipY} L ${cx + 5} ${pointerTopY} Z" fill="url(#outer_${uid})"/>
   </g>
 </svg>`;
 
@@ -242,6 +533,104 @@ const createDishPinIcon = (rating: string, backgroundColor: string): string => {
   return 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg);
 };
 
+const getClusterStyle = (count: number) => {
+  if (count >= 51) {
+    return {
+      size: 58,
+      gradStart: '#E53935',
+      gradEnd: '#B71C1C',
+      textColor: '#C62828'
+    };
+  }
+  if (count >= 11) {
+    return {
+      size: 52,
+      gradStart: '#FF5252',
+      gradEnd: '#E53935',
+      textColor: '#D32F2F'
+    };
+  }
+  return {
+    size: 44,
+    gradStart: '#FF6B6B',
+    gradEnd: '#EE2D2D',
+    textColor: '#E11D48'
+  };
+};
+
+const createClusterIcon = (count: number): { url: string; width: number; height: number } => {
+  const { size, gradStart, gradEnd } = getClusterStyle(count);
+  const viewBoxWidth = 24;
+  const viewBoxHeight = 34;
+  const height = size;
+  const width = (height * viewBoxWidth) / viewBoxHeight;
+  const fontSize = count >= 100 ? 11 : count >= 10 ? 13 : 14;
+  const uid = `cluster_${count}_${size}`;
+
+  const svg = `
+    <svg width="${width}" height="${height}" viewBox="0 0 ${viewBoxWidth} ${viewBoxHeight}" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="grad_${uid}" x1="12" y1="2" x2="12" y2="30" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stop-color="${gradStart}" />
+          <stop offset="100%" stop-color="${gradEnd}" />
+        </linearGradient>
+        <radialGradient id="depth_${uid}" cx="40%" cy="35%" r="70%">
+          <stop offset="0%" stop-color="white" stop-opacity="0.12" />
+          <stop offset="100%" stop-color="white" stop-opacity="0" />
+        </radialGradient>
+        <radialGradient id="shine_${uid}" cx="0%" cy="0%" r="100%">
+          <stop offset="0%" stop-color="white" stop-opacity="0.6" />
+          <stop offset="100%" stop-color="white" stop-opacity="0" />
+        </radialGradient>
+        <filter id="shadow_${uid}" x="-10%" y="-10%" width="120%" height="140%">
+          <feOffset dx="0" dy="3" />
+          <feGaussianBlur stdDeviation="2" />
+          <feColorMatrix type="matrix" values="0 0 0 0 0
+                                               0 0 0 0 0
+                                               0 0 0 0 0
+                                               0 0 0 0.2 0" />
+          <feMerge>
+            <feMergeNode />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+        <filter id="textShadow_${uid}" x="-50%" y="-50%" width="200%" height="200%">
+          <feDropShadow dx="0" dy="1" stdDeviation="1" flood-color="#000000" flood-opacity="0.1" />
+        </filter>
+      </defs>
+      <path
+        d="M 12 2
+           C 6.5 2, 2 6.5, 2 12
+           C 2 17.5, 12 30, 12 30
+           C 12 30, 22 17.5, 22 12
+           C 22 6.5, 17.5 2, 12 2 Z"
+        fill="black"
+        opacity="1"
+        filter="url(#shadow_${uid})"
+      />
+      <path
+        d="M 12 2
+           C 6.5 2, 2 6.5, 2 12
+           C 2 17.5, 12 30, 12 30
+           C 12 30, 22 17.5, 22 12
+           C 22 6.5, 17.5 2, 12 2 Z"
+        fill="url(#grad_${uid})"
+        stroke="white"
+        stroke-width="2.25"
+      />
+      <circle cx="12" cy="12" r="10" fill="url(#depth_${uid})" />
+      <circle cx="9.2" cy="7.6" r="2.6" fill="url(#shine_${uid})" />
+      <text x="12" y="12" font-family="'Poppins', sans-serif" font-size="${fontSize}" font-weight="800" text-anchor="middle" dominant-baseline="central" fill="#FFFFFF" filter="url(#textShadow_${uid})">${count}</text>
+    </svg>
+  `;
+
+  return {
+    url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg),
+    width,
+    height
+  };
+};
+
 const DEFAULT_MAP_STYLE: google.maps.MapTypeStyle[] = [
   {
     featureType: "water",
@@ -274,10 +663,11 @@ const DEFAULT_MAP_STYLE: google.maps.MapTypeStyle[] = [
   }
 ];
 
-const Map: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishes, userLocation, onRestaurantClick, onDishClick, showQualityPercentages = true, disableInfoWindows = false, showMyLocationButton = true, showGoogleControl = true, bottomSheetHook, navigate }) => {
+const Map: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishes, userLocation, onRestaurantClick, onDishClick, showQualityPercentages = true, disableInfoWindows = false, showMyLocationButton = true, showGoogleControl = true, myLocationButtonOffset, bottomSheetHook, navigate }) => {
   const ref = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<google.maps.Map>();
   const styleLoggedRef = useRef(false);
+  const clustererRef = useRef<MarkerClusterer | null>(null);
   const [locationError, setLocationError] = useState<string>('');
   const [userLocationMarker, setUserLocationMarker] = useState<google.maps.Marker | null>(null);
   const [userAccuracyCircle, setUserAccuracyCircle] = useState<google.maps.Circle | null>(null);
@@ -393,6 +783,11 @@ const Map: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishes, u
       // Clear existing markers
       const existingMarkers = (map as any).markers || [];
       existingMarkers.forEach((marker: google.maps.Marker) => marker.setMap(null));
+      if (clustererRef.current) {
+        clustererRef.current.clearMarkers();
+        clustererRef.current.setMap(null);
+        clustererRef.current = null;
+      }
 
       const markers: google.maps.Marker[] = [];
 
@@ -429,24 +824,19 @@ const Map: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishes, u
             positionCounts
           );
 
-          const journeyIconDefault = isJourneyMode
-            ? createGamifiedPinIcon(restaurant.visitCount || 1, 'default')
-            : '';
-          const journeyIconHover = isJourneyMode
-            ? createGamifiedPinIcon(restaurant.visitCount || 1, 'hover')
-            : '';
-          const journeyIconClicked = isJourneyMode
-            ? createGamifiedPinIcon(restaurant.visitCount || 1, 'clicked')
-            : '';
+          const communityPin = isJourneyMode
+            ? createCommunityPinWithLabel(restaurant.name, '#ef4444')
+            : null;
+          const communityAnchorX = communityPin ? (communityPin.width * (24 / 34)) / 2 : 0;
+          const communityAnchorY = communityPin ? communityPin.height : 0;
 
           const marker = new window.google.maps.Marker({
             position: markerPosition,
-            map,
             icon: isJourneyMode
               ? {
-                  url: journeyIconDefault,
-                  scaledSize: new window.google.maps.Size(36, 56),
-                  anchor: new window.google.maps.Point(18, 48)
+                  url: communityPin!.url,
+                  scaledSize: new window.google.maps.Size(communityPin!.width, communityPin!.height),
+                  anchor: new window.google.maps.Point(communityAnchorX, communityAnchorY)
                 }
               : {
                   url: createPinIcon(pinText, qualityColor, showQualityPercentages),
@@ -457,43 +847,9 @@ const Map: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishes, u
             zIndex: restaurant.qualityPercentage
           });
 
-          // Journey mode: add hover and click icon swapping
-          if (isJourneyMode) {
-            marker.addListener('mouseover', () => {
-              marker.setIcon({
-                url: journeyIconHover,
-                scaledSize: new window.google.maps.Size(36, 56),
-                anchor: new window.google.maps.Point(18, 48)
-              });
-            });
-            marker.addListener('mouseout', () => {
-              marker.setIcon({
-                url: journeyIconDefault,
-                scaledSize: new window.google.maps.Size(36, 56),
-                anchor: new window.google.maps.Point(18, 48)
-              });
-            });
-          }
-
           marker.addListener('click', () => {
-            // Pulse animation for journey pins
-            if (isJourneyMode) {
-              marker.setIcon({
-                url: journeyIconClicked,
-                scaledSize: new window.google.maps.Size(36, 56),
-                anchor: new window.google.maps.Point(18, 48)
-              });
-              setTimeout(() => {
-                marker.setIcon({
-                  url: journeyIconDefault,
-                  scaledSize: new window.google.maps.Size(36, 56),
-                  anchor: new window.google.maps.Point(18, 48)
-                });
-              }, 300);
-            }
-
-            // Open bottom sheet with nearby restaurants
-            if (bottomSheetHook) {
+            // For food journey map (showQualityPercentages === false), prefer modal handler
+            if (!isJourneyMode && bottomSheetHook) {
               bottomSheetHook.openRestaurantSheet(
                 restaurant.location.lat,
                 restaurant.location.lng,
@@ -514,7 +870,6 @@ const Map: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishes, u
 
           const marker = new window.google.maps.Marker({
             position: dish.location,
-            map,
             icon: {
               url: createDishRatingPinIcon(displayRating),
               scaledSize: new window.google.maps.Size(64, 48),
@@ -538,12 +893,39 @@ const Map: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishes, u
         });
       }
 
+      if (mapType === 'restaurant') {
+        clustererRef.current = new MarkerClusterer({
+          map,
+          markers,
+          algorithm: new SuperClusterAlgorithm({
+            radius: 100,
+            maxZoom: 15
+          }),
+          renderer: {
+            render: ({ count, position }) => {
+              const icon = createClusterIcon(count);
+              return new window.google.maps.Marker({
+                position,
+                icon: {
+                  url: icon.url,
+                  scaledSize: new window.google.maps.Size(icon.width, icon.height),
+                  anchor: new window.google.maps.Point(icon.width / 2, icon.height)
+                },
+                zIndex: (google.maps.Marker.MAX_ZINDEX || 1000) + count
+              });
+            }
+          }
+        });
+      } else {
+        markers.forEach((marker) => marker.setMap(map));
+      }
+
       // Store markers on map for cleanup
       (map as any).markers = markers;
 
       // Removed auto-fit bounds to keep map centered on initial user/fallback location
     }
-  }, [map, mapType, restaurants, dishes, onRestaurantClick]);
+  }, [map, mapType, restaurants, dishes, onRestaurantClick, onDishClick, showQualityPercentages, bottomSheetHook]);
 
   // Handle location button click
   const centerOnMyLocation = () => {
@@ -581,9 +963,11 @@ const Map: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishes, u
     );
   };
 
-  const navButtonClassName = showGoogleControl
-    ? 'absolute bottom-24 right-4 w-16 h-16 rounded-full bg-white shadow-lg flex items-center justify-center z-[40] border border-gray-100'
-    : 'absolute bottom-4 right-2 w-16 h-16 rounded-full bg-white shadow-lg flex items-center justify-center z-[40] border border-gray-100';
+  const navButtonClassName = 'absolute w-16 h-16 rounded-full bg-white shadow-lg flex items-center justify-center z-[40] border border-gray-100';
+  const navButtonStyle: React.CSSProperties = {
+    bottom: myLocationButtonOffset ?? (showGoogleControl ? 96 : 16),
+    right: showGoogleControl ? 16 : 12
+  };
 
   const navIconClassName = showGoogleControl ? 'w-8 h-8 text-blue-500' : 'w-8 h-8 text-blue-500';
 
@@ -601,6 +985,7 @@ const Map: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishes, u
         <button
           onClick={centerOnMyLocation}
           className={navButtonClassName}
+          style={navButtonStyle}
           title="My Location"
           aria-label="Center on my location"
         >
@@ -663,6 +1048,7 @@ interface RestaurantMapProps {
   showMyLocationButton?: boolean;
   showGoogleControl?: boolean;
   focusRestaurantId?: string;
+  myLocationButtonOffset?: number;
 }
 
 // Fetch top dish from each restaurant from Firebase menuItems collection
@@ -768,7 +1154,8 @@ const RestaurantMap: React.FC<RestaurantMapProps> = ({
   disableInfoWindows = false,
   showMyLocationButton = true,
   showGoogleControl = true,
-  focusRestaurantId
+  focusRestaurantId,
+  myLocationButtonOffset
 }) => {
   const [topDishes, setTopDishes] = useState<Dish[]>([]);
   const [initialCenter, setInitialCenter] = useState(NYC_FALLBACK);
@@ -808,6 +1195,7 @@ const RestaurantMap: React.FC<RestaurantMapProps> = ({
             disableInfoWindows={disableInfoWindows}
             showMyLocationButton={showMyLocationButton}
             showGoogleControl={showGoogleControl}
+            myLocationButtonOffset={myLocationButtonOffset}
             bottomSheetHook={bottomSheet}
             navigate={navigate}
           />

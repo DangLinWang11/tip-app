@@ -3,8 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import RestaurantMap from './RestaurantMap';
 import UserRestaurantModal from './UserRestaurantModal';
 import { getUserVisitedRestaurants, UserVisitedRestaurant } from '../services/reviewService';
-import { FOOD_JOURNEY_MAP_V2 } from '../config/featureFlags';
-
 interface UserJourneyMapProps {
   className?: string;
   showLegend?: boolean;
@@ -19,7 +17,6 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({ className = '', showLeg
   const [error, setError] = useState<string | null>(null);
   const [selectedRestaurant, setSelectedRestaurant] = useState<UserVisitedRestaurant | null>(null);
   const [showModal, setShowModal] = useState(false);
-  const isV2Enabled = FOOD_JOURNEY_MAP_V2;
 
   // Load user's visited restaurants on component mount
   useEffect(() => {
@@ -145,35 +142,77 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({ className = '', showLeg
           showMyLocationButton={showControls}
           showGoogleControl={false}
         />
-        {isV2Enabled && (
-          <div
-            className={`absolute ${showLegend ? 'bottom-20' : 'bottom-4'} left-4 z-10 pointer-events-none`}
-          >
-            <div className="bg-white/95 border border-gray-200 rounded-2xl shadow-md px-4 py-2.5">
-              <span className="text-sm font-medium text-gray-800">
-                {visitedRestaurants.length} places visited
-              </span>
-            </div>
-          </div>
-        )}
-        {showLegend && (
-          <div className="absolute bottom-4 left-4 z-10">
-            <div className="bg-white rounded-lg shadow-lg px-4 py-3 flex items-center space-x-3">
-              <div className="flex items-center justify-center">
-                <svg width="36" height="32" viewBox="0 0 48 42" xmlns="http://www.w3.org/2000/svg">
-                  <defs>
-                    <filter id="shadow-legend">
-                      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.15"/>
-                    </filter>
-                  </defs>
-                  <rect x="1" y="1" width="46" height="30" rx="15" fill="white" stroke="#ff3131" stroke-width="2" filter="url(#shadow-legend)"/>
-                  <path d="M 21 31 L 24 40 L 27 31 Z" fill="#ff3131"/>
-                </svg>
+        {showLegend && (() => {
+          const count = visitedRestaurants.length;
+          let gStart = '#FF6B6B', gEnd = '#EE2D2D';
+          if (count >= 51) { gStart = '#E53935'; gEnd = '#B71C1C'; }
+          else if (count >= 11) { gStart = '#FF5252'; gEnd = '#E53935'; }
+          const displayText = count >= 100 ? '99+' : `${count}`;
+          const fSize = displayText.length >= 3 ? 10 : displayText.length === 2 ? 12 : 13;
+          return (
+            <div className="absolute bottom-4 left-4 z-10">
+              <div className="bg-white rounded-lg shadow-lg px-3 py-2.5 flex items-center space-x-2.5">
+                <div className="flex items-center justify-center" style={{ width: 32, height: 38 }}>
+                  <svg width="32" height="38" viewBox="0 0 24 34" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                      <linearGradient id="legend_grad" x1="12" y1="2" x2="12" y2="30" gradientUnits="userSpaceOnUse">
+                        <stop offset="0%" stopColor={gStart}/>
+                        <stop offset="100%" stopColor={gEnd}/>
+                      </linearGradient>
+                      <radialGradient id="legend_depth" cx="40%" cy="35%" r="70%">
+                        <stop offset="0%" stopColor="white" stopOpacity="0.12" />
+                        <stop offset="100%" stopColor="white" stopOpacity="0" />
+                      </radialGradient>
+                      <radialGradient id="legend_shine" cx="0%" cy="0%" r="100%">
+                        <stop offset="0%" stopColor="white" stopOpacity="0.6" />
+                        <stop offset="100%" stopColor="white" stopOpacity="0" />
+                      </radialGradient>
+                      <filter id="legend_shadow" x="-10%" y="-10%" width="120%" height="140%">
+                        <feOffset dx="0" dy="3" />
+                        <feGaussianBlur stdDeviation="2" />
+                        <feColorMatrix type="matrix" values="0 0 0 0 0
+                                                             0 0 0 0 0
+                                                             0 0 0 0 0
+                                                             0 0 0 0.2 0" />
+                        <feMerge>
+                          <feMergeNode />
+                          <feMergeNode in="SourceGraphic" />
+                        </feMerge>
+                      </filter>
+                      <filter id="legend_text_shadow" x="-50%" y="-50%" width="200%" height="200%">
+                        <feDropShadow dx="0" dy="1" stdDeviation="1" floodColor="#000000" floodOpacity="0.12" />
+                      </filter>
+                    </defs>
+                    <path
+                      d="M 12 2
+                         C 6.5 2, 2 6.5, 2 12
+                         C 2 17.5, 12 30, 12 30
+                         C 12 30, 22 17.5, 22 12
+                         C 22 6.5, 17.5 2, 12 2 Z"
+                      fill="black"
+                      opacity="1"
+                      filter="url(#legend_shadow)"
+                    />
+                    <path
+                      d="M 12 2
+                         C 6.5 2, 2 6.5, 2 12
+                         C 2 17.5, 12 30, 12 30
+                         C 12 30, 22 17.5, 22 12
+                         C 22 6.5, 17.5 2, 12 2 Z"
+                      fill="url(#legend_grad)"
+                      stroke="white"
+                      strokeWidth="2.25"
+                    />
+                    <circle cx="12" cy="12" r="10" fill="url(#legend_depth)" />
+                    <circle cx="9.2" cy="7.6" r="2.6" fill="url(#legend_shine)" />
+                    <text x="12" y="12" fontFamily="'Poppins', sans-serif" fontSize={fSize} fontWeight="800" textAnchor="middle" dominantBaseline="central" fill="#FFFFFF" filter="url(#legend_text_shadow)">{displayText}</text>
+                  </svg>
+                </div>
+                <span className="text-gray-800 font-medium text-sm">Visited Restaurants</span>
               </div>
-              <span className="text-gray-800 font-medium text-sm">Visited Restaurants</span>
             </div>
-          </div>
-        )}
+          );
+        })()}
       </div>
 
       {/* Restaurant Details Modal */}
@@ -182,6 +221,7 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({ className = '', showLeg
           restaurant={selectedRestaurant}
           isOpen={showModal}
           onClose={handleCloseModal}
+          userId={userId}
         />
       )}
     </>
