@@ -188,6 +188,11 @@ const createCommunityPinIcon = (color: string = '#ef4444') => {
   };
 };
 
+const COMMUNITY_PIN_TIP_X = 12;
+const COMMUNITY_PIN_TIP_Y = 30;
+const RESTAURANT_PIN_TIP_Y = 38;
+const DISH_PIN_TIP_Y = 42;
+
 const createCommunityPinWithLabel = (label: string, color: string = '#ef4444') => {
   const cacheKey = `${label}|${color}`;
   const cached = COMMUNITY_PIN_CACHE.get(cacheKey);
@@ -668,8 +673,8 @@ const MapView: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishe
           const communityPin = isJourneyMode
             ? createCommunityPinWithLabel(restaurant.name, '#ef4444')
             : null;
-          const communityAnchorX = communityPin ? (communityPin.width * (24 / 34)) / 2 : 0;
-          const communityAnchorY = communityPin ? communityPin.height : 0;
+          const communityAnchorX = communityPin ? COMMUNITY_PIN_TIP_X : 0;
+          const communityAnchorY = communityPin ? COMMUNITY_PIN_TIP_Y : 0;
 
           const marker = new window.google.maps.Marker({
             position,
@@ -682,10 +687,10 @@ const MapView: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishe
               : {
                   url: createPinIcon(pinText, qualityColor, showQualityPercentages),
                   scaledSize: new window.google.maps.Size(pinWidth, 44),
-                  anchor: new window.google.maps.Point(pinWidth / 2, 50)
+                  anchor: new window.google.maps.Point(pinWidth / 2, RESTAURANT_PIN_TIP_Y)
                 },
             title: restaurant.name,
-            zIndex: restaurant.qualityPercentage
+            zIndex: Math.round((isJourneyMode ? (restaurant.visitCount ?? 0) : restaurant.qualityPercentage) * 10)
           });
 
           marker.addListener('click', () => {
@@ -718,7 +723,7 @@ const MapView: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishe
             icon: {
               url: getDishPinIconCached(displayRating),
               scaledSize: new window.google.maps.Size(64, 48),
-              anchor: new window.google.maps.Point(32, 48)
+              anchor: new window.google.maps.Point(32, DISH_PIN_TIP_Y)
             },
             title: dish.name,
             zIndex: rating * 10
