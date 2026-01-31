@@ -103,7 +103,15 @@ const getRatingColor = (rating: number): string => {
   return getQualityColor(percentage);
 };
 
+const PIN_ICON_CACHE = new Map<string, string>();
+const COMMUNITY_PIN_CACHE = new Map<string, { url: string; width: number; height: number }>();
+const CLUSTER_ICON_CACHE = new Map<string, { url: string; width: number; height: number }>();
+const DISH_PIN_CACHE = new Map<string, string>();
+
 const createPinIcon = (text: string, backgroundColor: string, showQualityPercentages: boolean = true): string => {
+  const cacheKey = `${text}|${backgroundColor}|${showQualityPercentages ? 1 : 0}`;
+  const cached = PIN_ICON_CACHE.get(cacheKey);
+  if (cached) return cached;
   const airyColor = '#ff3131';
   const width = text.length > 3 ? 75 : 52;
   const canvasHeight = 44;
@@ -134,7 +142,9 @@ const createPinIcon = (text: string, backgroundColor: string, showQualityPercent
     </svg>
   `;
 
-  return 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg);
+  const url = 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg);
+  PIN_ICON_CACHE.set(cacheKey, url);
+  return url;
 };
 
 const createCommunityPinIcon = (color: string = '#ef4444') => {
@@ -208,6 +218,9 @@ const createCommunityPinIcon = (color: string = '#ef4444') => {
 };
 
 const createCommunityPinWithLabel = (label: string, color: string = '#ef4444') => {
+  const cacheKey = `${label}|${color}`;
+  const cached = COMMUNITY_PIN_CACHE.get(cacheKey);
+  if (cached) return cached;
   const viewBoxWidth = 24;
   const viewBoxHeight = 34;
   const height = 40;
@@ -295,11 +308,13 @@ const createCommunityPinWithLabel = (label: string, color: string = '#ef4444') =
     </svg>
   `;
 
-  return {
+  const result = {
     url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg),
     width,
     height
   };
+  COMMUNITY_PIN_CACHE.set(cacheKey, result);
+  return result;
 };
 
 type GamifiedPinState = 'default' | 'hover' | 'clicked';
@@ -559,6 +574,8 @@ const getClusterStyle = (count: number) => {
 };
 
 const createClusterIcon = (count: number): { url: string; width: number; height: number } => {
+  const cached = CLUSTER_ICON_CACHE.get(String(count));
+  if (cached) return cached;
   const { size, gradStart, gradEnd } = getClusterStyle(count);
   const viewBoxWidth = 24;
   const viewBoxHeight = 34;
@@ -624,11 +641,13 @@ const createClusterIcon = (count: number): { url: string; width: number; height:
     </svg>
   `;
 
-  return {
+  const result = {
     url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg),
     width,
     height
   };
+  CLUSTER_ICON_CACHE.set(String(count), result);
+  return result;
 };
 
 const DEFAULT_MAP_STYLE: google.maps.MapTypeStyle[] = [
@@ -663,6 +682,14 @@ const DEFAULT_MAP_STYLE: google.maps.MapTypeStyle[] = [
   }
 ];
 
+const getDishPinIconCached = (rating: string): string => {
+  const cached = DISH_PIN_CACHE.get(rating);
+  if (cached) return cached;
+  const url = createDishRatingPinIcon(rating);
+  DISH_PIN_CACHE.set(rating, url);
+  return url;
+};
+
 const Map: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishes, userLocation, onRestaurantClick, onDishClick, showQualityPercentages = true, disableInfoWindows = false, showMyLocationButton = true, showGoogleControl = true, myLocationButtonOffset, bottomSheetHook, navigate }) => {
   const ref = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<google.maps.Map>();
@@ -671,15 +698,33 @@ const Map: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishes, u
   const [locationError, setLocationError] = useState<string>('');
   const [userLocationMarker, setUserLocationMarker] = useState<google.maps.Marker | null>(null);
   const [userAccuracyCircle, setUserAccuracyCircle] = useState<google.maps.Circle | null>(null);
+  const onRestaurantClickRef = useRef(onRestaurantClick);
+  const onDishClickRef = useRef(onDishClick);
+  const bottomSheetRef = useRef(bottomSheetHook);
   // Internal location state when user taps the navigation button
   const [internalUserLocation, setInternalUserLocation] = useState<UserLocationCoordinates | null>(null);
+
+  useEffect(() => {
+    onRestaurantClickRef.current = onRestaurantClick;
+  }, [onRestaurantClick]);
+
+  useEffect(() => {
+    onDishClickRef.current = onDishClick;
+  }, [onDishClick]);
+
+  useEffect(() => {
+    bottomSheetRef.current = bottomSheetHook;
+  }, [bottomSheetHook]);
 
 
   useEffect(() => {
     if (ref.current && !map) {
+      const mapId = import.meta.env.VITE_GOOGLE_MAPS_MAP_ID || undefined;
+      const mapStyles = mapId ? undefined : DEFAULT_MAP_STYLE;
       const newMap = new window.google.maps.Map(ref.current, {
         center,
         zoom,
+        mapId,
         mapTypeControl: false,
         streetViewControl: false,
         fullscreenControl: showGoogleControl,
@@ -689,10 +734,10 @@ const Map: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishes, u
         gestureHandling: 'greedy',
         scrollwheel: true,
         disableDoubleClickZoom: false,
-        styles: DEFAULT_MAP_STYLE
+        styles: mapStyles
       });
       if (!styleLoggedRef.current) {
-        console.log('Map style: DEFAULT');
+        console.log(mapId ? 'Map style: MAP_ID' : 'Map style: DEFAULT');
         styleLoggedRef.current = true;
       }
       setMap(newMap);
@@ -848,15 +893,16 @@ const Map: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishes, u
           });
 
           marker.addListener('click', () => {
+            const bottomSheet = bottomSheetRef.current;
             // For food journey map (showQualityPercentages === false), prefer modal handler
-            if (!isJourneyMode && bottomSheetHook) {
-              bottomSheetHook.openRestaurantSheet(
+            if (!isJourneyMode && bottomSheet) {
+              bottomSheet.openRestaurantSheet(
                 restaurant.location.lat,
                 restaurant.location.lng,
                 2000 // 2km radius
               );
-            } else if (onRestaurantClick) {
-              onRestaurantClick(restaurant.id.toString());
+            } else if (onRestaurantClickRef.current) {
+              onRestaurantClickRef.current(restaurant.id.toString());
             }
           });
 
@@ -871,7 +917,7 @@ const Map: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishes, u
           const marker = new window.google.maps.Marker({
             position: dish.location,
             icon: {
-              url: createDishRatingPinIcon(displayRating),
+              url: getDishPinIconCached(displayRating),
               scaledSize: new window.google.maps.Size(64, 48),
               anchor: new window.google.maps.Point(32, 48)
             },
@@ -881,10 +927,11 @@ const Map: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishes, u
 
           marker.addListener('click', () => {
             // Open bottom sheet with all dishes from this restaurant
-            if (bottomSheetHook && dish.restaurantId) {
-              bottomSheetHook.openDishSheet(dish.restaurantId);
-            } else if (onDishClick) {
-              onDishClick(dish.id);
+            const bottomSheet = bottomSheetRef.current;
+            if (bottomSheet && dish.restaurantId) {
+              bottomSheet.openDishSheet(dish.restaurantId);
+            } else if (onDishClickRef.current) {
+              onDishClickRef.current(dish.id);
             }
           });
 
@@ -925,7 +972,7 @@ const Map: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishes, u
 
       // Removed auto-fit bounds to keep map centered on initial user/fallback location
     }
-  }, [map, mapType, restaurants, dishes, onRestaurantClick, onDishClick, showQualityPercentages, bottomSheetHook]);
+  }, [map, mapType, restaurants, dishes, showQualityPercentages]);
 
   // Handle location button click
   const centerOnMyLocation = () => {
