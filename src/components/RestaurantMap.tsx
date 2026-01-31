@@ -1,5 +1,4 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { MarkerClusterer, SuperClusterAlgorithm } from '@googlemaps/markerclusterer';
 import { Wrapper, Status } from '@googlemaps/react-wrapper';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../lib/firebase';
@@ -105,7 +104,6 @@ const getRatingColor = (rating: number): string => {
 
 const PIN_ICON_CACHE = new Map<string, string>();
 const COMMUNITY_PIN_CACHE = new Map<string, { url: string; width: number; height: number }>();
-const CLUSTER_ICON_CACHE = new Map<string, { url: string; width: number; height: number }>();
 const DISH_PIN_CACHE = new Map<string, string>();
 
 const createPinIcon = (text: string, backgroundColor: string, showQualityPercentages: boolean = true): string => {
@@ -126,8 +124,6 @@ const createPinIcon = (text: string, backgroundColor: string, showQualityPercent
 
   const svg = `
     <svg width="${width}" height="${canvasHeight}" viewBox="0 0 ${width} ${canvasHeight}" xmlns="http://www.w3.org/2000/svg">
-      <!-- Faux shadow pill -->
-      <rect x="${pillX}" y="4" width="${pillWidth}" height="${pillHeight}" rx="${pillRadius}" fill="black" opacity="0.12" />
       <!-- Main pill -->
       <rect x="${pillX}" y="2" width="${pillWidth}" height="${pillHeight}" rx="${pillRadius}" fill="white" stroke="${pillStrokeColor}" stroke-width="2" />
       ${
@@ -135,8 +131,6 @@ const createPinIcon = (text: string, backgroundColor: string, showQualityPercent
           ? `<text x="${width / 2}" y="21" font-family="Arial, sans-serif" font-size="12" font-weight="bold" text-anchor="middle" fill="${textColor}">${text}</text>`
           : ''
       }
-      <!-- Pointer shadow -->
-      <path d="M ${width / 2 - 4} 32 L ${width / 2} 40 L ${width / 2 + 4} 32 Z" fill="black" opacity="0.12" />
       <!-- Pointer -->
       <path d="M ${width / 2 - 4} 30 L ${width / 2} 38 L ${width / 2 + 4} 30 Z" fill="${triangleFill}" />
     </svg>
@@ -168,30 +162,7 @@ const createCommunityPinIcon = (color: string = '#ef4444') => {
           <stop offset="0%" stop-color="white" stop-opacity="0.6" />
           <stop offset="100%" stop-color="white" stop-opacity="0" />
         </radialGradient>
-        <filter id="pinShadow" x="-10%" y="-10%" width="120%" height="140%">
-          <feOffset dx="0" dy="3" />
-          <feGaussianBlur stdDeviation="2" />
-          <feColorMatrix type="matrix" values="0 0 0 0 0
-                                               0 0 0 0 0
-                                               0 0 0 0 0
-                                               0 0 0 0.2 0" />
-          <feMerge>
-            <feMergeNode />
-            <feMergeNode in="SourceGraphic" />
-          </feMerge>
-        </filter>
       </defs>
-      <!-- Drop shadow -->
-      <path
-        d="M 12 2
-           C 6.5 2, 2 6.5, 2 12
-           C 2 17.5, 12 30, 12 30
-           C 12 30, 22 17.5, 22 12
-           C 22 6.5, 17.5 2, 12 2 Z"
-        fill="black"
-        opacity="1"
-        filter="url(#pinShadow)"
-      />
       <path
         d="M 12 2
            C 6.5 2, 2 6.5, 2 12
@@ -250,30 +221,7 @@ const createCommunityPinWithLabel = (label: string, color: string = '#ef4444') =
           <stop offset="0%" stop-color="white" stop-opacity="0.6" />
           <stop offset="100%" stop-color="white" stop-opacity="0" />
         </radialGradient>
-        <filter id="pinShadowLabel" x="-10%" y="-10%" width="120%" height="140%">
-          <feOffset dx="0" dy="3" />
-          <feGaussianBlur stdDeviation="2" />
-          <feColorMatrix type="matrix" values="0 0 0 0 0
-                                               0 0 0 0 0
-                                               0 0 0 0 0
-                                               0 0 0 0.2 0" />
-          <feMerge>
-            <feMergeNode />
-            <feMergeNode in="SourceGraphic" />
-          </feMerge>
-        </filter>
       </defs>
-      <!-- Pin shadow -->
-      <path
-        d="M 12 2
-           C 6.5 2, 2 6.5, 2 12
-           C 2 17.5, 12 30, 12 30
-           C 12 30, 22 17.5, 22 12
-           C 22 6.5, 17.5 2, 12 2 Z"
-        fill="black"
-        opacity="1"
-        filter="url(#pinShadowLabel)"
-      />
       <!-- Pin -->
       <path
         d="M 12 2
@@ -483,34 +431,6 @@ const createGamifiedPinIcon = (
   return 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg);
 };
 
-const hashString = (value: string): number => {
-  let hash = 0;
-  for (let i = 0; i < value.length; i += 1) {
-    hash = (hash << 5) - hash + value.charCodeAt(i);
-    hash |= 0;
-  }
-  return Math.abs(hash);
-};
-
-const applyCollisionJitter = (
-  position: { lat: number; lng: number },
-  id: string,
-  seen: Map<string, number>
-) => {
-  const key = `${position.lat.toFixed(6)},${position.lng.toFixed(6)}`;
-  const count = seen.get(key) ?? 0;
-  seen.set(key, count + 1);
-  if (count === 0) return position;
-
-  const hash = hashString(id);
-  const angle = ((hash % 360) * Math.PI) / 180;
-  const magnitude = 0.00003 + (count * 0.000008);
-  return {
-    lat: position.lat + Math.cos(angle) * magnitude,
-    lng: position.lng + Math.sin(angle) * magnitude
-  };
-};
-
 const createDishPinIcon = (rating: string, backgroundColor: string): string => {
   const airyColor = '#ff3131';
   const goldColor = '#FFD700';
@@ -523,8 +443,6 @@ const createDishPinIcon = (rating: string, backgroundColor: string): string => {
   // Star is drawn using the same path, positioned via transform
   const svg = `
     <svg width="${canvasWidth}" height="${canvasHeight}" viewBox="0 0 ${canvasWidth} ${canvasHeight}" xmlns="http://www.w3.org/2000/svg">
-      <!-- Faux shadow pill -->
-      <rect x="${pillX}" y="4" width="${pillWidth}" height="32" rx="16" fill="black" opacity="0.12" />
       <!-- Main pill -->
       <rect x="${pillX}" y="2" width="${pillWidth}" height="32" rx="16" fill="white" stroke="${airyColor}" stroke-width="2" />
       <text x="19" y="23" font-family="Arial, sans-serif" font-size="16" font-weight="bold" text-anchor="middle" fill="${airyColor}">${rating}</text>
@@ -534,116 +452,12 @@ const createDishPinIcon = (rating: string, backgroundColor: string): string => {
         fill="${goldColor}"
         transform="translate(32 6) scale(0.8333)"
       />
-      <!-- Pointer shadow -->
-      <path d="M 26 36 L 30 44 L 34 36 Z" fill="black" opacity="0.12" />
       <!-- Pointer -->
       <path d="M 26 34 L 30 42 L 34 34 Z" fill="${airyColor}" />
     </svg>
   `;
 
   return 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg);
-};
-
-const getClusterStyle = (count: number) => {
-  if (count >= 51) {
-    return {
-      size: 58,
-      gradStart: '#E53935',
-      gradEnd: '#B71C1C',
-      textColor: '#C62828'
-    };
-  }
-  if (count >= 11) {
-    return {
-      size: 52,
-      gradStart: '#FF5252',
-      gradEnd: '#E53935',
-      textColor: '#D32F2F'
-    };
-  }
-  return {
-    size: 44,
-    gradStart: '#FF6B6B',
-    gradEnd: '#EE2D2D',
-    textColor: '#E11D48'
-  };
-};
-
-const createClusterIcon = (count: number): { url: string; width: number; height: number } => {
-  const cached = CLUSTER_ICON_CACHE.get(String(count));
-  if (cached) return cached;
-  const { size, gradStart, gradEnd } = getClusterStyle(count);
-  const viewBoxWidth = 24;
-  const viewBoxHeight = 34;
-  const height = size;
-  const width = (height * viewBoxWidth) / viewBoxHeight;
-  const fontSize = count >= 100 ? 11 : count >= 10 ? 13 : 14;
-  const uid = `cluster_${count}_${size}`;
-
-  const svg = `
-    <svg width="${width}" height="${height}" viewBox="0 0 ${viewBoxWidth} ${viewBoxHeight}" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <linearGradient id="grad_${uid}" x1="12" y1="2" x2="12" y2="30" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stop-color="${gradStart}" />
-          <stop offset="100%" stop-color="${gradEnd}" />
-        </linearGradient>
-        <radialGradient id="depth_${uid}" cx="40%" cy="35%" r="70%">
-          <stop offset="0%" stop-color="white" stop-opacity="0.12" />
-          <stop offset="100%" stop-color="white" stop-opacity="0" />
-        </radialGradient>
-        <radialGradient id="shine_${uid}" cx="0%" cy="0%" r="100%">
-          <stop offset="0%" stop-color="white" stop-opacity="0.6" />
-          <stop offset="100%" stop-color="white" stop-opacity="0" />
-        </radialGradient>
-        <filter id="shadow_${uid}" x="-10%" y="-10%" width="120%" height="140%">
-          <feOffset dx="0" dy="3" />
-          <feGaussianBlur stdDeviation="2" />
-          <feColorMatrix type="matrix" values="0 0 0 0 0
-                                               0 0 0 0 0
-                                               0 0 0 0 0
-                                               0 0 0 0.2 0" />
-          <feMerge>
-            <feMergeNode />
-            <feMergeNode in="SourceGraphic" />
-          </feMerge>
-        </filter>
-        <filter id="textShadow_${uid}" x="-50%" y="-50%" width="200%" height="200%">
-          <feDropShadow dx="0" dy="1" stdDeviation="1" flood-color="#000000" flood-opacity="0.1" />
-        </filter>
-      </defs>
-      <path
-        d="M 12 2
-           C 6.5 2, 2 6.5, 2 12
-           C 2 17.5, 12 30, 12 30
-           C 12 30, 22 17.5, 22 12
-           C 22 6.5, 17.5 2, 12 2 Z"
-        fill="black"
-        opacity="1"
-        filter="url(#shadow_${uid})"
-      />
-      <path
-        d="M 12 2
-           C 6.5 2, 2 6.5, 2 12
-           C 2 17.5, 12 30, 12 30
-           C 12 30, 22 17.5, 22 12
-           C 22 6.5, 17.5 2, 12 2 Z"
-        fill="url(#grad_${uid})"
-        stroke="white"
-        stroke-width="2.25"
-      />
-      <circle cx="12" cy="12" r="10" fill="url(#depth_${uid})" />
-      <circle cx="9.2" cy="7.6" r="2.6" fill="url(#shine_${uid})" />
-      <text x="12" y="12" font-family="'Poppins', sans-serif" font-size="${fontSize}" font-weight="800" text-anchor="middle" dominant-baseline="central" fill="#FFFFFF" filter="url(#textShadow_${uid})">${count}</text>
-    </svg>
-  `;
-
-  const result = {
-    url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg),
-    width,
-    height
-  };
-  CLUSTER_ICON_CACHE.set(String(count), result);
-  return result;
 };
 
 const DEFAULT_MAP_STYLE: google.maps.MapTypeStyle[] = [
@@ -690,7 +504,6 @@ const MapView: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishe
   const ref = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<google.maps.Map>();
   const styleLoggedRef = useRef(false);
-  const clustererRef = useRef<MarkerClusterer | null>(null);
   const [locationError, setLocationError] = useState<string>('');
   const [userLocationMarker, setUserLocationMarker] = useState<google.maps.Marker | null>(null);
   const [userAccuracyCircle, setUserAccuracyCircle] = useState<google.maps.Circle | null>(null);
@@ -824,17 +637,10 @@ const MapView: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishe
       // Clear existing markers
       const existingMarkers = (map as any).markers || [];
       existingMarkers.forEach((marker: google.maps.Marker) => marker.setMap(null));
-      if (clustererRef.current) {
-        clustererRef.current.clearMarkers();
-        clustererRef.current.setMap(null);
-        clustererRef.current = null;
-      }
-
-      const markers: google.maps.Marker[] = [];
+      const markerEntries: Array<{ id: string; marker: google.maps.Marker; priority: number }> = [];
 
       if (mapType === 'restaurant') {
         // Show restaurant pins
-        const positionCounts = new globalThis.Map<string, number>();
         restaurants.forEach((restaurant) => {
           // Validate location data before creating marker
           let position = restaurant.location;
@@ -859,12 +665,6 @@ const MapView: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishe
             pinText = `${restaurant.qualityPercentage}%`;
           }
 
-          const markerPosition = applyCollisionJitter(
-            position,
-            String(restaurant.id),
-            positionCounts
-          );
-
           const communityPin = isJourneyMode
             ? createCommunityPinWithLabel(restaurant.name, '#ef4444')
             : null;
@@ -872,7 +672,7 @@ const MapView: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishe
           const communityAnchorY = communityPin ? communityPin.height : 0;
 
           const marker = new window.google.maps.Marker({
-            position: markerPosition,
+            position,
             icon: isJourneyMode
               ? {
                   url: communityPin!.url,
@@ -902,7 +702,10 @@ const MapView: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishe
             }
           });
 
-          markers.push(marker);
+          const priority = isJourneyMode
+            ? (restaurant.visitCount ?? 0)
+            : restaurant.qualityPercentage;
+          markerEntries.push({ id: restaurant.id.toString(), marker, priority });
         });
       } else {
         // Show dish pins
@@ -932,41 +735,42 @@ const MapView: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishe
           });
 
           // Rating text is now embedded in the pin icon
-          markers.push(marker);
+          markerEntries.push({ id: dish.id, marker, priority: rating });
         });
       }
 
-      if (mapType === 'restaurant') {
-        clustererRef.current = new MarkerClusterer({
-          map,
-          markers,
-          algorithm: new SuperClusterAlgorithm({
-            radius: 100,
-            maxZoom: 15
-          }),
-          renderer: {
-            render: ({ count, position }) => {
-              const icon = createClusterIcon(count);
-              return new window.google.maps.Marker({
-                position,
-                icon: {
-                  url: icon.url,
-                  scaledSize: new window.google.maps.Size(icon.width, icon.height),
-                  anchor: new window.google.maps.Point(icon.width / 2, icon.height)
-                },
-                zIndex: (google.maps.Marker.MAX_ZINDEX || 1000) + count
-              });
-            }
-          }
-        });
-      } else {
-        markers.forEach((marker) => marker.setMap(map));
-      }
+      markerEntries.forEach(({ marker }) => marker.setMap(map));
 
       // Store markers on map for cleanup
-      (map as any).markers = markers;
+      (map as any).markers = markerEntries.map(({ marker }) => marker);
+
+      const updateMarkerVisibility = () => {
+        const zoomLevel = map.getZoom() ?? 0;
+        if (zoomLevel >= 13) {
+          markerEntries.forEach(({ marker }) => marker.setVisible(true));
+          return;
+        }
+
+        const limit = zoomLevel >= 11 ? 60 : 30;
+        const visibleIds = new Set(
+          markerEntries
+            .slice()
+            .sort((a, b) => b.priority - a.priority)
+            .slice(0, limit)
+            .map((entry) => entry.id)
+        );
+        markerEntries.forEach(({ id, marker }) => marker.setVisible(visibleIds.has(id)));
+      };
+
+      const zoomListener = map.addListener('zoom_changed', updateMarkerVisibility);
+      updateMarkerVisibility();
 
       // Removed auto-fit bounds to keep map centered on initial user/fallback location
+
+      return () => {
+        zoomListener.remove();
+        markerEntries.forEach(({ marker }) => marker.setMap(null));
+      };
     }
   }, [map, mapType, restaurants, dishes, showQualityPercentages]);
 
