@@ -891,6 +891,7 @@ const Profile: React.FC = () => {
           userId={userProfile.uid}
           userName={userProfile.username || userProfile.displayName}
           userTierIndex={tierProgress.tierIndex}
+          userAvatar={userProfile.avatar}
           homeCountry={userProfile.homeCountry}
           allowHomeCountryOverride={true}
         />

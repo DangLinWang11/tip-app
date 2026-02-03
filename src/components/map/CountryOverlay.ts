@@ -16,6 +16,7 @@ export interface CountryStat {
 
 
 export interface CountryOverlayLike {
+  countryCode: string;
   setVisible: (visible: boolean) => void;
   destroy: () => void;
 }
@@ -29,6 +30,7 @@ export const createCountryOverlay = (
   if (!googleMaps?.OverlayView || !googleMaps?.LatLng) return null;
 
   class CountryOverlayImpl extends googleMaps.OverlayView {
+    public countryCode: string;
     private position: google.maps.LatLng;
     private div: HTMLDivElement | null = null;
     private stat: CountryStat;
@@ -40,6 +42,7 @@ export const createCountryOverlay = (
       overlayClick?: (overlayStat: CountryStat) => void
     ) {
       super();
+      this.countryCode = overlayStat.code;
       this.stat = overlayStat;
       this.position = new googleMaps.LatLng(overlayStat.lat, overlayStat.lng);
       this.onClick = overlayClick;
@@ -146,7 +149,7 @@ export const createCountryOverlay = (
     /** Show or hide the overlay */
     setVisible(visible: boolean): void {
       if (this.div) {
-        this.div.style.display = visible ? 'block' : 'none';
+        this.div.style.display = visible ? 'flex' : 'none';
       }
     }
 

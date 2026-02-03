@@ -1063,6 +1063,7 @@ const Home: React.FC = () => {
           }}
           userName={userProfile?.username || userProfile?.displayName || undefined}
           userTierIndex={getTierFromPoints(userStats.pointsEarned).tierIndex}
+          userAvatar={userProfile?.avatar}
           homeCountry={userProfile?.homeCountry}
           focusRestaurant={focusRestaurant || undefined}
         />

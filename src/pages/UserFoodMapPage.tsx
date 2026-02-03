@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import UserJourneyMap from '../components/UserJourneyMap';
 import { getUserByUsername } from '../lib/firebase';
+import { getTierFromPoints } from '../badges/badgeTiers';
 
 const UserFoodMapPage: React.FC = () => {
   const { username } = useParams<{ username: string }>();
@@ -70,6 +71,8 @@ const UserFoodMapPage: React.FC = () => {
         <UserJourneyMap
           userId={userProfile.uid}
           userName={userProfile.username || userProfile.displayName || username}
+          userAvatar={userProfile.avatar}
+          userTierIndex={getTierFromPoints(userProfile.stats?.pointsEarned ?? 0).tierIndex}
           className="w-full h-full"
           showLegend={true}
           showControls={true}

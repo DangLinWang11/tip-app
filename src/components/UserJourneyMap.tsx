@@ -22,6 +22,7 @@ interface UserJourneyMapProps {
   showControls?: boolean; // show fullscreen + my-location controls
   userId?: string; // optional userId to view other users' maps
   userName?: string;
+  userAvatar?: string; // avatar URL from user profile
   userTierIndex?: number;
   allowHomeCountryOverride?: boolean;
   onClose?: () => void;
@@ -38,6 +39,7 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({
   showControls = true,
   userId,
   userName,
+  userAvatar,
   userTierIndex,
   allowHomeCountryOverride = true,
   onClose,
@@ -46,6 +48,8 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({
   focusRestaurant
 }) => {
   const navigate = useNavigate();
+  const [avatarError, setAvatarError] = useState(false);
+  const resolvedAvatar = userAvatar && !avatarError ? userAvatar : null;
   const [visitedRestaurants, setVisitedRestaurants] = useState<UserVisitedRestaurant[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -56,8 +60,10 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({
   const [countryPickerOpen, setCountryPickerOpen] = useState(false);
   const [mapZoom, setMapZoom] = useState<number>(2);
   const [resetTrigger, setResetTrigger] = useState(0);
+  const [activeCountryCode, setActiveCountryCode] = useState<string | null>(null);
 
   const handleResetView = () => {
+    setActiveCountryCode(null);
     setResetTrigger(prev => prev + 1);
   };
 
@@ -258,6 +264,18 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({
     setCountryPickerOpen(false);
   };
 
+  const handleZoomChanged = (zoom: number) => {
+    setMapZoom(zoom);
+    // If user zooms back out to global level, clear active country
+    if (zoom <= 5 && activeCountryCode !== null) {
+      setActiveCountryCode(null);
+    }
+  };
+
+  const handleCountryToggle = (countryCode: string) => {
+    setActiveCountryCode(prev => prev === countryCode ? null : countryCode);
+  };
+
   // Handle restaurant pin click
   const handleRestaurantClick = (restaurantId: string) => {
     const restaurant = visitedRestaurants.find(r => r.id === restaurantId);
@@ -283,6 +301,7 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({
     rating: restaurant.averageRating,
     priceRange: '$',
     visitCount: restaurant.visitCount,
+    countryCode: restaurant.countryCode,
   }));
 
   // Loading state
@@ -352,7 +371,7 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({
           mapType="restaurant"
           restaurants={mapRestaurants}
           onRestaurantClick={handleRestaurantClick}
-          onZoomChanged={setMapZoom}
+          onZoomChanged={handleZoomChanged}
           showQualityPercentages={false}
           className="w-full h-full"
           showMyLocationButton={showControls}
@@ -365,6 +384,8 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({
           minZoom={2}
           maxZoom={18}
           resetTrigger={resetTrigger}
+          activeCountryCode={activeCountryCode}
+          onCountryToggle={handleCountryToggle}
         />
 
         <div className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-white/95 via-white/50 to-transparent" />
@@ -381,7 +402,7 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({
               transition={{ type: 'spring', stiffness: 260, damping: 26 }}
               className="absolute bottom-4 left-4 z-20 pointer-events-auto"
             >
-              <div className="rounded-2xl bg-white/90 backdrop-blur-xl shadow-[0_12px_28px_rgba(0,0,0,0.18)] border border-white/70 px-3 py-2.5 flex items-center gap-2.5">
+              <div className="rounded-2xl bg-white/90 backdrop-blur-xl shadow-[0_12px_28px_rgba(0,0,0,0.18)] border border-white/70 px-3 py-1.5 flex items-center gap-2.5">
                 <div className="flex items-center justify-center w-6 flex-shrink-0">
                   <svg width="24" height="30" viewBox="0 0 24 34" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <defs>
@@ -413,12 +434,12 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({
                     <text x="12" y="12" fontFamily="'Poppins', sans-serif" fontSize="12" fontWeight="800" textAnchor="middle" dominantBaseline="central" fill="#FFFFFF">{stats.places >= 100 ? '99+' : stats.places}</text>
                   </svg>
                 </div>
-                <div className="flex flex-col items-start text-left">
+                <div className="flex flex-col items-start text-left leading-tight">
                   <span className="text-[11px] uppercase tracking-[0.16em] text-gray-400">Journey Stats</span>
-                  <span className="text-[13px] font-semibold text-gray-800">🍽 {stats.places} places · 🌍 {stats.countries} countries</span>
-                  {stats.since && (
-                    <span className="text-[11px] text-gray-500">· since {stats.since}</span>
-                  )}
+                  <span className="text-[13px] font-semibold text-gray-800">
+                    🍽 {stats.places} places · 🌍 {stats.countries} countries
+                    {stats.since && <span className="text-[11px] font-normal text-gray-500"> · since {stats.since}</span>}
+                  </span>
                 </div>
               </div>
             </motion.button>
@@ -456,9 +477,18 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({
                         <span className="text-lg">←</span>
                       </button>
                     )}
-                    <div className="h-10 w-10 flex-shrink-0 rounded-full bg-gradient-to-br from-rose-500 to-red-600 text-white flex items-center justify-center font-semibold text-base shadow-md">
-                      {(userName || 'You').slice(0, 1).toUpperCase()}
-                    </div>
+                    {resolvedAvatar ? (
+                      <img
+                        src={resolvedAvatar}
+                        alt={userName || 'You'}
+                        onError={() => setAvatarError(true)}
+                        className="h-10 w-10 flex-shrink-0 rounded-full object-cover shadow-md border border-white/50"
+                      />
+                    ) : (
+                      <div className="h-10 w-10 flex-shrink-0 rounded-full bg-gradient-to-br from-rose-500 to-red-600 text-white flex items-center justify-center font-semibold text-base shadow-md">
+                        {(userName || 'You').slice(0, 1).toUpperCase()}
+                      </div>
+                    )}
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
                         <p className="text-[10px] uppercase tracking-[0.22em] text-gray-400">Food Journey</p>
@@ -504,9 +534,18 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({
                   onClick={handleResetView}
                   className="inline-flex items-center gap-2 rounded-full bg-white/95 backdrop-blur-xl shadow-[0_16px_30px_rgba(15,23,42,0.18)] border border-white/70 px-3 py-2 active:scale-95 transition-transform"
                 >
-                  <div className="h-8 w-8 rounded-full bg-gradient-to-br from-rose-500 to-red-600 text-white flex items-center justify-center text-sm font-semibold">
-                    {(userName || 'You').slice(0, 1).toUpperCase()}
-                  </div>
+                  {resolvedAvatar ? (
+                    <img
+                      src={resolvedAvatar}
+                      alt={userName || 'You'}
+                      onError={() => setAvatarError(true)}
+                      className="h-8 w-8 rounded-full object-cover border border-white/50"
+                    />
+                  ) : (
+                    <div className="h-8 w-8 rounded-full bg-gradient-to-br from-rose-500 to-red-600 text-white flex items-center justify-center text-sm font-semibold">
+                      {(userName || 'You').slice(0, 1).toUpperCase()}
+                    </div>
+                  )}
                   <div className="flex flex-col leading-tight text-left">
                     <span className="text-xs text-gray-400 uppercase tracking-[0.18em]">Journey</span>
                     <span className="text-sm font-semibold text-gray-800">{homeCountryData?.name || 'Food map'}</span>
