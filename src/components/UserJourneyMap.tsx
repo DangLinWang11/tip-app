@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Globe2, X, ChevronDown } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -59,6 +59,7 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({
   const [homeCountryOverride, setHomeCountryOverride] = useState<string | null>(null);
   const [countryPickerOpen, setCountryPickerOpen] = useState(false);
   const [mapZoom, setMapZoom] = useState<number>(2);
+  const prevMapZoomRef = React.useRef<number>(2);
   const [resetTrigger, setResetTrigger] = useState(0);
   const [activeCountryCode, setActiveCountryCode] = useState<string | null>(null);
 
@@ -215,7 +216,7 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({
     // 1. homeCountry
     if (effectiveHomeCountry) {
       const centroid = getCountryCentroid(effectiveHomeCountry);
-      if (centroid) return { mapCenter: centroid, mapZoom: 5 };
+      if (centroid) return { mapCenter: centroid, mapZoom: 4 };
     }
 
     // 2. Most-visited country from restaurants
@@ -223,13 +224,13 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({
       const mostVisited = countryStats.reduce((prev, curr) =>
         curr.count > prev.count ? curr : prev
       );
-      return { mapCenter: { lat: mostVisited.lat, lng: mostVisited.lng }, mapZoom: 5 };
+      return { mapCenter: { lat: mostVisited.lat, lng: mostVisited.lng }, mapZoom: 4 };
     }
 
     // 3. Device location country
     if (deviceCountry) {
       const centroid = getCountryCentroid(deviceCountry);
-      if (centroid) return { mapCenter: centroid, mapZoom: 5 };
+      if (centroid) return { mapCenter: centroid, mapZoom: 4 };
     }
 
     // 4. World view fallback
@@ -264,13 +265,15 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({
     setCountryPickerOpen(false);
   };
 
-  const handleZoomChanged = (zoom: number) => {
+  const handleZoomChanged = useCallback((zoom: number) => {
+    const prevZoom = prevMapZoomRef.current;
+    prevMapZoomRef.current = zoom;
     setMapZoom(zoom);
-    // If user zooms back out to global level, clear active country
-    if (zoom <= 5 && activeCountryCode !== null) {
+    // Only clear active country when zooming DOWN from 6+ to <=5 (not when already at <=5)
+    if (zoom <= 5 && prevZoom > 5) {
       setActiveCountryCode(null);
     }
-  };
+  }, []);
 
   const handleCountryToggle = (countryCode: string) => {
     setActiveCountryCode(prev => prev === countryCode ? null : countryCode);
