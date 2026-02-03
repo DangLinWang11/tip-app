@@ -47,26 +47,31 @@ export const createCountryOverlay = (
     }
 
     onAdd(): void {
+      // Wrapper holds both the pill and the pointer triangle
       this.div = document.createElement('div');
       this.div.style.position = 'absolute';
       this.div.style.cursor = 'pointer';
       this.div.style.whiteSpace = 'nowrap';
-      this.div.style.transform = 'translate(-50%, -50%)';
+      this.div.style.transform = 'translate(-50%, -100%)';
       this.div.style.zIndex = '100';
+      this.div.style.display = 'flex';
+      this.div.style.flexDirection = 'column';
+      this.div.style.alignItems = 'center';
+      this.div.style.filter = 'drop-shadow(0 4px 12px rgba(0,0,0,0.25))';
+      this.div.style.transition = 'transform 0.15s ease, filter 0.15s ease';
 
-      // Pill/chip style
-      this.div.style.background = 'rgba(0, 0, 0, 0.75)';
-      this.div.style.color = '#FFFFFF';
-      this.div.style.fontFamily = "'Montserrat', 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif";
-      this.div.style.fontWeight = '700';
-      this.div.style.fontSize = '13px';
-      this.div.style.padding = '8px 14px';
-      this.div.style.borderRadius = '8px';
-      this.div.style.backdropFilter = 'blur(4px)';
-      this.div.style.transition = 'transform 0.15s ease, box-shadow 0.15s ease';
+      // Pill/chip container
+      const pill = document.createElement('div');
+      pill.style.background = 'rgba(0, 0, 0, 0.78)';
+      pill.style.color = '#FFFFFF';
+      pill.style.fontFamily = "'Montserrat', 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif";
+      pill.style.fontWeight = '700';
+      pill.style.fontSize = '13px';
+      pill.style.padding = '8px 14px';
+      pill.style.borderRadius = '10px';
+      pill.style.backdropFilter = 'blur(4px)';
 
       const restaurantText = this.stat.count === 1 ? 'restaurant' : 'restaurants';
-      this.div.textContent = '';
       const flagImg = document.createElement('img');
       const countryCode = (this.stat.code || '').toLowerCase();
       flagImg.src = `https://flagcdn.com/w40/${countryCode}.png`;
@@ -80,20 +85,32 @@ export const createCountryOverlay = (
       flagImg.style.display = 'inline-block';
       const textSpan = document.createElement('span');
       textSpan.textContent = `${this.stat.name}: ${this.stat.count} ${restaurantText}`;
-      this.div.appendChild(flagImg);
-      this.div.appendChild(textSpan);
+      pill.appendChild(flagImg);
+      pill.appendChild(textSpan);
+
+      // Pointer triangle (arrow pointing down)
+      const pointer = document.createElement('div');
+      pointer.style.width = '0';
+      pointer.style.height = '0';
+      pointer.style.borderLeft = '7px solid transparent';
+      pointer.style.borderRight = '7px solid transparent';
+      pointer.style.borderTop = '7px solid rgba(0, 0, 0, 0.78)';
+      pointer.style.marginTop = '-1px';
+
+      this.div.appendChild(pill);
+      this.div.appendChild(pointer);
 
       // Hover effect
       this.div.addEventListener('mouseenter', () => {
         if (this.div) {
-          this.div.style.transform = 'translate(-50%, -50%) scale(1.05)';
-          this.div.style.boxShadow = '0 4px 12px rgba(0,0,0,0.3)';
+          this.div.style.transform = 'translate(-50%, -100%) scale(1.05)';
+          this.div.style.filter = 'drop-shadow(0 8px 20px rgba(0,0,0,0.35))';
         }
       });
       this.div.addEventListener('mouseleave', () => {
         if (this.div) {
-          this.div.style.transform = 'translate(-50%, -50%)';
-          this.div.style.boxShadow = 'none';
+          this.div.style.transform = 'translate(-50%, -100%)';
+          this.div.style.filter = 'drop-shadow(0 4px 12px rgba(0,0,0,0.25))';
         }
       });
 

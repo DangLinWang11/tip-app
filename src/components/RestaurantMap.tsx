@@ -992,7 +992,7 @@ const MapView: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishe
   const navButtonClassName = 'absolute w-16 h-16 rounded-full bg-white shadow-lg flex items-center justify-center z-[40] border border-gray-100';
   const navButtonStyle: React.CSSProperties = {
     bottom: myLocationButtonOffset ?? (showGoogleControl ? 96 : 16),
-    right: showGoogleControl ? 16 : 12
+    right: showGoogleControl ? 16 : 8
   };
 
   const navIconClassName = showGoogleControl ? 'w-8 h-8 text-blue-500' : 'w-8 h-8 text-blue-500';

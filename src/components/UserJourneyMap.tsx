@@ -375,9 +375,9 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({
               transition={{ type: 'spring', stiffness: 260, damping: 26 }}
               className="absolute bottom-4 left-4 z-20 pointer-events-auto"
             >
-              <div className="rounded-2xl bg-white/90 backdrop-blur-xl shadow-[0_12px_28px_rgba(0,0,0,0.18)] border border-white/70 px-4 py-3 flex items-center gap-3">
-                <div className="flex items-center justify-center w-10 h-12">
-                  <svg width="32" height="38" viewBox="0 0 24 34" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <div className="rounded-2xl bg-white/90 backdrop-blur-xl shadow-[0_12px_28px_rgba(0,0,0,0.18)] border border-white/70 px-3 py-2.5 flex items-center gap-2">
+                <div className="flex items-center justify-center w-7 h-8">
+                  <svg width="22" height="28" viewBox="0 0 24 34" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <defs>
                       <linearGradient id="journey_grad" x1="12" y1="2" x2="12" y2="30" gradientUnits="userSpaceOnUse">
                         <stop offset="0%" stopColor="#FF6B6B"/>
@@ -408,10 +408,10 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({
                   </svg>
                 </div>
                 <div className="flex flex-col items-start text-left">
-                  <span className="text-xs uppercase tracking-[0.18em] text-gray-400">Journey Stats</span>
-                  <span className="text-sm font-semibold text-gray-800">🍽 {stats.places} places · 🌍 {stats.countries} countries</span>
+                  <span className="text-[10px] uppercase tracking-[0.18em] text-gray-400">Journey Stats</span>
+                  <span className="text-xs font-semibold text-gray-800">🍽 {stats.places} places · 🌍 {stats.countries} countries</span>
                   {stats.since && (
-                    <span className="text-xs text-gray-500">🏁 since {stats.since}</span>
+                    <span className="text-[10px] text-gray-500">· since {stats.since}</span>
                   )}
                 </div>
               </div>
@@ -430,7 +430,16 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({
                 transition={{ type: 'spring', stiffness: 260, damping: 26 }}
                 className="pointer-events-auto"
               >
-                <div className="flex items-center justify-between rounded-3xl bg-white/92 backdrop-blur-xl shadow-[0_20px_40px_rgba(15,23,42,0.2)] border border-white/70 px-4 py-3">
+                <div className="relative rounded-3xl bg-white/92 backdrop-blur-xl shadow-[0_20px_40px_rgba(15,23,42,0.2)] border border-white/70 px-4 py-3">
+                  {onClose && (
+                    <button
+                      onClick={onClose}
+                      className="absolute -top-2 -right-2 h-8 w-8 rounded-full bg-white shadow-md border border-gray-200 flex items-center justify-center z-10"
+                      aria-label="Close map"
+                    >
+                      <X className="w-3.5 h-3.5 text-gray-600" />
+                    </button>
+                  )}
                   <div className="flex items-center gap-3">
                     {onBack && (
                       <button
@@ -441,46 +450,37 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({
                         <span className="text-lg">←</span>
                       </button>
                     )}
-                    <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-rose-500 to-red-600 text-white flex items-center justify-center font-semibold text-lg shadow-md">
+                    <div className="h-10 w-10 flex-shrink-0 rounded-full bg-gradient-to-br from-rose-500 to-red-600 text-white flex items-center justify-center font-semibold text-base shadow-md">
                       {(userName || 'You').slice(0, 1).toUpperCase()}
                     </div>
-                    <div>
-                      <p className="text-xs uppercase tracking-[0.22em] text-gray-400">Food Journey</p>
+                    <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
-                        <h2 className="text-lg font-semibold text-gray-900 leading-tight">
-                          {userName ? `${userName}'s passport` : 'Your passport'}
-                        </h2>
+                        <p className="text-[10px] uppercase tracking-[0.22em] text-gray-400">Food Journey</p>
                         {typeof userTierIndex === 'number' && (
-                          <span className="text-[10px] uppercase tracking-[0.18em] text-rose-500 bg-rose-50 border border-rose-100 px-2 py-0.5 rounded-full">
+                          <span className="text-[9px] uppercase tracking-[0.14em] text-rose-500 bg-rose-50 border border-rose-100 px-1.5 py-px rounded-full whitespace-nowrap">
                             Tier {userTierIndex}
                           </span>
                         )}
                       </div>
+                      <h2 className="text-base font-semibold text-gray-900 leading-tight truncate">
+                        {userName ? `${userName}'s passport` : 'Your passport'}
+                      </h2>
                       {allowHomeCountryOverride ? (
                         <button
                           type="button"
                           onClick={() => setCountryPickerOpen(true)}
-                          className="mt-1 inline-flex items-center gap-1 text-sm text-gray-600 hover:text-gray-900"
+                          className="inline-flex items-center gap-1 text-xs text-gray-600 hover:text-gray-900"
                         >
                           <span>{selectedCountryLabel}</span>
-                          <ChevronDown className="w-4 h-4" />
+                          <ChevronDown className="w-3.5 h-3.5" />
                         </button>
                       ) : (
-                        <span className="mt-1 inline-flex items-center text-sm text-gray-600">
+                        <span className="inline-flex items-center text-xs text-gray-600">
                           {selectedCountryLabel}
                         </span>
                       )}
                     </div>
                   </div>
-                  {onClose && (
-                    <button
-                      onClick={onClose}
-                      className="h-9 w-9 rounded-full bg-white shadow-sm border border-gray-100 flex items-center justify-center"
-                      aria-label="Close map"
-                    >
-                      <X className="w-4 h-4 text-gray-600" />
-                    </button>
-                  )}
                 </div>
               </motion.div>
             )}
