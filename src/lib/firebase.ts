@@ -347,6 +347,7 @@ export interface UserProfile {
   actualName?: string;
   displayName?: string;
   avatar?: string;
+  photoURL?: string;
   bio?: string;
   homeCountry?: string;     // ISO 3166-1 alpha-2 code (e.g., "US", "TH")
   homeCountryName?: string; // Display name (e.g., "United States", "Thailand")

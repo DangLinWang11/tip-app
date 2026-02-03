@@ -591,7 +591,7 @@ const Home: React.FC = () => {
             .filter(Boolean)
         ).size,
       totalDishes: userReviews.length, // Use user's actual review count for dishes
-      pointsEarned: userProfile?.stats?.pointsEarned || 0
+      pointsEarned: Math.max(userProfile?.stats?.pointsEarned || 0, userReviews.length * 20)
     } : {
       // Default stats for unauthenticated users
       averageRating: "0.0",
@@ -1063,7 +1063,7 @@ const Home: React.FC = () => {
           }}
           userName={userProfile?.username || userProfile?.displayName || undefined}
           userTierIndex={getTierFromPoints(userStats.pointsEarned).tierIndex}
-          userAvatar={userProfile?.avatar}
+          userAvatar={userProfile?.avatar || userProfile?.photoURL || authUser?.photoURL}
           homeCountry={userProfile?.homeCountry}
           focusRestaurant={focusRestaurant || undefined}
         />

@@ -594,7 +594,7 @@ const Profile: React.FC = () => {
     averageRating: userProfile?.stats?.averageRating || (firebaseReviews.length > 0 
       ? parseFloat((firebaseReviews.reduce((sum, r) => sum + r.rating, 0) / firebaseReviews.length).toFixed(1))
       : 0),
-    pointsEarned: userProfile?.stats?.pointsEarned || 0
+    pointsEarned: Math.max(userProfile?.stats?.pointsEarned || 0, firebaseReviews.length * 20)
   };
   const tierProgress = getTierFromPoints(personalStats.pointsEarned);
 
@@ -891,7 +891,7 @@ const Profile: React.FC = () => {
           userId={userProfile.uid}
           userName={userProfile.username || userProfile.displayName}
           userTierIndex={tierProgress.tierIndex}
-          userAvatar={userProfile.avatar}
+          userAvatar={userProfile.avatar || userProfile.photoURL}
           homeCountry={userProfile.homeCountry}
           allowHomeCountryOverride={true}
         />

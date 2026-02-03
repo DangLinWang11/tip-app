@@ -87,7 +87,7 @@ const FoodMap: React.FC = () => {
         : "0.0",
     totalRestaurants: userProfile?.stats?.totalRestaurants || new Set(userReviews.map(r => r.restaurant?.name).filter(Boolean)).size,
     totalDishes: userReviews.length,
-    pointsEarned: userProfile?.stats?.pointsEarned || 0
+    pointsEarned: Math.max(userProfile?.stats?.pointsEarned || 0, userReviews.length * 20)
   };
 
   // Flatten visits so each dish in a multi-dish visit becomes its own "recent visit" entry

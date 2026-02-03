@@ -71,7 +71,7 @@ const UserFoodMapPage: React.FC = () => {
         <UserJourneyMap
           userId={userProfile.uid}
           userName={userProfile.username || userProfile.displayName || username}
-          userAvatar={userProfile.avatar}
+          userAvatar={userProfile.avatar || userProfile.photoURL}
           userTierIndex={getTierFromPoints(userProfile.stats?.pointsEarned ?? 0).tierIndex}
           className="w-full h-full"
           showLegend={true}

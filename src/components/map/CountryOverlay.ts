@@ -35,6 +35,7 @@ export const createCountryOverlay = (
     private div: HTMLDivElement | null = null;
     private stat: CountryStat;
     private onClick?: (stat: CountryStat) => void;
+    private _pendingVisible: boolean = true;
 
     constructor(
       overlayStat: CountryStat,
@@ -123,6 +124,11 @@ export const createCountryOverlay = (
         this.onClick?.(this.stat);
       });
 
+      // Apply any pending visibility set before onAdd fired
+      if (!this._pendingVisible) {
+        this.div.style.display = 'none';
+      }
+
       const panes = this.getPanes();
       panes?.overlayMouseTarget.appendChild(this.div);
     }
@@ -148,6 +154,7 @@ export const createCountryOverlay = (
 
     /** Show or hide the overlay */
     setVisible(visible: boolean): void {
+      this._pendingVisible = visible;
       if (this.div) {
         this.div.style.display = visible ? 'flex' : 'none';
       }

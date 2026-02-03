@@ -365,8 +365,8 @@ const createGamifiedPinIcon = (
   const cx = W / 2;     // 32
   const cy = 30;         // center of badge circle
   const outerR = 22;     // outer gradient ring
-  const separatorR = 20; // white separator
-  const innerR = 16;     // inner white circle
+  const separatorR = 19; // white separator
+  const innerR = 18;     // inner white circle
   const progressR = 25;  // progress ring outside badge
   const displayCount = visitCount || 1;
 
