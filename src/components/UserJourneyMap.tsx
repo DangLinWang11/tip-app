@@ -438,8 +438,8 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({
                   <span className="text-[11px] uppercase tracking-[0.16em] text-gray-400">Journey Stats</span>
                   <span className="text-[13px] font-semibold text-gray-800">
                     🍽 {stats.places} places · 🌍 {stats.countries} countries
-                    {stats.since && <span className="text-[11px] font-normal text-gray-500"> · since {stats.since}</span>}
                   </span>
+                  {stats.since && <span className="text-[11px] font-normal text-gray-500">since {stats.since}</span>}
                 </div>
               </div>
             </motion.button>
