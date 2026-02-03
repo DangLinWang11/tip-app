@@ -960,60 +960,54 @@ const MapView: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishe
         clusterMarkers.forEach(m => m.setVisible(false));
 
         if (isJourneyMode && journeyIconCache.size > 0) {
-          const newMode = zoomLevel >= 12 ? 'label' : 'badge';
-
-          // Switch icons only when crossing the 11↔12 boundary
-          if (lastIconMode !== newMode) {
+          // Always use label pins at zoom 6+
+          if (lastIconMode !== 'label') {
             markerEntries.forEach(({ id, marker }) => {
               const cached = journeyIconCache.get(id);
               if (cached) {
-                marker.setIcon(newMode === 'label' ? cached.label : cached.badge);
+                marker.setIcon(cached.label);
               }
             });
-            lastIconMode = newMode;
+            lastIconMode = 'label';
           }
 
-          if (zoomLevel >= 12) {
-            // Zoom 12+: apply grid-based spatial overlap detection
-            const projection = map.getProjection();
-            if (!projection) {
-              markerEntries.forEach(({ marker }) => marker.setVisible(true));
-              return;
-            }
-
-            const CELL_SIZE = 50; // pixels
-            const occupiedCells = new Set<string>();
-            const mapBounds = map.getBounds();
-
-            // Sort by priority (visit count descending)
-            const sorted = markerEntries
-              .slice()
-              .sort((a, b) => b.priority - a.priority);
-
-            sorted.forEach(({ marker }) => {
-              const pos = marker.getPosition();
-              if (!pos) { marker.setVisible(false); return; }
-              if (mapBounds && !mapBounds.contains(pos)) { marker.setVisible(false); return; }
-
-              const worldPoint = projection.fromLatLngToPoint(pos);
-              if (!worldPoint) { marker.setVisible(false); return; }
-
-              const scale = 1 << (zoomLevel);
-              const px = Math.floor(worldPoint.x * scale / CELL_SIZE);
-              const py = Math.floor(worldPoint.y * scale / CELL_SIZE);
-              const cellKey = `${px},${py}`;
-
-              if (occupiedCells.has(cellKey)) {
-                marker.setVisible(false);
-              } else {
-                marker.setVisible(true);
-                occupiedCells.add(cellKey);
-              }
-            });
-          } else {
-            // Zoom 6-11: show ALL pins, no overlap detection
+          // Apply grid-based spatial overlap detection at all zoom levels 6+
+          const projection = map.getProjection();
+          if (!projection) {
             markerEntries.forEach(({ marker }) => marker.setVisible(true));
+            return;
           }
+
+          // Larger cell size at lower zoom to avoid excessive overlap
+          const CELL_SIZE = zoomLevel >= 12 ? 50 : 80;
+          const occupiedCells = new Set<string>();
+          const mapBounds = map.getBounds();
+
+          // Sort by priority (visit count descending)
+          const sorted = markerEntries
+            .slice()
+            .sort((a, b) => b.priority - a.priority);
+
+          sorted.forEach(({ marker }) => {
+            const pos = marker.getPosition();
+            if (!pos) { marker.setVisible(false); return; }
+            if (mapBounds && !mapBounds.contains(pos)) { marker.setVisible(false); return; }
+
+            const worldPoint = projection.fromLatLngToPoint(pos);
+            if (!worldPoint) { marker.setVisible(false); return; }
+
+            const scale = 1 << (zoomLevel);
+            const px = Math.floor(worldPoint.x * scale / CELL_SIZE);
+            const py = Math.floor(worldPoint.y * scale / CELL_SIZE);
+            const cellKey = `${px},${py}`;
+
+            if (occupiedCells.has(cellKey)) {
+              marker.setVisible(false);
+            } else {
+              marker.setVisible(true);
+              occupiedCells.add(cellKey);
+            }
+          });
         } else {
           // Non-journey mode (discover map): show all markers
           markerEntries.forEach(({ marker }) => marker.setVisible(true));
