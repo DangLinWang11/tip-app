@@ -135,8 +135,21 @@ const StepWrapUp: React.FC = () => {
   };
 
   const handleGoHome = () => {
+    // Pass restaurant location to Home for map focus + pin drop animation
+    const focusRestaurant = selectedRestaurant?.coordinates
+      ? {
+          lat: selectedRestaurant.coordinates.latitude,
+          lng: selectedRestaurant.coordinates.longitude,
+          id: selectedRestaurant.id,
+          name: selectedRestaurant.name,
+        }
+      : undefined;
+
     resetDraft(false); // Clear all draft data
-    navigate('/', { replace: true }); // Use replace to prevent back navigation to create
+    navigate('/', {
+      replace: true,
+      state: focusRestaurant ? { focusRestaurant } : undefined,
+    });
   };
 
   // Auto-redirect countdown effect

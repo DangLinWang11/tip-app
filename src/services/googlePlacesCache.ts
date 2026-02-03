@@ -11,6 +11,7 @@ import {
   DocumentData,
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
+import { validateCoordinates } from '../utils/validateCoordinates';
 import { CUISINES } from '../utils/taxonomy';
 
 export interface CachedRestaurant extends DocumentData {
@@ -292,6 +293,14 @@ export async function fetchOrCacheRestaurant(
 
     // Transform Google data
     const restaurantData = transformGoogleDataToRestaurant(googleData);
+    const coordCheck = validateCoordinates(restaurantData.coordinates);
+    if (!coordCheck.valid) {
+      throw new Error(`Invalid coordinates from Google Places for ${placeId}`);
+    }
+    const coordCheck = validateCoordinates(restaurantData.coordinates);
+    if (!coordCheck.valid) {
+      throw new Error(`Invalid coordinates from Google Places for ${placeId}`);
+    }
 
     // Save or update in Firebase
     if (cached) {

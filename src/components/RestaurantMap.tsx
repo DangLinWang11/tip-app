@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Wrapper, Status } from '@googlemaps/react-wrapper';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../lib/firebase';
@@ -7,7 +7,9 @@ import { useNavigate } from 'react-router-dom';
 import { useMapBottomSheet } from '../hooks/useMapBottomSheet';
 import MapBottomSheet from './discover/MapBottomSheet';
 import { createDishRatingPinIcon } from '../utils/mapIcons';
-
+import { createCountryOverlay, type CountryOverlayLike } from './map/CountryOverlay';
+import { MarkerClusterer } from '@googlemaps/markerclusterer';
+import { getBaseMapOptions, useMapTheme } from '../map/mapStyleConfig';
 
 const NYC_FALLBACK = { lat: 40.7060, lng: -74.0086 };
 
@@ -66,6 +68,16 @@ interface Dish {
   price?: string;
 }
 
+interface CountryStat {
+  code: string;
+  name: string;
+  flag: string;
+  count: number;
+  lat: number;
+  lng: number;
+  bounds?: google.maps.LatLngBounds;
+}
+
 interface MapProps {
   center: google.maps.LatLngLiteral;
   zoom: number;
@@ -75,6 +87,7 @@ interface MapProps {
   userLocation?: UserLocationCoordinates | null;
   onRestaurantClick?: (id: string) => void;
   onDishClick?: (id: string) => void;
+  onZoomChanged?: (zoom: number) => void;
   showQualityPercentages?: boolean;
   disableInfoWindows?: boolean;
   showMyLocationButton?: boolean;
@@ -82,6 +95,12 @@ interface MapProps {
   myLocationButtonOffset?: number;
   bottomSheetHook?: ReturnType<typeof useMapBottomSheet>;
   navigate?: (path: string) => void;
+  countryStats?: CountryStat[];
+  focusRestaurantId?: string;
+  useClusterer?: boolean;
+  mapRestriction?: google.maps.MapRestriction;
+  minZoom?: number;
+  maxZoom?: number;
 }
 
 const getQualityColor = (percentage: number): string => {
@@ -465,38 +484,6 @@ const createDishPinIcon = (rating: string, backgroundColor: string): string => {
   return 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg);
 };
 
-const DEFAULT_MAP_STYLE: google.maps.MapTypeStyle[] = [
-  {
-    featureType: "water",
-    elementType: "geometry",
-    stylers: [{ color: "#e3f2fd" }]
-  },
-  {
-    featureType: "landscape",
-    elementType: "geometry",
-    stylers: [{ color: "#f5f5f5" }]
-  },
-  {
-    featureType: "road",
-    elementType: "geometry",
-    stylers: [{ color: "#ffffff" }]
-  },
-  {
-    featureType: "road",
-    elementType: "labels.text.fill",
-    stylers: [{ color: "#9e9e9e" }]
-  },
-  {
-    featureType: "poi",
-    elementType: "labels",
-    stylers: [{ visibility: "off" }]
-  },
-  {
-    featureType: "transit",
-    stylers: [{ visibility: "off" }]
-  }
-];
-
 const getDishPinIconCached = (rating: string): string => {
   const cached = DISH_PIN_CACHE.get(rating);
   if (cached) return cached;
@@ -505,7 +492,7 @@ const getDishPinIconCached = (rating: string): string => {
   return url;
 };
 
-const MapView: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishes, userLocation, onRestaurantClick, onDishClick, showQualityPercentages = true, disableInfoWindows = false, showMyLocationButton = true, showGoogleControl = true, myLocationButtonOffset, bottomSheetHook, navigate }) => {
+const MapView: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishes, userLocation, onRestaurantClick, onDishClick, onZoomChanged, showQualityPercentages = true, disableInfoWindows = false, showMyLocationButton = true, showGoogleControl = true, myLocationButtonOffset, bottomSheetHook, navigate, countryStats, focusRestaurantId, useClusterer, mapRestriction, minZoom, maxZoom }) => {
   const ref = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<google.maps.Map>();
   const styleLoggedRef = useRef(false);
@@ -517,6 +504,14 @@ const MapView: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishe
   const bottomSheetRef = useRef(bottomSheetHook);
   // Internal location state when user taps the navigation button
   const [internalUserLocation, setInternalUserLocation] = useState<UserLocationCoordinates | null>(null);
+  const [mapTheme] = useMapTheme();
+  const baseMapOptions = useMemo(() => getBaseMapOptions(mapTheme), [mapTheme]);
+  const runtimeMapOptions = useMemo(() => ({
+    ...baseMapOptions,
+    restriction: mapRestriction,
+    minZoom,
+    maxZoom
+  }), [baseMapOptions, mapRestriction, minZoom, maxZoom]);
 
   useEffect(() => {
     onRestaurantClickRef.current = onRestaurantClick;
@@ -533,12 +528,10 @@ const MapView: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishe
 
   useEffect(() => {
     if (ref.current && !map) {
-      const mapId = import.meta.env.VITE_GOOGLE_MAPS_MAP_ID || undefined;
-      const mapStyles = mapId ? undefined : DEFAULT_MAP_STYLE;
       const newMap = new window.google.maps.Map(ref.current, {
         center,
         zoom,
-        mapId,
+        ...runtimeMapOptions,
         mapTypeControl: false,
         streetViewControl: false,
         fullscreenControl: showGoogleControl,
@@ -547,16 +540,31 @@ const MapView: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishe
         scaleControl: false,
         gestureHandling: 'greedy',
         scrollwheel: true,
-        disableDoubleClickZoom: false,
-        styles: mapStyles
+        disableDoubleClickZoom: false
       });
       if (!styleLoggedRef.current) {
-        console.log(mapId ? 'Map style: MAP_ID' : 'Map style: DEFAULT');
+        console.log(baseMapOptions.mapId ? 'Map style: MAP_ID' : 'Map style: JSON_FALLBACK');
         styleLoggedRef.current = true;
       }
       setMap(newMap);
     }
-  }, [ref, map, center, zoom, showGoogleControl]);
+  }, [ref, map, center, zoom, showGoogleControl, runtimeMapOptions]);
+
+  useEffect(() => {
+    if (!map) return;
+    map.setOptions(runtimeMapOptions);
+  }, [map, runtimeMapOptions]);
+
+  useEffect(() => {
+    if (!map || !onZoomChanged) return;
+    const handleZoom = () => {
+      const currentZoom = map.getZoom();
+      if (typeof currentZoom === 'number') onZoomChanged(currentZoom);
+    };
+    handleZoom();
+    const listener = map.addListener('zoom_changed', handleZoom);
+    return () => listener.remove();
+  }, [map, onZoomChanged]);
 
 
   // Update user location marker and center map
@@ -644,7 +652,15 @@ const MapView: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishe
       existingMarkers.forEach((marker: google.maps.Marker) => marker.setMap(null));
       const markerEntries: Array<{ id: string; marker: google.maps.Marker; priority: number }> = [];
 
+      // Cache for icon variants per restaurant (journey mode)
+      const journeyIconCache = new Map<string, {
+        badge: google.maps.Icon;  // gamified badge pin (zoom 6-11)
+        label: google.maps.Icon;  // pin with name label (zoom 12+)
+      }>();
+
       if (mapType === 'restaurant') {
+        const isJourneyMode = showQualityPercentages === false;
+
         // Show restaurant pins
         restaurants.forEach((restaurant) => {
           // Validate location data before creating marker
@@ -652,43 +668,57 @@ const MapView: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishe
 
           // Safety check: ensure position is a valid LatLng object
           if (!position || typeof position !== 'object' || typeof position.lat !== 'number' || typeof position.lng !== 'number') {
-            console.warn(`⚠️ Invalid location data for restaurant ${restaurant.name}, skipping marker`, position);
+            console.warn(`Invalid location data for restaurant ${restaurant.name}, skipping marker`, position);
             return; // Skip this restaurant
           }
 
           const qualityColor = getQualityColor(restaurant.qualityPercentage);
-          const isJourneyMode = showQualityPercentages === false;
 
-          // Determine what text to show in the pin
-          let pinText = '';
-          let pinWidth = 52;
-          if (isJourneyMode && restaurant.visitCount) {
-            pinText = `${restaurant.visitCount}`;
-            pinWidth = 36;
-          } else if (!isJourneyMode) {
-            // Show quality percentage for regular restaurant maps
-            pinText = `${restaurant.qualityPercentage}%`;
+          if (isJourneyMode) {
+            // Create and cache both icon variants for journey mode
+            const visitCount = restaurant.visitCount ?? 1;
+            const scale = getJourneyPinScale(visitCount);
+            const badgeUrl = createGamifiedPinIcon(visitCount, 'default');
+            const scaledW = Math.round(JOURNEY_PIN_W * scale);
+            const scaledH = Math.round(JOURNEY_PIN_H * scale);
+            const badgeIcon: google.maps.Icon = {
+              url: badgeUrl,
+              scaledSize: new window.google.maps.Size(scaledW, scaledH),
+              anchor: new window.google.maps.Point(
+                Math.round(JOURNEY_ANCHOR_X * scale),
+                Math.round(JOURNEY_ANCHOR_Y * scale)
+              ),
+            };
+
+            const labelPin = createCommunityPinWithLabel(restaurant.name, '#ef4444');
+            const labelIcon: google.maps.Icon = {
+              url: labelPin.url,
+              scaledSize: new window.google.maps.Size(labelPin.width, labelPin.height),
+              anchor: new window.google.maps.Point(COMMUNITY_PIN_TIP_X, COMMUNITY_PIN_TIP_Y),
+            };
+
+            journeyIconCache.set(restaurant.id.toString(), { badge: badgeIcon, label: labelIcon });
           }
 
-          const communityPin = isJourneyMode
-            ? createCommunityPinWithLabel(restaurant.name, '#ef4444')
-            : null;
-          const communityAnchorX = communityPin ? COMMUNITY_PIN_TIP_X : 0;
-          const communityAnchorY = communityPin ? COMMUNITY_PIN_TIP_Y : 0;
+          // Determine initial icon
+          let initialIcon: google.maps.Icon;
+          if (isJourneyMode) {
+            const cached = journeyIconCache.get(restaurant.id.toString());
+            initialIcon = cached!.badge; // Start with badge icon
+          } else {
+            let pinText = '';
+            let pinWidth = 52;
+            pinText = `${restaurant.qualityPercentage}%`;
+            initialIcon = {
+              url: createPinIcon(pinText, qualityColor, showQualityPercentages),
+              scaledSize: new window.google.maps.Size(pinWidth, 44),
+              anchor: new window.google.maps.Point(pinWidth / 2, RESTAURANT_PIN_TIP_Y),
+            };
+          }
 
           const marker = new window.google.maps.Marker({
             position,
-            icon: isJourneyMode
-              ? {
-                  url: communityPin!.url,
-                  scaledSize: new window.google.maps.Size(communityPin!.width, communityPin!.height),
-                  anchor: new window.google.maps.Point(communityAnchorX, communityAnchorY)
-                }
-              : {
-                  url: createPinIcon(pinText, qualityColor, showQualityPercentages),
-                  scaledSize: new window.google.maps.Size(pinWidth, 44),
-                  anchor: new window.google.maps.Point(pinWidth / 2, RESTAURANT_PIN_TIP_Y)
-                },
+            icon: initialIcon,
             title: restaurant.name,
             zIndex: Math.round((isJourneyMode ? (restaurant.visitCount ?? 0) : restaurant.qualityPercentage) * 10)
           });
@@ -744,40 +774,184 @@ const MapView: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishe
         });
       }
 
-      markerEntries.forEach(({ marker }) => marker.setMap(map));
+      // Pin drop animation for focused restaurant
+      const focusEntry = focusRestaurantId
+        ? markerEntries.find(e => e.id === focusRestaurantId)
+        : null;
+
+      if (focusEntry) {
+        // Exclude focus restaurant from initial batch
+        markerEntries
+          .filter(e => e.id !== focusRestaurantId)
+          .forEach(({ marker }) => marker.setMap(map));
+
+        // Drop the focus pin after 500ms with animation
+        setTimeout(() => {
+          focusEntry.marker.setAnimation(google.maps.Animation.DROP);
+          focusEntry.marker.setMap(map);
+          focusEntry.marker.setZIndex(9999);
+          // Brief bounce after drop completes
+          setTimeout(() => {
+            focusEntry.marker.setAnimation(google.maps.Animation.BOUNCE);
+            setTimeout(() => {
+              focusEntry.marker.setAnimation(null);
+            }, 500);
+          }, 400);
+        }, 500);
+      } else {
+        markerEntries.forEach(({ marker }) => marker.setMap(map));
+      }
 
       // Store markers on map for cleanup
       (map as any).markers = markerEntries.map(({ marker }) => marker);
 
+      // Create country overlays if countryStats are provided
+      const overlays: CountryOverlayLike[] = [];
+      if (countryStats && countryStats.length > 0) {
+        countryStats.forEach((stat: any) => {
+          // Build LatLngBounds from raw coordinate arrays passed via _boundsLats/_boundsLngs
+          let bounds: google.maps.LatLngBounds | undefined;
+          if (stat._boundsLats?.length > 0 && stat._boundsLngs?.length > 0) {
+            bounds = new google.maps.LatLngBounds();
+            for (let i = 0; i < stat._boundsLats.length; i++) {
+              bounds.extend({ lat: stat._boundsLats[i], lng: stat._boundsLngs[i] });
+            }
+          }
+
+          const overlayStat = { ...stat, bounds };
+          const overlay = createCountryOverlay(overlayStat, map, (clickedStat) => {
+            if (clickedStat.bounds) {
+              map.fitBounds(clickedStat.bounds, { top: 50, bottom: 50, left: 50, right: 50 });
+              google.maps.event.addListenerOnce(map, 'idle', () => {
+                const currentZoom = map.getZoom() ?? 0;
+                if (currentZoom < 6) map.setZoom(6);
+              });
+            } else {
+              map.setCenter({ lat: clickedStat.lat, lng: clickedStat.lng });
+              map.setZoom(6);
+            }
+          });
+          if (overlay) overlays.push(overlay);
+        });
+      }
+
+      const isJourneyMode = showQualityPercentages === false;
+      let lastIconMode: 'badge' | 'label' | null = null;
+
       const updateMarkerVisibility = () => {
         const zoomLevel = map.getZoom() ?? 0;
-        if (zoomLevel >= 13) {
-          markerEntries.forEach(({ marker }) => marker.setVisible(true));
+        const hasOverlays = overlays.length > 0;
+
+        if (hasOverlays && zoomLevel <= 5) {
+          // Zoom 1-5: show country overlays, hide markers
+          overlays.forEach(o => o.setVisible(true));
+          markerEntries.forEach(({ marker }) => marker.setVisible(false));
+          lastIconMode = null;
           return;
         }
 
-        const limit = zoomLevel >= 11 ? 60 : 30;
-        const visibleIds = new Set(
-          markerEntries
-            .slice()
-            .sort((a, b) => b.priority - a.priority)
-            .slice(0, limit)
-            .map((entry) => entry.id)
-        );
-        markerEntries.forEach(({ id, marker }) => marker.setVisible(visibleIds.has(id)));
+        // Zoom 6+: hide country overlays
+        if (hasOverlays) {
+          overlays.forEach(o => o.setVisible(false));
+        }
+
+        if (isJourneyMode && journeyIconCache.size > 0) {
+          const newMode = zoomLevel >= 12 ? 'label' : 'badge';
+
+          // Switch icons only when crossing the 11↔12 boundary
+          if (lastIconMode !== newMode) {
+            markerEntries.forEach(({ id, marker }) => {
+              const cached = journeyIconCache.get(id);
+              if (cached) {
+                marker.setIcon(newMode === 'label' ? cached.label : cached.badge);
+              }
+            });
+            lastIconMode = newMode;
+          }
+
+          if (zoomLevel >= 12) {
+            // Zoom 12+: apply grid-based spatial overlap detection
+            const projection = map.getProjection();
+            if (!projection) {
+              markerEntries.forEach(({ marker }) => marker.setVisible(true));
+              return;
+            }
+
+            const CELL_SIZE = 50; // pixels
+            const occupiedCells = new Set<string>();
+            const mapBounds = map.getBounds();
+
+            // Sort by priority (visit count descending)
+            const sorted = markerEntries
+              .slice()
+              .sort((a, b) => b.priority - a.priority);
+
+            sorted.forEach(({ marker }) => {
+              const pos = marker.getPosition();
+              if (!pos) { marker.setVisible(false); return; }
+              if (mapBounds && !mapBounds.contains(pos)) { marker.setVisible(false); return; }
+
+              const worldPoint = projection.fromLatLngToPoint(pos);
+              if (!worldPoint) { marker.setVisible(false); return; }
+
+              const scale = 1 << (zoomLevel);
+              const px = Math.floor(worldPoint.x * scale / CELL_SIZE);
+              const py = Math.floor(worldPoint.y * scale / CELL_SIZE);
+              const cellKey = `${px},${py}`;
+
+              if (occupiedCells.has(cellKey)) {
+                marker.setVisible(false);
+              } else {
+                marker.setVisible(true);
+                occupiedCells.add(cellKey);
+              }
+            });
+          } else {
+            // Zoom 6-11: show ALL pins, no overlap detection
+            markerEntries.forEach(({ marker }) => marker.setVisible(true));
+          }
+        } else {
+          // Non-journey mode (discover map): show all markers
+          markerEntries.forEach(({ marker }) => marker.setVisible(true));
+        }
       };
 
-      const zoomListener = map.addListener('zoom_changed', updateMarkerVisibility);
-      updateMarkerVisibility();
+      // Create MarkerClusterer for global view mode
+      let clusterer: MarkerClusterer | null = null;
+      if (useClusterer) {
+        const allMarkers = markerEntries.map(e => e.marker);
+        clusterer = new MarkerClusterer({
+          map,
+          markers: allMarkers,
+        });
+      }
 
-      // Removed auto-fit bounds to keep map centered on initial user/fallback location
+      let zoomDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+      const debouncedUpdate = () => {
+        if (zoomDebounceTimer) clearTimeout(zoomDebounceTimer);
+        zoomDebounceTimer = setTimeout(updateMarkerVisibility, 100);
+      };
+
+      // Skip visibility management when using clusterer (it handles its own visibility)
+      const zoomListener = useClusterer
+        ? null
+        : map.addListener('zoom_changed', debouncedUpdate);
+
+      if (!useClusterer) {
+        updateMarkerVisibility();
+      }
 
       return () => {
-        zoomListener.remove();
+        if (zoomDebounceTimer) clearTimeout(zoomDebounceTimer);
+        if (zoomListener) zoomListener.remove();
+        if (clusterer) {
+          clusterer.clearMarkers();
+        }
         markerEntries.forEach(({ marker }) => marker.setMap(null));
+        overlays.forEach(o => o.destroy());
       };
     }
-  }, [map, mapType, restaurants, dishes, showQualityPercentages]);
+  }, [map, mapType, restaurants, dishes, showQualityPercentages, countryStats, useClusterer]);
 
   // Handle location button click
   const centerOnMyLocation = () => {
@@ -895,12 +1069,20 @@ interface RestaurantMapProps {
   userLocation?: UserLocationCoordinates | null;
   onRestaurantClick?: (id: string) => void;
   onDishClick?: (id: string) => void;
+  onZoomChanged?: (zoom: number) => void;
   showQualityPercentages?: boolean;
   disableInfoWindows?: boolean;
   showMyLocationButton?: boolean;
   showGoogleControl?: boolean;
   focusRestaurantId?: string;
   myLocationButtonOffset?: number;
+  initialCenter?: google.maps.LatLngLiteral;
+  initialZoom?: number;
+  countryStats?: CountryStat[];
+  useClusterer?: boolean;
+  mapRestriction?: google.maps.MapRestriction;
+  minZoom?: number;
+  maxZoom?: number;
 }
 
 // Fetch top dish from each restaurant from Firebase menuItems collection
@@ -1002,15 +1184,23 @@ const RestaurantMap: React.FC<RestaurantMapProps> = ({
   userLocation,
   onRestaurantClick,
   onDishClick,
+  onZoomChanged,
   showQualityPercentages = true,
   disableInfoWindows = false,
   showMyLocationButton = true,
   showGoogleControl = true,
   focusRestaurantId,
-  myLocationButtonOffset
+  myLocationButtonOffset,
+  initialCenter: initialCenterProp,
+  initialZoom: initialZoomProp,
+  countryStats,
+  useClusterer,
+  mapRestriction,
+  minZoom,
+  maxZoom,
 }) => {
   const [topDishes, setTopDishes] = useState<Dish[]>([]);
-  const [initialCenter, setInitialCenter] = useState(NYC_FALLBACK);
+  const [initialCenter, setInitialCenter] = useState(initialCenterProp || NYC_FALLBACK);
   const bottomSheet = useMapBottomSheet();
   const navigate = useNavigate();
 
@@ -1036,17 +1226,24 @@ const RestaurantMap: React.FC<RestaurantMapProps> = ({
         return (
           <MapView
             center={focusCenter || initialCenter}
-            zoom={focusCenter ? 16 : 13}
+            zoom={focusCenter ? 16 : (initialZoomProp ?? 13)}
             mapType={mapType}
             restaurants={restaurants}
             dishes={topDishes}
             userLocation={userLocation}
             onRestaurantClick={onRestaurantClick}
             onDishClick={onDishClick}
+            onZoomChanged={onZoomChanged}
             showQualityPercentages={showQualityPercentages}
             disableInfoWindows={disableInfoWindows}
             showMyLocationButton={showMyLocationButton}
             showGoogleControl={showGoogleControl}
+            countryStats={countryStats}
+            focusRestaurantId={focusRestaurantId}
+            useClusterer={useClusterer}
+            mapRestriction={mapRestriction}
+            minZoom={minZoom}
+            maxZoom={maxZoom}
             myLocationButtonOffset={myLocationButtonOffset}
             bottomSheetHook={bottomSheet}
             navigate={navigate}

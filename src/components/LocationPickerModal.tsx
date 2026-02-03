@@ -1,6 +1,7 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { Wrapper, Status } from '@googlemaps/react-wrapper';
 import { Navigation } from 'lucide-react';
+import { getBaseMapOptions, useMapTheme } from '../map/mapStyleConfig';
 
 interface LocationCoordinates extends google.maps.LatLngLiteral {
   accuracy?: number;
@@ -41,12 +42,15 @@ const MapComponent: React.FC<MapComponentProps> = ({
   const [map, setMap] = useState<google.maps.Map>();
   const [userLocationMarker, setUserLocationMarker] = useState<google.maps.Marker | null>(null);
   const [userAccuracyCircle, setUserAccuracyCircle] = useState<google.maps.Circle | null>(null);
+  const [mapTheme] = useMapTheme();
+  const baseMapOptions = useMemo(() => getBaseMapOptions(mapTheme), [mapTheme]);
 
   useEffect(() => {
     if (ref.current && !map) {
       const newMap = new window.google.maps.Map(ref.current, {
         center,
         zoom,
+        ...baseMapOptions,
         disableDefaultUI: true,
         zoomControl: false,
         mapTypeControl: false,
@@ -57,14 +61,7 @@ const MapComponent: React.FC<MapComponentProps> = ({
         scaleControl: false,
         gestureHandling: 'greedy',
         scrollwheel: true,
-        disableDoubleClickZoom: false,
-        styles: [
-          {
-            featureType: 'poi',
-            elementType: 'labels',
-            stylers: [{ visibility: 'off' }]
-          }
-        ]
+        disableDoubleClickZoom: false
       });
 
       newMap.addListener('center_changed', () => {
@@ -79,7 +76,12 @@ const MapComponent: React.FC<MapComponentProps> = ({
 
       setMap(newMap);
     }
-  }, [ref, map, center, zoom, onCenterChanged]);
+  }, [ref, map, center, zoom, onCenterChanged, baseMapOptions]);
+
+  useEffect(() => {
+    if (!map) return;
+    map.setOptions(baseMapOptions);
+  }, [map, baseMapOptions]);
 
   useEffect(() => {
     if (map && userLocation) {

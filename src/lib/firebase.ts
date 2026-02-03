@@ -348,6 +348,8 @@ export interface UserProfile {
   displayName?: string;
   avatar?: string;
   bio?: string;
+  homeCountry?: string;     // ISO 3166-1 alpha-2 code (e.g., "US", "TH")
+  homeCountryName?: string; // Display name (e.g., "United States", "Thailand")
   isVerified?: boolean;
   isOnboarded?: boolean;
   createdAt: any;
@@ -370,6 +372,8 @@ export const createUserProfile = async (
     displayName?: string;
     avatar?: string;
     bio?: string;
+    homeCountry?: string;
+    homeCountryName?: string;
   }
 ): Promise<{ success: boolean; error?: string }> => {
   if (!db) {
@@ -401,6 +405,8 @@ export const createUserProfile = async (
       displayName: additionalData.displayName || additionalData.username.trim(),
       avatar: additionalData.avatar || '',
       bio: additionalData.bio || '',
+      ...(additionalData.homeCountry ? { homeCountry: additionalData.homeCountry } : {}),
+      ...(additionalData.homeCountryName ? { homeCountryName: additionalData.homeCountryName } : {}),
       isVerified: false,
       isOnboarded: true,
       createdAt: serverTimestamp(),

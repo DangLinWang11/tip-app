@@ -204,8 +204,7 @@ const StepVisit: React.FC = () => {
       const service = new google.maps.places.AutocompleteService();
       const request = {
         input: searchText,
-        types: ['restaurant'],
-        componentRestrictions: { country: 'us' }
+        types: ['restaurant']
       };
 
       service.getPlacePredictions(request, async (predictions, status) => {
@@ -441,7 +440,8 @@ const StepVisit: React.FC = () => {
           'opening_hours',
           'website',
           'price_level',
-          'rating'
+          'rating',
+          'address_components'
         ]
       },
       async (place, status) => {
@@ -466,9 +466,17 @@ const StepVisit: React.FC = () => {
               const lng = place.geometry?.location?.lng() || 0;
               const distance = userLocation ? calculateDistance(userLocation.lat, userLocation.lng, lat, lng) : undefined;
 
+              // Extract country from address_components
+              const countryComponent = (place as any).address_components?.find(
+                (c: any) => c.types?.includes('country')
+              );
+              const countryCode = countryComponent?.short_name || '';
+              const countryName = countryComponent?.long_name || '';
+
               const newRestaurant: RestaurantOption = {
                 id: placeId,
                 name: place.name || predictionMatch?.structured_formatting?.main_text || description,
+                address: place.formatted_address || '',
                 location: { formatted: place.formatted_address || '' },
                 coordinates: {
                   lat,
@@ -479,7 +487,8 @@ const StepVisit: React.FC = () => {
                 googlePlaceId: placeId,
                 cuisines: [],
                 distance,
-                source: 'google_places'
+                source: 'google_places',
+                ...(countryCode ? { countryCode, countryName } : {}),
               };
               onRestaurantSelected(newRestaurant);
               setRestaurants((prev) => {
@@ -683,8 +692,10 @@ const StepVisit: React.FC = () => {
                     <MapPin className="w-5 h-5 text-red-500" />
                     <div>
                       <p className="text-base font-semibold text-slate-900">{selectedRestaurant.name}</p>
-                      {selectedRestaurant.address && (
-                        <p className="text-sm text-slate-600">{selectedRestaurant.address}</p>
+                      {(selectedRestaurant.address || selectedRestaurant.location?.formatted) && (
+                        <p className="text-sm text-slate-500">
+                          {selectedRestaurant.address || selectedRestaurant.location?.formatted}
+                        </p>
                       )}
                     </div>
                   </div>

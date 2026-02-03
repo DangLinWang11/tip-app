@@ -6,11 +6,13 @@ import { logEvent } from 'firebase/analytics';
 import { useOwnedRestaurants } from '../hooks/useOwnedRestaurants';
 import ReactDOM from 'react-dom';
 import FeedbackModal from './FeedbackModal';
+import { useMapTheme, type MapTheme } from '../map/mapStyleConfig';
 
 // Simple Settings Modal Component
 const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void; onOpenFeedback: () => void }> = ({ isOpen, onClose, onOpenFeedback }) => {
   const [locationPermissionState, setLocationPermissionState] = useState<PermissionState | 'unsupported'>('prompt');
   const [locationMessage, setLocationMessage] = useState<string | null>(null);
+  const [mapTheme, setMapTheme] = useMapTheme();
 
   useEffect(() => {
     if (!isOpen || typeof navigator === 'undefined' || !navigator.permissions?.query) {
@@ -142,6 +144,25 @@ const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void; onOpenFeed
                 <span className="text-gray-700">Public Profile</span>
                 <input type="checkbox" className="toggle" defaultChecked />
               </div>
+            </div>
+          </div>
+
+          {/* Map Theme */}
+          <div>
+            <h3 className="text-lg font-medium text-gray-900 mb-3">Map</h3>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-gray-700">Map Theme</span>
+                <select
+                  value={mapTheme}
+                  onChange={(e) => setMapTheme(e.target.value as MapTheme)}
+                  className="border border-gray-300 rounded-md px-2 py-1 text-sm focus:outline-none focus:border-primary"
+                >
+                  <option value="pastel">Default (Pastel)</option>
+                  <option value="mono">Monochrome</option>
+                </select>
+              </div>
+              <p className="text-xs text-gray-500">Applies instantly to all maps.</p>
             </div>
           </div>
 

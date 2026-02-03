@@ -16,12 +16,22 @@ export default {
       },
       fontFamily: {
         poppins: ['Poppins', 'sans-serif'],
+        montserrat: ['Montserrat', 'sans-serif'],
         kent: ['KENT', 'sans-serif'],
       },
       borderRadius: {
         'xl': '1rem',
         '2xl': '1.5rem',
-      }
+      },
+      keyframes: {
+        'slide-up': {
+          '0%': { transform: 'translate(-50%, 20px)', opacity: '0' },
+          '100%': { transform: 'translate(-50%, 0)', opacity: '1' },
+        },
+      },
+      animation: {
+        'slide-up': 'slide-up 0.3s ease-out forwards',
+      },
     },
   },
 }

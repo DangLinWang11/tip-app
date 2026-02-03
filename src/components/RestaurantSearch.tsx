@@ -106,8 +106,7 @@ const RestaurantSearch: React.FC<RestaurantSearchProps> = ({
       const service = new google.maps.places.AutocompleteService();
       const request = {
         input: searchText,
-        types: ['restaurant'],
-        componentRestrictions: { country: 'us' }
+        types: ['restaurant']
       };
 
       service.getPlacePredictions(request, (predictions, status) => {

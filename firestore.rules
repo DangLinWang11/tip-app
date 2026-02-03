@@ -25,8 +25,9 @@ service cloud.firestore {
     // Restaurants collection - anyone can read
     match /restaurants/{restaurantId} {
       allow read: if true;
-      // Only admins can create/delete
-      allow create, delete: if isAdminUser();
+      // Authenticated users can create restaurants (needed for review flow); only admins can delete
+      allow create: if authed();
+      allow delete: if isAdminUser();
       // Update: admins can modify anything; non-admins cannot touch ownerIds
       allow update: if authed() && (
         isAdminUser() || (

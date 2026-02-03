@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Camera, Lock, Save, X } from 'lucide-react';
+import { ArrowLeft, Camera, Lock, Save, X, MapPin } from 'lucide-react';
 import { getUserProfile, updateUserProfile, getCurrentUser } from '../lib/firebase';
 import { uploadPhoto } from '../services/reviewService';
 import { getInitials } from '../utils/avatarUtils';
+import { COUNTRIES, CountryData, getCountryByCode } from '../data/countries';
 
 interface EditProfileForm {
   username: string;
@@ -36,6 +37,11 @@ const EditProfile: React.FC = () => {
     avatar: ''
   });
   
+  // Country selection state
+  const [selectedCountry, setSelectedCountry] = useState<CountryData | null>(null);
+  const [showCountryPicker, setShowCountryPicker] = useState(false);
+  const [countryQuery, setCountryQuery] = useState('');
+
   // Profile picture states
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [originalSelectedImage, setOriginalSelectedImage] = useState<File | null>(null);
@@ -73,6 +79,10 @@ const EditProfile: React.FC = () => {
             bio: profile.bio || '',
             avatar: profile.avatar || ''
           });
+          if (profile.homeCountry) {
+            const country = getCountryByCode(profile.homeCountry);
+            if (country) setSelectedCountry(country);
+          }
         } else {
           setError(result.error || 'Failed to load profile');
         }
@@ -282,13 +292,17 @@ const EditProfile: React.FC = () => {
       }
 
       // Update profile
-      const updateData = {
+      const updateData: Record<string, any> = {
         username: formData.username.trim(),
         actualName: formData.actualName.trim(),
         displayName: formData.displayName.trim(),
         bio: formData.bio.trim(),
         avatar: avatarUrl
       };
+      if (selectedCountry) {
+        updateData.homeCountry = selectedCountry.code;
+        updateData.homeCountryName = selectedCountry.name;
+      }
 
       const result = await updateUserProfile(updateData);
       
@@ -319,7 +333,8 @@ const EditProfile: React.FC = () => {
       formData.actualName !== (originalProfile.actualName || '') ||
       formData.displayName !== (originalProfile.displayName || '') ||
       formData.bio !== (originalProfile.bio || '') ||
-      selectedImage !== null
+      selectedImage !== null ||
+      (selectedCountry?.code || '') !== (originalProfile.homeCountry || '')
     );
   };
 
@@ -501,6 +516,62 @@ const EditProfile: React.FC = () => {
               {formData.bio.length}/160 characters
             </p>
           </div>
+        </div>
+
+        {/* Home Country */}
+        <div className="bg-white rounded-xl p-6 mb-4 shadow-sm">
+          <h2 className="text-lg font-semibold mb-4">Home Country</h2>
+          <p className="text-xs text-gray-500 mb-3">
+            Your food map starts here. Change anytime.
+          </p>
+          <button
+            type="button"
+            onClick={() => setShowCountryPicker(!showCountryPicker)}
+            className="w-full flex items-center gap-3 px-3 py-2.5 border border-gray-300 rounded-lg text-left hover:bg-gray-50 transition-colors"
+          >
+            <MapPin size={18} className="text-gray-400" />
+            {selectedCountry ? (
+              <>
+                <span className="text-xl">{selectedCountry.flag}</span>
+                <span className="text-sm font-medium">{selectedCountry.name}</span>
+              </>
+            ) : (
+              <span className="text-sm text-gray-400">Select your home country</span>
+            )}
+          </button>
+          {showCountryPicker && (
+            <div className="mt-2">
+              <input
+                type="text"
+                value={countryQuery}
+                onChange={(e) => setCountryQuery(e.target.value)}
+                placeholder="Search countries..."
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm mb-2 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+              />
+              <div className="max-h-48 overflow-y-auto border border-gray-200 rounded-lg divide-y divide-gray-100">
+                {COUNTRIES
+                  .filter(c => !countryQuery || c.name.toLowerCase().includes(countryQuery.toLowerCase()))
+                  .map(country => (
+                    <button
+                      key={country.code}
+                      type="button"
+                      onClick={() => {
+                        setSelectedCountry(country);
+                        setShowCountryPicker(false);
+                        setCountryQuery('');
+                      }}
+                      className={`w-full flex items-center gap-2 px-3 py-2 text-left text-sm hover:bg-gray-50 ${
+                        selectedCountry?.code === country.code ? 'bg-red-50 font-medium' : ''
+                      }`}
+                    >
+                      <span className="text-lg">{country.flag}</span>
+                      <span>{country.name}</span>
+                    </button>
+                  ))
+                }
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Account Settings */}

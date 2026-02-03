@@ -17,6 +17,8 @@ import {
 } from '../lib/firebase';
 import { uploadPhoto } from '../services/reviewService';
 import { getInitials } from '../utils/avatarUtils';
+import CountrySelector from '../components/CountrySelector';
+import { CountryData } from '../data/countries';
 
 interface OnboardingProps {
   onComplete: () => void;
@@ -38,6 +40,9 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, needsUsernameOnly =
   // Swipe tabs for the auth step
   const [activeTab, setActiveTab] = useState(0);
   const tabsRef = useRef<HTMLDivElement>(null);
+
+  // Country selection state
+  const [selectedCountry, setSelectedCountry] = useState<CountryData | null>(null);
 
   // Profile picture states
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
@@ -295,16 +300,19 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, needsUsernameOnly =
   const handleNext = async () => {
     if (step === 1) {
       await handleAuthentication();
-    } else if (step < 2) {
-      setStep(step + 1);
-    } else {
-      // Final step - create user profile
+    } else if (step === 0) {
+      setStep(1);
+    } else if (step === 2) {
+      // Profile step done → go to country selection
+      setStep(3);
+    } else if (step === 3) {
+      // Final step - create user profile with country
       const currentUser = auth.currentUser;
-      if (currentUser && username.trim()) {
+      if (currentUser && username.trim() && selectedCountry) {
         setIsAuthenticating(true);
-        
+
         let avatarUrl = '';
-        
+
         if (selectedImage) {
           try {
             avatarUrl = await uploadPhoto(selectedImage);
@@ -313,14 +321,16 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, needsUsernameOnly =
             setAuthError('Failed to upload profile picture. Saving other information...');
           }
         }
-        
+
         const result = await createUserProfile(currentUser, {
           username: username.trim().toLowerCase(),
           actualName: actualName.trim(),
           displayName: username.trim(),
-          avatar: avatarUrl
+          avatar: avatarUrl,
+          homeCountry: selectedCountry.code,
+          homeCountryName: selectedCountry.name,
         });
-        
+
         if (result.success) {
           // After profile creation, honor redirect if present
           try {
@@ -341,7 +351,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, needsUsernameOnly =
         } else {
           setAuthError(result.error || 'Error saving profile. Please try again.');
         }
-        
+
         setIsAuthenticating(false);
       }
     }
@@ -595,24 +605,46 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, needsUsernameOnly =
             </div>
           </>
         )}
+
+        {step === 3 && (
+          <>
+            <button
+              type="button"
+              onClick={() => setStep(2)}
+              className="fixed top-4 left-4 z-50 flex items-center gap-1 text-gray-700 min-w-[44px] min-h-[44px]"
+            >
+              <ChevronLeftIcon size={24} />
+              <span className="text-base font-medium">Back</span>
+            </button>
+            <div className="w-full pt-10 flex-1 flex flex-col">
+              <CountrySelector
+                selectedCountry={selectedCountry}
+                onSelect={setSelectedCountry}
+                autoDetect={true}
+              />
+            </div>
+          </>
+        )}
       </div>
 
-      <button 
+      <button
         onClick={handleNext} 
         className="w-full bg-primary text-white py-4 rounded-xl font-medium flex items-center justify-center transition-colors hover:opacity-90 disabled:opacity-50"
         disabled={
           (step === 1 && (!email.trim() || !password.trim() || !isValidEmail(email) || (!isSignInMode && !isValidPassword(password)) || isAuthenticating)) ||
-          (step === 2 && (!username.trim() || !actualName.trim() || isAuthenticating))
+          (step === 2 && (!username.trim() || !actualName.trim() || isAuthenticating)) ||
+          (step === 3 && (!selectedCountry || isAuthenticating))
         }
       >
         {isAuthenticating ? (
           <>
             <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-            {step === 2 ? 'Creating Profile...' : isSignInMode ? 'Signing In...' : 'Creating Account...'}
+            {step === 3 ? 'Creating Profile...' : isSignInMode ? 'Signing In...' : 'Creating Account...'}
           </>
         ) : (
           <>
-            {step === 2 ? 'Get Started' : 
+            {step === 3 ? 'Get Started' :
+             step === 2 ? 'Next' :
              step === 1 ? (isSignInMode ? 'Sign In' : 'Create Account') : 'Next'}
             <ChevronRightIcon size={20} className="ml-1" />
           </>

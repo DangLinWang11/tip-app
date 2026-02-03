@@ -60,6 +60,8 @@ const Home: React.FC = () => {
   const [profileLoading, setProfileLoading] = useState(true);
   const [showExpandedMap, setShowExpandedMap] = useState(false);
   const [authUser, setAuthUser] = useState(() => getCurrentUser());
+  const [showJourneyToast, setShowJourneyToast] = useState(false);
+  const [focusRestaurant, setFocusRestaurant] = useState<{ lat: number; lng: number; id: string; name: string } | null>(null);
 
   // NEW: Non-blocking hydration state
   const [isHydrated, setIsHydrated] = useState(false);
@@ -81,6 +83,21 @@ const Home: React.FC = () => {
   const radius = 16; // progress ring radius (SVG units)
   const circumference = 2 * Math.PI * radius;
   const pullProgress = Math.max(0, Math.min(1, pullY / PULL_TRIGGER));
+
+  // Handle focusRestaurant from post-review navigation
+  useEffect(() => {
+    const state = location.state as { focusRestaurant?: { lat: number; lng: number; id: string; name: string } } | null;
+    if (state?.focusRestaurant) {
+      setFocusRestaurant(state.focusRestaurant);
+      setShowExpandedMap(true);
+      setShowJourneyToast(true);
+      // Clear navigation state to prevent re-triggering on back nav
+      window.history.replaceState({}, document.title);
+      // Auto-dismiss toast after 3 seconds
+      const timer = setTimeout(() => setShowJourneyToast(false), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [location.state]);
 
   // NEW: Non-blocking hydration effect - wait for store to hydrate from localStorage
   useEffect(() => {
@@ -1040,11 +1057,25 @@ const Home: React.FC = () => {
       }>
         <ExpandedMapModal
           isOpen={showExpandedMap}
-          onClose={() => setShowExpandedMap(false)}
+          onClose={() => {
+            setShowExpandedMap(false);
+            setFocusRestaurant(null);
+          }}
           userName={userProfile?.username || userProfile?.displayName || undefined}
           userTierIndex={getTierFromPoints(userStats.pointsEarned).tierIndex}
+          homeCountry={userProfile?.homeCountry}
+          focusRestaurant={focusRestaurant || undefined}
         />
       </React.Suspense>
+
+      {/* Toast notification for post-review map focus */}
+      {showJourneyToast && (
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[200] animate-slide-up">
+          <div className="bg-gray-900 text-white px-6 py-3 rounded-xl shadow-lg text-sm font-medium">
+            Added to your food journey! 🎉
+          </div>
+        </div>
+      )}
     </div>
   );
 };

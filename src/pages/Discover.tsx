@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { FilterIcon, MapPinIcon, StarIcon, Menu } from 'lucide-react';
 import { collection, getDocs, query, where } from 'firebase/firestore';
@@ -31,10 +31,22 @@ interface RestaurantWithExtras extends FirebaseRestaurant {
   };
 }
 
+// Haversine distance in km
+const haversineKm = (a: { lat: number; lng: number }, b: { lat: number; lng: number }): number => {
+  const R = 6371;
+  const dLat = ((b.lat - a.lat) * Math.PI) / 180;
+  const dLng = ((b.lng - a.lng) * Math.PI) / 180;
+  const sinLat = Math.sin(dLat / 2);
+  const sinLng = Math.sin(dLng / 2);
+  const h = sinLat * sinLat + Math.cos((a.lat * Math.PI) / 180) * Math.cos((b.lat * Math.PI) / 180) * sinLng * sinLng;
+  return R * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
+};
+
 const Discover: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [mapType, setMapType] = useState<'restaurant' | 'dish'>('restaurant');
+  const [viewMode, setViewMode] = useState<'nearMe' | 'global'>('nearMe');
   const [searchQuery] = useState('');
   const [restaurants, setRestaurants] = useState<RestaurantWithExtras[]>([]);
   const [dishes, setDishes] = useState<any[]>([]);
@@ -53,6 +65,22 @@ const Discover: React.FC = () => {
     return () => clearTimeout(timer);
   }, []);
 
+  // Auto-request user location on mount for Near Me mode
+  useEffect(() => {
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setUserLocation({
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+          accuracy: position.coords.accuracy ?? undefined,
+        });
+      },
+      () => { /* silently fail */ },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 300000 }
+    );
+  }, []);
+
 
   // Fetch restaurants from Firebase
   useEffect(() => {
@@ -60,10 +88,10 @@ const Discover: React.FC = () => {
       try {
         setLoading(true);
         setError(null);
-        
+
         const restaurantsCollection = collection(db, 'restaurants');
         const restaurantSnapshot = await getDocs(restaurantsCollection);
-        
+
         const restaurantList: RestaurantWithExtras[] = restaurantSnapshot.docs.map((doc, index) => {
           const data = doc.data() as FirebaseRestaurant;
           const coords = (data as any)?.coordinates || {};
@@ -74,10 +102,10 @@ const Discover: React.FC = () => {
 
           // Add mock data for fields not in Firebase yet
           const mockExtras = {
-            rating: 4.0 + Math.random() * 1.0, // Random rating between 4.0-5.0
-            qualityPercentage: 80 + Math.floor(Math.random() * 20), // Random between 80-99
-            distance: `${(0.5 + Math.random() * 2).toFixed(1)} mi`, // Random distance
-            priceRange: ['$', '$$', '$$$'][Math.floor(Math.random() * 3)], // Random price range
+            rating: 4.0 + Math.random() * 1.0,
+            qualityPercentage: 80 + Math.floor(Math.random() * 20),
+            distance: `${(0.5 + Math.random() * 2).toFixed(1)} mi`,
+            priceRange: ['$', '$$', '$$$'][Math.floor(Math.random() * 3)],
             coverImage: `https://images.unsplash.com/photo-${1579684947550 + index}?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80`,
             location: {
               lat: lat,
@@ -91,20 +119,20 @@ const Discover: React.FC = () => {
             ...mockExtras
           };
         }).filter(restaurant => !isNaN(restaurant.location.lat) && !isNaN(restaurant.location.lng));
-        
+
         setRestaurants(restaurantList);
         console.log(`Loaded ${restaurantList.length} restaurants from Firebase`);
-        
+
         // Fetch dishes after restaurants are loaded
         const fetchDishes = async () => {
           try {
             const menuItemsCollection = collection(db, 'menuItems');
             const menuSnapshot = await getDocs(menuItemsCollection);
-            
+
             const dishList = menuSnapshot.docs.map(doc => {
               const menuItem = doc.data();
               const restaurant = restaurantList.find(r => r.id === menuItem.restaurantId);
-              
+
               return {
                 id: doc.id,
                 name: menuItem.name,
@@ -120,13 +148,13 @@ const Discover: React.FC = () => {
                 coverImage: `https://source.unsplash.com/300x200/?${encodeURIComponent(menuItem.name)},food`
               };
             });
-            
+
             setDishes(dishList);
           } catch (error) {
             console.error('Error fetching dishes:', error);
           }
         };
-        
+
         fetchDishes();
       } catch (err: any) {
         console.error('Error fetching restaurants:', err);
@@ -135,21 +163,40 @@ const Discover: React.FC = () => {
         setLoading(false);
       }
     };
-    
+
     fetchRestaurants();
   }, []);
 
   // Filter restaurants based on search query
-  const filteredRestaurants = restaurants.filter(restaurant =>
+  const filteredBySearch = restaurants.filter(restaurant =>
     restaurant.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     restaurant.cuisine.toLowerCase().includes(searchQuery.toLowerCase())
   );
-  
+
+  // Apply distance filtering for Near Me mode (50km radius)
+  const displayRestaurants = useMemo(() => {
+    if (viewMode === 'global') return filteredBySearch;
+    if (!userLocation) return filteredBySearch;
+    return filteredBySearch.filter(r =>
+      haversineKm(userLocation, r.location) <= 50
+    );
+  }, [viewMode, filteredBySearch, userLocation]);
+
   // Filter data based on map type
-  const filteredItems = mapType === 'restaurant' ? filteredRestaurants : dishes.filter(dish => 
-    dish.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+  const filteredItems = mapType === 'restaurant' ? displayRestaurants : dishes.filter(dish =>
+    dish.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     dish.restaurantName.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  // Map center/zoom based on view mode
+  const mapCenter = useMemo(() => {
+    if (viewMode === 'nearMe' && userLocation) {
+      return { lat: userLocation.lat, lng: userLocation.lng };
+    }
+    return { lat: 20, lng: 0 }; // World view for global
+  }, [viewMode, userLocation]);
+
+  const mapZoom = viewMode === 'global' ? 3 : 12;
 
   // Location button handler
   const handleLocationRequest = () => {
@@ -163,7 +210,6 @@ const Discover: React.FC = () => {
         const { latitude, longitude } = position.coords;
         const newLocation = { lat: latitude, lng: longitude, accuracy: position.coords.accuracy ?? undefined };
         setUserLocation(newLocation);
-        console.log('User location:', latitude, longitude);
       },
       (error) => {
         switch (error.code) {
@@ -193,7 +239,7 @@ const Discover: React.FC = () => {
   return (
     <div className="flex flex-col h-screen bg-white">
       <header className="bg-white fixed top-0 left-0 right-0 z-50 px-4 py-3 shadow-sm" style={{overscrollBehavior: 'none', touchAction: 'none'}}>
-        <div className="flex items-center mb-4 gap-3">
+        <div className="flex items-center mb-3 gap-3">
           <div className="flex-1">
             <DiscoverSearchBar
               userLocation={userLocation}
@@ -210,12 +256,32 @@ const Discover: React.FC = () => {
             <Menu size={20} className="text-dark-gray" />
           </button>
         </div>
-        
+
+        {/* Near Me / Global Toggle */}
+        <div className="flex mx-4 mb-2">
+          <button
+            className={`flex-1 py-1.5 text-sm text-center rounded-l-full font-medium transition-colors ${
+              viewMode === 'nearMe' ? 'bg-primary text-white' : 'bg-light-gray text-gray-600'
+            }`}
+            onClick={() => setViewMode('nearMe')}
+          >
+            Near Me
+          </button>
+          <button
+            className={`flex-1 py-1.5 text-sm text-center rounded-r-full font-medium transition-colors ${
+              viewMode === 'global' ? 'bg-primary text-white' : 'bg-light-gray text-gray-600'
+            }`}
+            onClick={() => setViewMode('global')}
+          >
+            Global
+          </button>
+        </div>
+
         {/* Restaurant Map | Dish Map Toggle */}
         <div className="flex mx-4 mb-2">
           <button
             className={`flex-1 py-1 text-sm text-center rounded-l-full ${
-              mapType === 'restaurant' ? 'bg-primary text-white' : 'bg-light-gray'
+              mapType === 'restaurant' ? 'bg-gray-800 text-white' : 'bg-light-gray'
             }`}
             onClick={() => setMapType('restaurant')}
           >
@@ -223,7 +289,7 @@ const Discover: React.FC = () => {
           </button>
           <button
             className={`flex-1 py-1 text-sm text-center rounded-r-full ${
-              mapType === 'dish' ? 'bg-primary text-white' : 'bg-light-gray'
+              mapType === 'dish' ? 'bg-gray-800 text-white' : 'bg-light-gray'
             }`}
             onClick={() => setMapType('dish')}
           >
@@ -236,16 +302,20 @@ const Discover: React.FC = () => {
       <div className="flex-1 relative z-10 -mt-[10px]">
         <div className="h-full relative">
           {mapReady ? (
-            <RestaurantMap 
-              mapType={mapType} 
-              restaurants={filteredRestaurants} 
-              dishes={dishes} 
-              userLocation={userLocation} 
-              onRestaurantClick={(id) => navigate(`/restaurant/${id}`)} 
+            <RestaurantMap
+              key={viewMode} // Force remount when switching view mode
+              mapType={mapType}
+              restaurants={displayRestaurants}
+              dishes={dishes}
+              userLocation={userLocation}
+              onRestaurantClick={(id) => navigate(`/restaurant/${id}`)}
               onDishClick={(id) => navigate(`/dish/${id}`)}
               focusRestaurantId={new URLSearchParams(location.search).get('focusRestaurantId') || undefined}
               showGoogleControl={false}
               myLocationButtonOffset={80}
+              initialCenter={mapCenter}
+              initialZoom={mapZoom}
+              useClusterer={viewMode === 'global'}
             />
           ) : (
             <div className="flex-1 flex items-center justify-center h-full">
@@ -264,8 +334,8 @@ const Discover: React.FC = () => {
               <div className="text-center bg-white rounded-xl shadow px-4 py-3">
                 <p className="text-red-600 font-medium">Error loading restaurants</p>
                 <p className="text-red-500 text-sm">{error}</p>
-                <button 
-                  onClick={() => window.location.reload()} 
+                <button
+                  onClick={() => window.location.reload()}
                   className="mt-2 px-4 py-2 bg-primary text-white rounded-lg text-sm"
                 >
                   Retry
@@ -274,7 +344,6 @@ const Discover: React.FC = () => {
             </div>
           )}
         </div>
-        {/* Removed duplicate location button — using the one inside RestaurantMap */}
       </div>
     </div>
   );

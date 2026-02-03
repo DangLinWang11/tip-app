@@ -1,22 +1,94 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Globe2, X, ChevronDown } from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
 import RestaurantMap from './RestaurantMap';
 import UserRestaurantModal from './UserRestaurantModal';
 import { getUserVisitedRestaurants, UserVisitedRestaurant } from '../services/reviewService';
+import { CountryData, getCountryByCode, getCountryCentroid } from '../data/countries';
+import { getCountryFromCoordinates } from '../utils/reverseGeocode';
+import CountrySelector from './CountrySelector';
+
+interface FocusRestaurant {
+  lat: number;
+  lng: number;
+  id: string;
+  name: string;
+}
+
 interface UserJourneyMapProps {
   className?: string;
   showLegend?: boolean;
   showControls?: boolean; // show fullscreen + my-location controls
   userId?: string; // optional userId to view other users' maps
+  userName?: string;
+  userTierIndex?: number;
+  allowHomeCountryOverride?: boolean;
+  onClose?: () => void;
+  onBack?: () => void;
+  homeCountry?: string; // ISO country code from user profile
+  focusRestaurant?: FocusRestaurant; // restaurant to focus on after review creation
 }
 
-const UserJourneyMap: React.FC<UserJourneyMapProps> = ({ className = '', showLegend = false, showControls = true, userId }) => {
+const HOME_COUNTRY_STORAGE_KEY = 'tip.homeCountry';
+
+const UserJourneyMap: React.FC<UserJourneyMapProps> = ({
+  className = '',
+  showLegend = false,
+  showControls = true,
+  userId,
+  userName,
+  userTierIndex,
+  allowHomeCountryOverride = true,
+  onClose,
+  onBack,
+  homeCountry,
+  focusRestaurant
+}) => {
   const navigate = useNavigate();
   const [visitedRestaurants, setVisitedRestaurants] = useState<UserVisitedRestaurant[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedRestaurant, setSelectedRestaurant] = useState<UserVisitedRestaurant | null>(null);
   const [showModal, setShowModal] = useState(false);
+  const [deviceCountry, setDeviceCountry] = useState<string | null>(null);
+  const [homeCountryOverride, setHomeCountryOverride] = useState<string | null>(null);
+  const [countryPickerOpen, setCountryPickerOpen] = useState(false);
+  const [mapZoom, setMapZoom] = useState<number>(2);
+
+  useEffect(() => {
+    if (!allowHomeCountryOverride || typeof window === 'undefined') return;
+    const stored = window.localStorage.getItem(HOME_COUNTRY_STORAGE_KEY);
+    if (stored) setHomeCountryOverride(stored);
+  }, [allowHomeCountryOverride]);
+
+  const effectiveHomeCountry = homeCountryOverride || homeCountry || null;
+  const homeCountryData = useMemo<CountryData | null>(() => {
+    if (!effectiveHomeCountry) return null;
+    return getCountryByCode(effectiveHomeCountry) || null;
+  }, [effectiveHomeCountry]);
+
+  // Detect device country as fallback (only if no homeCountry and no reviews)
+  useEffect(() => {
+    if (effectiveHomeCountry) return;
+    if (!navigator.geolocation) return;
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        try {
+          const result = await getCountryFromCoordinates(
+            position.coords.latitude,
+            position.coords.longitude
+          );
+          if (result) setDeviceCountry(result.code);
+        } catch {
+          // Silently fail
+        }
+      },
+      () => { /* denied or failed */ },
+      { timeout: 8000, maximumAge: 300000 }
+    );
+  }, [effectiveHomeCountry]);
 
   // Load user's visited restaurants on component mount
   useEffect(() => {
@@ -27,10 +99,10 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({ className = '', showLeg
 
         const restaurants = await getUserVisitedRestaurants(userId);
         setVisitedRestaurants(restaurants);
-        
-        console.log(`✅ Loaded ${restaurants.length} visited restaurants for user journey map`);
+
+        console.log(`Loaded ${restaurants.length} visited restaurants for user journey map`);
       } catch (err) {
-        console.error('❌ Error loading visited restaurants:', err);
+        console.error('Error loading visited restaurants:', err);
         setError('Failed to load your restaurant visits');
       } finally {
         setLoading(false);
@@ -40,17 +112,153 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({ className = '', showLeg
     loadVisitedRestaurants();
   }, [userId]);
 
+  // Compute country stats from visited restaurants
+  const countryStats = useMemo(() => {
+    const countryMap = new Map<string, { count: number; lats: number[]; lngs: number[] }>();
+
+    visitedRestaurants.forEach((r) => {
+      if (!r.countryCode) return;
+      const existing = countryMap.get(r.countryCode);
+      if (existing) {
+        existing.count++;
+        existing.lats.push(r.location.lat);
+        existing.lngs.push(r.location.lng);
+      } else {
+        countryMap.set(r.countryCode, {
+          count: 1,
+          lats: [r.location.lat],
+          lngs: [r.location.lng],
+        });
+      }
+    });
+
+    const stats: Array<{
+      code: string;
+      name: string;
+      flag: string;
+      count: number;
+      lat: number;
+      lng: number;
+      bounds?: google.maps.LatLngBounds;
+    }> = [];
+
+    countryMap.forEach((data, code) => {
+      const countryInfo = getCountryByCode(code);
+      if (!countryInfo) return;
+      const centroid = getCountryCentroid(code);
+      if (!centroid) return;
+
+      // Compute LatLngBounds for fitBounds on click
+      // Note: LatLngBounds is constructed lazily since google.maps may not be loaded yet
+      // We store the raw coords and build bounds in RestaurantMap where google.maps is available
+      stats.push({
+        code,
+        name: countryInfo.name,
+        flag: countryInfo.flag,
+        count: data.count,
+        lat: centroid.lat,
+        lng: centroid.lng,
+      });
+    });
+
+    return stats;
+  }, [visitedRestaurants]);
+
+  // Compute raw bounds data per country (lat/lng arrays) for constructing google.maps.LatLngBounds
+  const countryBoundsData = useMemo(() => {
+    const boundsMap = new Map<string, { lats: number[]; lngs: number[] }>();
+    visitedRestaurants.forEach((r) => {
+      if (!r.countryCode) return;
+      const existing = boundsMap.get(r.countryCode);
+      if (existing) {
+        existing.lats.push(r.location.lat);
+        existing.lngs.push(r.location.lng);
+      } else {
+        boundsMap.set(r.countryCode, { lats: [r.location.lat], lngs: [r.location.lng] });
+      }
+    });
+    return boundsMap;
+  }, [visitedRestaurants]);
+
+  // Build countryStats with bounds (needs google.maps.LatLngBounds which is only available after map loads)
+  // We'll pass the raw data and let RestaurantMap construct the bounds
+  const countryStatsWithBoundsData = useMemo(() => {
+    return countryStats.map((stat) => {
+      const boundsData = countryBoundsData.get(stat.code);
+      return {
+        ...stat,
+        _boundsLats: boundsData?.lats || [],
+        _boundsLngs: boundsData?.lngs || [],
+      };
+    });
+  }, [countryStats, countryBoundsData]);
+
+  // Compute map center using fallback chain:
+  // 0. focusRestaurant → 1. homeCountry → 2. most-visited country → 3. device location country → 4. world view
+  const { mapCenter, mapZoom: initialZoom } = useMemo(() => {
+    // 0. Focus on specific restaurant (post-review)
+    if (focusRestaurant) {
+      return { mapCenter: { lat: focusRestaurant.lat, lng: focusRestaurant.lng }, mapZoom: 13 };
+    }
+
+    // 1. homeCountry
+    if (effectiveHomeCountry) {
+      const centroid = getCountryCentroid(effectiveHomeCountry);
+      if (centroid) return { mapCenter: centroid, mapZoom: 5 };
+    }
+
+    // 2. Most-visited country from restaurants
+    if (countryStats.length > 0) {
+      const mostVisited = countryStats.reduce((prev, curr) =>
+        curr.count > prev.count ? curr : prev
+      );
+      return { mapCenter: { lat: mostVisited.lat, lng: mostVisited.lng }, mapZoom: 5 };
+    }
+
+    // 3. Device location country
+    if (deviceCountry) {
+      const centroid = getCountryCentroid(deviceCountry);
+      if (centroid) return { mapCenter: centroid, mapZoom: 5 };
+    }
+
+    // 4. World view fallback
+    return { mapCenter: { lat: 20, lng: 0 }, mapZoom: 2 };
+  }, [focusRestaurant, effectiveHomeCountry, countryStats, deviceCountry]);
+
+  useEffect(() => {
+    setMapZoom(initialZoom);
+  }, [initialZoom]);
+
+  const isCollapsedHeader = mapZoom >= 6;
+  const selectedCountryLabel = homeCountryData ? `${homeCountryData.flag} ${homeCountryData.name}` : 'Set home country';
+  const mapRestriction = useMemo<google.maps.MapRestriction>(() => ({
+    latLngBounds: { north: 85, south: -85, west: -180, east: 180 },
+    strictBounds: false
+  }), []);
+
+  const stats = useMemo(() => {
+    const places = visitedRestaurants.length;
+    const countries = countryStats.length;
+    const dates = visitedRestaurants
+      .map(r => Date.parse(r.lastVisit))
+      .filter((value) => Number.isFinite(value));
+    const since = dates.length > 0 ? new Date(Math.min(...dates)).getFullYear() : null;
+    return { places, countries, since };
+  }, [visitedRestaurants, countryStats]);
+
+  const handleCountrySelect = (country: CountryData) => {
+    if (!allowHomeCountryOverride || typeof window === 'undefined') return;
+    setHomeCountryOverride(country.code);
+    window.localStorage.setItem(HOME_COUNTRY_STORAGE_KEY, country.code);
+    setCountryPickerOpen(false);
+  };
+
   // Handle restaurant pin click
   const handleRestaurantClick = (restaurantId: string) => {
-    console.log(`🏪 Restaurant pin clicked: ${restaurantId}`);
-    
-    // Find the restaurant data
     const restaurant = visitedRestaurants.find(r => r.id === restaurantId);
     if (restaurant) {
       setSelectedRestaurant(restaurant);
       setShowModal(true);
-    } else {
-      console.warn(`⚠️ Restaurant not found for ID: ${restaurantId}`);
     }
   };
 
@@ -68,7 +276,7 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({ className = '', showLeg
     location: restaurant.location,
     cuisine: restaurant.cuisine,
     rating: restaurant.averageRating,
-    priceRange: '$', // Default since we don't track this per user visit
+    priceRange: '$',
     visitCount: restaurant.visitCount,
   }));
 
@@ -95,8 +303,8 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({ className = '', showLeg
           </div>
           <h3 className="text-lg font-semibold text-red-900 mb-2">Unable to Load Map</h3>
           <p className="text-red-600 mb-4">{error}</p>
-          <button 
-            onClick={() => window.location.reload()} 
+          <button
+            onClick={() => window.location.reload()}
             className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
           >
             Try Again
@@ -109,20 +317,22 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({ className = '', showLeg
   // Empty state - user has no restaurant visits
   if (visitedRestaurants.length === 0) {
     return (
-      <div className={`${className} flex items-center justify-center bg-gray-50 rounded-lg`}>
-        <div className="text-center p-8">
-          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <span className="text-gray-400 text-2xl">🗺️</span>
+      <div className={`${className} flex items-center justify-center bg-gray-100 rounded-xl`}>
+        <div className="text-center p-10">
+          <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-5 shadow-sm">
+            <Globe2 className="w-10 h-10 text-gray-400" />
           </div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">No Restaurant Visits Yet</h3>
-          <p className="text-gray-600 mb-6 max-w-sm mx-auto">
-            Start reviewing restaurants to see your food journey on the map!
+          <h3 className="text-xl font-bold text-gray-900 mb-2 font-montserrat">
+            Your food journey starts here!
+          </h3>
+          <p className="text-gray-500 mb-6 max-w-xs mx-auto text-sm font-poppins">
+            Rate your first dish to see it on the map
           </p>
-          <button 
-            onClick={() => navigate('/create')} 
-            className="px-6 py-3 bg-primary text-white rounded-lg hover:bg-red-600 transition-colors font-medium"
+          <button
+            onClick={() => navigate('/create')}
+            className="px-8 py-3 bg-primary text-white rounded-xl hover:bg-red-600 transition-colors font-semibold font-montserrat shadow-sm"
           >
-            Add Your First Review
+            Start Rating
           </button>
         </div>
       </div>
@@ -132,56 +342,55 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({ className = '', showLeg
   // Main map display
   return (
     <>
-      <div className={`${className} relative`}>
+      <div className={`${className} relative overflow-hidden rounded-2xl bg-white`}>
         <RestaurantMap
           mapType="restaurant"
           restaurants={mapRestaurants}
           onRestaurantClick={handleRestaurantClick}
+          onZoomChanged={setMapZoom}
           showQualityPercentages={false}
           className="w-full h-full"
           showMyLocationButton={showControls}
           showGoogleControl={false}
+          initialCenter={mapCenter}
+          initialZoom={initialZoom}
+          countryStats={countryStatsWithBoundsData}
+          focusRestaurantId={focusRestaurant?.id}
+          mapRestriction={mapRestriction}
+          minZoom={2}
+          maxZoom={18}
         />
-        {showLegend && (() => {
-          const count = visitedRestaurants.length;
-          let gStart = '#FF6B6B', gEnd = '#EE2D2D';
-          if (count >= 51) { gStart = '#E53935'; gEnd = '#B71C1C'; }
-          else if (count >= 11) { gStart = '#FF5252'; gEnd = '#E53935'; }
-          const displayText = count >= 100 ? '99+' : `${count}`;
-          const fSize = displayText.length >= 3 ? 10 : displayText.length === 2 ? 12 : 13;
-          return (
-            <div className="absolute bottom-4 left-4 z-10">
-              <div className="bg-white rounded-lg shadow-lg px-3 py-2.5 flex items-center space-x-2.5">
-                <div className="flex items-center justify-center" style={{ width: 32, height: 38 }}>
+
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-white/95 via-white/50 to-transparent" />
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-white/90 via-white/40 to-transparent" />
+
+        <AnimatePresence>
+          {showLegend && stats.places > 0 && (
+            <motion.button
+              key={`journey-stats-${stats.places}-${stats.countries}`}
+              type="button"
+              initial={{ opacity: 0, y: 12, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 8, scale: 0.98 }}
+              transition={{ type: 'spring', stiffness: 260, damping: 26 }}
+              className="absolute bottom-4 left-4 z-20 pointer-events-auto"
+            >
+              <div className="rounded-2xl bg-white/90 backdrop-blur-xl shadow-[0_12px_28px_rgba(0,0,0,0.18)] border border-white/70 px-4 py-3 flex items-center gap-3">
+                <div className="flex items-center justify-center w-10 h-12">
                   <svg width="32" height="38" viewBox="0 0 24 34" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <defs>
-                      <linearGradient id="legend_grad" x1="12" y1="2" x2="12" y2="30" gradientUnits="userSpaceOnUse">
-                        <stop offset="0%" stopColor={gStart}/>
-                        <stop offset="100%" stopColor={gEnd}/>
+                      <linearGradient id="journey_grad" x1="12" y1="2" x2="12" y2="30" gradientUnits="userSpaceOnUse">
+                        <stop offset="0%" stopColor="#FF6B6B"/>
+                        <stop offset="100%" stopColor="#EE2D2D"/>
                       </linearGradient>
-                      <radialGradient id="legend_depth" cx="40%" cy="35%" r="70%">
+                      <radialGradient id="journey_depth" cx="40%" cy="35%" r="70%">
                         <stop offset="0%" stopColor="white" stopOpacity="0.12" />
                         <stop offset="100%" stopColor="white" stopOpacity="0" />
                       </radialGradient>
-                      <radialGradient id="legend_shine" cx="0%" cy="0%" r="100%">
+                      <radialGradient id="journey_shine" cx="0%" cy="0%" r="100%">
                         <stop offset="0%" stopColor="white" stopOpacity="0.6" />
                         <stop offset="100%" stopColor="white" stopOpacity="0" />
                       </radialGradient>
-                      <filter id="legend_shadow" x="-10%" y="-10%" width="120%" height="140%">
-                        <feOffset dx="0" dy="3" />
-                        <feGaussianBlur stdDeviation="2" />
-                        <feColorMatrix type="matrix" values="0 0 0 0 0
-                                                             0 0 0 0 0
-                                                             0 0 0 0 0
-                                                             0 0 0 0.2 0" />
-                        <feMerge>
-                          <feMergeNode />
-                          <feMergeNode in="SourceGraphic" />
-                        </feMerge>
-                      </filter>
-                      <filter id="legend_text_shadow" x="-50%" y="-50%" width="200%" height="200%">
-                        <feDropShadow dx="0" dy="1" stdDeviation="1" floodColor="#000000" floodOpacity="0.12" />
-                      </filter>
                     </defs>
                     <path
                       d="M 12 2
@@ -189,30 +398,174 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({ className = '', showLeg
                          C 2 17.5, 12 30, 12 30
                          C 12 30, 22 17.5, 22 12
                          C 22 6.5, 17.5 2, 12 2 Z"
-                      fill="black"
-                      opacity="1"
-                      filter="url(#legend_shadow)"
-                    />
-                    <path
-                      d="M 12 2
-                         C 6.5 2, 2 6.5, 2 12
-                         C 2 17.5, 12 30, 12 30
-                         C 12 30, 22 17.5, 22 12
-                         C 22 6.5, 17.5 2, 12 2 Z"
-                      fill="url(#legend_grad)"
+                      fill="url(#journey_grad)"
                       stroke="white"
                       strokeWidth="2.25"
                     />
-                    <circle cx="12" cy="12" r="10" fill="url(#legend_depth)" />
-                    <circle cx="9.2" cy="7.6" r="2.6" fill="url(#legend_shine)" />
-                    <text x="12" y="12" fontFamily="'Poppins', sans-serif" fontSize={fSize} fontWeight="800" textAnchor="middle" dominantBaseline="central" fill="#FFFFFF" filter="url(#legend_text_shadow)">{displayText}</text>
+                    <circle cx="12" cy="12" r="10" fill="url(#journey_depth)" />
+                    <circle cx="9.2" cy="7.6" r="2.6" fill="url(#journey_shine)" />
+                    <text x="12" y="12" fontFamily="'Poppins', sans-serif" fontSize="12" fontWeight="800" textAnchor="middle" dominantBaseline="central" fill="#FFFFFF">{stats.places >= 100 ? '99+' : stats.places}</text>
                   </svg>
                 </div>
-                <span className="text-gray-800 font-medium text-sm">Visited Restaurants</span>
+                <div className="flex flex-col items-start text-left">
+                  <span className="text-xs uppercase tracking-[0.18em] text-gray-400">Journey Stats</span>
+                  <span className="text-sm font-semibold text-gray-800">🍽 {stats.places} places · 🌍 {stats.countries} countries</span>
+                  {stats.since && (
+                    <span className="text-xs text-gray-500">🏁 since {stats.since}</span>
+                  )}
+                </div>
               </div>
-            </div>
-          );
-        })()}
+            </motion.button>
+          )}
+        </AnimatePresence>
+
+        <div className="absolute top-4 left-4 right-4 z-30 pointer-events-none">
+          <AnimatePresence mode="wait">
+            {!isCollapsedHeader && (
+              <motion.div
+                key="journey-header-expanded"
+                initial={{ opacity: 0, y: -12, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -8, scale: 0.98 }}
+                transition={{ type: 'spring', stiffness: 260, damping: 26 }}
+                className="pointer-events-auto"
+              >
+                <div className="flex items-center justify-between rounded-3xl bg-white/92 backdrop-blur-xl shadow-[0_20px_40px_rgba(15,23,42,0.2)] border border-white/70 px-4 py-3">
+                  <div className="flex items-center gap-3">
+                    {onBack && (
+                      <button
+                        onClick={onBack}
+                        className="h-9 w-9 rounded-full bg-white shadow-sm border border-gray-100 flex items-center justify-center"
+                        aria-label="Go back"
+                      >
+                        <span className="text-lg">←</span>
+                      </button>
+                    )}
+                    <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-rose-500 to-red-600 text-white flex items-center justify-center font-semibold text-lg shadow-md">
+                      {(userName || 'You').slice(0, 1).toUpperCase()}
+                    </div>
+                    <div>
+                      <p className="text-xs uppercase tracking-[0.22em] text-gray-400">Food Journey</p>
+                      <div className="flex items-center gap-2">
+                        <h2 className="text-lg font-semibold text-gray-900 leading-tight">
+                          {userName ? `${userName}'s passport` : 'Your passport'}
+                        </h2>
+                        {typeof userTierIndex === 'number' && (
+                          <span className="text-[10px] uppercase tracking-[0.18em] text-rose-500 bg-rose-50 border border-rose-100 px-2 py-0.5 rounded-full">
+                            Tier {userTierIndex}
+                          </span>
+                        )}
+                      </div>
+                      {allowHomeCountryOverride ? (
+                        <button
+                          type="button"
+                          onClick={() => setCountryPickerOpen(true)}
+                          className="mt-1 inline-flex items-center gap-1 text-sm text-gray-600 hover:text-gray-900"
+                        >
+                          <span>{selectedCountryLabel}</span>
+                          <ChevronDown className="w-4 h-4" />
+                        </button>
+                      ) : (
+                        <span className="mt-1 inline-flex items-center text-sm text-gray-600">
+                          {selectedCountryLabel}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  {onClose && (
+                    <button
+                      onClick={onClose}
+                      className="h-9 w-9 rounded-full bg-white shadow-sm border border-gray-100 flex items-center justify-center"
+                      aria-label="Close map"
+                    >
+                      <X className="w-4 h-4 text-gray-600" />
+                    </button>
+                  )}
+                </div>
+              </motion.div>
+            )}
+            {isCollapsedHeader && (
+              <motion.div
+                key="journey-header-collapsed"
+                initial={{ opacity: 0, y: -8, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -6, scale: 0.98 }}
+                transition={{ type: 'spring', stiffness: 260, damping: 26 }}
+                className="pointer-events-auto flex items-center justify-between"
+              >
+                <div className="inline-flex items-center gap-2 rounded-full bg-white/95 backdrop-blur-xl shadow-[0_16px_30px_rgba(15,23,42,0.18)] border border-white/70 px-3 py-2">
+                  <div className="h-8 w-8 rounded-full bg-gradient-to-br from-rose-500 to-red-600 text-white flex items-center justify-center text-sm font-semibold">
+                    {(userName || 'You').slice(0, 1).toUpperCase()}
+                  </div>
+                  <div className="flex flex-col leading-tight">
+                    <span className="text-xs text-gray-400 uppercase tracking-[0.18em]">Journey</span>
+                    <span className="text-sm font-semibold text-gray-800">{homeCountryData?.name || 'Food map'}</span>
+                  </div>
+                  {allowHomeCountryOverride ? (
+                    <button
+                      type="button"
+                      onClick={() => setCountryPickerOpen(true)}
+                      className="ml-1 text-sm text-gray-600"
+                    >
+                      {homeCountryData?.flag || '🌍'}
+                    </button>
+                  ) : (
+                    <span className="ml-1 text-sm text-gray-600">
+                      {homeCountryData?.flag || '🌍'}
+                    </span>
+                  )}
+                </div>
+                {onClose && (
+                  <button
+                    onClick={onClose}
+                    className="h-9 w-9 rounded-full bg-white/90 shadow-sm border border-white/70 flex items-center justify-center"
+                    aria-label="Close map"
+                  >
+                    <X className="w-4 h-4 text-gray-600" />
+                  </button>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
+        <AnimatePresence>
+          {countryPickerOpen && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 z-40 flex items-center justify-center bg-black/40 backdrop-blur-sm"
+            >
+              <motion.div
+                initial={{ y: 24, opacity: 0, scale: 0.98 }}
+                animate={{ y: 0, opacity: 1, scale: 1 }}
+                exit={{ y: 16, opacity: 0, scale: 0.98 }}
+                transition={{ type: 'spring', stiffness: 260, damping: 26 }}
+                className="w-[90%] max-w-md max-h-[80vh] bg-white rounded-3xl shadow-2xl p-5"
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.2em] text-gray-400">Home Country</p>
+                    <h3 className="text-lg font-semibold text-gray-900">Where do you eat most?</h3>
+                  </div>
+                  <button
+                    onClick={() => setCountryPickerOpen(false)}
+                    className="h-9 w-9 rounded-full bg-gray-100 flex items-center justify-center"
+                    aria-label="Close selector"
+                  >
+                    <X className="w-4 h-4 text-gray-600" />
+                  </button>
+                </div>
+                <CountrySelector
+                  selectedCountry={homeCountryData}
+                  onSelect={handleCountrySelect}
+                  autoDetect={!homeCountryData}
+                />
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* Restaurant Details Modal */}

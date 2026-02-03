@@ -10,6 +10,8 @@ export interface UserProfile {
   displayName?: string;
   photoURL?: string;
   bio?: string;
+  homeCountry?: string;
+  homeCountryName?: string;
   stats?: {
     totalRestaurants?: number;
     totalDishes?: number;
@@ -88,6 +90,8 @@ export const useUserStore = create<UserState>()(
               displayName: result.profile.displayName,
               photoURL: result.profile.photoURL,
               bio: result.profile.bio,
+              homeCountry: result.profile.homeCountry,
+              homeCountryName: result.profile.homeCountryName,
               stats: result.profile.stats,
               createdAt: result.profile.createdAt,
               updatedAt: result.profile.updatedAt,

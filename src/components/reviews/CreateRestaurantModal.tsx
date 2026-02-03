@@ -4,6 +4,8 @@ import { X, MapPin, Loader2 } from 'lucide-react';
 import LocationPickerModal from '../LocationPickerModal';
 import { db } from '../../lib/firebase';
 import { useI18n } from '../../lib/i18n/useI18n';
+import { getCountryFromCoordinates } from '../../utils/reverseGeocode';
+import { validateCoordinates } from '../../utils/validateCoordinates';
 
 export interface RestaurantRecord {
   id: string;
@@ -17,6 +19,8 @@ export interface RestaurantRecord {
   googlePlaceId?: string;
   source?: 'manual' | 'google_places';
   qualityScore?: number | null;
+  countryCode?: string;
+  countryName?: string;
 }
 
 interface CreateRestaurantModalProps {
@@ -38,25 +42,32 @@ const CreateRestaurantModal: React.FC<CreateRestaurantModalProps> = ({
   const [name, setName] = useState(defaultName);
   const [address, setAddress] = useState('');
   const [coordinates, setCoordinates] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [locationConfirmed, setLocationConfirmed] = useState<{ label: string; code?: string } | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showMap, setShowMap] = useState(false);
+  const [locationMode, setLocationMode] = useState<'search' | 'pin'>('search');
 
   React.useEffect(() => {
     if (isOpen) {
       setName(defaultName);
       setAddress('');
       setCoordinates(null);
+      setLocationConfirmed(null);
       setError(null);
       setIsSubmitting(false);
+      setLocationMode('search');
     }
   }, [isOpen, defaultName]);
 
+  const coordinateCheck = useMemo(() => validateCoordinates(
+    coordinates ? { latitude: coordinates.latitude, longitude: coordinates.longitude } : null
+  ), [coordinates]);
+
   const canSubmit = useMemo(() => {
     const hasValidName = name.trim().length > 2;
-    const hasAddressOrLocation = address.trim().length > 0 || coordinates !== null;
-    return hasValidName && hasAddressOrLocation;
-  }, [name, address, coordinates]);
+    return hasValidName && coordinateCheck.valid;
+  }, [name, coordinateCheck]);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -66,7 +77,33 @@ const CreateRestaurantModal: React.FC<CreateRestaurantModalProps> = ({
       setIsSubmitting(true);
       setError(null);
 
-      const payload = {
+      const coordCheck = validateCoordinates(
+        coordinates ? { latitude: coordinates.latitude, longitude: coordinates.longitude } : null
+      );
+      if (!coordCheck.valid) {
+        throw new Error('Choose a location (search a place or drop a pin)');
+      }
+
+      // Reverse geocode to get country if coordinates available
+      let countryCode = '';
+      let countryName = '';
+      if (coordinates) {
+        try {
+          const countryResult = await getCountryFromCoordinates(coordinates.latitude, coordinates.longitude);
+          if (countryResult) {
+            countryCode = countryResult.code;
+            countryName = countryResult.name;
+            setLocationConfirmed({
+              label: `Location set ✓ ${countryResult.name}`,
+              code: countryResult.code
+            });
+          }
+        } catch {
+          // Non-blocking: country detection is best-effort
+        }
+      }
+
+      const payload: Record<string, any> = {
         name: name.trim(),
         address: address.trim() || null,
         coordinates: coordinates
@@ -82,6 +119,10 @@ const CreateRestaurantModal: React.FC<CreateRestaurantModalProps> = ({
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
       };
+      if (countryCode) {
+        payload.countryCode = countryCode;
+        payload.countryName = countryName;
+      }
 
       const docRef = await addDoc(collection(db, 'restaurants'), payload);
       onCreated({
@@ -89,7 +130,9 @@ const CreateRestaurantModal: React.FC<CreateRestaurantModalProps> = ({
         name: payload.name,
         address: payload.address || undefined,
         cuisines: undefined,
-        coordinates: payload.coordinates || undefined
+        coordinates: payload.coordinates || undefined,
+        countryCode: countryCode || undefined,
+        countryName: countryName || undefined,
       });
       onClose();
     } catch (err) {
@@ -101,6 +144,14 @@ const CreateRestaurantModal: React.FC<CreateRestaurantModalProps> = ({
   };
 
   if (!isOpen) return null;
+
+  // QA checklist:
+  // - Cannot save without coords
+  // - Dropping a pin sets coords correctly
+  // - Searching a place sets coords correctly
+  // - Invalid lng/lat blocked
+  // - 0,0 blocked
+  // - Works on desktop + mobile PWA
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
@@ -144,8 +195,32 @@ const CreateRestaurantModal: React.FC<CreateRestaurantModalProps> = ({
           </div>
           <div>
             <label className="block text-sm font-medium text-slate-600 mb-2">
-              {t('basic.labels.location')} {!address.trim() && <span className="text-red-500">*</span>}
+              {t('basic.labels.location')} <span className="text-red-500">*</span>
             </label>
+            <div className="flex items-center gap-2 mb-3">
+              <button
+                type="button"
+                onClick={() => setLocationMode('search')}
+                className={`rounded-full px-3 py-1 text-xs font-medium border ${
+                  locationMode === 'search'
+                    ? 'border-red-300 bg-red-50 text-red-600'
+                    : 'border-slate-200 text-slate-500 hover:border-red-200'
+                }`}
+              >
+                Search for a place
+              </button>
+              <button
+                type="button"
+                onClick={() => setLocationMode('pin')}
+                className={`rounded-full px-3 py-1 text-xs font-medium border ${
+                  locationMode === 'pin'
+                    ? 'border-red-300 bg-red-50 text-red-600'
+                    : 'border-slate-200 text-slate-500 hover:border-red-200'
+                }`}
+              >
+                Drop a pin
+              </button>
+            </div>
             <div className="flex items-center gap-3">
               <button
                 type="button"
@@ -161,10 +236,22 @@ const CreateRestaurantModal: React.FC<CreateRestaurantModalProps> = ({
                 </span>
               ) : (
                 <span className="text-xs text-slate-400">
-                  {address.trim() ? t('basic.helpers.locationOptional') : 'Required if no address provided'}
+                  {locationMode === 'search'
+                    ? 'Use the search above to select a Google place'
+                    : 'Required: drop a pin on the map'}
                 </span>
               )}
             </div>
+            {locationConfirmed && (
+              <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs text-emerald-700">
+                <span>{locationConfirmed.label}</span>
+              </div>
+            )}
+            {!coordinateCheck.valid && name.trim().length > 2 && (
+              <p className="mt-2 text-sm text-red-500">
+                Choose a location (search a place or drop a pin)
+              </p>
+            )}
           </div>
           {error ? <p className="text-sm text-red-500">{error}</p> : null}
           <div className="flex justify-end gap-3 pt-2">
@@ -191,6 +278,8 @@ const CreateRestaurantModal: React.FC<CreateRestaurantModalProps> = ({
         restaurantName={name}
         onConfirm={(coords) => {
           setCoordinates({ latitude: coords.lat, longitude: coords.lng });
+          setLocationConfirmed({ label: 'Location set ✓' });
+          setLocationMode('pin');
           setShowMap(false);
         }}
         onCancel={() => setShowMap(false)}

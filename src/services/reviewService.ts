@@ -3,6 +3,7 @@ import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage, getUserProfile, getCurrentUser, updateUserStats } from '../lib/firebase';
 import { inferFacetsFromText, tokenizeForSearch, normalizeToken } from '../utils/taxonomy';
 import { getAvatarUrl } from '../utils/avatarUtils';
+import { validateCoordinates } from '../utils/validateCoordinates';
 import type { ExplicitSelection, SentimentSelection } from '../dev/types/review';
 
 /**
@@ -305,6 +306,10 @@ const createRestaurantIfNeeded = async (restaurant: any, batch?: any): Promise<{
     // Priority: 1) Firestore GeoPoint (location.latitude/longitude), 2) coordinates object, 3) legacy _latitude/_longitude
     const lat = restaurant.location?.latitude || restaurant.coordinates?.latitude || restaurant.coordinates?.lat || restaurant.location?._latitude || restaurant.location?.lat || 0;
     const lng = restaurant.location?.longitude || restaurant.coordinates?.longitude || restaurant.coordinates?.lng || restaurant.location?._longitude || restaurant.location?.lng || 0;
+    const coordCheck = validateCoordinates({ lat, lng });
+    if (!coordCheck.valid) {
+      throw new Error('Invalid restaurant coordinates (Google Place).');
+    }
 
     console.log(`📍 [Google Place] Creating restaurant "${restaurant.name}" with coordinates: lat=${lat}, lng=${lng}`, {
       hasLocation: !!restaurant.location,
@@ -313,7 +318,7 @@ const createRestaurantIfNeeded = async (restaurant: any, batch?: any): Promise<{
       coordinatesData: restaurant.coordinates
     });
 
-    const newRestaurant = {
+    const newRestaurant: Record<string, any> = {
       name: restaurant.name || 'Unknown Restaurant',
       cuisines: restaurant.cuisines || [],
       address: restaurant.address || restaurant.location?.formatted || 'Address not provided',
@@ -326,6 +331,11 @@ const createRestaurantIfNeeded = async (restaurant: any, batch?: any): Promise<{
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     };
+    // Store country if available from Places address_components
+    if (restaurant.countryCode) {
+      newRestaurant.countryCode = restaurant.countryCode;
+      newRestaurant.countryName = restaurant.countryName || '';
+    }
 
     return { id: restaurantDocId, isNew: true, data: newRestaurant };
   }
@@ -355,8 +365,12 @@ const createRestaurantIfNeeded = async (restaurant: any, batch?: any): Promise<{
     // Priority: 1) Firestore GeoPoint (location.latitude/longitude), 2) coordinates object, 3) legacy _latitude/_longitude
     const lat = restaurant.location?.latitude || restaurant.coordinates?.latitude || restaurant.coordinates?.lat || restaurant.location?._latitude || restaurant.location?.lat || 0;
     const lng = restaurant.location?.longitude || restaurant.coordinates?.longitude || restaurant.coordinates?.lng || restaurant.location?._longitude || restaurant.location?.lng || 0;
+    const coordCheck = validateCoordinates({ lat, lng });
+    if (!coordCheck.valid) {
+      throw new Error('Invalid restaurant coordinates (manual).');
+    }
 
-    const newRestaurant = {
+    const newRestaurant: Record<string, any> = {
       name: restaurant.name || 'Unknown Restaurant',
       cuisines: restaurant.cuisines || [],
       address: restaurant.address || restaurant.location?.formatted || 'Address not provided',
@@ -369,6 +383,11 @@ const createRestaurantIfNeeded = async (restaurant: any, batch?: any): Promise<{
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     };
+    // Store country if available (set during manual restaurant creation with geocoding)
+    if (restaurant.countryCode) {
+      newRestaurant.countryCode = restaurant.countryCode;
+      newRestaurant.countryName = restaurant.countryName || '';
+    }
 
     // For manual restaurants, we still need to create immediately (not in batch)
     // because we need the generated ID
@@ -761,6 +780,15 @@ export const saveReview = async (
         restaurantUpdatePayload.avgServiceSpeed = avgServiceSpeed;
       }
 
+      // Organic backfill: if restaurant missing countryCode but selectedRestaurant has it, populate it
+      if (selectedRestaurant?.countryCode) {
+        const existingRestaurantDoc = await getDoc(restaurantDocRef);
+        if (existingRestaurantDoc.exists() && !existingRestaurantDoc.data()?.countryCode) {
+          restaurantUpdatePayload.countryCode = selectedRestaurant.countryCode;
+          restaurantUpdatePayload.countryName = selectedRestaurant.countryName || '';
+        }
+      }
+
       await updateDoc(restaurantDocRef, restaurantUpdatePayload);
       console.log('✅ Restaurant quality score updated:', newQualityScore);
     } catch (error) {
@@ -844,6 +872,8 @@ export interface UserVisitedRestaurant {
   lastVisit: string;
   totalReviews: number;         // DEPRECATED: Keep for compatibility, equals reviewCount
   averageRating: number;
+  countryCode?: string;         // ISO country code (e.g., 'US', 'TH')
+  countryName?: string;         // Full country name (e.g., 'United States', 'Thailand')
 }
 
 /**
@@ -1039,7 +1069,9 @@ export const getUserVisitedRestaurants = async (userId?: string): Promise<UserVi
         visitCount: calculateUniqueVisits(reviews),
         lastVisit,
         totalReviews: reviewCount,
-        averageRating: Math.round(averageRating * 10) / 10 // Round to 1 decimal
+        averageRating: Math.round(averageRating * 10) / 10, // Round to 1 decimal
+        ...(restaurantData?.countryCode ? { countryCode: restaurantData.countryCode } : {}),
+        ...(restaurantData?.countryName ? { countryName: restaurantData.countryName } : {}),
       };
 
       console.log(`✅ Created visited restaurant object for [${visitedRestaurant.name}]:`, {

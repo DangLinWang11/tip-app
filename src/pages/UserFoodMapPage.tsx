@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeftIcon, MapIcon } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import UserJourneyMap from '../components/UserJourneyMap';
 import { getUserByUsername } from '../lib/firebase';
@@ -67,27 +66,15 @@ const UserFoodMapPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Header */}
-      <div className="bg-white px-4 py-4 shadow-sm sticky top-0 z-10">
-        <div className="flex items-center">
-          <button
-            onClick={() => navigate(-1)}
-            className="mr-2 p-2 hover:bg-gray-100 rounded-full transition-colors"
-          >
-            <ArrowLeftIcon size={20} className="text-gray-600" />
-          </button>
-          <MapIcon size={20} className="text-primary mr-2" />
-          <h1 className="text-lg font-semibold text-black">{username}'s Map</h1>
-        </div>
-      </div>
-
-      {/* Map Container */}
-      <div className="h-[calc(100vh-64px)]">
+      <div className="h-[100vh]">
         <UserJourneyMap
           userId={userProfile.uid}
+          userName={userProfile.username || userProfile.displayName || username}
           className="w-full h-full"
           showLegend={true}
           showControls={true}
+          onBack={() => navigate(-1)}
+          allowHomeCountryOverride={false}
         />
       </div>
     </div>

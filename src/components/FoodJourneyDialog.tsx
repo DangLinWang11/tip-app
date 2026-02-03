@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { X, MapIcon } from 'lucide-react';
 import { GoogleMap, Marker, useLoadScript } from '@react-google-maps/api';
+import { getBaseMapOptions, useMapTheme } from '../map/mapStyleConfig';
 
 type MarkerData = {
   id: string;
@@ -59,13 +60,16 @@ export function FoodJourneyDialog({ open, onClose, markers, apiKey }: Props) {
   }, [markers]);
 
   // Map options per requirements
+  const [mapTheme] = useMapTheme();
+  const baseMapOptions = useMemo(() => getBaseMapOptions(mapTheme), [mapTheme]);
   const mapOptions = useMemo<google.maps.MapOptions>(() => ({
+    ...baseMapOptions,
     gestureHandling: 'greedy',
     zoomControl: true,
     fullscreenControl: false,
     streetViewControl: false,
     mapTypeControl: false,
-  }), []);
+  }), [baseMapOptions]);
 
   // Load Google Maps script
   const { isLoaded, loadError } = useLoadScript({
@@ -125,6 +129,7 @@ export function FoodJourneyDialog({ open, onClose, markers, apiKey }: Props) {
           )}
           {isLoaded && (
             <GoogleMap
+              key={`food-journey-${mapTheme}`}
               options={mapOptions}
               center={center}
               zoom={markers && markers.length ? 11 : 12}

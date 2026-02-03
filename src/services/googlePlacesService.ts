@@ -1,5 +1,6 @@
 import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
+import { validateCoordinates } from '../utils/validateCoordinates';
 
 const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 const GOOGLE_MAPS_LIBRARIES = ['places'];
@@ -216,8 +217,7 @@ export const searchPlaces = async (query: string, location?: LatLngLiteral) => {
     const service = new google.maps.places.AutocompleteService();
     const request: google.maps.places.AutocompletionRequest = {
       input: query,
-      types: ['restaurant'],
-      componentRestrictions: { country: 'us' }
+      types: ['restaurant']
     };
 
     if (location) {
@@ -287,6 +287,10 @@ export const saveGooglePlaceToFirestore = async (placeDetails: PlaceDetailsResul
     lat: typeof location.lat === 'function' ? location.lat() : (location as any).lat,
     lng: typeof location.lng === 'function' ? location.lng() : (location as any).lng
   };
+  const coordCheck = validateCoordinates(coordinates);
+  if (!coordCheck.valid) {
+    throw new Error('Invalid coordinates from Google Places');
+  }
 
   const docRef = doc(db, 'restaurants', placeDetails.place_id);
   const payload: SavedGooglePlace = {

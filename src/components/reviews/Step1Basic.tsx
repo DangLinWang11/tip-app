@@ -124,8 +124,7 @@ const Step1Basic: React.FC = () => {
       const service = new google.maps.places.AutocompleteService();
       const request = {
         input: searchText,
-        types: ['restaurant'],
-        componentRestrictions: { country: 'us' }
+        types: ['restaurant']
       };
 
       service.getPlacePredictions(request, async (predictions, status) => {

@@ -1,7 +1,12 @@
 import React from 'react';
-import { X, MapIcon } from 'lucide-react';
 import UserJourneyMap from './UserJourneyMap';
-import AvatarBadge from './badges/AvatarBadge';
+
+interface FocusRestaurant {
+  lat: number;
+  lng: number;
+  id: string;
+  name: string;
+}
 
 interface ExpandedMapModalProps {
   isOpen: boolean;
@@ -9,6 +14,9 @@ interface ExpandedMapModalProps {
   userId?: string;        // optional userId for viewing other users' maps
   userName?: string;      // optional userName for header display
   userTierIndex?: number; // badge tier index for header display
+  homeCountry?: string;   // ISO country code for map centering
+  allowHomeCountryOverride?: boolean;
+  focusRestaurant?: FocusRestaurant;
 }
 
 const ExpandedMapModal: React.FC<ExpandedMapModalProps> = ({
@@ -16,7 +24,10 @@ const ExpandedMapModal: React.FC<ExpandedMapModalProps> = ({
   onClose,
   userId,
   userName,
-  userTierIndex
+  userTierIndex,
+  homeCountry,
+  allowHomeCountryOverride = true,
+  focusRestaurant
 }) => {
   // Don't render if not open
   if (!isOpen) return null;
@@ -73,40 +84,21 @@ const ExpandedMapModal: React.FC<ExpandedMapModalProps> = ({
       onWheel={(e) => { e.stopPropagation(); }}
     >
       <div
-        className="bg-white rounded-xl w-full max-w-6xl h-[calc(100dvh-8rem)] overflow-hidden shadow-2xl relative flex flex-col"
+        className="bg-white rounded-2xl w-full max-w-6xl h-[calc(100dvh-6rem)] overflow-hidden shadow-2xl relative flex flex-col"
       >
-        {/* Header with close button */}
-        <div className="absolute top-0 left-0 right-0 z-10 bg-white/95 backdrop-blur-sm border-b border-gray-200 p-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <MapIcon size={20} className="text-primary" />
-            {userName ? (
-              <>
-                <h2 className="text-xl font-bold text-gray-900">{`${userName}'s`}</h2>
-                <h2 className="text-xl font-bold text-gray-900">Map</h2>
-              </>
-            ) : (
-              <h2 className="text-xl font-bold text-gray-900">Your Food Journey</h2>
-            )}
-          </div>
-          
-          <button
-            onClick={() => { unlockScroll(); onClose(); }}
-            className="p-2 hover:bg-gray-100 rounded-full transition-colors flex items-center justify-center"
-            aria-label="Close map"
-          >
-            <X size={24} className="text-gray-700" />
-          </button>
+        <div className="w-full h-full">
+          <UserJourneyMap
+            className="w-full h-full"
+            showLegend
+            userId={userId}
+            userName={userName}
+            userTierIndex={userTierIndex}
+            homeCountry={homeCountry}
+            focusRestaurant={focusRestaurant}
+            onClose={() => { unlockScroll(); onClose(); }}
+            allowHomeCountryOverride={allowHomeCountryOverride}
+          />
         </div>
-
-        {/* Expanded map content */}
-        <div
-          className="w-full h-full pt-20"
-        >
-          <UserJourneyMap className="w-full h-full" showLegend userId={userId} />
-        </div>
-
-
-        {/* Removed zoom hint for a cleaner look */}
       </div>
     </div>
   );
