@@ -55,6 +55,11 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({
   const [homeCountryOverride, setHomeCountryOverride] = useState<string | null>(null);
   const [countryPickerOpen, setCountryPickerOpen] = useState(false);
   const [mapZoom, setMapZoom] = useState<number>(2);
+  const [resetTrigger, setResetTrigger] = useState(0);
+
+  const handleResetView = () => {
+    setResetTrigger(prev => prev + 1);
+  };
 
   useEffect(() => {
     if (!allowHomeCountryOverride || typeof window === 'undefined') return;
@@ -359,6 +364,7 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({
           mapRestriction={mapRestriction}
           minZoom={2}
           maxZoom={18}
+          resetTrigger={resetTrigger}
         />
 
         <div className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-white/95 via-white/50 to-transparent" />
@@ -375,9 +381,9 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({
               transition={{ type: 'spring', stiffness: 260, damping: 26 }}
               className="absolute bottom-4 left-4 z-20 pointer-events-auto"
             >
-              <div className="rounded-2xl bg-white/90 backdrop-blur-xl shadow-[0_12px_28px_rgba(0,0,0,0.18)] border border-white/70 px-3 py-2.5 flex items-center gap-2">
-                <div className="flex items-center justify-center w-7 h-8">
-                  <svg width="22" height="28" viewBox="0 0 24 34" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <div className="rounded-2xl bg-white/90 backdrop-blur-xl shadow-[0_12px_28px_rgba(0,0,0,0.18)] border border-white/70 px-3 py-2.5 flex items-center gap-2.5">
+                <div className="flex items-center justify-center w-6 flex-shrink-0">
+                  <svg width="24" height="30" viewBox="0 0 24 34" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <defs>
                       <linearGradient id="journey_grad" x1="12" y1="2" x2="12" y2="30" gradientUnits="userSpaceOnUse">
                         <stop offset="0%" stopColor="#FF6B6B"/>
@@ -408,10 +414,10 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({
                   </svg>
                 </div>
                 <div className="flex flex-col items-start text-left">
-                  <span className="text-[10px] uppercase tracking-[0.18em] text-gray-400">Journey Stats</span>
-                  <span className="text-xs font-semibold text-gray-800">🍽 {stats.places} places · 🌍 {stats.countries} countries</span>
+                  <span className="text-[11px] uppercase tracking-[0.16em] text-gray-400">Journey Stats</span>
+                  <span className="text-[13px] font-semibold text-gray-800">🍽 {stats.places} places · 🌍 {stats.countries} countries</span>
                   {stats.since && (
-                    <span className="text-[10px] text-gray-500">· since {stats.since}</span>
+                    <span className="text-[11px] text-gray-500">· since {stats.since}</span>
                   )}
                 </div>
               </div>
@@ -434,10 +440,10 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({
                   {onClose && (
                     <button
                       onClick={onClose}
-                      className="absolute -top-2 -right-2 h-8 w-8 rounded-full bg-white shadow-md border border-gray-200 flex items-center justify-center z-10"
+                      className="absolute top-2 right-2 h-7 w-7 rounded-full bg-gray-100 flex items-center justify-center z-10"
                       aria-label="Close map"
                     >
-                      <X className="w-3.5 h-3.5 text-gray-600" />
+                      <X className="w-3.5 h-3.5 text-gray-500" />
                     </button>
                   )}
                   <div className="flex items-center gap-3">
@@ -493,28 +499,22 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({
                 transition={{ type: 'spring', stiffness: 260, damping: 26 }}
                 className="pointer-events-auto flex items-center justify-between"
               >
-                <div className="inline-flex items-center gap-2 rounded-full bg-white/95 backdrop-blur-xl shadow-[0_16px_30px_rgba(15,23,42,0.18)] border border-white/70 px-3 py-2">
+                <button
+                  type="button"
+                  onClick={handleResetView}
+                  className="inline-flex items-center gap-2 rounded-full bg-white/95 backdrop-blur-xl shadow-[0_16px_30px_rgba(15,23,42,0.18)] border border-white/70 px-3 py-2 active:scale-95 transition-transform"
+                >
                   <div className="h-8 w-8 rounded-full bg-gradient-to-br from-rose-500 to-red-600 text-white flex items-center justify-center text-sm font-semibold">
                     {(userName || 'You').slice(0, 1).toUpperCase()}
                   </div>
-                  <div className="flex flex-col leading-tight">
+                  <div className="flex flex-col leading-tight text-left">
                     <span className="text-xs text-gray-400 uppercase tracking-[0.18em]">Journey</span>
                     <span className="text-sm font-semibold text-gray-800">{homeCountryData?.name || 'Food map'}</span>
                   </div>
-                  {allowHomeCountryOverride ? (
-                    <button
-                      type="button"
-                      onClick={() => setCountryPickerOpen(true)}
-                      className="ml-1 text-sm text-gray-600"
-                    >
-                      {homeCountryData?.flag || '🌍'}
-                    </button>
-                  ) : (
-                    <span className="ml-1 text-sm text-gray-600">
-                      {homeCountryData?.flag || '🌍'}
-                    </span>
-                  )}
-                </div>
+                  <span className="ml-1 text-sm text-gray-600">
+                    {homeCountryData?.flag || '🌍'}
+                  </span>
+                </button>
                 {onClose && (
                   <button
                     onClick={onClose}

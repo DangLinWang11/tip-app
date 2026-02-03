@@ -101,6 +101,7 @@ interface MapProps {
   mapRestriction?: google.maps.MapRestriction;
   minZoom?: number;
   maxZoom?: number;
+  resetTrigger?: number;
 }
 
 const getQualityColor = (percentage: number): string => {
@@ -492,7 +493,7 @@ const getDishPinIconCached = (rating: string): string => {
   return url;
 };
 
-const MapView: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishes, userLocation, onRestaurantClick, onDishClick, onZoomChanged, showQualityPercentages = true, disableInfoWindows = false, showMyLocationButton = true, showGoogleControl = true, myLocationButtonOffset, bottomSheetHook, navigate, countryStats, focusRestaurantId, useClusterer, mapRestriction, minZoom, maxZoom }) => {
+const MapView: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishes, userLocation, onRestaurantClick, onDishClick, onZoomChanged, showQualityPercentages = true, disableInfoWindows = false, showMyLocationButton = true, showGoogleControl = true, myLocationButtonOffset, bottomSheetHook, navigate, countryStats, focusRestaurantId, useClusterer, mapRestriction, minZoom, maxZoom, resetTrigger }) => {
   const ref = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<google.maps.Map>();
   const styleLoggedRef = useRef(false);
@@ -566,6 +567,12 @@ const MapView: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishe
     return () => listener.remove();
   }, [map, onZoomChanged]);
 
+  // Reset map to initial center/zoom when resetTrigger changes
+  useEffect(() => {
+    if (!map || !resetTrigger) return;
+    map.panTo(center);
+    map.setZoom(zoom);
+  }, [map, resetTrigger]);
 
   // Update user location marker and center map
   useEffect(() => {
@@ -1083,6 +1090,7 @@ interface RestaurantMapProps {
   mapRestriction?: google.maps.MapRestriction;
   minZoom?: number;
   maxZoom?: number;
+  resetTrigger?: number;
 }
 
 // Fetch top dish from each restaurant from Firebase menuItems collection
@@ -1198,6 +1206,7 @@ const RestaurantMap: React.FC<RestaurantMapProps> = ({
   mapRestriction,
   minZoom,
   maxZoom,
+  resetTrigger,
 }) => {
   const [topDishes, setTopDishes] = useState<Dish[]>([]);
   const [initialCenter, setInitialCenter] = useState(initialCenterProp || NYC_FALLBACK);
@@ -1247,6 +1256,7 @@ const RestaurantMap: React.FC<RestaurantMapProps> = ({
             myLocationButtonOffset={myLocationButtonOffset}
             bottomSheetHook={bottomSheet}
             navigate={navigate}
+            resetTrigger={resetTrigger}
           />
         );
     }
