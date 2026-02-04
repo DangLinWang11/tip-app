@@ -31,3 +31,6 @@ serviceAccountKey.json
 # Capacitor (mobile) - not used in PWA version
 android/
 ios/
+
+# Service account credentials - NEVER COMMIT THIS
+serviceAccountKey.json

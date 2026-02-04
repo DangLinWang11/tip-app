@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import { Wrapper, Status } from '@googlemaps/react-wrapper';
 import { Navigation } from 'lucide-react';
 import { getBaseMapOptions, useMapTheme } from '../map/mapStyleConfig';
+import { reverseGeocode } from '../utils/geocoding';
 
 interface LocationCoordinates extends google.maps.LatLngLiteral {
   accuracy?: number;
@@ -10,7 +11,13 @@ interface LocationCoordinates extends google.maps.LatLngLiteral {
 interface LocationPickerModalProps {
   isOpen: boolean;
   restaurantName: string;
-  onConfirm: (coordinates: LocationCoordinates) => void;
+  onConfirm: (coordinates: LocationCoordinates & {
+    city: string | null;
+    state: string | null;
+    stateCode: string | null;
+    countryCode: string | null;
+    countryName: string | null;
+  }) => void;
   onCancel: () => void;
 }
 
@@ -264,6 +271,7 @@ const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
   const [userLocation, setUserLocation] = useState<LocationCoordinates | null>(null);
   const [focusLocation, setFocusLocation] = useState<LocationCoordinates | null>(cloneDefaultCenter);
   const [locationError, setLocationError] = useState<string | null>(null);
+  const [isGeocoding, setIsGeocoding] = useState(false);
 
   const handleUserLocationDetected = useCallback((coords: LocationCoordinates) => {
     setUserLocation(coords);
@@ -318,8 +326,31 @@ const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
     setCurrentCenter(coordinates);
   }, []);
 
-  const handleConfirm = () => {
-    onConfirm(currentCenter);
+  const handleConfirm = async () => {
+    setIsGeocoding(true);
+    try {
+      const geocoded = await reverseGeocode(currentCenter.lat, currentCenter.lng);
+      onConfirm({
+        ...currentCenter,
+        city: geocoded.city ?? 'Unknown',
+        state: geocoded.state,
+        stateCode: geocoded.stateCode,
+        countryCode: geocoded.countryCode,
+        countryName: geocoded.country
+      });
+    } catch (error) {
+      console.error('Failed to reverse geocode location', error);
+      onConfirm({
+        ...currentCenter,
+        city: 'Unknown',
+        state: null,
+        stateCode: null,
+        countryCode: null,
+        countryName: null
+      });
+    } finally {
+      setIsGeocoding(false);
+    }
   };
 
   const handleCancel = () => {
@@ -411,9 +442,10 @@ const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
               </div>
               <button
                 onClick={handleConfirm}
-                className="px-5 py-3 rounded-xl bg-primary text-white font-semibold shadow-md hover:bg-red-600 transition-colors"
+                disabled={isGeocoding}
+                className="px-5 py-3 rounded-xl bg-primary text-white font-semibold shadow-md hover:bg-red-600 transition-colors disabled:cursor-not-allowed disabled:opacity-70"
               >
-                Pin Location
+                {isGeocoding ? 'Finding location...' : 'Pin Location'}
               </button>
             </div>
             {locationError ? (

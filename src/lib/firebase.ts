@@ -935,21 +935,34 @@ export const testFirebaseConnection = async () => {
 export default app;
 // Restaurant coordinate management functions
 export const updateRestaurantCoordinates = async (
-  restaurantId: string, 
-  coordinates: { lat: number; lng: number }
+  restaurantId: string,
+  data: {
+    lat: number;
+    lng: number;
+    city?: string;
+    state?: string | null;
+    stateCode?: string | null;
+    countryCode?: string | null;
+    countryName?: string | null;
+  }
 ): Promise<{ success: boolean; error?: string }> => {
   if (!db) {
     return { success: false, error: 'Firestore not initialized' };
   }
 
   try {
-    console.log('📍 Updating restaurant coordinates for:', restaurantId, coordinates);
+    console.log('📍 Updating restaurant coordinates for:', restaurantId, data);
     
     await updateDoc(doc(db, 'restaurants', restaurantId), {
       coordinates: {
-        latitude: coordinates.lat,
-        longitude: coordinates.lng
+        latitude: data.lat,
+        longitude: data.lng
       },
+      ...(data.city ? { city: data.city } : {}),
+      ...(data.state !== undefined ? { state: data.state } : {}),
+      ...(data.stateCode !== undefined ? { stateCode: data.stateCode } : {}),
+      ...(data.countryCode !== undefined ? { countryCode: data.countryCode } : {}),
+      ...(data.countryName !== undefined ? { countryName: data.countryName } : {}),
       updatedAt: serverTimestamp()
     });
     

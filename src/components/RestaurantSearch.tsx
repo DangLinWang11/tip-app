@@ -6,6 +6,8 @@ import { db } from '../lib/firebase';
 import LocationPickerModal from './LocationPickerModal';
 import { CUISINES, getCuisineLabel } from '../utils/taxonomy';
 import { saveGooglePlaceToFirestore } from '../services/googlePlacesService';
+import { reverseGeocode } from '../utils/geocoding';
+import { locationStore } from '../utils/locationStore';
 
 const formatCuisineLabel = (value: string) => getCuisineLabel(value);
 
@@ -16,6 +18,11 @@ interface FirebaseRestaurant {
   cuisine: string;
   cuisines?: string[];
   phone: string;
+  city?: string | null;
+  state?: string | null;
+  stateCode?: string | null;
+  countryCode?: string | null;
+  countryName?: string | null;
   coordinates: {
     lat: number;
     lng: number;
@@ -239,7 +246,7 @@ const RestaurantSearch: React.FC<RestaurantSearchProps> = ({
     setPendingRestaurantName('');
   };
 
-  const handleCuisineConfirm = () => {
+  const handleCuisineConfirm = async () => {
     if (!selectedCuisine || !pendingRestaurantName) return;
     const manualRestaurant: RestaurantForSearch = {
       name: pendingRestaurantName,
@@ -256,19 +263,49 @@ const RestaurantSearch: React.FC<RestaurantSearchProps> = ({
       coverImage:
         'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80'
     };
-    setPendingRestaurant(manualRestaurant);
+
+    const fallbackLocation = locationStore.get();
+    try {
+      const geocoded = await reverseGeocode(fallbackLocation.lat, fallbackLocation.lng);
+      setPendingRestaurant({
+        ...manualRestaurant,
+        city: geocoded.city ?? 'Unknown',
+        state: geocoded.state,
+        stateCode: geocoded.stateCode,
+        countryCode: geocoded.countryCode,
+        countryName: geocoded.country
+      });
+    } catch (error) {
+      console.error('Failed to reverse geocode default location', error);
+      setPendingRestaurant({
+        ...manualRestaurant,
+        city: 'Unknown',
+        state: null,
+        stateCode: null,
+        countryCode: null,
+        countryName: null
+      });
+    }
     setShowCuisineModal(false);
     console.log('Setting showLocationModal to true');
     setShowLocationModal(true);
   };
 
-  const handleLocationConfirm = (location: { latitude: number; longitude: number }) => {
+  const handleLocationConfirm = (location: { 
+    lat: number; 
+    lng: number; 
+    city: string | null; 
+    state: string | null; 
+    stateCode: string | null; 
+    countryCode: string | null; 
+    countryName: string | null; 
+  }) => {
     if (pendingRestaurant) {
       const updatedRestaurant = {
         ...pendingRestaurant,
         coordinates: {
-          lat: location.latitude,
-          lng: location.longitude
+          lat: location.lat,
+          lng: location.lng
         }
       };
       onSelect(updatedRestaurant);
