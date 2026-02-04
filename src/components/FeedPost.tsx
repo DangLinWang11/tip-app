@@ -942,7 +942,7 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
             <div className="relative flex items-center">
               <span
                 onClick={handleUsernameClick}
-                className="font-medium cursor-pointer hover:text-primary"
+                className="font-medium cursor-pointer hover:text-primary max-w-[120px] truncate inline-block align-middle"
               >
                 {displayAuthorName}
               </span>
@@ -955,7 +955,7 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
                 <button
                   onClick={handleFollowToggle}
                   disabled={followLoading}
-                  className={`ml-2 -mt-0.5 flex items-center justify-center transition-all duration-200 ${
+                  className={`ml-2 -mt-0.5 flex items-center justify-center transition-all duration-200 flex-shrink-0 ${
                     isFollowingUser
                       ? 'text-green-600'
                       : 'px-2.5 py-0.5 rounded-full border text-xs font-medium border-gray-300 text-gray-600 bg-white hover:border-gray-400'
@@ -971,9 +971,9 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
             </div>
             {/* NEW: Checkmark that changes color based on follow status */}
             {author.isVerified && (
-              <CheckCircleIcon 
-                size={16} 
-                className={isFollowingUser ? 'text-green-500' : 'text-gray-400'} 
+              <CheckCircleIcon
+                size={16}
+                className={isFollowingUser ? 'text-green-500' : 'text-gray-400'}
               />
             )}
           </div>
@@ -1483,7 +1483,7 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
             <div className="relative flex items-center">
               <span
                 onClick={handleUsernameClick}
-                className="font-medium cursor-pointer hover:text-primary"
+                className="font-medium cursor-pointer hover:text-primary max-w-[120px] truncate inline-block align-middle"
               >
                 {displayAuthorName}
               </span>
@@ -1496,7 +1496,7 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
                 <button
                   onClick={handleFollowToggle}
                   disabled={followLoading}
-                  className={`ml-2 -mt-0.5 flex items-center justify-center transition-all duration-200 ${
+                  className={`ml-2 -mt-0.5 flex items-center justify-center transition-all duration-200 flex-shrink-0 ${
                     isFollowingUser
                       ? 'text-green-600'
                       : 'px-2.5 py-0.5 rounded-full border text-xs font-medium border-gray-300 text-gray-600 bg-white hover:border-gray-400'
@@ -1512,9 +1512,9 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
             </div>
             {/* NEW: Checkmark that changes color based on follow status */}
             {author.isVerified && (
-              <CheckCircleIcon 
-                size={16} 
-                className={isFollowingUser ? 'text-green-500' : 'text-gray-400'} 
+              <CheckCircleIcon
+                size={16}
+                className={isFollowingUser ? 'text-green-500' : 'text-gray-400'}
               />
             )}
           </div>
@@ -2184,7 +2184,7 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
               <div className="relative flex items-center">
                 <span
                   onClick={handleUsernameClick}
-                  className="font-medium cursor-pointer hover:text-primary"
+                  className="font-medium cursor-pointer hover:text-primary max-w-[120px] truncate inline-block align-middle"
                 >
                   {displayAuthorName}
                 </span>
@@ -2196,7 +2196,7 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
                   <button
                     onClick={handleFollowToggle}
                     disabled={followLoading}
-                    className={`ml-2 -mt-0.5 flex items-center justify-center transition-all duration-200 ${
+                    className={`ml-2 -mt-0.5 flex items-center justify-center transition-all duration-200 flex-shrink-0 ${
                       isFollowingUser
                         ? 'text-green-600'
                         : 'px-2.5 py-0.5 rounded-full border text-xs font-medium border-gray-300 text-gray-600 bg-white hover:border-gray-400'
