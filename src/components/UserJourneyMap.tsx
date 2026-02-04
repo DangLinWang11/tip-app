@@ -481,7 +481,7 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({
                         <span className="text-lg">←</span>
                       </button>
                     )}
-                    <div className="relative flex-shrink-0">
+                    <div className="relative flex-shrink-0" style={{ width: 40, height: 40 }}>
                       {resolvedAvatar ? (
                         <img
                           src={resolvedAvatar}
@@ -495,7 +495,9 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({
                         </div>
                       )}
                       {typeof userTierIndex === 'number' && (
-                        <AvatarBadge tierIndex={userTierIndex} size="feed" />
+                        <div className="absolute -top-1 -left-1 z-10">
+                          <AvatarBadge tierIndex={userTierIndex} size="feed" className="!static" />
+                        </div>
                       )}
                     </div>
                     <div className="min-w-0 flex-1">
@@ -545,7 +547,7 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({
                   onClick={handleResetView}
                   className="inline-flex items-center gap-2 rounded-full bg-white/95 backdrop-blur-xl shadow-[0_16px_30px_rgba(15,23,42,0.18)] border border-white/70 px-3 py-2 active:scale-95 transition-transform"
                 >
-                  <div className="relative">
+                  <div className="relative" style={{ width: 32, height: 32 }}>
                     {resolvedAvatar ? (
                       <img
                         src={resolvedAvatar}
@@ -559,7 +561,9 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({
                       </div>
                     )}
                     {typeof userTierIndex === 'number' && (
-                      <AvatarBadge tierIndex={userTierIndex} size="small" />
+                      <div className="absolute -top-0.5 -left-0.5 z-10">
+                        <AvatarBadge tierIndex={userTierIndex} size="small" className="!static" />
+                      </div>
                     )}
                   </div>
                   <div className="flex flex-col leading-tight text-left">

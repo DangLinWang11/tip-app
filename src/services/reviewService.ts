@@ -1024,8 +1024,8 @@ export const getUserVisitedRestaurants = async (userId?: string): Promise<UserVi
       const lastVisit = safeToISOString(lastVisitReview.createdAt);
 
       // Extract coordinates - try all possible formats
-      let lat: number | null = null;
-      let lng: number | null = null;
+      let lat = 27.3364; // Default to Sarasota center (fallback for legacy data)
+      let lng = -82.5307;
 
       // Priority 1: Check for Firestore GeoPoint (location.latitude/longitude - standard client SDK format)
       if (restaurantData?.location?.latitude !== undefined && restaurantData?.location?.longitude !== undefined) {
@@ -1039,7 +1039,7 @@ export const getUserVisitedRestaurants = async (userId?: string): Promise<UserVi
         lng = restaurantData.location._longitude;
         console.log(`📍 [${restaurantData.name}] Extracted from GeoPoint (_latitude/_longitude): { lat: ${lat}, lng: ${lng} }`);
       }
-      // Priority 3: Check coordinates object formats
+      // Priority 3: Check coordinates object formats (check lat/lng first as it's the Google Places format)
       else if (restaurantData?.coordinates) {
         if (restaurantData.coordinates.lat !== undefined && restaurantData.coordinates.lng !== undefined) {
           // Format: { lat, lng } (Google Places format)
@@ -1052,12 +1052,8 @@ export const getUserVisitedRestaurants = async (userId?: string): Promise<UserVi
           lng = parseFloat(restaurantData.coordinates.longitude);
           console.log(`📍 [${restaurantData.name}] Extracted from coordinates.latitude/longitude: { lat: ${lat}, lng: ${lng} }`);
         }
-      }
-
-      // Skip restaurant if no valid coordinates found (instead of defaulting to Sarasota)
-      if (lat === null || lng === null || (lat === 0 && lng === 0) || !Number.isFinite(lat) || !Number.isFinite(lng)) {
-        console.warn(`⚠️ [${restaurantData?.name || 'Unknown'}] Skipping - no valid coordinates found`);
-        continue;
+      } else {
+        console.warn(`⚠️ [${restaurantData?.name || 'Unknown'}] No coordinates found, using default Sarasota fallback`);
       }
 
       // Create visited restaurant object
