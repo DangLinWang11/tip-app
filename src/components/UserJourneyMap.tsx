@@ -7,6 +7,8 @@ import UserRestaurantModal from './UserRestaurantModal';
 import { getUserVisitedRestaurants, UserVisitedRestaurant } from '../services/reviewService';
 import { CountryData, getCountryByCode, getCountryCentroid } from '../data/countries';
 import { getCountryFromCoordinates } from '../utils/reverseGeocode';
+import { getCurrentUser, getUserProfile } from '../lib/firebase';
+import { getTierFromPoints } from '../badges/badgeTiers';
 import CountrySelector from './CountrySelector';
 import AvatarBadge from './badges/AvatarBadge';
 
@@ -49,8 +51,33 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({
   focusRestaurant
 }) => {
   const navigate = useNavigate();
+  const isOwnMap = !userId;
+
+  // Self-load current user's profile for own map to fill in missing avatar/tier
+  const [selfProfile, setSelfProfile] = useState<any>(null);
+  useEffect(() => {
+    if (!isOwnMap) return;
+    const loadSelf = async () => {
+      try {
+        const result = await getUserProfile();
+        if (result.success && result.profile) {
+          setSelfProfile(result.profile);
+        }
+      } catch {
+        // Non-blocking
+      }
+    };
+    loadSelf();
+  }, [isOwnMap]);
+
+  // Resolve avatar and tier: use props first, fall back to self-loaded profile
+  const effectiveAvatar = userAvatar || (isOwnMap ? (selfProfile?.avatar || selfProfile?.photoURL || getCurrentUser()?.photoURL) : undefined) || undefined;
+  const effectiveTierIndex = userTierIndex ?? (isOwnMap && selfProfile ? getTierFromPoints(selfProfile.stats?.pointsEarned ?? 0).tierIndex : undefined);
+
   const [avatarError, setAvatarError] = useState(false);
-  const resolvedAvatar = userAvatar && !avatarError ? userAvatar : null;
+  // Reset avatar error when the URL changes (e.g. self-profile loaded a new URL)
+  useEffect(() => { setAvatarError(false); }, [effectiveAvatar]);
+  const resolvedAvatar = effectiveAvatar && !avatarError ? effectiveAvatar : null;
   const [visitedRestaurants, setVisitedRestaurants] = useState<UserVisitedRestaurant[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -494,18 +521,18 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({
                           {(userName || 'You').slice(0, 1).toUpperCase()}
                         </div>
                       )}
-                      {typeof userTierIndex === 'number' && (
+                      {typeof effectiveTierIndex === 'number' && (
                         <div className="absolute -top-1 -left-1 z-10">
-                          <AvatarBadge tierIndex={userTierIndex} size="feed" className="!static" />
+                          <AvatarBadge tierIndex={effectiveTierIndex} size="feed" className="!static" />
                         </div>
                       )}
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
                         <p className="text-[10px] uppercase tracking-[0.22em] text-gray-400">Food Journey</p>
-                        {typeof userTierIndex === 'number' && (
+                        {typeof effectiveTierIndex === 'number' && (
                           <span className="text-[9px] uppercase tracking-[0.14em] text-rose-500 bg-rose-50 border border-rose-100 px-1.5 py-px rounded-full whitespace-nowrap">
-                            Tier {userTierIndex}
+                            Tier {effectiveTierIndex}
                           </span>
                         )}
                       </div>
@@ -560,9 +587,9 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({
                         {(userName || 'You').slice(0, 1).toUpperCase()}
                       </div>
                     )}
-                    {typeof userTierIndex === 'number' && (
+                    {typeof effectiveTierIndex === 'number' && (
                       <div className="absolute -top-0.5 -left-0.5 z-10">
-                        <AvatarBadge tierIndex={userTierIndex} size="small" className="!static" />
+                        <AvatarBadge tierIndex={effectiveTierIndex} size="small" className="!static" />
                       </div>
                     )}
                   </div>
