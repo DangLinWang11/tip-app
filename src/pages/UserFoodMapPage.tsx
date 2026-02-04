@@ -73,6 +73,7 @@ const UserFoodMapPage: React.FC = () => {
           userName={userProfile.username || userProfile.displayName || username}
           userAvatar={userProfile.avatar || userProfile.photoURL}
           userTierIndex={getTierFromPoints(userProfile.stats?.pointsEarned ?? 0).tierIndex}
+          homeCountry={userProfile.homeCountry}
           className="w-full h-full"
           showLegend={true}
           showControls={true}

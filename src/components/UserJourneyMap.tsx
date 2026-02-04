@@ -8,6 +8,7 @@ import { getUserVisitedRestaurants, UserVisitedRestaurant } from '../services/re
 import { CountryData, getCountryByCode, getCountryCentroid } from '../data/countries';
 import { getCountryFromCoordinates } from '../utils/reverseGeocode';
 import CountrySelector from './CountrySelector';
+import AvatarBadge from './badges/AvatarBadge';
 
 interface FocusRestaurant {
   lat: number;
@@ -242,7 +243,7 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({
   }, [initialZoom]);
 
   const isCollapsedHeader = mapZoom >= 6;
-  const selectedCountryLabel = homeCountryData ? `${homeCountryData.flag} ${homeCountryData.name}` : 'Set home country';
+  const selectedCountryLabel = homeCountryData ? `${homeCountryData.flag} ${homeCountryData.name}` : (allowHomeCountryOverride ? 'Set home country' : 'No home country set');
   const mapRestriction = useMemo<google.maps.MapRestriction>(() => ({
     latLngBounds: { north: 85, south: -85, west: -180, east: 180 },
     strictBounds: false
@@ -480,18 +481,23 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({
                         <span className="text-lg">←</span>
                       </button>
                     )}
-                    {resolvedAvatar ? (
-                      <img
-                        src={resolvedAvatar}
-                        alt={userName || 'You'}
-                        onError={() => setAvatarError(true)}
-                        className="h-10 w-10 flex-shrink-0 rounded-full object-cover shadow-md border border-white/50"
-                      />
-                    ) : (
-                      <div className="h-10 w-10 flex-shrink-0 rounded-full bg-gradient-to-br from-rose-500 to-red-600 text-white flex items-center justify-center font-semibold text-base shadow-md">
-                        {(userName || 'You').slice(0, 1).toUpperCase()}
-                      </div>
-                    )}
+                    <div className="relative flex-shrink-0">
+                      {resolvedAvatar ? (
+                        <img
+                          src={resolvedAvatar}
+                          alt={userName || 'You'}
+                          onError={() => setAvatarError(true)}
+                          className="h-10 w-10 rounded-full object-cover shadow-md border border-white/50"
+                        />
+                      ) : (
+                        <div className="h-10 w-10 rounded-full bg-gradient-to-br from-rose-500 to-red-600 text-white flex items-center justify-center font-semibold text-base shadow-md">
+                          {(userName || 'You').slice(0, 1).toUpperCase()}
+                        </div>
+                      )}
+                      {typeof userTierIndex === 'number' && (
+                        <AvatarBadge tierIndex={userTierIndex} size="feed" />
+                      )}
+                    </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
                         <p className="text-[10px] uppercase tracking-[0.22em] text-gray-400">Food Journey</p>
@@ -515,7 +521,9 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({
                         </button>
                       ) : (
                         <span className="inline-flex items-center text-xs text-gray-600">
-                          {selectedCountryLabel}
+                          {homeCountryData
+                            ? `Home country: ${homeCountryData.flag} ${homeCountryData.name}`
+                            : 'No home country set'}
                         </span>
                       )}
                     </div>
@@ -537,18 +545,23 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({
                   onClick={handleResetView}
                   className="inline-flex items-center gap-2 rounded-full bg-white/95 backdrop-blur-xl shadow-[0_16px_30px_rgba(15,23,42,0.18)] border border-white/70 px-3 py-2 active:scale-95 transition-transform"
                 >
-                  {resolvedAvatar ? (
-                    <img
-                      src={resolvedAvatar}
-                      alt={userName || 'You'}
-                      onError={() => setAvatarError(true)}
-                      className="h-8 w-8 rounded-full object-cover border border-white/50"
-                    />
-                  ) : (
-                    <div className="h-8 w-8 rounded-full bg-gradient-to-br from-rose-500 to-red-600 text-white flex items-center justify-center text-sm font-semibold">
-                      {(userName || 'You').slice(0, 1).toUpperCase()}
-                    </div>
-                  )}
+                  <div className="relative">
+                    {resolvedAvatar ? (
+                      <img
+                        src={resolvedAvatar}
+                        alt={userName || 'You'}
+                        onError={() => setAvatarError(true)}
+                        className="h-8 w-8 rounded-full object-cover border border-white/50"
+                      />
+                    ) : (
+                      <div className="h-8 w-8 rounded-full bg-gradient-to-br from-rose-500 to-red-600 text-white flex items-center justify-center text-sm font-semibold">
+                        {(userName || 'You').slice(0, 1).toUpperCase()}
+                      </div>
+                    )}
+                    {typeof userTierIndex === 'number' && (
+                      <AvatarBadge tierIndex={userTierIndex} size="small" />
+                    )}
+                  </div>
                   <div className="flex flex-col leading-tight text-left">
                     <span className="text-xs text-gray-400 uppercase tracking-[0.18em]">Journey</span>
                     <span className="text-sm font-semibold text-gray-800">{homeCountryData?.name || 'Food map'}</span>

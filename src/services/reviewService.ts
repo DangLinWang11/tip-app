@@ -1024,8 +1024,8 @@ export const getUserVisitedRestaurants = async (userId?: string): Promise<UserVi
       const lastVisit = safeToISOString(lastVisitReview.createdAt);
 
       // Extract coordinates - try all possible formats
-      let lat = 27.3364; // Default to Sarasota center
-      let lng = -82.5307;
+      let lat: number | null = null;
+      let lng: number | null = null;
 
       // Priority 1: Check for Firestore GeoPoint (location.latitude/longitude - standard client SDK format)
       if (restaurantData?.location?.latitude !== undefined && restaurantData?.location?.longitude !== undefined) {
@@ -1041,19 +1041,23 @@ export const getUserVisitedRestaurants = async (userId?: string): Promise<UserVi
       }
       // Priority 3: Check coordinates object formats
       else if (restaurantData?.coordinates) {
-        if (restaurantData.coordinates.latitude !== undefined && restaurantData.coordinates.longitude !== undefined) {
+        if (restaurantData.coordinates.lat !== undefined && restaurantData.coordinates.lng !== undefined) {
+          // Format: { lat, lng } (Google Places format)
+          lat = parseFloat(restaurantData.coordinates.lat);
+          lng = parseFloat(restaurantData.coordinates.lng);
+          console.log(`📍 [${restaurantData.name}] Extracted from coordinates.lat/lng: { lat: ${lat}, lng: ${lng} }`);
+        } else if (restaurantData.coordinates.latitude !== undefined && restaurantData.coordinates.longitude !== undefined) {
           // Format: { latitude, longitude }
           lat = parseFloat(restaurantData.coordinates.latitude);
           lng = parseFloat(restaurantData.coordinates.longitude);
           console.log(`📍 [${restaurantData.name}] Extracted from coordinates.latitude/longitude: { lat: ${lat}, lng: ${lng} }`);
-        } else if (restaurantData.coordinates.lat !== undefined && restaurantData.coordinates.lng !== undefined) {
-          // Format: { lat, lng }
-          lat = parseFloat(restaurantData.coordinates.lat);
-          lng = parseFloat(restaurantData.coordinates.lng);
-          console.log(`📍 [${restaurantData.name}] Extracted from coordinates.lat/lng: { lat: ${lat}, lng: ${lng} }`);
         }
-      } else {
-        console.log(`⚠️ [${restaurantData?.name || 'Unknown'}] Using default Sarasota coordinates: { lat: ${lat}, lng: ${lng} }`);
+      }
+
+      // Skip restaurant if no valid coordinates found (instead of defaulting to Sarasota)
+      if (lat === null || lng === null || (lat === 0 && lng === 0) || !Number.isFinite(lat) || !Number.isFinite(lng)) {
+        console.warn(`⚠️ [${restaurantData?.name || 'Unknown'}] Skipping - no valid coordinates found`);
+        continue;
       }
 
       // Create visited restaurant object
