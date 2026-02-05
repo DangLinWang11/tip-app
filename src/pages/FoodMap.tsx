@@ -259,27 +259,7 @@ const FoodMap: React.FC = () => {
         </div>
       </div>
 
-      {/* Stats Cards */}
       <div className="px-4 py-6">
-        <div className="grid grid-cols-4 gap-3 mb-6">
-          <div className="bg-white rounded-xl p-3 shadow-sm border-2 border-gray-200 flex flex-col items-center justify-center">
-            <p className="text-2xl font-bold text-primary">{userStats.averageRating}</p>
-            <p className="text-xs text-gray-500 font-medium text-center">Average Rating</p>
-          </div>
-          <div className="bg-white rounded-xl p-3 shadow-sm border-2 border-gray-200 flex flex-col items-center justify-center">
-            <p className="text-2xl font-bold text-primary">{userStats.totalRestaurants}</p>
-            <p className="text-xs text-gray-500 font-medium text-center">Restaurants</p>
-          </div>
-          <div className="bg-white rounded-xl p-3 shadow-sm border-2 border-gray-200 flex flex-col items-center justify-center">
-            <p className="text-2xl font-bold text-primary">{userStats.totalDishes}</p>
-            <p className="text-xs text-gray-500 font-medium text-center">Dishes</p>
-          </div>
-          <div className="bg-white rounded-xl p-3 shadow-sm border-2 border-gray-200 flex flex-col items-center justify-center">
-            <p className="text-2xl font-bold text-primary">{userStats.pointsEarned}</p>
-            <p className="text-xs text-gray-500 font-medium text-center">Points Earned</p>
-          </div>
-        </div>
-
         {/* If user has no reviews, show empty state */}
         {userReviews.length === 0 ? (
           <EmptyState />

@@ -1,13 +1,12 @@
 // File: src/App.tsx
 import React, { useState, useEffect, useLayoutEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth, getUserProfile } from './lib/firebase';
 import { I18nProvider } from './lib/i18n/useI18n';
 import Layout from './components/Layout';
 import Home from './pages/Home';
-import Discover from './pages/Discover';
-import DiscoverList from './pages/DiscoverList';
+import MyFoodMap from './pages/MyFoodMap';
 import Create from './pages/Create';
 import Notifications from './pages/Notifications';
 import Profile from './pages/Profile';
@@ -243,13 +242,8 @@ export function App() {
                     <Home /> :
                     <LoadingScreen label="Loading feed..." />
                 } />
-                <Route path="discover" element={<Discover />} />
-                {/* STRICT AUTH GUARD: Only mount DiscoverList when fully authenticated */}
-                <Route path="discover/list" element={
-                  !authState.isLoading && authState.isAuthenticated ?
-                    <DiscoverList /> :
-                    <LoadingScreen label="Loading discover..." />
-                } />
+                <Route path="discover" element={<MyFoodMap />} />
+                <Route path="discover/list" element={<Navigate to="/discover" replace />} />
                 <Route path="create" element={<Create />} />
                 <Route 
                   path="notifications" 

@@ -142,6 +142,11 @@ export interface SavedGooglePlace {
   website?: string;
   priceLevel?: number | null;
   googleRating?: number | null;
+  city?: string | null;
+  state?: string | null;
+  stateCode?: string | null;
+  countryCode?: string | null;
+  countryName?: string | null;
   source: 'google_places';
   createdAt: ReturnType<typeof serverTimestamp>;
   updatedAt: ReturnType<typeof serverTimestamp>;
@@ -207,6 +212,34 @@ const buildHoursObject = (weekdayText?: string[]): Record<string, string> | unde
     acc[day.trim()] = rest.join(':').trim();
     return acc;
   }, {});
+};
+
+const parseAddressComponents = (addressComponents: google.maps.GeocoderAddressComponent[] | undefined) => {
+  if (!addressComponents) {
+    return { city: null, state: null, stateCode: null, country: null, countryCode: null };
+  }
+
+  let city: string | null = null;
+  let state: string | null = null;
+  let stateCode: string | null = null;
+  let country: string | null = null;
+  let countryCode: string | null = null;
+
+  for (const component of addressComponents) {
+    if (component.types.includes('locality')) {
+      city = component.long_name;
+    }
+    if (component.types.includes('administrative_area_level_1')) {
+      state = component.long_name;
+      stateCode = component.short_name;
+    }
+    if (component.types.includes('country')) {
+      country = component.long_name;
+      countryCode = component.short_name;
+    }
+  }
+
+  return { city, state, stateCode, country, countryCode };
 };
 
 export const searchPlaces = async (query: string, location?: LatLngLiteral) => {
@@ -292,6 +325,7 @@ export const saveGooglePlaceToFirestore = async (placeDetails: PlaceDetailsResul
     throw new Error('Invalid coordinates from Google Places');
   }
 
+  const { city, state, stateCode, country, countryCode } = parseAddressComponents(placeDetails.address_components);
   const docRef = doc(db, 'restaurants', placeDetails.place_id);
   const payload: SavedGooglePlace = {
     name: placeDetails.name || 'Unnamed Restaurant',
@@ -307,6 +341,11 @@ export const saveGooglePlaceToFirestore = async (placeDetails: PlaceDetailsResul
     website: placeDetails.website || undefined,
     priceLevel: placeDetails.price_level ?? undefined,
     googleRating: placeDetails.rating ?? undefined,
+    city,
+    state,
+    stateCode,
+    countryCode,
+    countryName: country,
     source: 'google_places',
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp()

@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { HomeIcon, SearchIcon, PlusSquareIcon, UserIcon } from 'lucide-react';
+import { HomeIcon, MapIcon, PlusSquareIcon, UserIcon } from 'lucide-react';
 
 const BottomNavigation: React.FC = () => {
   return (
@@ -33,8 +33,8 @@ const BottomNavigation: React.FC = () => {
               `flex flex-col items-center justify-center gap-1 py-2 text-center ${isActive ? 'text-[#FF385C] font-medium' : 'text-gray-500'}`
             }
           >
-            <SearchIcon className="h-7 w-7" aria-hidden="true" />
-            <span className="text-[11px] font-medium leading-none">Discover</span>
+            <MapIcon className="h-7 w-7" aria-hidden="true" />
+            <span className="text-[11px] font-medium leading-none">My Food Map</span>
           </NavLink>
         </li>
 

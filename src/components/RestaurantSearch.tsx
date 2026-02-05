@@ -183,7 +183,8 @@ const RestaurantSearch: React.FC<RestaurantSearchProps> = ({
               'opening_hours',
               'website',
               'price_level',
-              'rating'
+              'rating',
+              'address_components'
             ]
           },
           async (place, status) => {

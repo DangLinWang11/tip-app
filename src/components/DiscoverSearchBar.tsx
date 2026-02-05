@@ -14,6 +14,9 @@ import { getUserRestaurantReviews } from '../services/reviewService';
 interface DiscoverSearchBarProps {
   userLocation?: { lat: number; lng: number } | null;
   onRestaurantSelect?: (restaurantId: string) => void;
+  query?: string;
+  onQueryChange?: (value: string) => void;
+  placeholder?: string;
 }
 
 interface SavedRestaurant {
@@ -74,9 +77,16 @@ const calculateDistance = (lat1: number, lng1: number, lat2: number, lng2: numbe
 
 const formatCuisineLabel = (value: string) => getCuisineLabel(value);
 
-const DiscoverSearchBar: React.FC<DiscoverSearchBarProps> = ({ userLocation, onRestaurantSelect }) => {
+const DiscoverSearchBar: React.FC<DiscoverSearchBarProps> = ({
+  userLocation,
+  onRestaurantSelect,
+  query: controlledQuery,
+  onQueryChange,
+  placeholder,
+}) => {
   const navigate = useNavigate();
-  const [query, setQuery] = useState('');
+  const [internalQuery, setInternalQuery] = useState('');
+  const query = controlledQuery ?? internalQuery;
   const [savedRestaurants, setSavedRestaurants] = useState<SavedRestaurant[]>([]);
   const [loadingSaved, setLoadingSaved] = useState(true);
   const [savedError, setSavedError] = useState<string | null>(null);
@@ -150,6 +160,12 @@ const DiscoverSearchBar: React.FC<DiscoverSearchBarProps> = ({ userLocation, onR
       mounted = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (controlledQuery !== undefined && controlledQuery !== internalQuery) {
+      setInternalQuery(controlledQuery);
+    }
+  }, [controlledQuery, internalQuery]);
 
   useEffect(() => {
     let active = true;
@@ -327,8 +343,12 @@ const DiscoverSearchBar: React.FC<DiscoverSearchBarProps> = ({ userLocation, onR
           type="text"
           value={query}
           onFocus={() => setDropdownOpen(true)}
-          onChange={(event) => setQuery(event.target.value)}
-          placeholder="Search restaurants nearby..."
+          onChange={(event) => {
+            const nextValue = event.target.value;
+            setInternalQuery(nextValue);
+            onQueryChange?.(nextValue);
+          }}
+          placeholder={placeholder || 'Search restaurants nearby...'}
           className="w-full rounded-full border border-slate-200 py-3 pl-11 pr-4 text-sm text-slate-800 placeholder:text-slate-400 focus:border-red-400 focus:outline-none focus:ring-2 focus:ring-red-100 transition-all duration-300"
         />
         <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />

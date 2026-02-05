@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo, useLayoutEffect, useCallback } from 'react';
-import { MapIcon, PlusIcon, MapPinIcon, Star, ChevronRight, Store } from 'lucide-react';
+import { PlusIcon, Star, ChevronRight, Store } from 'lucide-react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { onAuthStateChanged } from 'firebase/auth';
 import HamburgerMenu from '../components/HamburgerMenu';
@@ -10,10 +10,8 @@ import { auth, getUserProfile, getCurrentUser } from '../lib/firebase';
 import { getFollowing } from '../services/followService';
 import { useReviewStore } from '../stores/reviewStore';
 import { useFollowStore } from '../stores/followStore';
-import mapPreview from "../assets/map-preview.png";
 import { getTierFromPoints } from '../badges/badgeTiers';
-// Defer heavy map code: code-split ExpandedMapModal and avoid inline map
-const ExpandedMapModal = React.lazy(() => import('../components/ExpandedMapModal'));
+import FloatingUserStatsBox from '../components/FloatingUserStatsBox';
 
 const Home: React.FC = () => {
   const mountStart = performance.now?.() ?? Date.now();
@@ -58,10 +56,7 @@ const Home: React.FC = () => {
   const [userReviews, setUserReviews] = useState<FirebaseReview[]>([]);
   const [userProfile, setUserProfile] = useState<any>(null);
   const [profileLoading, setProfileLoading] = useState(true);
-  const [showExpandedMap, setShowExpandedMap] = useState(false);
   const [authUser, setAuthUser] = useState(() => getCurrentUser());
-  const [showJourneyToast, setShowJourneyToast] = useState(false);
-  const [focusRestaurant, setFocusRestaurant] = useState<{ lat: number; lng: number; id: string; name: string } | null>(null);
 
   // NEW: Non-blocking hydration state
   const [isHydrated, setIsHydrated] = useState(false);
@@ -83,21 +78,6 @@ const Home: React.FC = () => {
   const radius = 16; // progress ring radius (SVG units)
   const circumference = 2 * Math.PI * radius;
   const pullProgress = Math.max(0, Math.min(1, pullY / PULL_TRIGGER));
-
-  // Handle focusRestaurant from post-review navigation
-  useEffect(() => {
-    const state = location.state as { focusRestaurant?: { lat: number; lng: number; id: string; name: string } } | null;
-    if (state?.focusRestaurant) {
-      setFocusRestaurant(state.focusRestaurant);
-      setShowExpandedMap(true);
-      setShowJourneyToast(true);
-      // Clear navigation state to prevent re-triggering on back nav
-      window.history.replaceState({}, document.title);
-      // Auto-dismiss toast after 3 seconds
-      const timer = setTimeout(() => setShowJourneyToast(false), 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [location.state]);
 
   // NEW: Non-blocking hydration effect - wait for store to hydrate from localStorage
   useEffect(() => {
@@ -936,42 +916,15 @@ const Home: React.FC = () => {
           </div>
         )}
 
-        {/* Your Food Journey Section */}
-        <div className="bg-white rounded-xl shadow-sm p-5 mb-6">
-          <div className="flex items-center gap-2 mb-5">
-            <MapIcon size={24} className="text-primary" />
-            <h2 className="text-2xl font-bold text-gray-900">Food Journey</h2>
-          </div>
-          <div
-            className="h-52 rounded-2xl border border-gray-100 overflow-hidden relative cursor-pointer hover:border-gray-200 hover:shadow-md transition-all duration-200"
-            onClick={() => setShowExpandedMap(true)}
-          >
-            <img
-              src={mapPreview}
-              alt="Map preview"
-              loading="lazy"
-              decoding="async"
-              className="absolute inset-0 w-full h-full object-cover"
-            />
-            <div className="absolute inset-0 bg-white/5" />
-            {/* Centered text overlay */}
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="bg-white px-6 py-3 rounded-full shadow-lg">
-                <p className="text-sm font-semibold text-primary">Tap to open your journey map</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="text-center mt-5">
-            <div 
-              className="inline-flex items-center gap-2 bg-white rounded-full border border-gray-200 px-5 py-2.5 shadow-sm cursor-pointer hover:border-gray-300 hover:shadow-md transition-all duration-200"
-              onClick={() => navigate('/list-view')}
-            >
-              <MapPinIcon size={18} className="text-secondary" />
-              <span className="text-sm font-medium text-gray-900">Recent Visits</span>
-            </div>
-          </div>
-        </div>
+        {/* User Stats Box with Dynamic Island */}
+        <FloatingUserStatsBox
+          avatar={userProfile?.avatar || userProfile?.photoURL || authUser?.photoURL}
+          username={userProfile?.username || userProfile?.displayName || 'User'}
+          tierIndex={getTierFromPoints(userStats.pointsEarned).tierIndex}
+          tierName={getTierFromPoints(userStats.pointsEarned).tierName}
+          restaurantsCount={userStats.totalRestaurants}
+          dishesCount={userStats.totalDishes}
+        />
 
         {/* Community Feed Section */}
         <div className="space-y-4">
@@ -1048,35 +1001,6 @@ const Home: React.FC = () => {
         </div>
       </div>
 
-      {/* Expanded Map Modal */}
-      {/* Lazy-loaded map modal to keep initial bundle light */}
-      <React.Suspense fallback={
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin" />
-        </div>
-      }>
-        <ExpandedMapModal
-          isOpen={showExpandedMap}
-          onClose={() => {
-            setShowExpandedMap(false);
-            setFocusRestaurant(null);
-          }}
-          userName={userProfile?.username || userProfile?.displayName || undefined}
-          userTierIndex={getTierFromPoints(userStats.pointsEarned).tierIndex}
-          userAvatar={userProfile?.avatar || userProfile?.photoURL || authUser?.photoURL}
-          homeCountry={userProfile?.homeCountry}
-          focusRestaurant={focusRestaurant || undefined}
-        />
-      </React.Suspense>
-
-      {/* Toast notification for post-review map focus */}
-      {showJourneyToast && (
-        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[200] animate-slide-up">
-          <div className="bg-gray-900 text-white px-6 py-3 rounded-xl shadow-lg text-sm font-medium">
-            Added to your food journey! 🎉
-          </div>
-        </div>
-      )}
     </div>
   );
 };

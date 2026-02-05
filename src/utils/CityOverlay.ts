@@ -1,26 +1,21 @@
-/**
- * Custom Google Maps OverlayView that displays country labels with restaurant counts.
- * Shown at zoom levels 1-5, hidden at zoom 6+.
- */
+import { OVERLAY_PILL_STYLES } from './mapShared';
 
-import { OVERLAY_PILL_STYLES } from '../../utils/mapShared';
-
-export interface CountryStat {
-  code: string;
-  name: string;
-  flag: string;
+export interface CityStat {
+  city: string;
+  state: string;
   count: number;
   lat: number;
   lng: number;
-  /** Bounds of all restaurants in this country (for fitBounds on click) */
-  bounds?: google.maps.LatLngBounds;
 }
 
-
-export interface CountryOverlayLike {
-  countryCode: string;
+export interface CityOverlayLike {
   setVisible: (visible: boolean) => void;
   destroy: () => void;
+}
+
+export interface CityOverlayOptions {
+  icon?: string;
+  unitLabel?: string;
 }
 
 const applyStyles = (el: HTMLElement, styles: Record<string, string>) => {
@@ -29,29 +24,31 @@ const applyStyles = (el: HTMLElement, styles: Record<string, string>) => {
   });
 };
 
-export const createCountryOverlay = (
-  stat: CountryStat,
+export const createCityOverlay = (
+  cityStat: CityStat,
   map: google.maps.Map,
-  onClick?: (stat: CountryStat) => void
-): CountryOverlayLike | null => {
+  onClick: (cityStat: CityStat) => void,
+  options: CityOverlayOptions = {}
+): CityOverlayLike | null => {
   const googleMaps = (globalThis as any).google?.maps;
   if (!googleMaps?.OverlayView || !googleMaps?.LatLng) return null;
 
-  class CountryOverlayImpl extends googleMaps.OverlayView {
-    public countryCode: string;
+  const icon = options.icon ?? '📍';
+  const unitLabel = options.unitLabel ?? 'restaurants';
+
+  class CityOverlayImpl extends googleMaps.OverlayView {
     private position: google.maps.LatLng;
     private div: HTMLDivElement | null = null;
-    private stat: CountryStat;
-    private onClick?: (stat: CountryStat) => void;
+    private stat: CityStat;
+    private onClick?: (stat: CityStat) => void;
     private _pendingVisible: boolean = true;
 
     constructor(
-      overlayStat: CountryStat,
+      overlayStat: CityStat,
       overlayMap: google.maps.Map,
-      overlayClick?: (overlayStat: CountryStat) => void
+      overlayClick?: (overlayStat: CityStat) => void
     ) {
       super();
-      this.countryCode = overlayStat.code;
       this.stat = overlayStat;
       this.position = new googleMaps.LatLng(overlayStat.lat, overlayStat.lng);
       this.onClick = overlayClick;
@@ -59,7 +56,6 @@ export const createCountryOverlay = (
     }
 
     onAdd(): void {
-      // Wrapper holds both the pill and the pointer triangle
       this.div = document.createElement('div');
       this.div.style.position = 'absolute';
       this.div.style.cursor = 'pointer';
@@ -72,40 +68,26 @@ export const createCountryOverlay = (
       this.div.style.filter = 'drop-shadow(0 4px 12px rgba(0,0,0,0.25))';
       this.div.style.transition = 'transform 0.15s ease, filter 0.15s ease';
 
-      // Pill/chip container
       const pill = document.createElement('div');
       applyStyles(pill, OVERLAY_PILL_STYLES as Record<string, string>);
 
-      const restaurantText = this.stat.count === 1 ? 'restaurant' : 'restaurants';
-      const flagImg = document.createElement('img');
-      const countryCode = (this.stat.code || '').toLowerCase();
-      flagImg.src = `https://flagcdn.com/w40/${countryCode}.png`;
-      flagImg.alt = this.stat.code || '';
-      flagImg.style.width = '20px';
-      flagImg.style.height = '15px';
-      flagImg.style.objectFit = 'cover';
-      flagImg.style.borderRadius = '2px';
-      flagImg.style.marginRight = '6px';
-      flagImg.style.verticalAlign = 'middle';
-      flagImg.style.display = 'inline-block';
+      const singularUnit = unitLabel.endsWith('s') ? unitLabel.slice(0, -1) : unitLabel;
+      const unitText = this.stat.count === 1 ? singularUnit : unitLabel;
       const textSpan = document.createElement('span');
-      textSpan.textContent = `${this.stat.name}: ${this.stat.count} ${restaurantText}`;
-      pill.appendChild(flagImg);
+      textSpan.textContent = `${icon} ${this.stat.city}: ${this.stat.count} ${unitText}`;
       pill.appendChild(textSpan);
 
-      // Pointer triangle (arrow pointing down)
       const pointer = document.createElement('div');
       pointer.style.width = '0';
       pointer.style.height = '0';
       pointer.style.borderLeft = '7px solid transparent';
       pointer.style.borderRight = '7px solid transparent';
-      pointer.style.borderTop = `7px solid ${OVERLAY_PILL_STYLES.background}`;
+      pointer.style.borderTop = '7px solid rgba(0, 0, 0, 0.78)';
       pointer.style.marginTop = '-1px';
 
       this.div.appendChild(pill);
       this.div.appendChild(pointer);
 
-      // Hover effect
       this.div.addEventListener('mouseenter', () => {
         if (this.div) {
           this.div.style.transform = 'translate(-50%, -100%) scale(1.05)';
@@ -119,13 +101,11 @@ export const createCountryOverlay = (
         }
       });
 
-      // Click handler
       this.div.addEventListener('click', (e) => {
         e.stopPropagation();
         this.onClick?.(this.stat);
       });
 
-      // Apply any pending visibility set before onAdd fired
       if (!this._pendingVisible) {
         this.div.style.display = 'none';
       }
@@ -153,7 +133,6 @@ export const createCountryOverlay = (
       this.div = null;
     }
 
-    /** Show or hide the overlay */
     setVisible(visible: boolean): void {
       this._pendingVisible = visible;
       if (this.div) {
@@ -161,11 +140,10 @@ export const createCountryOverlay = (
       }
     }
 
-    /** Remove from map */
     destroy(): void {
       this.setMap(null);
     }
   }
 
-  return new CountryOverlayImpl(stat, map, onClick);
-}
+  return new CityOverlayImpl(cityStat, map, onClick);
+};
