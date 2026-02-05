@@ -975,9 +975,9 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
                   onClick={handleFollowToggle}
                   disabled={followLoading}
                   aria-label={isFollowingUser ? 'Following' : 'Follow'}
-                  className={`ml-2 -mt-0.5 flex items-center justify-center transition-all duration-200 flex-shrink-0 w-6 h-6 rounded-full border ${
+                    className={`ml-2 -mt-0.5 flex items-center justify-center transition-all duration-200 flex-shrink-0 w-6 h-6 rounded-full border ${
                     isFollowingUser
-                      ? 'border-green-500 text-green-600 bg-green-50'
+                      ? (showFollowConfirmation ? 'border-green-500 text-green-600 bg-green-50' : 'border-transparent bg-transparent text-transparent')
                       : 'border-gray-300 text-gray-600 bg-white hover:border-gray-400 hover:text-gray-700'
                   } ${followLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                 >
@@ -1510,9 +1510,9 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
                   onClick={handleFollowToggle}
                   disabled={followLoading}
                   aria-label={isFollowingUser ? 'Following' : 'Follow'}
-                  className={`ml-2 -mt-0.5 flex items-center justify-center transition-all duration-200 flex-shrink-0 w-6 h-6 rounded-full border ${
+                    className={`ml-2 -mt-0.5 flex items-center justify-center transition-all duration-200 flex-shrink-0 w-6 h-6 rounded-full border ${
                     isFollowingUser
-                      ? 'border-green-500 text-green-600 bg-green-50'
+                      ? (showFollowConfirmation ? 'border-green-500 text-green-600 bg-green-50' : 'border-transparent bg-transparent text-transparent')
                       : 'border-gray-300 text-gray-600 bg-white hover:border-gray-400 hover:text-gray-700'
                   } ${followLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                 >
@@ -2206,7 +2206,7 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
                     aria-label={isFollowingUser ? 'Following' : 'Follow'}
                     className={`ml-2 -mt-0.5 flex items-center justify-center transition-all duration-200 flex-shrink-0 w-6 h-6 rounded-full border ${
                       isFollowingUser
-                        ? 'border-green-500 text-green-600 bg-green-50'
+                        ? (showFollowConfirmation ? 'border-green-500 text-green-600 bg-green-50' : 'border-transparent bg-transparent text-transparent')
                         : 'border-gray-300 text-gray-600 bg-white hover:border-gray-400 hover:text-gray-700'
                     } ${followLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                   >

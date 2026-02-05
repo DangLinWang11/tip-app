@@ -896,7 +896,7 @@ const MapView: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishe
 
       if (mapType === 'restaurant') {
         if (isDemoMode) {
-          const ghostPin = createGhostPinIcon('#9CA3AF');
+          const ghostPin = createGhostPinIcon('#ef4444');
           demoRestaurants.forEach((restaurant) => {
             const position = restaurant.location;
             if (!position || typeof position !== 'object' || typeof position.lat !== 'number' || typeof position.lng !== 'number') {

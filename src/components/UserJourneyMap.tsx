@@ -427,7 +427,7 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({
           </div>
 
           {/* Demo onboarding card: explain map + CTA */}
-          <div className="absolute inset-x-0 bottom-0 z-30 pb-4 px-4">
+          <div className="absolute inset-x-0 bottom-0 z-30 pb-24 px-4">
             <div className="bg-white/95 backdrop-blur border border-gray-200 rounded-2xl p-4 shadow-lg">
               <h3 className="text-base font-semibold text-gray-900 mb-1">
                 This is your Food Journey Map
