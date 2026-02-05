@@ -15,6 +15,7 @@ export interface DemoRestaurant {
   visitCount: number;
   countryCode: string;
   lastVisit: string;
+  photoUrl?: string;
   reviews: DemoReview[];
 }
 
@@ -31,6 +32,7 @@ export const demoJourneyRestaurants: DemoRestaurant[] = [
     visitCount: 3,
     countryCode: 'US',
     lastVisit: '2026-01-12',
+    photoUrl: '',
     reviews: [
       {
         id: 'demo-review-1',
@@ -50,6 +52,7 @@ export const demoJourneyRestaurants: DemoRestaurant[] = [
     visitCount: 2,
     countryCode: 'US',
     lastVisit: '2026-01-05',
+    photoUrl: '',
     reviews: [
       {
         id: 'demo-review-2',
@@ -69,6 +72,7 @@ export const demoJourneyRestaurants: DemoRestaurant[] = [
     visitCount: 4,
     countryCode: 'US',
     lastVisit: '2025-12-20',
+    photoUrl: '',
     reviews: [
       {
         id: 'demo-review-3',
@@ -88,6 +92,7 @@ export const demoJourneyRestaurants: DemoRestaurant[] = [
     visitCount: 1,
     countryCode: 'US',
     lastVisit: '2025-12-08',
+    photoUrl: '',
     reviews: [
       {
         id: 'demo-review-4',
@@ -107,6 +112,7 @@ export const demoJourneyRestaurants: DemoRestaurant[] = [
     visitCount: 2,
     countryCode: 'US',
     lastVisit: '2025-11-28',
+    photoUrl: '',
     reviews: [
       {
         id: 'demo-review-5',

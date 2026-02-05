@@ -29,15 +29,21 @@ const DemoRestaurantModal: React.FC<DemoRestaurantModalProps> = ({ restaurant, i
           </button>
 
           <div className="flex items-start gap-4">
-            <div className="h-16 w-16 rounded-xl bg-gray-100 flex items-center justify-center text-gray-400 text-xl">
-              🍽️
+            <div className="flex flex-col items-start gap-2">
+              <div className="h-16 w-16 rounded-xl bg-gray-100 overflow-hidden flex items-center justify-center text-gray-400 text-xl">
+                {restaurant.photoUrl ? (
+                  <img src={restaurant.photoUrl} alt={restaurant.name} className="h-full w-full object-cover" />
+                ) : (
+                  <span>🍽️</span>
+                )}
+              </div>
+              <span className="text-[10px] uppercase tracking-[0.2em] text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+                Example
+              </span>
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
                 <h3 className="text-xl font-bold text-black leading-tight">{restaurant.name}</h3>
-                <span className="text-[10px] uppercase tracking-[0.2em] text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
-                  Example
-                </span>
               </div>
               <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
                 <span className="bg-gray-100 text-gray-700 px-2.5 py-1 rounded-full">
@@ -71,14 +77,7 @@ const DemoRestaurantModal: React.FC<DemoRestaurantModalProps> = ({ restaurant, i
           </div>
         </div>
 
-        <div className="border-t border-gray-100 p-4 bg-white flex justify-end">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 bg-gray-100 text-gray-700 rounded-full hover:bg-gray-200 transition-colors text-sm font-medium"
-          >
-            Close
-          </button>
-        </div>
+        {/* Close button is in the header */}
       </div>
     </div>
   );

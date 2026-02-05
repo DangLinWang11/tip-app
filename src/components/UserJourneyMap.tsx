@@ -433,10 +433,11 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({
           >
             <div className="bg-white/95 backdrop-blur border border-gray-200 rounded-2xl p-4 shadow-lg">
               <h3 className="text-base font-semibold text-gray-900 mb-1">
-                This is your Food Journey Map
+                Welcome to your Food Journey Map!
               </h3>
               <p className="text-sm text-gray-600 mb-4">
-                Every place you review becomes a pin here. Tap an example pin to see what you’ll collect.
+                Every food you review becomes a pin here.
+                Tap a pin to see what it will look like.
               </p>
               <div className="flex flex-col gap-2">
                 <button
