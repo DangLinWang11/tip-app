@@ -479,7 +479,7 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({
           className="w-full h-full"
           showMyLocationButton={showControls}
           showGoogleControl={false}
-          myLocationButtonOffset={72}
+          myLocationButtonOffset={80}
           initialCenter={mapCenter}
           initialZoom={initialZoom}
           countryStats={countryStatsWithBoundsData}
@@ -492,7 +492,7 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({
           onCountryToggle={handleCountryToggle}
         />
 
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-white/95 via-white/50 to-transparent" />
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-14 bg-gradient-to-b from-white/70 via-white/30 to-transparent" />
         <div className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-white/90 via-white/40 to-transparent" />
 
         <AnimatePresence>
