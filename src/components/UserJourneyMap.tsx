@@ -34,6 +34,7 @@ interface UserJourneyMapProps {
   onBack?: () => void;
   homeCountry?: string; // ISO country code from user profile
   focusRestaurant?: FocusRestaurant; // restaurant to focus on after review creation
+  fullBleed?: boolean; // Remove rounded corners for edge-to-edge map
 }
 
 const HOME_COUNTRY_STORAGE_KEY = 'tip.homeCountry';
@@ -50,7 +51,8 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({
   onClose,
   onBack,
   homeCountry,
-  focusRestaurant
+  focusRestaurant,
+  fullBleed = false
 }) => {
   const navigate = useNavigate();
   const isOwnMap = !userId;
@@ -390,7 +392,7 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({
   if (isNewUser) {
     return (
       <>
-        <div className={`${className} relative overflow-hidden rounded-2xl bg-white`}>
+        <div className={`${className} relative overflow-hidden ${fullBleed ? '' : 'rounded-2xl'} bg-white`}>
           <RestaurantMap
             mapType="restaurant"
             restaurants={[]}
@@ -469,7 +471,7 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({
   // Main map display
   return (
     <>
-      <div className={`${className} relative overflow-hidden rounded-2xl bg-white`}>
+      <div className={`${className} relative overflow-hidden ${fullBleed ? '' : 'rounded-2xl'} bg-white`}>
         <div
           className="absolute inset-x-0 bottom-0"
           style={{ top: 'calc(-1 * env(safe-area-inset-top))' }}

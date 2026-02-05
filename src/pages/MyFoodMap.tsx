@@ -44,6 +44,7 @@ const MyFoodMap: React.FC = () => {
       <div className="flex-1 relative">
         <UserJourneyMap
           className="w-full h-full"
+          fullBleed
           showLegend
           showControls
           userName={userProfile?.username || userProfile?.displayName}
