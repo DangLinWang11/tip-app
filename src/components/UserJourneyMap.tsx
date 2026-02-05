@@ -427,7 +427,10 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({
           </div>
 
           {/* Demo onboarding card: explain map + CTA */}
-          <div className="absolute inset-x-0 bottom-0 z-30 pb-24 px-4">
+          <div
+            className="absolute inset-x-0 z-30 px-4"
+            style={{ bottom: 'calc(env(safe-area-inset-bottom) + 72px)' }}
+          >
             <div className="bg-white/95 backdrop-blur border border-gray-200 rounded-2xl p-4 shadow-lg">
               <h3 className="text-base font-semibold text-gray-900 mb-1">
                 This is your Food Journey Map
@@ -443,7 +446,7 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({
                   Add your first review
                 </button>
                 <button
-                  onClick={() => navigate('/create')}
+                  onClick={() => navigate('/create', { state: { focusRestaurantSearch: true } })}
                   className="w-full border border-gray-300 text-gray-700 py-2.5 rounded-xl font-semibold hover:bg-gray-50 transition-colors"
                 >
                   Search a place

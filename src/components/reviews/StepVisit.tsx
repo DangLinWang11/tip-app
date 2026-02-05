@@ -1,4 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { Camera, Loader2, MapPin, Plus, Trash2, Video, X, AlertCircle, Bookmark } from 'lucide-react';
 import { useLoadScript } from '@react-google-maps/api';
@@ -46,12 +47,14 @@ const RestaurantSearchInput = React.memo(({
   value,
   onChange,
   placeholder,
-  className
+  className,
+  inputRef
 }: {
   value: string;
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   placeholder: string;
   className: string;
+  inputRef?: React.Ref<HTMLInputElement>;
 }) => {
   const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
     // Prevent page scroll when input focuses
@@ -68,6 +71,7 @@ const RestaurantSearchInput = React.memo(({
         className={className}
         autoComplete="off"
         onFocus={handleFocus}
+        ref={inputRef}
       />
       <MapPin className="absolute right-4 top-3.5 h-5 w-5 text-slate-400" />
     </div>
@@ -122,6 +126,7 @@ LocationBanner.displayName = 'LocationBanner';
 
 const StepVisit: React.FC = () => {
   const { t } = useI18n();
+  const location = useLocation();
   const {
     visitDraft,
     setVisitDraft,
@@ -143,6 +148,8 @@ const StepVisit: React.FC = () => {
   };
 
   const [restaurantQuery, setRestaurantQuery] = useState('');
+  const restaurantSearchRef = useRef<HTMLInputElement>(null);
+  const [didFocusSearch, setDidFocusSearch] = useState(false);
   const [restaurants, setRestaurants] = useState<RestaurantOption[]>([]);
   const [loadingRestaurants, setLoadingRestaurants] = useState(false);
   const [restaurantError, setRestaurantError] = useState<string | null>(null);
@@ -161,6 +168,15 @@ const StepVisit: React.FC = () => {
   const [requestingLocation, setRequestingLocation] = useState(false);
   const [nearbyGooglePlaces, setNearbyGooglePlaces] = useState<GoogleFallbackPlace[]>([]);
   const [loadingNearbyPlaces, setLoadingNearbyPlaces] = useState(false);
+
+  useEffect(() => {
+    const shouldFocus = Boolean((location.state as any)?.focusRestaurantSearch);
+    if (!shouldFocus || didFocusSearch) return;
+    setDidFocusSearch(true);
+    window.setTimeout(() => {
+      restaurantSearchRef.current?.focus();
+    }, 100);
+  }, [location.state, didFocusSearch]);
 
   const requestLocationPermission = React.useCallback(async () => {
     if (typeof navigator === 'undefined' || !navigator.geolocation) {
@@ -721,6 +737,7 @@ const StepVisit: React.FC = () => {
                   onChange={handleRestaurantQueryChange}
                   placeholder="Search for a restaurant..."
                   className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-base text-slate-700 focus:border-red-400 focus:outline-none focus:ring-2 focus:ring-red-100"
+                  inputRef={restaurantSearchRef}
                 />
               </div>
               {restaurantError ? <p className="text-sm text-red-500">{restaurantError}</p> : null}
