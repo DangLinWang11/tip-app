@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, startTransition } from 'react';
-import { ArrowLeftIcon, MapIcon, MapPinIcon, SearchIcon, PlusIcon, CheckIcon, EditIcon, Share, User, Star, Users, TrendingUp, Store, Award, Crown } from 'lucide-react';
+import { ArrowLeftIcon, MapIcon, MapPinIcon, SearchIcon, PlusIcon, CheckIcon, EditIcon, Share, User, Star, Users, TrendingUp, Store, Award } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import FeedPost from '../components/FeedPost';
 import { fetchUserReviews, convertReviewsToFeedPosts, FirebaseReview } from '../services/reviewService';
@@ -447,9 +447,6 @@ const PublicProfile: React.FC = () => {
               <h2 className="font-semibold text-lg text-gray-900 flex items-center">
                 {userProfile?.actualName || userProfile?.displayName || username}
                 <AvatarBadge tierIndex={tierProgress.tierIndex} size="inline" className="ml-1.5" />
-                {username === 'SpicyFoodie339' && (
-                  <Crown size={16} className="ml-1 text-amber-500" aria-label="Creator" />
-                )}
                 {userProfile?.isVerified && (
                   <span className="ml-1 text-blue-500" title="Verified user">✓</span>
                 )}

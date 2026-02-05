@@ -6,7 +6,8 @@ import {
   BookmarkIcon,
   ShareIcon,
   CheckCircleIcon,
-  Crown,
+  Plus,
+  Check,
 } from 'lucide-react';
 import { MoreHorizontal as DotsIcon } from 'lucide-react';
 import LocationPinIcon from './icons/LocationPinIcon';
@@ -947,25 +948,19 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
                 {displayAuthorName}
               </span>
               <AvatarBadge tierIndex={authorTier.tierIndex} size="inline" className="ml-1.5" />
-              {author.name === 'SpicyFoodie339' && (
-                <Crown size={14} className="ml-1 text-amber-500" aria-label="Creator" />
-              )}
-              {/* Follow button: gray pill when not following, simple check icon when following */}
+              {/* Follow button: + icon when not following, green check when following */}
               {!isOwnPost && (
                 <button
                   onClick={handleFollowToggle}
                   disabled={followLoading}
-                  className={`ml-2 -mt-0.5 flex items-center justify-center transition-all duration-200 flex-shrink-0 ${
+                  aria-label={isFollowingUser ? 'Following' : 'Follow'}
+                  className={`ml-2 -mt-0.5 flex items-center justify-center transition-all duration-200 flex-shrink-0 w-6 h-6 rounded-full border ${
                     isFollowingUser
-                      ? 'text-green-600'
-                      : 'px-2.5 py-0.5 rounded-full border text-xs font-medium border-gray-300 text-gray-600 bg-white hover:border-gray-400'
+                      ? 'border-green-500 text-green-600 bg-green-50'
+                      : 'border-gray-300 text-gray-600 bg-white hover:border-gray-400 hover:text-gray-700'
                   } ${followLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                 >
-                  {isFollowingUser ? (
-                    <CheckCircleIcon size={14} />
-                  ) : (
-                    'Follow'
-                  )}
+                  {isFollowingUser ? <Check size={14} /> : <Plus size={14} />}
                 </button>
               )}
             </div>
@@ -1488,25 +1483,19 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
                 {displayAuthorName}
               </span>
               <AvatarBadge tierIndex={authorTier.tierIndex} size="inline" className="ml-1.5" />
-              {author.name === 'SpicyFoodie339' && (
-                <Crown size={14} className="ml-1 text-amber-500" aria-label="Creator" />
-              )}
-              {/* Follow button: gray pill when not following, simple check icon when following */}
+              {/* Follow button: + icon when not following, green check when following */}
               {!isOwnPost && (
                 <button
                   onClick={handleFollowToggle}
                   disabled={followLoading}
-                  className={`ml-2 -mt-0.5 flex items-center justify-center transition-all duration-200 flex-shrink-0 ${
+                  aria-label={isFollowingUser ? 'Following' : 'Follow'}
+                  className={`ml-2 -mt-0.5 flex items-center justify-center transition-all duration-200 flex-shrink-0 w-6 h-6 rounded-full border ${
                     isFollowingUser
-                      ? 'text-green-600'
-                      : 'px-2.5 py-0.5 rounded-full border text-xs font-medium border-gray-300 text-gray-600 bg-white hover:border-gray-400'
+                      ? 'border-green-500 text-green-600 bg-green-50'
+                      : 'border-gray-300 text-gray-600 bg-white hover:border-gray-400 hover:text-gray-700'
                   } ${followLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                 >
-                  {isFollowingUser ? (
-                    <CheckCircleIcon size={14} />
-                  ) : (
-                    'Follow'
-                  )}
+                  {isFollowingUser ? <Check size={14} /> : <Plus size={14} />}
                 </button>
               )}
             </div>
@@ -2189,24 +2178,18 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
                   {displayAuthorName}
                 </span>
                 <AvatarBadge tierIndex={authorTier.tierIndex} size="inline" className="ml-1.5" />
-                {author.name === 'SpicyFoodie339' && (
-                  <Crown size={14} className="ml-1 text-amber-500" aria-label="Creator" />
-                )}
                 {!isOwnPost && (
                   <button
                     onClick={handleFollowToggle}
                     disabled={followLoading}
-                    className={`ml-2 -mt-0.5 flex items-center justify-center transition-all duration-200 flex-shrink-0 ${
+                    aria-label={isFollowingUser ? 'Following' : 'Follow'}
+                    className={`ml-2 -mt-0.5 flex items-center justify-center transition-all duration-200 flex-shrink-0 w-6 h-6 rounded-full border ${
                       isFollowingUser
-                        ? 'text-green-600'
-                        : 'px-2.5 py-0.5 rounded-full border text-xs font-medium border-gray-300 text-gray-600 bg-white hover:border-gray-400'
+                        ? 'border-green-500 text-green-600 bg-green-50'
+                        : 'border-gray-300 text-gray-600 bg-white hover:border-gray-400 hover:text-gray-700'
                     } ${followLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                   >
-                    {isFollowingUser ? (
-                      <CheckCircleIcon size={14} />
-                    ) : (
-                      'Follow'
-                    )}
+                    {isFollowingUser ? <Check size={14} /> : <Plus size={14} />}
                   </button>
                 )}
               </div>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, startTransition } from 'react';
-import { EditIcon, GridIcon, BookmarkIcon, SearchIcon, PlusIcon, Star, Users, TrendingUp, Award, Share, User, MapIcon, Crown } from 'lucide-react';
+import { EditIcon, GridIcon, BookmarkIcon, SearchIcon, PlusIcon, Star, Users, TrendingUp, Award, Share, User, MapIcon } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Store as StoreIcon } from 'lucide-react';
 import { useOwnedRestaurants } from '../hooks/useOwnedRestaurants';
@@ -700,9 +700,6 @@ const Profile: React.FC = () => {
               <h2 className="font-semibold text-lg text-gray-900 flex items-center">
                 {userProfile.actualName || userProfile.displayName || userProfile.username}
                 <AvatarBadge tierIndex={tierProgress.tierIndex} size="inline" className="ml-1.5" />
-                {userProfile.username === 'SpicyFoodie339' && (
-                  <Crown size={16} className="ml-1 text-amber-500" aria-label="Creator" />
-                )}
                 {userProfile.isVerified && (
                   <span className="ml-1 text-blue-500" title="Verified user">✓</span>
                 )}
