@@ -964,7 +964,7 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
             <div className="relative flex items-center">
               <span
                 onClick={handleUsernameClick}
-                className="font-medium cursor-pointer hover:text-primary max-w-[120px] truncate inline-block align-middle"
+                className="font-medium cursor-pointer hover:text-primary max-w-[150px] truncate inline-block align-middle"
               >
                 {displayAuthorName}
               </span>
@@ -1499,7 +1499,7 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
             <div className="relative flex items-center">
               <span
                 onClick={handleUsernameClick}
-                className="font-medium cursor-pointer hover:text-primary max-w-[120px] truncate inline-block align-middle"
+                className="font-medium cursor-pointer hover:text-primary max-w-[150px] truncate inline-block align-middle"
               >
                 {displayAuthorName}
               </span>
@@ -2194,7 +2194,7 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
               <div className="relative flex items-center">
                 <span
                   onClick={handleUsernameClick}
-                  className="font-medium cursor-pointer hover:text-primary max-w-[120px] truncate inline-block align-middle"
+                  className="font-medium cursor-pointer hover:text-primary max-w-[150px] truncate inline-block align-middle"
                 >
                   {displayAuthorName}
                 </span>
