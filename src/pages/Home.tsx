@@ -570,12 +570,14 @@ const Home: React.FC = () => {
             .map((r: any) => r?.restaurantId || r?.restaurant || r?.restaurantName)
             .filter(Boolean)
         ).size,
-      totalDishes: userReviews.length, // Use user's actual review count for dishes
+      totalReviews: userProfile?.stats?.totalReviews || userReviews.length,
+      totalDishes: userReviews.length,
       pointsEarned: Math.max(userProfile?.stats?.pointsEarned || 0, userReviews.length * 20)
     } : {
       // Default stats for unauthenticated users
       averageRating: "0.0",
       totalRestaurants: 0,
+      totalReviews: 0,
       totalDishes: 0,
       pointsEarned: 0
     };
@@ -922,7 +924,7 @@ const Home: React.FC = () => {
           username={userProfile?.username || userProfile?.displayName || 'User'}
           tierIndex={getTierFromPoints(userStats.pointsEarned).tierIndex}
           tierName={getTierFromPoints(userStats.pointsEarned).tierName}
-          restaurantsCount={userStats.totalRestaurants}
+          reviewsCount={userStats.totalReviews}
           dishesCount={userStats.totalDishes}
         />
 

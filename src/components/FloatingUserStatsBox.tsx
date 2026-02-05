@@ -10,7 +10,7 @@ interface FloatingUserStatsBoxProps {
   username: string;
   tierIndex: number;
   tierName: string;
-  restaurantsCount: number;
+  reviewsCount: number;
   dishesCount: number;
 }
 
@@ -21,7 +21,7 @@ const FloatingUserStatsBox: React.FC<FloatingUserStatsBoxProps> = ({
   username,
   tierIndex,
   tierName,
-  restaurantsCount,
+  reviewsCount,
   dishesCount
 }) => {
   const navigate = useNavigate();
@@ -60,22 +60,23 @@ const FloatingUserStatsBox: React.FC<FloatingUserStatsBoxProps> = ({
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-              className={GLASS_CARD_STYLES + ' p-4'}
+              className={GLASS_CARD_STYLES + ' p-3'}
             >
-              {/* Top row: Avatar + Username + Badge | Recent Visits Button */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
+              {/* Single row: Avatar + Username/Tier + Recent Visits | Stacked Pills */}
+              <div className="flex items-center justify-between gap-2">
+                {/* Left side: Avatar + Username + Recent Visits */}
+                <div className="flex items-center gap-2 min-w-0 flex-1">
                   {/* Avatar with Badge */}
-                  <div className="relative" style={{ width: 48, height: 48 }}>
+                  <div className="relative flex-shrink-0" style={{ width: 40, height: 40 }}>
                     {resolvedAvatar ? (
                       <img
                         src={resolvedAvatar}
                         alt={username}
                         onError={() => setAvatarError(true)}
-                        className="h-12 w-12 rounded-full object-cover shadow-md border-2 border-white"
+                        className="h-10 w-10 rounded-full object-cover shadow-md border-2 border-white"
                       />
                     ) : (
-                      <div className="h-12 w-12 rounded-full bg-gradient-to-br from-rose-500 to-red-600 text-white flex items-center justify-center font-semibold text-lg shadow-md">
+                      <div className="h-10 w-10 rounded-full bg-gradient-to-br from-rose-500 to-red-600 text-white flex items-center justify-center font-semibold text-base shadow-md">
                         {username.slice(0, 1).toUpperCase()}
                       </div>
                     )}
@@ -85,27 +86,28 @@ const FloatingUserStatsBox: React.FC<FloatingUserStatsBoxProps> = ({
                   </div>
 
                   {/* Username and Tier Name */}
-                  <div>
-                    <h3 className="font-semibold text-gray-900">{username}</h3>
-                    <p className="text-xs text-gray-500">{tierName}</p>
+                  <div className="min-w-0 flex-shrink">
+                    <h3 className="font-semibold text-gray-900 text-sm truncate">{username}</h3>
+                    <p className="text-xs text-gray-500 truncate">{tierName}</p>
                   </div>
+
+                  {/* Recent Visits Button - compact, single line */}
+                  <button
+                    onClick={() => navigate('/list-view')}
+                    className="flex items-center gap-1 bg-white rounded-full border border-gray-200 px-2.5 py-1.5 shadow-sm hover:shadow-md transition-all duration-200 flex-shrink-0 whitespace-nowrap"
+                  >
+                    <MapPinIcon size={14} className="text-secondary" />
+                    <span className="text-xs font-medium text-gray-900">Recent Visits</span>
+                  </button>
                 </div>
 
-                {/* Recent Visits Button */}
-                <button
-                  onClick={() => navigate('/list-view')}
-                  className="flex items-center gap-2 bg-white rounded-full border border-gray-200 px-4 py-2 shadow-sm hover:shadow-md transition-all duration-200"
-                >
-                  <MapPinIcon size={18} className="text-secondary" />
-                  <span className="text-sm font-medium text-gray-900">Recent Visits</span>
-                </button>
+                {/* Right side: Stacked Stat Pills */}
+                <UserStatsPills
+                  reviewsCount={reviewsCount}
+                  dishesCount={dishesCount}
+                  stacked
+                />
               </div>
-
-              {/* Bottom row: Stat Pills */}
-              <UserStatsPills
-                restaurantsCount={restaurantsCount}
-                dishesCount={dishesCount}
-              />
             </motion.div>
           )}
         </AnimatePresence>
@@ -146,7 +148,7 @@ const FloatingUserStatsBox: React.FC<FloatingUserStatsBoxProps> = ({
 
               {/* Compact Stats */}
               <UserStatsPills
-                restaurantsCount={restaurantsCount}
+                reviewsCount={reviewsCount}
                 dishesCount={dishesCount}
                 compact
               />
