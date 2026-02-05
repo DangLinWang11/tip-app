@@ -392,7 +392,7 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({
   if (isNewUser) {
     return (
       <>
-        <div className={`${className} relative overflow-hidden ${fullBleed ? '' : 'rounded-2xl'} bg-white`}>
+        <div className={`${className} relative ${fullBleed ? '' : 'overflow-hidden rounded-2xl'} bg-white`}>
           <RestaurantMap
             mapType="restaurant"
             restaurants={[]}
@@ -471,7 +471,7 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({
   // Main map display
   return (
     <>
-      <div className={`${className} relative overflow-hidden ${fullBleed ? '' : 'rounded-2xl'} bg-white`}>
+      <div className={`${className} relative ${fullBleed ? '' : 'overflow-hidden rounded-2xl'} bg-white`}>
         <div
           className="absolute inset-x-0 bottom-0"
           style={{ top: 'calc(-1 * env(safe-area-inset-top))' }}

@@ -39,21 +39,19 @@ const MyFoodMap: React.FC = () => {
   }
 
   return (
-    <div className="h-screen flex flex-col bg-white">
-      {/* Full-screen map */}
-      <div className="flex-1 relative">
-        <UserJourneyMap
-          className="w-full h-full"
-          fullBleed
-          showLegend
-          showControls
-          userName={userProfile?.username || userProfile?.displayName}
-          userTierIndex={tierInfo.tierIndex}
-          userAvatar={userProfile?.avatar || userProfile?.photoURL || currentUser?.photoURL}
-          homeCountry={userProfile?.homeCountry}
-          allowHomeCountryOverride={true}
-        />
-      </div>
+    <div className="fixed inset-0 bg-white">
+      {/* Full-screen map - extends edge to edge */}
+      <UserJourneyMap
+        className="w-full h-full"
+        fullBleed
+        showLegend
+        showControls
+        userName={userProfile?.username || userProfile?.displayName}
+        userTierIndex={tierInfo.tierIndex}
+        userAvatar={userProfile?.avatar || userProfile?.photoURL || currentUser?.photoURL}
+        homeCountry={userProfile?.homeCountry}
+        allowHomeCountryOverride={true}
+      />
 
       <BottomNavigation />
     </div>
