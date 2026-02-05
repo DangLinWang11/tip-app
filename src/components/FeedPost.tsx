@@ -949,7 +949,19 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
 
       {/* Header */}
       <div className="p-4 flex items-center gap-4">
-        <div className="relative">
+        <div
+          className="relative cursor-pointer"
+          onClick={handleUsernameClick}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              handleUsernameClick();
+            }
+          }}
+          aria-label={`View ${displayAuthorName}'s profile`}
+        >
           <img
             src={author.image}
             alt={displayAuthorName}
@@ -1490,7 +1502,19 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
 
       {/* Header */}
       <div className="p-4 flex items-center gap-4">
-        <div className="relative">
+        <div
+          className="relative cursor-pointer"
+          onClick={handleUsernameClick}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              handleUsernameClick();
+            }
+          }}
+          aria-label={`View ${displayAuthorName}'s profile`}
+        >
           <img src={author.image} alt={displayAuthorName} loading="lazy" decoding="async" className="w-10 h-10 rounded-full object-cover" />
         </div>
         <div className="flex-1 min-w-0">
@@ -2179,7 +2203,19 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
       {/* Header */}
       <div className="p-4 pb-3">
         <div className="flex items-center gap-3 mb-3">
-          <div className="relative">
+          <div
+            className="relative cursor-pointer"
+            onClick={handleUsernameClick}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                handleUsernameClick();
+              }
+            }}
+            aria-label={`View ${displayAuthorName}'s profile`}
+          >
             <img
               src={author.image}
               alt={displayAuthorName}

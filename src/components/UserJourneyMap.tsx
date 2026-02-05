@@ -429,7 +429,7 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({
           {/* Demo onboarding card: explain map + CTA */}
           <div
             className="absolute inset-x-0 z-30 px-4"
-            style={{ bottom: 'calc(env(safe-area-inset-bottom) + 72px)' }}
+            style={{ bottom: '88px' }}
           >
             <div className="bg-white/95 backdrop-blur border border-gray-200 rounded-2xl p-4 shadow-lg">
               <h3 className="text-base font-semibold text-gray-900 mb-1">

@@ -189,20 +189,41 @@ export const getFollowers = async (userId?: string): Promise<Follow[]> => {
 // Get follow counts for a user
 export const getFollowCounts = async (userId: string): Promise<FollowCounts> => {
   try {
-    // Read follower/following counts directly from user document (O(1) read)
-    // These counts are maintained by the updateFollowerCounters Cloud Function
     const userRef = doc(db, 'users', userId);
     const userSnap = await getDoc(userRef);
+    const storedFollowers = userSnap.exists() ? Number(userSnap.data().followerCount || 0) : 0;
+    const storedFollowing = userSnap.exists() ? Number(userSnap.data().followingCount || 0) : 0;
 
-    if (userSnap.exists()) {
-      const userData = userSnap.data();
-      return {
-        followers: Number(userData.followerCount || 0),
-        following: Number(userData.followingCount || 0)
-      };
+    // Always compute counts from follows collection to keep profile in sync
+    const followsRef = collection(db, 'follows');
+    const followersQ = query(followsRef, where('followingId', '==', userId));
+    const followingQ = query(followsRef, where('followerId', '==', userId));
+
+    try {
+      const [followersSnap, followingSnap] = await Promise.all([
+        getCountFromServer(followersQ),
+        getCountFromServer(followingQ),
+      ]);
+
+      const actualFollowers = followersSnap.data().count || 0;
+      const actualFollowing = followingSnap.data().count || 0;
+
+      if (userSnap.exists() && (actualFollowers !== storedFollowers || actualFollowing !== storedFollowing)) {
+        try {
+          await updateDoc(userRef, {
+            followerCount: actualFollowers,
+            followingCount: actualFollowing,
+          });
+        } catch (updateError) {
+          console.warn('Failed to update follow counts on user doc:', updateError);
+        }
+      }
+
+      return { followers: actualFollowers, following: actualFollowing };
+    } catch (countError) {
+      console.warn('Failed to count follows from server, using stored counts:', countError);
+      return { followers: storedFollowers, following: storedFollowing };
     }
-
-    return { following: 0, followers: 0 };
   } catch (error) {
     console.error('Error getting follow counts:', error);
     return { following: 0, followers: 0 };
