@@ -62,10 +62,10 @@ const FloatingUserStatsBox: React.FC<FloatingUserStatsBoxProps> = ({
               transition={{ type: 'spring', stiffness: 300, damping: 30 }}
               className={GLASS_CARD_STYLES + ' p-3'}
             >
-              {/* Single row: Avatar + Username/Tier + Recent Visits | Stacked Pills */}
+              {/* Top row: Avatar + Username/Tier | Stacked Pills */}
               <div className="flex items-center justify-between gap-2">
-                {/* Left side: Avatar + Username + Recent Visits */}
-                <div className="flex items-center gap-2 min-w-0 flex-1">
+                {/* Left side: Avatar + Username */}
+                <div className="flex items-center gap-2">
                   {/* Avatar with Badge */}
                   <div className="relative flex-shrink-0" style={{ width: 40, height: 40 }}>
                     {resolvedAvatar ? (
@@ -86,19 +86,10 @@ const FloatingUserStatsBox: React.FC<FloatingUserStatsBoxProps> = ({
                   </div>
 
                   {/* Username and Tier Name */}
-                  <div className="min-w-0 flex-shrink">
-                    <h3 className="font-semibold text-gray-900 text-sm truncate">{username}</h3>
-                    <p className="text-xs text-gray-500 truncate">{tierName}</p>
+                  <div>
+                    <h3 className="font-semibold text-gray-900 text-sm">{username}</h3>
+                    <p className="text-xs text-gray-500">{tierName}</p>
                   </div>
-
-                  {/* Recent Visits Button - compact, single line */}
-                  <button
-                    onClick={() => navigate('/list-view')}
-                    className="flex items-center gap-1 bg-white rounded-full border border-gray-200 px-2.5 py-1.5 shadow-sm hover:shadow-md transition-all duration-200 flex-shrink-0 whitespace-nowrap"
-                  >
-                    <MapPinIcon size={14} className="text-secondary" />
-                    <span className="text-xs font-medium text-gray-900">Recent Visits</span>
-                  </button>
                 </div>
 
                 {/* Right side: Stacked Stat Pills */}
@@ -107,6 +98,17 @@ const FloatingUserStatsBox: React.FC<FloatingUserStatsBoxProps> = ({
                   dishesCount={dishesCount}
                   stacked
                 />
+              </div>
+
+              {/* Bottom row: Recent Visits Button centered */}
+              <div className="flex justify-center mt-3">
+                <button
+                  onClick={() => navigate('/list-view')}
+                  className="flex items-center gap-1 bg-white rounded-full border border-gray-200 px-3 py-1.5 shadow-sm hover:shadow-md transition-all duration-200"
+                >
+                  <MapPinIcon size={14} className="text-secondary" />
+                  <span className="text-xs font-medium text-gray-900">Recent Visits</span>
+                </button>
               </div>
             </motion.div>
           )}
