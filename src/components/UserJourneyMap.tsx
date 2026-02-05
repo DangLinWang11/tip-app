@@ -392,7 +392,7 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({
   if (isNewUser) {
     return (
       <>
-        <div className={`${className} relative ${fullBleed ? '' : 'overflow-hidden rounded-2xl'} bg-white`}>
+        <div className={`${className} relative ${fullBleed ? '' : 'overflow-hidden rounded-2xl bg-white'}`}>
           <RestaurantMap
             mapType="restaurant"
             restaurants={[]}
@@ -471,10 +471,10 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({
   // Main map display
   return (
     <>
-      <div className={`${className} relative ${fullBleed ? '' : 'overflow-hidden rounded-2xl'} bg-white`}>
+      <div className={`${className} relative ${fullBleed ? '' : 'overflow-hidden rounded-2xl bg-white'}`}>
         <div
           className="absolute inset-x-0 bottom-0"
-          style={{ top: 'calc(-1 * env(safe-area-inset-top))' }}
+          style={{ top: fullBleed ? 0 : 'calc(-1 * env(safe-area-inset-top))' }}
         >
           <RestaurantMap
             mapType="restaurant"
@@ -499,7 +499,10 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({
           />
         </div>
 
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-14 bg-gradient-to-b from-white/70 via-white/30 to-transparent" />
+        <div
+          className="pointer-events-none absolute inset-x-0 h-14 bg-gradient-to-b from-white/70 via-white/30 to-transparent"
+          style={{ top: fullBleed ? 'env(safe-area-inset-top)' : 0 }}
+        />
         <div className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-white/90 via-white/40 to-transparent" />
 
         <AnimatePresence>
