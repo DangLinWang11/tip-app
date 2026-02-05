@@ -56,9 +56,6 @@ const CountrySelector: React.FC<CountrySelectorProps> = ({
 
   return (
     <div className="flex flex-col h-full">
-      <h2 className="text-2xl font-bold text-center text-gray-900 font-montserrat mb-1">
-        Where do you eat most?
-      </h2>
       <p className="text-sm text-center text-gray-500 font-poppins mb-4">
         We'll start your food map here
       </p>

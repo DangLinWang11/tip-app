@@ -479,6 +479,7 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({
           className="w-full h-full"
           showMyLocationButton={showControls}
           showGoogleControl={false}
+          myLocationButtonOffset={72}
           initialCenter={mapCenter}
           initialZoom={initialZoom}
           countryStats={countryStatsWithBoundsData}
@@ -708,7 +709,7 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({
                 <div className="flex items-center justify-between mb-3">
                   <div>
                     <p className="text-xs uppercase tracking-[0.2em] text-gray-400">Home Country</p>
-                    <h3 className="text-lg font-semibold text-gray-900">Where do you eat most?</h3>
+                    <h3 className="text-lg font-semibold text-red-500">Where do you eat most?</h3>
                   </div>
                   <button
                     onClick={() => setCountryPickerOpen(false)}
