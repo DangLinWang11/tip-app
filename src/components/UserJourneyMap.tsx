@@ -470,27 +470,32 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({
   return (
     <>
       <div className={`${className} relative overflow-hidden rounded-2xl bg-white`}>
-        <RestaurantMap
-          mapType="restaurant"
-          restaurants={mapRestaurants}
-          onRestaurantClick={handleRestaurantClick}
-          onZoomChanged={handleZoomChanged}
-          showQualityPercentages={false}
-          className="w-full h-full"
-          showMyLocationButton={showControls}
-          showGoogleControl={false}
-          myLocationButtonOffset={80}
-          initialCenter={mapCenter}
-          initialZoom={initialZoom}
-          countryStats={countryStatsWithBoundsData}
-          focusRestaurantId={focusRestaurant?.id}
-          mapRestriction={mapRestriction}
-          minZoom={2}
-          maxZoom={18}
-          resetTrigger={resetTrigger}
-          activeCountryCode={activeCountryCode}
-          onCountryToggle={handleCountryToggle}
-        />
+        <div
+          className="absolute inset-x-0 bottom-0"
+          style={{ top: 'calc(-1 * env(safe-area-inset-top))' }}
+        >
+          <RestaurantMap
+            mapType="restaurant"
+            restaurants={mapRestaurants}
+            onRestaurantClick={handleRestaurantClick}
+            onZoomChanged={handleZoomChanged}
+            showQualityPercentages={false}
+            className="w-full h-full"
+            showMyLocationButton={showControls}
+            showGoogleControl={false}
+            myLocationButtonOffset={80}
+            initialCenter={mapCenter}
+            initialZoom={initialZoom}
+            countryStats={countryStatsWithBoundsData}
+            focusRestaurantId={focusRestaurant?.id}
+            mapRestriction={mapRestriction}
+            minZoom={2}
+            maxZoom={18}
+            resetTrigger={resetTrigger}
+            activeCountryCode={activeCountryCode}
+            onCountryToggle={handleCountryToggle}
+          />
+        </div>
 
         <div className="pointer-events-none absolute inset-x-0 top-0 h-14 bg-gradient-to-b from-white/70 via-white/30 to-transparent" />
         <div className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-white/90 via-white/40 to-transparent" />
