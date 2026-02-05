@@ -237,6 +237,59 @@ const Home: React.FC = () => {
 
     return () => unsubscribe();
   }, [clearCache, clearFollowing]);
+
+  // Load user-specific data (profile, stats, following) independent of feed cache
+  useEffect(() => {
+    if (!authUser) return;
+
+    let cancelled = false;
+    const loadUserContext = async () => {
+      const currentUserId = authUser.uid;
+      setProfileLoading(true);
+
+      try {
+        const [profileResult, reviews] = await Promise.all([
+          getUserProfile(currentUserId),
+          fetchUserReviews(50, currentUserId)
+        ]);
+
+        if (cancelled) return;
+
+        if (profileResult.success && profileResult.profile) {
+          setUserProfile(profileResult.profile);
+        }
+
+        setUserReviews(reviews);
+
+        // Load following relationships (only if stale or empty)
+        try {
+          if (isFollowStale() || followingIds.size === 0) {
+            console.log('[Home][user-context] Fetching fresh following list...');
+            const followingList = await getFollowing(currentUserId);
+            if (cancelled) return;
+            const followingSet = new Set(followingList.map((f) => f.followingId));
+            setFollowingIds(followingSet);
+            updateFollowFetched();
+          } else {
+            console.log('[Home][user-context] Using cached following list', { count: followingIds.size });
+          }
+        } catch (followErr) {
+          console.error('[Home][user-context] Failed to load following list', followErr);
+        }
+      } catch (err) {
+        console.error('[Home][user-context] Failed to load user data:', err);
+      } finally {
+        if (!cancelled) {
+          setProfileLoading(false);
+        }
+      }
+    };
+
+    loadUserContext();
+    return () => {
+      cancelled = true;
+    };
+  }, [authUser?.uid, isFollowStale, followingIds.size, setFollowingIds, updateFollowFetched]);
   
   // Initialize data on mount: load from network only if cache is stale or missing
   // IMPORTANT: Only run after store hydration is complete to avoid race conditions
@@ -313,55 +366,6 @@ const Home: React.FC = () => {
           perfMs: tFetchStart,
         });
         setLoading(true);
-        setProfileLoading(true);
-
-        const currentUser = authUser;
-        let followingSet: Set<string> = new Set();
-
-        // Load user profile
-        if (currentUser) {
-          const tProfileStart = performance.now?.() ?? Date.now();
-          const profileResult = await getUserProfile(currentUser.uid);
-          const tProfileEnd = performance.now?.() ?? Date.now();
-          console.log('[Home][init] getUserProfile completed', {
-            ts: new Date().toISOString(),
-            durationMs: tProfileEnd - tProfileStart,
-            success: profileResult.success,
-          });
-          if (profileResult.success && profileResult.profile) {
-            setUserProfile(profileResult.profile);
-          }
-
-          // Load following relationships (only if stale or empty)
-          try {
-            if (isFollowStale() || followingIds.size === 0) {
-              console.log('[Home][init] Fetching fresh following list...');
-              const followingList = await getFollowing(currentUser.uid);
-              followingSet = new Set(followingList.map((f) => f.followingId));
-              setFollowingIds(followingSet);
-              updateFollowFetched();
-            } else {
-              console.log('[Home][init] Using cached following list', { count: followingIds.size });
-              followingSet = followingIds;
-            }
-          } catch (followErr) {
-            console.error('[Home][init] Failed to load following list', followErr);
-            // Fall back to cached followingIds if fetch fails
-            followingSet = followingIds;
-          }
-        }
-        setProfileLoading(false);
-
-        // Load user's reviews for stats
-        const tUserReviewsStart = performance.now?.() ?? Date.now();
-        const reviews = await fetchUserReviews(50);
-        const tUserReviewsEnd = performance.now?.() ?? Date.now();
-        console.log('[Home][init] Fetched user reviews', {
-          ts: new Date().toISOString(),
-          count: reviews.length,
-          durationMs: tUserReviewsEnd - tUserReviewsStart,
-        });
-        setUserReviews(currentUser ? reviews : []);
 
         // Load public feed using cache-first approach
         const tFeedFetchStart = performance.now?.() ?? Date.now();

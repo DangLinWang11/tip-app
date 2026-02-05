@@ -1585,7 +1585,6 @@ export const fetchUserReviews = async (limitCount = 50, userId?: string): Promis
     const q = query(
       reviewsRef,
       where('userId', '==', targetUserId),
-      where('isDeleted', '==', false),
       orderBy('createdAt', 'desc'),
       limit(limitCount)
     );
