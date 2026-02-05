@@ -45,7 +45,7 @@ const getCuisineIcon = (cuisine: string): string => {
 };
 
 interface Restaurant {
-  id: number;
+  id: string | number;
   name: string;
   qualityPercentage: number;
   location: {
@@ -88,9 +88,12 @@ interface MapProps {
   mapType: 'restaurant' | 'dish';
   restaurants: Restaurant[];
   dishes: Dish[];
+  demoRestaurants?: Restaurant[];
+  demoMode?: boolean;
   userLocation?: UserLocationCoordinates | null;
   onRestaurantClick?: (id: string) => void;
   onDishClick?: (id: string) => void;
+  onDemoRestaurantClick?: (id: string) => void;
   onZoomChanged?: (zoom: number) => void;
   showQualityPercentages?: boolean;
   disableInfoWindows?: boolean;
@@ -137,6 +140,7 @@ const DISH_PIN_CACHE = new Map<string, string>();
 const CLUSTER_PIN_CACHE = new Map<string, string>();
 const COMPACT_QUALITY_PIN_CACHE = new Map<string, { url: string; width: number; height: number }>();
 const QUALITY_LABEL_PIN_CACHE = new Map<string, { url: string; width: number; height: number }>();
+const GHOST_PIN_CACHE = new Map<string, { url: string; width: number; height: number }>();
 
 const CLUSTER_PIN_W = 48;
 const CLUSTER_PIN_H = 68;
@@ -352,6 +356,45 @@ const createCommunityPinIcon = (color: string = '#ef4444') => {
     width,
     height
   };
+};
+
+const createGhostPinIcon = (color: string = '#9CA3AF') => {
+  const cacheKey = `ghost_${color}`;
+  const cached = GHOST_PIN_CACHE.get(cacheKey);
+  if (cached) return cached;
+  const viewBoxWidth = 24;
+  const viewBoxHeight = 34;
+  const height = 34;
+  const width = (height * viewBoxWidth) / viewBoxHeight;
+  const svg = `
+    <svg width="${width}" height="${height}" viewBox="0 0 ${viewBoxWidth} ${viewBoxHeight}" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="ghostGrad" x1="12" y1="2" x2="12" y2="30" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stop-color="${color}" stop-opacity="0.45" />
+          <stop offset="100%" stop-color="${color}" stop-opacity="0.75" />
+        </linearGradient>
+      </defs>
+      <path
+        d="M 12 2
+           C 6.5 2, 2 6.5, 2 12
+           C 2 17.5, 12 30, 12 30
+           C 12 30, 22 17.5, 22 12
+           C 22 6.5, 17.5 2, 12 2 Z"
+        fill="url(#ghostGrad)"
+        stroke="${color}"
+        stroke-width="2.25"
+        stroke-dasharray="3 3"
+      />
+      <circle cx="12" cy="12" r="4" fill="white" fill-opacity="0.85" />
+    </svg>
+  `;
+  const result = {
+    url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg),
+    width,
+    height
+  };
+  GHOST_PIN_CACHE.set(cacheKey, result);
+  return result;
 };
 
 const COMMUNITY_PIN_TIP_X = 12;
@@ -639,7 +682,7 @@ const getDishPinIconCached = (rating: string): string => {
   return url;
 };
 
-const MapView: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishes, userLocation, onRestaurantClick, onDishClick, onZoomChanged, showQualityPercentages = true, disableInfoWindows = false, showMyLocationButton = true, showGoogleControl = true, myLocationButtonOffset, bottomSheetHook, navigate, countryStats, focusRestaurantId, useClusterer, mapRestriction, minZoom, maxZoom, resetTrigger, activeCountryCode, onCountryToggle, cityClusters, searchActive, searchPoints }) => {
+const MapView: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishes, demoRestaurants = [], demoMode = false, userLocation, onRestaurantClick, onDishClick, onDemoRestaurantClick, onZoomChanged, showQualityPercentages = true, disableInfoWindows = false, showMyLocationButton = true, showGoogleControl = true, myLocationButtonOffset, bottomSheetHook, navigate, countryStats, focusRestaurantId, useClusterer, mapRestriction, minZoom, maxZoom, resetTrigger, activeCountryCode, onCountryToggle, cityClusters, searchActive, searchPoints }) => {
   const ref = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<google.maps.Map>();
   const styleLoggedRef = useRef(false);
@@ -648,6 +691,7 @@ const MapView: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishe
   const [userAccuracyCircle, setUserAccuracyCircle] = useState<google.maps.Circle | null>(null);
   const onRestaurantClickRef = useRef(onRestaurantClick);
   const onDishClickRef = useRef(onDishClick);
+  const onDemoRestaurantClickRef = useRef(onDemoRestaurantClick);
   const onCountryToggleRef = useRef(onCountryToggle);
   const bottomSheetRef = useRef(bottomSheetHook);
   const wasSearchActiveRef = useRef(false);
@@ -669,6 +713,10 @@ const MapView: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishe
   useEffect(() => {
     onDishClickRef.current = onDishClick;
   }, [onDishClick]);
+
+  useEffect(() => {
+    onDemoRestaurantClickRef.current = onDemoRestaurantClick;
+  }, [onDemoRestaurantClick]);
 
   useEffect(() => {
     onCountryToggleRef.current = onCountryToggle;
@@ -844,7 +892,37 @@ const MapView: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishe
       }>();
       const labelZoomThreshold = 12;
 
+      const isDemoMode = demoMode && demoRestaurants.length > 0;
+
       if (mapType === 'restaurant') {
+        if (isDemoMode) {
+          const ghostPin = createGhostPinIcon('#9CA3AF');
+          demoRestaurants.forEach((restaurant) => {
+            const position = restaurant.location;
+            if (!position || typeof position !== 'object' || typeof position.lat !== 'number' || typeof position.lng !== 'number') {
+              return;
+            }
+
+            const marker = new window.google.maps.Marker({
+              position,
+              icon: {
+                url: ghostPin.url,
+                scaledSize: new window.google.maps.Size(ghostPin.width, ghostPin.height),
+                anchor: new window.google.maps.Point(COMMUNITY_PIN_TIP_X, COMMUNITY_PIN_TIP_Y),
+              },
+              title: restaurant.name,
+              zIndex: 1
+            });
+
+            marker.addListener('click', () => {
+              if (onDemoRestaurantClickRef.current) {
+                onDemoRestaurantClickRef.current(restaurant.id.toString());
+              }
+            });
+
+            markerEntries.push({ id: restaurant.id.toString(), marker, priority: 1 });
+          });
+        } else {
         const isJourneyMode = showQualityPercentages === false;
 
         // Show restaurant pins
@@ -940,6 +1018,7 @@ const MapView: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishe
             : restaurant.qualityPercentage;
           markerEntries.push({ id: restaurant.id.toString(), marker, priority });
         });
+        }
       } else {
         // Show dish pins
         dishes.forEach((dish) => {
@@ -1383,7 +1462,7 @@ const MapView: React.FC<MapProps> = ({ center, zoom, mapType, restaurants, dishe
         cityOverlays.forEach(o => o.destroy());
       };
     }
-  }, [map, mapType, restaurants, dishes, showQualityPercentages, countryStats, cityClusters, useClusterer, activeCountryCode, searchActive]);
+  }, [map, mapType, restaurants, dishes, demoRestaurants, demoMode, showQualityPercentages, countryStats, cityClusters, useClusterer, activeCountryCode, searchActive]);
 
   // Handle location button click
   const centerOnMyLocation = () => {
@@ -1498,9 +1577,12 @@ interface RestaurantMapProps {
   className?: string;
   mapType: 'restaurant' | 'dish';
   restaurants?: Restaurant[];
+  demoRestaurants?: Restaurant[];
+  demoMode?: boolean;
   userLocation?: UserLocationCoordinates | null;
   onRestaurantClick?: (id: string) => void;
   onDishClick?: (id: string) => void;
+  onDemoRestaurantClick?: (id: string) => void;
   onZoomChanged?: (zoom: number) => void;
   showQualityPercentages?: boolean;
   disableInfoWindows?: boolean;
@@ -1630,9 +1712,12 @@ const RestaurantMap: React.FC<RestaurantMapProps> = ({
   className = '',
   mapType,
   restaurants = [],
+  demoRestaurants = [],
+  demoMode = false,
   userLocation,
   onRestaurantClick,
   onDishClick,
+  onDemoRestaurantClick,
   onZoomChanged,
   showQualityPercentages = true,
   disableInfoWindows = false,
@@ -1685,9 +1770,12 @@ const RestaurantMap: React.FC<RestaurantMapProps> = ({
             mapType={mapType}
             restaurants={restaurants}
             dishes={topDishes}
+            demoRestaurants={demoRestaurants}
+            demoMode={demoMode}
             userLocation={userLocation}
             onRestaurantClick={onRestaurantClick}
             onDishClick={onDishClick}
+            onDemoRestaurantClick={onDemoRestaurantClick}
             onZoomChanged={onZoomChanged}
             showQualityPercentages={showQualityPercentages}
             disableInfoWindows={disableInfoWindows}

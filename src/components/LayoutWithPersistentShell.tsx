@@ -5,7 +5,7 @@ import { PersistentShell } from './layout/PersistentShell';
 import Home from '../pages/Home';
 import DiscoverList from '../pages/DiscoverList';
 import Profile from '../pages/Profile';
-import FoodMap from '../pages/FoodMap';
+import MyFoodMap from '../pages/MyFoodMap';
 import RecentActivity from '../pages/RecentActivity';
 
 /**
@@ -39,8 +39,8 @@ const LayoutWithPersistentShell: React.FC = () => {
     { path: '/', element: <Home /> },
     { path: '/discover/list', element: <DiscoverList /> },
     { path: '/profile', element: <Profile /> },
-    { path: '/food-map', element: <FoodMap /> },
-    { path: '/list-view', element: <FoodMap /> },
+    { path: '/food-map', element: <MyFoodMap /> },
+    { path: '/list-view', element: <MyFoodMap /> },
     { path: '/recent-activity', element: <RecentActivity /> },
   ];
 

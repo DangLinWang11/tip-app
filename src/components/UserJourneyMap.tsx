@@ -4,6 +4,7 @@ import { Globe2, X, ChevronDown } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import RestaurantMap from './RestaurantMap';
 import UserRestaurantModal from './UserRestaurantModal';
+import DemoRestaurantModal from './DemoRestaurantModal';
 import { getUserVisitedRestaurants, UserVisitedRestaurant } from '../services/reviewService';
 import { CountryData, getCountryByCode, getCountryCentroid } from '../data/countries';
 import { getCountryFromCoordinates } from '../utils/reverseGeocode';
@@ -11,6 +12,7 @@ import { getCurrentUser, getUserProfile } from '../lib/firebase';
 import { getTierFromPoints } from '../badges/badgeTiers';
 import CountrySelector from './CountrySelector';
 import AvatarBadge from './badges/AvatarBadge';
+import { demoJourneyCenter, demoJourneyRestaurants, demoJourneyZoom, type DemoRestaurant } from '../data/demoJourney';
 
 interface FocusRestaurant {
   lat: number;
@@ -83,6 +85,8 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [selectedRestaurant, setSelectedRestaurant] = useState<UserVisitedRestaurant | null>(null);
   const [showModal, setShowModal] = useState(false);
+  const [selectedDemoRestaurant, setSelectedDemoRestaurant] = useState<DemoRestaurant | null>(null);
+  const [showDemoModal, setShowDemoModal] = useState(false);
   const [deviceCountry, setDeviceCountry] = useState<string | null>(null);
   const [homeCountryOverride, setHomeCountryOverride] = useState<string | null>(null);
   const [countryPickerOpen, setCountryPickerOpen] = useState(false);
@@ -106,11 +110,12 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({
   const homeCountryData = useMemo<CountryData | null>(() => {
     if (!effectiveHomeCountry) return null;
     return getCountryByCode(effectiveHomeCountry) || null;
-  }, [effectiveHomeCountry]);
+  }, [effectiveHomeCountry, visitedRestaurants.length]);
 
   // Detect device country as fallback (only if no homeCountry and no reviews)
   useEffect(() => {
     if (effectiveHomeCountry) return;
+    if (visitedRestaurants.length === 0) return;
     if (!navigator.geolocation) return;
 
     navigator.geolocation.getCurrentPosition(
@@ -233,9 +238,14 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({
     });
   }, [countryStats, countryBoundsData]);
 
+  const isNewUser = visitedRestaurants.length === 0;
+
   // Compute map center using fallback chain:
   // 0. focusRestaurant → 1. homeCountry → 2. most-visited country → 3. device location country → 4. world view
   const { mapCenter, mapZoom: initialZoom } = useMemo(() => {
+    if (isNewUser) {
+      return { mapCenter: demoJourneyCenter, mapZoom: demoJourneyZoom };
+    }
     // 0. Focus on specific restaurant (post-review)
     if (focusRestaurant) {
       return { mapCenter: { lat: focusRestaurant.lat, lng: focusRestaurant.lng }, mapZoom: 13 };
@@ -263,7 +273,7 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({
 
     // 4. World view fallback
     return { mapCenter: { lat: 20, lng: 0 }, mapZoom: 2 };
-  }, [focusRestaurant, effectiveHomeCountry, countryStats, deviceCountry]);
+  }, [focusRestaurant, effectiveHomeCountry, countryStats, deviceCountry, isNewUser]);
 
   useEffect(() => {
     setMapZoom(initialZoom);
@@ -322,6 +332,14 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({
     setSelectedRestaurant(null);
   };
 
+  const handleDemoRestaurantClick = (restaurantId: string) => {
+    const demoRestaurant = demoJourneyRestaurants.find(r => r.id === restaurantId);
+    if (demoRestaurant) {
+      setSelectedDemoRestaurant(demoRestaurant);
+      setShowDemoModal(true);
+    }
+  };
+
   // Convert UserVisitedRestaurant to format expected by RestaurantMap
   const mapRestaurants = visitedRestaurants.map(restaurant => ({
     id: restaurant.id,
@@ -369,28 +387,78 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({
     );
   }
 
-  // Empty state - user has no restaurant visits
-  if (visitedRestaurants.length === 0) {
+  if (isNewUser) {
     return (
-      <div className={`${className} flex items-center justify-center bg-gray-100 rounded-xl`}>
-        <div className="text-center p-10">
-          <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-5 shadow-sm">
-            <Globe2 className="w-10 h-10 text-gray-400" />
+      <>
+        <div className={`${className} relative overflow-hidden rounded-2xl bg-white`}>
+          <RestaurantMap
+            mapType="restaurant"
+            restaurants={[]}
+            demoRestaurants={demoJourneyRestaurants.map(r => ({
+              id: r.id,
+              name: r.name,
+              qualityPercentage: Math.round((r.rating / 10) * 100),
+              location: r.location,
+              cuisine: r.cuisine,
+              rating: r.rating,
+              priceRange: '$',
+              visitCount: r.visitCount,
+              countryCode: r.countryCode,
+            }))}
+            demoMode
+            onDemoRestaurantClick={handleDemoRestaurantClick}
+            showQualityPercentages={false}
+            className="w-full h-full"
+            showMyLocationButton={false}
+            showGoogleControl={false}
+            initialCenter={demoJourneyCenter}
+            initialZoom={demoJourneyZoom}
+            mapRestriction={mapRestriction}
+            minZoom={2}
+            maxZoom={18}
+            searchActive={false}
+          />
+
+          {/* Demo label keeps example pins explicit to avoid confusion */}
+          <div className="pointer-events-none absolute top-4 left-4 z-30">
+            <div className="rounded-full bg-white/90 backdrop-blur border border-gray-200 px-3 py-1 text-xs font-semibold text-gray-700">
+              Demo journey · Example pins
+            </div>
           </div>
-          <h3 className="text-xl font-bold text-gray-900 mb-2 font-montserrat">
-            Your food journey starts here!
-          </h3>
-          <p className="text-gray-500 mb-6 max-w-xs mx-auto text-sm font-poppins">
-            Rate your first dish to see it on the map
-          </p>
-          <button
-            onClick={() => navigate('/create')}
-            className="px-8 py-3 bg-primary text-white rounded-xl hover:bg-red-600 transition-colors font-semibold font-montserrat shadow-sm"
-          >
-            Start Rating
-          </button>
+
+          {/* Demo onboarding card: explain map + CTA */}
+          <div className="absolute inset-x-0 bottom-0 z-30 pb-4 px-4">
+            <div className="bg-white/95 backdrop-blur border border-gray-200 rounded-2xl p-4 shadow-lg">
+              <h3 className="text-base font-semibold text-gray-900 mb-1">
+                This is your Food Journey Map
+              </h3>
+              <p className="text-sm text-gray-600 mb-4">
+                Every place you review becomes a pin here. Tap an example pin to see what you’ll collect.
+              </p>
+              <div className="flex flex-col gap-2">
+                <button
+                  onClick={() => navigate('/create')}
+                  className="w-full bg-primary text-white py-2.5 rounded-xl font-semibold hover:bg-red-600 transition-colors"
+                >
+                  Add your first review
+                </button>
+                <button
+                  onClick={() => navigate('/create')}
+                  className="w-full border border-gray-300 text-gray-700 py-2.5 rounded-xl font-semibold hover:bg-gray-50 transition-colors"
+                >
+                  Search a place
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
+
+        <DemoRestaurantModal
+          restaurant={selectedDemoRestaurant}
+          isOpen={showDemoModal}
+          onClose={() => setShowDemoModal(false)}
+        />
+      </>
     );
   }
 
