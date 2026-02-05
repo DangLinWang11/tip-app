@@ -918,17 +918,15 @@ const Home: React.FC = () => {
           </div>
         )}
 
-        {/* User Stats Box with Dynamic Island - only show when profile loaded */}
-        {!profileLoading && userProfile && (
-          <FloatingUserStatsBox
-            avatar={userProfile?.avatar || userProfile?.photoURL || authUser?.photoURL}
-            username={userProfile?.username || userProfile?.displayName || 'User'}
-            tierIndex={getTierFromPoints(userStats.pointsEarned).tierIndex}
-            tierName={getTierFromPoints(userStats.pointsEarned).tierName}
-            reviewsCount={userStats.totalReviews}
-            dishesCount={userStats.totalDishes}
-          />
-        )}
+        {/* User Stats Box with Dynamic Island */}
+        <FloatingUserStatsBox
+          avatar={userProfile?.avatar || userProfile?.photoURL || authUser?.photoURL}
+          username={userProfile?.username || userProfile?.displayName || authUser?.displayName || 'User'}
+          tierIndex={getTierFromPoints(userStats.pointsEarned).tierIndex}
+          tierName={getTierFromPoints(userStats.pointsEarned).tierName}
+          reviewsCount={userStats.totalReviews}
+          dishesCount={userStats.totalDishes}
+        />
 
         {/* Community Feed Section */}
         <div className="space-y-4">
