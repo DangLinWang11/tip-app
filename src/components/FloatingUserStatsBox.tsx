@@ -104,10 +104,10 @@ const FloatingUserStatsBox: React.FC<FloatingUserStatsBoxProps> = ({
               <div className="flex justify-center mt-3">
                 <button
                   onClick={() => navigate('/list-view')}
-                  className="flex items-center gap-1 bg-white rounded-full border border-gray-200 px-3 py-1.5 shadow-sm hover:shadow-md transition-all duration-200"
+                  className="flex items-center gap-1.5 bg-white rounded-full border border-gray-200 px-4 py-2 shadow-sm hover:shadow-md transition-all duration-200"
                 >
-                  <MapPinIcon size={14} className="text-secondary" />
-                  <span className="text-xs font-medium text-gray-900">Recent Visits</span>
+                  <MapPinIcon size={16} className="text-secondary" />
+                  <span className="text-sm font-medium text-gray-900">Recent Visits</span>
                 </button>
               </div>
             </motion.div>
