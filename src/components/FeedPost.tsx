@@ -202,6 +202,8 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
   // NEW: Follow state management
   const [isFollowingUser, setIsFollowingUser] = useState(isFollowingAuthor);
   const [followLoading, setFollowLoading] = useState(false);
+  const [showFollowConfirmation, setShowFollowConfirmation] = useState(false);
+  const followConfirmTimeoutRef = useRef<number | null>(null);
   const currentUser = getCurrentUser();
   const isOwnPost = currentUser?.uid === author?.id;
   const displayAuthorName = isOwnPost ? 'You' : (author?.name || 'Unknown');
@@ -210,6 +212,9 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
   // Sync local follow state when prop changes (e.g., when navigating back to home)
   useEffect(() => {
     setIsFollowingUser(isFollowingAuthor);
+    if (!isFollowingAuthor) {
+      setShowFollowConfirmation(false);
+    }
   }, [isFollowingAuthor]);
 
   // Feature flags
@@ -431,6 +436,7 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
         const success = await unfollowUser(author.id);
         if (success) {
           setIsFollowingUser(false);
+          setShowFollowConfirmation(false);
           if (onFollowChange) {
             onFollowChange(author.id, false);
           }
@@ -439,6 +445,13 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
         const success = await followUser(author?.id, author?.name || 'Unknown');
         if (success) {
           setIsFollowingUser(true);
+          setShowFollowConfirmation(true);
+          if (followConfirmTimeoutRef.current) {
+            window.clearTimeout(followConfirmTimeoutRef.current);
+          }
+          followConfirmTimeoutRef.current = window.setTimeout(() => {
+            setShowFollowConfirmation(false);
+          }, 1000);
           if (onFollowChange && author?.id) {
             onFollowChange(author.id, true);
           }
@@ -459,6 +472,14 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
       navigate(`/user/${author.name}`);
     }
   };
+
+  useEffect(() => {
+    return () => {
+      if (followConfirmTimeoutRef.current) {
+        window.clearTimeout(followConfirmTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Get current item to display (carousel or single)
   const currentItem = useMemo(() => {
@@ -960,7 +981,7 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
                       : 'border-gray-300 text-gray-600 bg-white hover:border-gray-400 hover:text-gray-700'
                   } ${followLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                 >
-                  {isFollowingUser ? <Check size={14} /> : <Plus size={14} />}
+                  {isFollowingUser ? (showFollowConfirmation ? <Check size={14} /> : null) : <Plus size={14} />}
                 </button>
               )}
             </div>
@@ -1495,7 +1516,7 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
                       : 'border-gray-300 text-gray-600 bg-white hover:border-gray-400 hover:text-gray-700'
                   } ${followLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                 >
-                  {isFollowingUser ? <Check size={14} /> : <Plus size={14} />}
+                  {isFollowingUser ? (showFollowConfirmation ? <Check size={14} /> : null) : <Plus size={14} />}
                 </button>
               )}
             </div>
@@ -2189,7 +2210,7 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
                         : 'border-gray-300 text-gray-600 bg-white hover:border-gray-400 hover:text-gray-700'
                     } ${followLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                   >
-                    {isFollowingUser ? <Check size={14} /> : <Plus size={14} />}
+                    {isFollowingUser ? (showFollowConfirmation ? <Check size={14} /> : null) : <Plus size={14} />}
                   </button>
                 )}
               </div>

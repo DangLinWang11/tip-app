@@ -78,6 +78,18 @@ export const followUser = async (targetUserId: string, targetUsername: string): 
       timestamp: new Date()
     });
 
+    // Update cached counters on both users for profile counts
+    try {
+      const followerRef = doc(db, 'users', currentUser.uid);
+      const followingRef = doc(db, 'users', targetUserId);
+      await Promise.all([
+        updateDoc(followerRef, { followingCount: increment(1) }),
+        updateDoc(followingRef, { followerCount: increment(1) })
+      ]);
+    } catch (countError) {
+      console.error('Error updating follow counts:', countError);
+    }
+
     return true;
   } catch (error) {
     console.error('Error following user:', error);
@@ -104,6 +116,18 @@ export const unfollowUser = async (targetUserId: string): Promise<boolean> => {
 
     // Delete the follow document
     await deleteDoc(snapshot.docs[0].ref);
+
+    // Update cached counters on both users for profile counts
+    try {
+      const followerRef = doc(db, 'users', currentUser.uid);
+      const followingRef = doc(db, 'users', targetUserId);
+      await Promise.all([
+        updateDoc(followerRef, { followingCount: increment(-1) }),
+        updateDoc(followingRef, { followerCount: increment(-1) })
+      ]);
+    } catch (countError) {
+      console.error('Error updating follow counts:', countError);
+    }
 
     return true;
   } catch (error) {
