@@ -549,7 +549,10 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({
           )}
         </AnimatePresence>
 
-        <div className="absolute top-4 left-4 right-4 z-30 pointer-events-none">
+        <div
+          className="absolute left-4 right-4 z-30 pointer-events-none"
+          style={{ top: 'calc(env(safe-area-inset-top) + 16px)' }}
+        >
           <AnimatePresence mode="wait">
             {!isCollapsedHeader && (
               <motion.div
