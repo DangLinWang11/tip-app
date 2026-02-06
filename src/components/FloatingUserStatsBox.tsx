@@ -129,7 +129,7 @@ const FloatingUserStatsBox: React.FC<FloatingUserStatsBoxProps> = ({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -20, scale: 0.9 }}
             transition={{ type: 'spring', stiffness: 320, damping: 28, mass: 0.9 }}
-            className="fixed top-2 left-1/2 -translate-x-1/2 z-50"
+            className="fixed top-2 right-4 z-50"
           >
             <div className="relative">
               <button

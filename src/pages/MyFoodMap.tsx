@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { MapPinIcon } from 'lucide-react';
 import UserJourneyMap from '../components/UserJourneyMap';
 import { getCurrentUser, getUserProfile } from '../lib/firebase';
 import { getTierFromPoints } from '../badges/badgeTiers';
@@ -52,6 +53,21 @@ const MyFoodMap: React.FC = () => {
         homeCountry={userProfile?.homeCountry}
         allowHomeCountryOverride={true}
       />
+
+      {/* Review counter (matches Food Journey map styling) */}
+      <div className="pointer-events-none absolute left-4 z-30" style={{ bottom: '88px' }}>
+        <div className="rounded-2xl bg-white/90 backdrop-blur-xl shadow-[0_12px_28px_rgba(0,0,0,0.18)] border border-white/70 px-3 py-1.5 flex items-center gap-2.5">
+          <div className="flex items-center justify-center w-6 flex-shrink-0">
+            <MapPinIcon size={20} className="text-secondary" />
+          </div>
+          <div className="flex flex-col items-start text-left leading-tight">
+            <span className="text-[11px] uppercase tracking-[0.16em] text-gray-400">Reviews</span>
+            <span className="text-[13px] font-semibold text-gray-800">
+              {userProfile?.stats?.totalReviews ?? 0} total
+            </span>
+          </div>
+        </div>
+      </div>
 
       <BottomNavigation />
     </div>
