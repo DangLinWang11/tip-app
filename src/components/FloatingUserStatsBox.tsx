@@ -30,14 +30,19 @@ const FloatingUserStatsBox: React.FC<FloatingUserStatsBoxProps> = ({
   const placeholderRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    const COLLAPSE_AT = 220;
+    const EXPAND_AT = 140;
+
     const handleScroll = () => {
-      if (placeholderRef.current) {
-        const rect = placeholderRef.current.getBoundingClientRect();
-        const shouldCollapse = rect.top < 200;
-        setIsCollapsed(shouldCollapse);
-      }
+      const scrollY = window.scrollY || document.documentElement.scrollTop || 0;
+      setIsCollapsed((prev) => {
+        if (prev && scrollY < EXPAND_AT) return false;
+        if (!prev && scrollY > COLLAPSE_AT) return true;
+        return prev;
+      });
     };
 
+    handleScroll();
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
