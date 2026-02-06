@@ -67,27 +67,27 @@ const FloatingUserStatsBox: React.FC<FloatingUserStatsBoxProps> = ({
                 {/* Left side: Avatar + Username */}
                 <div className="flex items-center gap-2">
                   {/* Avatar with Badge */}
-                  <div className="relative flex-shrink-0" style={{ width: 40, height: 40 }}>
+                  <div className="relative flex-shrink-0" style={{ width: 48, height: 48 }}>
                     {resolvedAvatar ? (
                       <img
                         src={resolvedAvatar}
                         alt={username}
                         onError={() => setAvatarError(true)}
-                        className="h-10 w-10 rounded-full object-cover shadow-md border-2 border-white"
+                        className="h-12 w-12 rounded-full object-cover shadow-md border-2 border-white"
                       />
                     ) : (
-                      <div className="h-10 w-10 rounded-full bg-gradient-to-br from-rose-500 to-red-600 text-white flex items-center justify-center font-semibold text-base shadow-md">
+                      <div className="h-12 w-12 rounded-full bg-gradient-to-br from-rose-500 to-red-600 text-white flex items-center justify-center font-semibold text-base shadow-md">
                         {username.slice(0, 1).toUpperCase()}
                       </div>
                     )}
-                    <div className="absolute -top-1 -left-1 z-10">
-                      <AvatarBadge tierIndex={tierIndex} size="feed" />
-                    </div>
                   </div>
 
                   {/* Username and Tier Name */}
                   <div>
-                    <h3 className="font-semibold text-gray-900 text-base">{username}</h3>
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-semibold text-gray-900 text-base">{username}</h3>
+                      <AvatarBadge tierIndex={tierIndex} size="feed" />
+                    </div>
                     <p className="text-sm text-gray-500">{tierName}</p>
                   </div>
                 </div>
