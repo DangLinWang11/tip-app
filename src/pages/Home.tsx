@@ -586,6 +586,7 @@ const Home: React.FC = () => {
       pointsEarned: 0
     };
   }, [currentUser, userReviews, userProfile?.stats]);
+  const isNewUser = userReviews.length === 0;
 
   // STABILITY: Memoize user recent reviews to prevent slice recalculation
   const userRecentReviews = useMemo(() => {
@@ -765,13 +766,15 @@ const Home: React.FC = () => {
         >
           Add Your First Review
         </Link>
-        <Link 
-          to="/discover" 
-          className="block w-full border border-gray-300 text-gray-700 py-3 px-6 rounded-full font-medium hover:bg-gray-50 transition-colors flex items-center justify-center"
-        >
-          <MapIcon size={18} className="mr-2" />
-          Discover Restaurants
-        </Link>
+        {!isNewUser && (
+          <Link 
+            to="/discover" 
+            className="block w-full border border-gray-300 text-gray-700 py-3 px-6 rounded-full font-medium hover:bg-gray-50 transition-colors flex items-center justify-center"
+          >
+            <MapIcon size={18} className="mr-2" />
+            Discover Restaurants
+          </Link>
+        )}
       </div>
     </div>
   );
@@ -781,6 +784,29 @@ const Home: React.FC = () => {
     feedPosts.length > 0 ||
     firebaseReviews.length > 0 ||
     userReviews.length > 0;
+  const baseFeedPosts = renderedFeedPosts.length > 0 ? renderedFeedPosts : feedPosts;
+  const featuredExamplePost = useMemo(() => {
+    if (!isNewUser || baseFeedPosts.length === 0) return null;
+    const matchesJackDustyDec16 = (post: any) => {
+      const restaurantName = String(post?.restaurant?.name || '').trim().toLowerCase();
+      if (restaurantName !== 'jack dusty') return false;
+      const rawDate = post?.review?.createdAt ?? post?.review?.createdAtMs ?? post?.review?.date;
+      const parsed = new Date(rawDate);
+      if (Number.isNaN(parsed.getTime())) return false;
+      return parsed.getMonth() === 11 && parsed.getDate() === 16;
+    };
+    return baseFeedPosts.find(matchesJackDustyDec16) || null;
+  }, [isNewUser, baseFeedPosts]);
+  const displayFeedPosts = useMemo(() => {
+    if (!featuredExamplePost) return baseFeedPosts;
+    const featured = {
+      ...featuredExamplePost,
+      isFeaturedExample: true,
+      showTapHint: true
+    };
+    const rest = baseFeedPosts.filter((post) => post?.id !== featuredExamplePost.id);
+    return [featured, ...rest];
+  }, [featuredExamplePost, baseFeedPosts]);
 
   // Only show loader on true cold start (no cache at all)
   // CRITICAL: Only block UI on absolute first load to ensure interactability
@@ -936,6 +962,30 @@ const Home: React.FC = () => {
         <div className="space-y-4">
           {/* Section Header */}
           <h2 className="text-lg font-bold text-black">Community Feed</h2>
+
+          {isNewUser && featuredExamplePost && (
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-4 py-3">
+              <p className="text-sm font-semibold text-gray-900">
+                One visit. Multiple items. Rate anything, anywhere.
+              </p>
+              <p className="text-xs text-gray-500 mt-1">Tap the restaurant or any item to explore.</p>
+            </div>
+          )}
+          {isNewUser && !featuredExamplePost && (
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-4 py-3">
+              <p className="text-sm font-semibold text-gray-900">
+                This is what reviews look like on TIP. Add your first review to start.
+              </p>
+              <div className="mt-3">
+                <Link
+                  to="/create"
+                  className="inline-flex items-center bg-primary text-white px-4 py-2 rounded-full text-sm font-medium hover:bg-red-600 transition-colors"
+                >
+                  Add Your First Review
+                </Link>
+              </div>
+            </div>
+          )}
           
           {error && (
             <div className="max-w-md mx-auto bg-white rounded-xl shadow-sm p-8 text-center my-6">
@@ -980,9 +1030,9 @@ const Home: React.FC = () => {
                 </div>
               ))}
             </div>
-          ) : (renderedFeedPosts.length > 0 || feedPosts.length > 0) ? (
+          ) : (displayFeedPosts.length > 0) ? (
             <VirtualizedFeed
-              posts={renderedFeedPosts.length > 0 ? renderedFeedPosts : feedPosts}
+              posts={displayFeedPosts}
               followingMap={followingMap}
               onFollowChange={handleFollowChange}
               onLoadMore={loadMorePosts}

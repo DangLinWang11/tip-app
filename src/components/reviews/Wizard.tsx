@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { saveReview, type ReviewData, buildReviewCreatePayload } from '../../services/reviewService';
-import { db, getCurrentUser } from '../../lib/firebase';
+import { db, getCurrentUser, getUserProfile } from '../../lib/firebase';
 import { useI18n } from '../../lib/i18n/useI18n';
 import ProgressBar from './ProgressBar';
 import StepVisit from './StepVisit';
@@ -193,6 +193,7 @@ const Wizard: React.FC = () => {
 
   const [userId, setUserId] = useState<string>('');
   const [authChecked, setAuthChecked] = useState(false);
+  const [isNewUser, setIsNewUser] = useState(false);
   const [visitDraft, setVisitDraft] = useState<VisitDraft>(buildInitialVisitDraft());
   const [dishDrafts, setDishDraftsState] = useState<DishDraft[]>([buildInitialDishDraft()]);
   const setDishDrafts = useCallback((updater: React.SetStateAction<DishDraft[]>) => {
@@ -229,6 +230,29 @@ const Wizard: React.FC = () => {
     }
     setAuthChecked(true);
   }, []);
+
+  useEffect(() => {
+    if (!userId) return;
+    let cancelled = false;
+    const loadProfile = async () => {
+      try {
+        const result = await getUserProfile();
+        if (cancelled) return;
+        const totalReviews = result.success && result.profile
+          ? (result.profile.stats?.totalReviews ?? 0)
+          : 0;
+        setIsNewUser(totalReviews === 0);
+      } catch {
+        if (!cancelled) {
+          setIsNewUser(false);
+        }
+      }
+    };
+    loadProfile();
+    return () => {
+      cancelled = true;
+    };
+  }, [userId]);
 
   const rewardMessages = useMemo(() => ({
     taste: t('reward.tasteBonus'),
@@ -824,6 +848,14 @@ const Wizard: React.FC = () => {
             </span>
           </div>
           <div className="mb-3"><ProgressBar steps={steps} currentStep={currentStep} onStepClick={goToStep} /></div>
+          {isNewUser && (
+            <div className="mb-3 rounded-xl border border-slate-200 bg-white px-4 py-3">
+              <p className="text-[11px] uppercase tracking-[0.18em] text-slate-400">How it works</p>
+              <p className="mt-1 text-sm text-slate-700">- Search the restaurant you're reviewing.</p>
+              <p className="text-sm text-slate-700">- Add multiple items from one visit.</p>
+              <p className="text-sm text-slate-700">- Rate anything, anywhere.</p>
+            </div>
+          )}
         </div>
         <AnimatePresence mode="wait">
           <motion.div

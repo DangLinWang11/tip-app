@@ -128,7 +128,7 @@ const ProfileSkeleton: React.FC = () => {
   );
 };
 
-const SavedListsTab: React.FC = () => {
+const SavedListsTab: React.FC<{ isNewUser?: boolean }> = ({ isNewUser = false }) => {
   const navigate = useNavigate();
   const [lists, setLists] = useState<SavedList[]>([]);
   const [loading, setLoading] = useState(true);
@@ -294,12 +294,12 @@ const SavedListsTab: React.FC = () => {
           <button
             onClick={() => {
               startTransition(() => {
-                navigate('/discover');
+                navigate(isNewUser ? '/create' : '/discover');
               });
             }}
             className="bg-primary text-white px-6 py-3 rounded-full font-medium hover:bg-red-600 transition-colors"
           >
-            Discover Restaurants
+            {isNewUser ? 'Add Your First Review' : 'Discover Restaurants'}
           </button>
         </div>
       ) : (
@@ -597,6 +597,7 @@ const Profile: React.FC = () => {
     pointsEarned: Math.max(userProfile?.stats?.pointsEarned || 0, firebaseReviews.length * 20)
   };
   const tierProgress = getTierFromPoints(personalStats.pointsEarned);
+  const isNewUser = personalStats.totalReviews === 0;
 
   // Avatar component with initials fallback
   const UserAvatar: React.FC<{ size?: 'sm' | 'md' | 'lg' }> = ({ size = 'lg' }) => {
@@ -699,7 +700,9 @@ const Profile: React.FC = () => {
               {/* Actual Name */}
               <h2 className="font-semibold text-lg text-gray-900 flex items-center">
                 {userProfile.actualName || userProfile.displayName || userProfile.username}
-                <AvatarBadge tierIndex={tierProgress.tierIndex} size="inline" className="ml-1.5" />
+                {!isNewUser && (
+                  <AvatarBadge tierIndex={tierProgress.tierIndex} size="inline" className="ml-1.5" />
+                )}
                 {userProfile.isVerified && (
                   <span className="ml-1 text-blue-500" title="Verified user">✓</span>
                 )}
@@ -727,6 +730,20 @@ const Profile: React.FC = () => {
           {/* Bio - Below avatar */}
           {userProfile.bio && (
             <p className="text-sm text-gray-600 mt-3 whitespace-pre-line">{userProfile.bio}</p>
+          )}
+
+          {isNewUser && (
+            <div className="mt-4 rounded-xl border border-gray-200 bg-white px-4 py-3">
+              <p className="text-sm font-semibold text-gray-900">
+                Your profile, stats, and rank build as you review places.
+              </p>
+              <Link
+                to="/create"
+                className="mt-3 inline-flex items-center bg-primary text-white px-4 py-2 rounded-full text-sm font-medium hover:bg-red-600 transition-colors"
+              >
+                Add Your First Review
+              </Link>
+            </div>
           )}
 
           {/* Action Buttons */}
@@ -856,7 +873,9 @@ const Profile: React.FC = () => {
               <p className="text-gray-600 mb-6">
                 {searchTerm 
                   ? 'Try searching for different dishes or restaurants' 
-                  : 'Start reviewing your favorite dishes to build your food journey'
+                  : (isNewUser
+                    ? 'Your profile, stats, and rank build as you review places.'
+                    : 'Start reviewing your favorite dishes to build your food journey')
                 }
               </p>
               {!searchTerm && (
@@ -878,7 +897,7 @@ const Profile: React.FC = () => {
           )}
         </div>
       ) : (
-        <SavedListsTab />
+        <SavedListsTab isNewUser={isNewUser} />
       )}
 
       {showFoodMapModal && userProfile && (

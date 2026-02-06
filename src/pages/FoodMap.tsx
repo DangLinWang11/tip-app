@@ -14,6 +14,7 @@ const FoodMap: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [editingNote, setEditingNote] = useState<{reviewId: string, noteId: string} | null>(null);
   const [isOwnProfile, setIsOwnProfile] = useState(true);
+  const isNewUser = userReviews.length === 0;
 
   // Load user data function
   const loadUserData = async () => {
@@ -171,13 +172,26 @@ const FoodMap: React.FC = () => {
         >
           Add Your First Review
         </Link>
-        <Link 
-          to="/discover" 
-          className="block w-full border border-gray-300 text-gray-700 py-3 px-6 rounded-full font-medium hover:bg-gray-50 transition-colors flex items-center justify-center"
-        >
-          <MapIcon size={18} className="mr-2" />
-          Discover Restaurants
-        </Link>
+        {!isNewUser && (
+          <Link 
+            to="/discover" 
+            className="block w-full border border-gray-300 text-gray-700 py-3 px-6 rounded-full font-medium hover:bg-gray-50 transition-colors flex items-center justify-center"
+          >
+            <MapIcon size={18} className="mr-2" />
+            Discover Restaurants
+          </Link>
+        )}
+      </div>
+
+      <div className="mt-10 max-w-md mx-auto text-left">
+        <div className="inline-flex items-center rounded-full bg-gray-100 text-gray-600 px-3 py-1 text-xs font-semibold mb-3">
+          Example visit
+        </div>
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+          <p className="text-sm font-semibold text-gray-900">Your dish name</p>
+          <p className="text-xs text-gray-500 mt-1">Your restaurant name</p>
+          <p className="text-xs text-gray-500 mt-3">Every review you post becomes a visit here.</p>
+        </div>
       </div>
     </div>
   );

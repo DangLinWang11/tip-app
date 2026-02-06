@@ -117,6 +117,9 @@ interface FeedPostProps {
   onFollowChange?: (userId: string, isFollowing: boolean) => void;
   // Optional override for current user's points to keep tier consistent when display name is "You".
   currentUserPointsEarned?: number;
+  // Featured example decoration (new user onboarding).
+  isFeaturedExample?: boolean;
+  showTapHint?: boolean;
 }
 
 const FeedPostComponent: React.FC<FeedPostProps> = ({
@@ -141,6 +144,8 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
   isFollowingAuthor = false,
   onFollowChange,
   currentUserPointsEarned,
+  isFeaturedExample = false,
+  showTapHint = false,
 }) => {
   // SAFE RENDER: Comprehensive defensive validation to prevent crashes during navigation
   // Check all critical props with optional chaining to prevent TypeErrors
@@ -215,6 +220,8 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
       ? currentUserPointsEarned
       : (author?.pointsEarned ?? 0);
   const authorTier = getTierFromPoints(effectiveAuthorPoints);
+  const tapHighlightClass = showTapHint ? 'text-primary underline underline-offset-2' : '';
+  const tapButtonClass = showTapHint ? 'border border-primary/20 bg-primary/5' : '';
 
   // Sync local follow state when prop changes (e.g., when navigating back to home)
   useEffect(() => {
@@ -949,6 +956,13 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
 
   const legacyLayout = (
     <div ref={containerRef} className="relative bg-white rounded-2xl overflow-hidden shadow-sm mb-4">
+      {isFeaturedExample && (
+        <div className="absolute top-3 left-3 z-10">
+          <span className="inline-flex items-center rounded-full bg-amber-50 text-amber-700 border border-amber-200 px-2.5 py-1 text-[11px] font-semibold">
+            Featured Example
+          </span>
+        </div>
+      )}
       {/* Absolute rating (bigger, nudged down & left) */}
       <div className="pointer-events-none absolute top-5 right-5 z-0">
         <RatingBadge rating={heroRating} size="xl" />
@@ -1024,7 +1038,7 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
                     console.warn('Restaurant ID missing for:', restaurant?.name, 'Review ID:', id);
                   }
                 }}
-                className={`max-w-32 truncate ${restaurantId ? 'hover:text-primary cursor-pointer' : 'text-gray-500'}`}
+                className={`max-w-32 truncate ${restaurantId ? 'hover:text-primary cursor-pointer' : 'text-gray-500'} ${tapHighlightClass}`}
               >
                 {restaurant.name}
               </span>
@@ -1047,6 +1061,12 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
           )}
         </div>
       </div>
+
+      {showTapHint && (
+        <p className="px-4 pb-1 text-xs text-gray-500">
+          Tap the restaurant or any item to explore.
+        </p>
+      )}
       
       {/* Rest of component remains the same... */}
       {/* Image with Carousel Support */}
@@ -1269,7 +1289,7 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
             <button
               type="button"
               onClick={handleDishClickEnhanced}
-              className="flex items-center justify-between w-full py-1.5 px-4 text-sm hover:bg-gray-50 rounded"
+              className={`flex items-center justify-between w-full py-1.5 px-4 text-sm hover:bg-gray-50 rounded ${tapButtonClass}`}
             >
               <span className="font-medium text-gray-900 truncate text-left">
                 {currentItem.dish.name}
@@ -1502,6 +1522,13 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
 
   const visitLayout = (
     <div ref={containerRef} className="relative bg-white rounded-2xl overflow-hidden shadow-sm mb-4">
+      {isFeaturedExample && (
+        <div className="absolute top-3 left-3 z-10">
+          <span className="inline-flex items-center rounded-full bg-amber-50 text-amber-700 border border-amber-200 px-2.5 py-1 text-[11px] font-semibold">
+            Featured Example
+          </span>
+        </div>
+      )}
       {/* Absolute rating (bigger, nudged down & left) */}
       <div className="pointer-events-none absolute top-5 right-5 z-0">
         <RatingBadge rating={heroRating} size="xl" />
@@ -1571,7 +1598,7 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
                     console.warn('Restaurant ID missing for:', restaurant?.name, 'Review ID:', id);
                   }
                 }}
-                className={`max-w-32 truncate ${restaurantId ? 'hover:text-primary cursor-pointer' : 'text-gray-500'}`}
+                className={`max-w-32 truncate ${restaurantId ? 'hover:text-primary cursor-pointer' : 'text-gray-500'} ${tapHighlightClass}`}
               >
                 {restaurant.name}
               </span>
@@ -1594,6 +1621,12 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
           )}
         </div>
       </div>
+
+      {showTapHint && (
+        <p className="px-4 pb-1 text-xs text-gray-500">
+          Tap the restaurant or any item to explore.
+        </p>
+      )}
 
       {/* Media section - hero + right column (visit posts only) */}
       <div className="flex flex-col md:flex-row">
@@ -1844,7 +1877,16 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
             <div>
               <p className="text-sm font-semibold text-gray-900">{displayAuthorName}</p>
               <p className="text-xs text-gray-500">
-                rated <span className="font-medium text-gray-800">{restaurant?.name}</span> · {(() => {
+                rated <span
+                  onClick={() => {
+                    if (restaurantId) {
+                      navigate(`/restaurant/${restaurantId}`);
+                    }
+                  }}
+                  className={`font-medium text-gray-800 ${restaurantId ? 'cursor-pointer hover:text-primary' : ''} ${tapHighlightClass}`}
+                >
+                  {restaurant?.name}
+                </span> · {(() => {
                   const when = formatRelativeTime(
                     (review as any).createdAt ??
                     (review as any).createdAtMs ??
@@ -1886,7 +1928,7 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
                         <button
                           key={dish.id}
                           onClick={() => navigateToDishReview(dish.id, dish.dishId)}
-                          className="flex items-center justify-between w-full py-1.5 px-4 text-sm hover:bg-gray-50 rounded"
+                          className={`flex items-center justify-between w-full py-1.5 px-4 text-sm hover:bg-gray-50 rounded ${tapButtonClass}`}
                         >
                           <span className="font-medium text-gray-900 truncate text-left">
                             {dish.name}
@@ -2202,6 +2244,13 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
   // NEW: Compact Layout (for posts without photos - text-only reviews)
   const compactLayout = (
     <div ref={containerRef} className="relative bg-white rounded-2xl overflow-hidden shadow-sm mb-4">
+      {isFeaturedExample && (
+        <div className="absolute top-3 left-3 z-10">
+          <span className="inline-flex items-center rounded-full bg-amber-50 text-amber-700 border border-amber-200 px-2.5 py-1 text-[11px] font-semibold">
+            Featured Example
+          </span>
+        </div>
+      )}
       {/* Top-right average rating */}
       <div className="pointer-events-none absolute top-5 right-5 z-10">
         <RatingBadge rating={compactAverageRating} size="xl" />
@@ -2273,7 +2322,7 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
                     navigate(`/restaurant/${restaurantId}`);
                   }
                 }}
-                className={`font-medium text-gray-800 ${restaurantId ? 'hover:text-primary cursor-pointer' : ''}`}
+                className={`font-medium text-gray-800 ${restaurantId ? 'hover:text-primary cursor-pointer' : ''} ${tapHighlightClass}`}
               >
                 {restaurant?.name}
               </span>
@@ -2309,7 +2358,7 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
                     <button
                       key={dish.id}
                       onClick={() => navigateToDishReview(dish.id, dish.dishId)}
-                      className="flex items-center justify-between w-full py-1.5 px-4 text-sm hover:bg-gray-50 rounded"
+                      className={`flex items-center justify-between w-full py-1.5 px-4 text-sm hover:bg-gray-50 rounded ${tapButtonClass}`}
                     >
                       <span className="font-medium text-gray-900 truncate text-left">
                         {dish.name}
@@ -2345,7 +2394,7 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
             <button
               type="button"
               onClick={handleDishClickEnhanced}
-              className="flex items-center justify-between w-full py-1.5 px-4 text-sm hover:bg-gray-50 rounded"
+              className={`flex items-center justify-between w-full py-1.5 px-4 text-sm hover:bg-gray-50 rounded ${tapButtonClass}`}
             >
               <span className="font-medium text-gray-900 truncate text-left">
                 {currentItem?.dish?.name}
