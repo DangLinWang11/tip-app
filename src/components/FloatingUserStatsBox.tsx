@@ -87,8 +87,8 @@ const FloatingUserStatsBox: React.FC<FloatingUserStatsBoxProps> = ({
 
                   {/* Username and Tier Name */}
                   <div>
-                    <h3 className="font-semibold text-gray-900 text-sm">{username}</h3>
-                    <p className="text-xs text-gray-500">{tierName}</p>
+                    <h3 className="font-semibold text-gray-900 text-base">{username}</h3>
+                    <p className="text-sm text-gray-500">{tierName}</p>
                   </div>
                 </div>
 
