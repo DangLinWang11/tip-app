@@ -115,6 +115,8 @@ interface FeedPostProps {
   isFollowingAuthor?: boolean;
   // Optional callback to inform parent when follow state changes for this author.
   onFollowChange?: (userId: string, isFollowing: boolean) => void;
+  // Optional override for current user's points to keep tier consistent when display name is "You".
+  currentUserPointsEarned?: number;
 }
 
 const FeedPostComponent: React.FC<FeedPostProps> = ({
@@ -138,6 +140,7 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
   showPendingVerification = false,
   isFollowingAuthor = false,
   onFollowChange,
+  currentUserPointsEarned,
 }) => {
   // SAFE RENDER: Comprehensive defensive validation to prevent crashes during navigation
   // Check all critical props with optional chaining to prevent TypeErrors
@@ -207,7 +210,11 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
   const currentUser = getCurrentUser();
   const isOwnPost = currentUser?.uid === author?.id;
   const displayAuthorName = isOwnPost ? 'You' : (author?.name || 'Unknown');
-  const authorTier = getTierFromPoints(author?.pointsEarned ?? 0);
+  const effectiveAuthorPoints =
+    isOwnPost && typeof currentUserPointsEarned === 'number'
+      ? currentUserPointsEarned
+      : (author?.pointsEarned ?? 0);
+  const authorTier = getTierFromPoints(effectiveAuthorPoints);
 
   // Sync local follow state when prop changes (e.g., when navigating back to home)
   useEffect(() => {

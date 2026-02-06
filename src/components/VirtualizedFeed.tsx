@@ -9,6 +9,7 @@ interface VirtualizedFeedProps {
   hasMore?: boolean;
   loadingMore?: boolean;
   scrollRef?: React.RefObject<HTMLDivElement>;
+  currentUserPointsEarned?: number;
 }
 
 export const VirtualizedFeed: React.FC<VirtualizedFeedProps> = ({
@@ -18,6 +19,7 @@ export const VirtualizedFeed: React.FC<VirtualizedFeedProps> = ({
   onLoadMore,
   hasMore = false,
   loadingMore = false,
+  currentUserPointsEarned,
 }) => {
   // SAFE START: Defensive check to prevent crashes from undefined/invalid posts
   if (!posts || !Array.isArray(posts)) {
@@ -75,6 +77,7 @@ export const VirtualizedFeed: React.FC<VirtualizedFeedProps> = ({
             {...post}
             isFollowingAuthor={isFollowingAuthor}
             onFollowChange={onFollowChange}
+            currentUserPointsEarned={currentUserPointsEarned}
           />
         );
       })}

@@ -988,6 +988,7 @@ const Home: React.FC = () => {
               onLoadMore={loadMorePosts}
               hasMore={hasMore}
               loadingMore={loadingMore}
+              currentUserPointsEarned={userStats.pointsEarned}
             />
           ) : !loading && !error && (
             <div className="text-center py-12 px-4">
