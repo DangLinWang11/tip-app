@@ -33,7 +33,7 @@ const FloatingUserStatsBox: React.FC<FloatingUserStatsBoxProps> = ({
     const handleScroll = () => {
       if (placeholderRef.current) {
         const rect = placeholderRef.current.getBoundingClientRect();
-        const shouldCollapse = rect.top < 80;
+        const shouldCollapse = rect.top < 200;
         setIsCollapsed(shouldCollapse);
       }
     };
@@ -59,7 +59,7 @@ const FloatingUserStatsBox: React.FC<FloatingUserStatsBoxProps> = ({
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+              transition={{ type: 'spring', stiffness: 260, damping: 28, mass: 0.9 }}
               className={GLASS_CARD_STYLES + ' p-3'}
             >
               {/* Top row: Avatar + Username/Tier | Stacked Pills */}
@@ -123,44 +123,21 @@ const FloatingUserStatsBox: React.FC<FloatingUserStatsBoxProps> = ({
             initial={{ opacity: 0, y: -20, scale: 0.9 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -20, scale: 0.9 }}
-            transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+            transition={{ type: 'spring', stiffness: 320, damping: 28, mass: 0.9 }}
             className="fixed top-2 left-1/2 -translate-x-1/2 z-50"
           >
-            <button
-              onClick={scrollToTop}
-              className="flex items-center gap-3 rounded-full bg-gray-900/95 backdrop-blur-xl px-4 py-2 shadow-lg border border-gray-700/50"
-            >
-              {/* Mini Avatar */}
-              <div className="relative" style={{ width: 28, height: 28 }}>
-                {resolvedAvatar ? (
-                  <img
-                    src={resolvedAvatar}
-                    alt={username}
-                    className="h-7 w-7 rounded-full object-cover border border-white/30"
-                  />
-                ) : (
-                  <div className="h-7 w-7 rounded-full bg-gradient-to-br from-rose-500 to-red-600 text-white flex items-center justify-center text-xs font-semibold">
-                    {username.slice(0, 1).toUpperCase()}
-                  </div>
-                )}
-                <div className="absolute -top-0.5 -left-0.5 z-10 scale-75">
-                  <AvatarBadge tierIndex={tierIndex} size="small" />
+            <div className="relative">
+              <button
+                onClick={scrollToTop}
+                className="flex items-center gap-2 rounded-full bg-gray-900/95 backdrop-blur-xl px-3 py-1.5 shadow-lg border border-gray-700/50"
+              >
+                <div className="flex items-center gap-1 text-gray-200 text-xs font-montserrat">
+                  <ChevronUp size={14} />
+                  <span>Back to top</span>
                 </div>
-              </div>
-
-              {/* Compact Stats */}
-              <UserStatsPills
-                reviewsCount={reviewsCount}
-                dishesCount={dishesCount}
-                compact
-              />
-
-              {/* Back to top indicator */}
-              <div className="flex items-center gap-1 text-gray-400 text-xs font-montserrat">
-                <ChevronUp size={14} />
-                <span>Top</span>
-              </div>
-            </button>
+              </button>
+              <div className="absolute left-1/2 -top-1.5 h-3 w-3 -translate-x-1/2 rotate-45 bg-gray-900/95 border border-gray-700/50" />
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
