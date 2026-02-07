@@ -12,7 +12,7 @@ import { CoachTooltip } from './CoachTooltip';
 import { TourOverlay } from './TourOverlay';
 import { tourSteps } from './tourSteps';
 import { useTour } from './TourProvider';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import type { TourStep } from './types';
 
 const waitForElement = (
@@ -54,6 +54,7 @@ const scrollIntoViewIfNeeded = (target: HTMLElement) => {
 
 export const CoachMarkLayer: React.FC = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const { activeTourId, stepIndex, isOpen, next, back, skip, complete } = useTour();
   const tour = activeTourId ? tourSteps[activeTourId] : null;
   const step: TourStep | null = tour ? tour.steps[stepIndex] : null;
@@ -142,7 +143,10 @@ export const CoachMarkLayer: React.FC = () => {
   const routeOk = (() => {
     if (!activeTourId) return false;
     const path = location.pathname;
-    if (activeTourId === 'home') return path === '/';
+    if (activeTourId === 'home') {
+      if (path === '/') return true;
+      return path === '/list-view' && step?.id === 'home-recent-visits-page';
+    }
     if (activeTourId === 'profile') return path === '/profile';
     if (activeTourId === 'create_step2' || activeTourId === 'create_step3') return path.startsWith('/create');
     if (activeTourId === 'map_demo') return path === '/food-map' || path === '/list-view';
@@ -150,6 +154,21 @@ export const CoachMarkLayer: React.FC = () => {
   })();
 
   if (!isOpen || !step || typeof document === 'undefined' || !routeOk) return null;
+
+  const handleNext = () => {
+    if (activeTourId === 'home' && step.id === 'home-recent-visits-page') {
+      navigate('/');
+      window.setTimeout(() => {
+        next();
+      }, 200);
+      return;
+    }
+    if (stepIndex === tour.steps.length - 1) {
+      complete();
+    } else {
+      next();
+    }
+  };
 
   const overlay = (
     <div className="fixed inset-0 z-[9999]">
@@ -173,13 +192,7 @@ export const CoachMarkLayer: React.FC = () => {
               canGoBack={stepIndex > 0}
               isLast={stepIndex === tour.steps.length - 1}
               onBack={back}
-              onNext={() => {
-                if (stepIndex === tour.steps.length - 1) {
-                  complete();
-                } else {
-                  next();
-                }
-              }}
+              onNext={handleNext}
               onSkip={skip}
             />
             <div

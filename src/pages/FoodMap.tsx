@@ -1,12 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { MapIcon, TrendingUpIcon, StarIcon, ClockIcon, MessageCircleIcon, PlusIcon, ArrowLeft, Star, X, Edit2, MapPinIcon } from 'lucide-react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { fetchUserReviews, convertUserReviewsToFeedPosts, FirebaseReview, PersonalNote, addPersonalNote, updatePersonalNote, deletePersonalNote } from '../services/reviewService';
 import { getUserProfile, getCurrentUser, getUserByUsername } from '../lib/firebase';
 import LocationPinIcon from '../components/icons/LocationPinIcon';
+import { useTour } from '../tour/TourProvider';
+import { tourSteps } from '../tour/tourSteps';
 
 const FoodMap: React.FC = () => {
   const navigate = useNavigate();
+  const { activeTourId, stepIndex, isOpen, next } = useTour();
+  const autoAdvancedRef = useRef(false);
   const [searchParams] = useSearchParams();
   const [userReviews, setUserReviews] = useState<any[]>([]);
   const [userProfile, setUserProfile] = useState<any>(null);
@@ -77,6 +81,16 @@ const FoodMap: React.FC = () => {
   useEffect(() => {
     loadUserData();
   }, [searchParams]);
+
+  useEffect(() => {
+    if (autoAdvancedRef.current) return;
+    if (!isOpen || activeTourId !== 'home') return;
+    const currentStep = tourSteps.home.steps[stepIndex];
+    if (currentStep?.id === 'home-stats-box') {
+      autoAdvancedRef.current = true;
+      next();
+    }
+  }, [activeTourId, stepIndex, isOpen, next]);
   
   // Stats calculation from actual user data
   // Calculate stats from actual user reviews and profile
@@ -188,14 +202,35 @@ const FoodMap: React.FC = () => {
           Example visit
         </div>
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
-          <p className="text-sm font-semibold text-gray-900">Your dish name</p>
-          <p className="text-xs text-gray-500 mt-1">Your restaurant name</p>
-          <p className="text-xs text-gray-500 mt-3">Every review you post becomes a visit here.</p>
-        </div>
+          <div className="flex items-start justify-between mb-3">
+            <div className="flex-1 min-w-0 pr-3">
+              <div className="mb-2">
+                <h3 className="font-bold text-black truncate">Truffle Rigatoni</h3>
+                <p className="text-sm text-gray-600 flex items-center truncate">
+                  <LocationPinIcon className="text-red-500 mr-1 flex-shrink-0" size={18} />
+                  <span className="truncate">North End Osteria</span>
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded-full text-xs">
+                  Tried 1x
+                </span>
+                <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded-full text-xs">
+                  Visited 1x
+                </span>
+                <span className="text-xs text-gray-400 flex items-center">
+                  <span className="mx-1">•</span>
+                  3d
+                </span>
+              </div>
+            </div>
+            <div className="ml-3 flex-shrink-0">
+              <span className="text-primary font-bold text-2xl">8.8</span>
+            </div>
+          </div>
 
-        <div className="mt-4 bg-white rounded-xl border border-gray-200 shadow-sm p-4">
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Personal Notes (Example)</p>
           <div className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Personal note</p>
             <p className="text-sm text-gray-600 italic">"Ask for extra crispy next time."</p>
             <p className="text-xs text-gray-400 mt-1">Jan 2, 2026</p>
           </div>
@@ -236,7 +271,7 @@ const FoodMap: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white" data-tour="recent-visits-page">
       {/* Header */}
       <div className="bg-white px-4 py-6 shadow-sm">
         <div className="flex items-center justify-between mb-2">

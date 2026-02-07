@@ -11,7 +11,7 @@ export const tourSteps: Record<TourId, TourDefinition> = {
         body: 'Quick tour of your home feed. Skip anytime.',
         placement: 'bottom',
         blockInteraction: true,
-        spotlightPadding: 6,
+        spotlightPadding: 4,
       },
       {
         id: 'home-stats-box',
@@ -21,6 +21,15 @@ export const tourSteps: Record<TourId, TourDefinition> = {
         placement: 'top',
         blockInteraction: false,
         spotlightPadding: 10,
+      },
+      {
+        id: 'home-recent-visits-page',
+        selector: '[data-tour="recent-visits-page"]',
+        title: 'Recent Visits',
+        body: 'An itemized list of your reviews with personal notes.',
+        placement: 'bottom',
+        blockInteraction: true,
+        spotlightPadding: 12,
       },
       {
         id: 'home-profile-photo',
