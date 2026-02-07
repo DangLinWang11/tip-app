@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { MapIcon, TrendingUpIcon, StarIcon, ClockIcon, MessageCircleIcon, PlusIcon, ArrowLeft, Star, X, Edit2, MapPinIcon } from 'lucide-react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { fetchUserReviews, convertUserReviewsToFeedPosts, FirebaseReview, PersonalNote, addPersonalNote, updatePersonalNote, deletePersonalNote } from '../services/reviewService';
 import { getUserProfile, getCurrentUser, getUserByUsername } from '../lib/firebase';
 import LocationPinIcon from '../components/icons/LocationPinIcon';
@@ -9,6 +9,7 @@ import { tourSteps } from '../tour/tourSteps';
 
 const FoodMap: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { activeTourId, stepIndex, isOpen, next } = useTour();
   const autoAdvancedRef = useRef(false);
   const [searchParams] = useSearchParams();
@@ -85,12 +86,13 @@ const FoodMap: React.FC = () => {
   useEffect(() => {
     if (autoAdvancedRef.current) return;
     if (!isOpen || activeTourId !== 'home') return;
+    if (location.pathname !== '/list-view') return;
     const currentStep = tourSteps.home.steps[stepIndex];
     if (currentStep?.id === 'home-stats-box') {
       autoAdvancedRef.current = true;
       next();
     }
-  }, [activeTourId, stepIndex, isOpen, next]);
+  }, [activeTourId, stepIndex, isOpen, next, location.pathname]);
   
   // Stats calculation from actual user data
   // Calculate stats from actual user reviews and profile

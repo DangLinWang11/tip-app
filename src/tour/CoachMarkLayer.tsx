@@ -163,6 +163,11 @@ export const CoachMarkLayer: React.FC = () => {
       }, 200);
       return;
     }
+    // Stats-box "Next" → navigate to list-view; FoodMap auto-advance handles next()
+    if (activeTourId === 'home' && step.id === 'home-stats-box') {
+      navigate('/list-view');
+      return;
+    }
     if (stepIndex === tour.steps.length - 1) {
       complete();
     } else {
