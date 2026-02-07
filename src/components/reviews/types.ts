@@ -76,6 +76,9 @@ export interface WizardContextValue {
   expandedDishIds: string[];
   setExpandedDishIds: React.Dispatch<React.SetStateAction<string[]>>;
   toggleDishExpanded: (dishId: string) => void;
+
+  // New user onboarding
+  isNewUser: boolean;
 }
 
 export type DraftUpdater = (draft: ReviewDraft) => ReviewDraft;

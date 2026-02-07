@@ -9,6 +9,7 @@ import { CUISINES, getCuisineLabel } from '../../utils/taxonomy';
 import { POSITIVE_ATTRIBUTES, NEGATIVE_ATTRIBUTES } from '../../data/tagDefinitions';
 import { db } from '../../lib/firebase';
 import { DishRecord } from './AddDishInline';
+import { OnboardingDialog } from '../onboarding/OnboardingTooltip';
 
 const StepDishes: React.FC = () => {
   const { t } = useI18n();
@@ -28,6 +29,7 @@ const StepDishes: React.FC = () => {
     expandedDishIds,
     toggleDishExpanded,
     setExpandedDishIds,
+    isNewUser,
   } = useReviewWizard();
 
   const [menuItems, setMenuItems] = useState<DishRecord[]>([]);
@@ -354,6 +356,16 @@ const StepDishes: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      {/* Onboarding tooltip for new users */}
+      {isNewUser && (
+        <OnboardingDialog
+          id="step-dishes-photo-tooltip"
+          title="Add Photos to Each Dish"
+          description="Tap the camera icon on each dish card to add photos. You can attach different photos to different items from your visit!"
+          show={true}
+        />
+      )}
+
       {/* Dishes List */}
       <div className="space-y-3">
         {dishDrafts.map((dish, index) => {

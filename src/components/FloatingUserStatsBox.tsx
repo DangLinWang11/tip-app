@@ -69,8 +69,8 @@ const FloatingUserStatsBox: React.FC<FloatingUserStatsBoxProps> = ({
             >
               {/* Top row: Avatar + Username/Tier | Stacked Pills */}
               <div className="flex items-center justify-between gap-2">
-                {/* Left side: Avatar + Username */}
-                <div className="flex items-center gap-2">
+                {/* Left side: Avatar + Username - min-w-0 allows truncation */}
+                <div className="flex items-center gap-2 min-w-0 flex-1">
                   {/* Avatar with Badge */}
                   <div className="relative flex-shrink-0" style={{ width: 48, height: 48 }}>
                     {resolvedAvatar ? (
@@ -87,22 +87,24 @@ const FloatingUserStatsBox: React.FC<FloatingUserStatsBoxProps> = ({
                     )}
                   </div>
 
-                  {/* Username and Tier Name */}
-                  <div>
+                  {/* Username and Tier Name - min-w-0 allows text truncation */}
+                  <div className="min-w-0">
                     <div className="flex items-center gap-2">
-                      <h3 className="font-semibold text-gray-900 text-base">{username}</h3>
-                      <AvatarBadge tierIndex={tierIndex} size="feed" />
+                      <h3 className="font-semibold text-gray-900 text-base max-w-[120px] truncate">{username}</h3>
+                      <AvatarBadge tierIndex={tierIndex} size="feed" className="flex-shrink-0" />
                     </div>
-                    <p className="text-sm text-gray-500">{tierName}</p>
+                    <p className="text-sm text-gray-500 truncate">{tierName}</p>
                   </div>
                 </div>
 
-                {/* Right side: Stacked Stat Pills */}
-                <UserStatsPills
-                  reviewsCount={reviewsCount}
-                  dishesCount={dishesCount}
-                  stacked
-                />
+                {/* Right side: Stacked Stat Pills - flex-shrink-0 keeps pills fixed */}
+                <div className="flex-shrink-0">
+                  <UserStatsPills
+                    reviewsCount={reviewsCount}
+                    dishesCount={dishesCount}
+                    stacked
+                  />
+                </div>
               </div>
 
               {/* Bottom row: Recent Visits Button centered */}

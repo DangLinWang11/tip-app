@@ -28,6 +28,7 @@ import StatPills from '../components/StatPills';
 import AvatarBadge from '../components/badges/AvatarBadge';
 import BadgeLadderModal from '../components/badges/BadgeLadderModal';
 import { getTierFromPoints } from '../badges/badgeTiers';
+import { OnboardingDialog } from '../components/onboarding/OnboardingTooltip';
 
 // Simple cache for profile data to enable instant "back" navigation
 let cachedProfileData: {
@@ -733,17 +734,35 @@ const Profile: React.FC = () => {
           )}
 
           {isNewUser && (
-            <div className="mt-4 rounded-xl border border-gray-200 bg-white px-4 py-3">
-              <p className="text-sm font-semibold text-gray-900">
-                Your profile, stats, and rank build as you review places.
-              </p>
-              <Link
-                to="/create"
-                className="mt-3 inline-flex items-center bg-primary text-white px-4 py-2 rounded-full text-sm font-medium hover:bg-red-600 transition-colors"
-              >
-                Add Your First Review
-              </Link>
-            </div>
+            <>
+              {/* Onboarding dialogs for new users */}
+              <div className="mt-4 space-y-2">
+                <OnboardingDialog
+                  id="profile-ranking-tooltip"
+                  title="Your Rank Badge"
+                  description="Your rank badge appears next to your name and increases as you post more reviews. Earn XP and climb the tiers from Rookie to Legend!"
+                  show={true}
+                />
+                <OnboardingDialog
+                  id="profile-map-tooltip"
+                  title="Your Food Journey Map"
+                  description="Tap 'View My Map' below to see all your reviewed restaurants on an interactive map!"
+                  show={true}
+                />
+              </div>
+
+              <div className="mt-4 rounded-xl border border-gray-200 bg-white px-4 py-3">
+                <p className="text-sm font-semibold text-gray-900">
+                  Your profile, stats, and rank build as you review places.
+                </p>
+                <Link
+                  to="/create"
+                  className="mt-3 inline-flex items-center bg-primary text-white px-4 py-2 rounded-full text-sm font-medium hover:bg-red-600 transition-colors"
+                >
+                  Add Your First Review
+                </Link>
+              </div>
+            </>
           )}
 
           {/* Action Buttons */}

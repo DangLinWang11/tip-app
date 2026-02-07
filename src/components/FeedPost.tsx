@@ -31,6 +31,23 @@ import { POSITIVE_ATTRIBUTES, NEGATIVE_ATTRIBUTES } from '../data/tagDefinitions
 const POSITIVE_TAG_SLUGS = new Set(POSITIVE_ATTRIBUTES.map(attr => attr.value));
 const NEGATIVE_TAG_SLUGS = new Set(NEGATIVE_ATTRIBUTES.map(attr => attr.value));
 
+// Cutoff date for new caption logic (reviews created after this date use new logic)
+// New logic: visit photo shows visitCaption or first dish caption; dish shows its own caption or visitCaption fallback
+const CAPTION_LOGIC_V2_CUTOFF = new Date('2025-02-06').getTime();
+
+const shouldUseNewCaptionLogic = (review: FeedPostReview): boolean => {
+  if (review.createdAtMs) {
+    return review.createdAtMs >= CAPTION_LOGIC_V2_CUTOFF;
+  }
+  if (review.createdAt) {
+    const ms = typeof review.createdAt.toMillis === 'function'
+      ? review.createdAt.toMillis()
+      : new Date(review.createdAt).getTime();
+    return !isNaN(ms) && ms >= CAPTION_LOGIC_V2_CUTOFF;
+  }
+  return false;
+};
+
 interface FeedPostReview {
   date: string;
   // Raw Firestore timestamp and optimistic ms fallback for accurate relative time
@@ -1237,14 +1254,35 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
 
         {/* Caption (visit-level or dish-level, if present) */}
         {(() => {
-          // Visit context: prefer visitCaption
+          const useNewLogic = shouldUseNewCaptionLogic(currentItem.review);
+
+          // Visit context: viewing visit photo
           if (hasMediaItems && activeMediaItem?.kind === 'visit') {
-            const visitText =
-              typeof visitCaption === 'string' && visitCaption.trim().length
-                ? visitCaption.trim()
-                : (currentItem.review.visitCaption ||
-                   currentItem.review.caption ||
-                   '');
+            let visitText = '';
+
+            if (useNewLogic) {
+              // NEW LOGIC: visitCaption first, then first dish caption, then nothing
+              if (typeof visitCaption === 'string' && visitCaption.trim().length) {
+                visitText = visitCaption.trim();
+              } else if (currentItem.review.visitCaption?.trim()) {
+                visitText = currentItem.review.visitCaption.trim();
+              } else {
+                // Try first dish caption from carouselItems
+                const firstDishCaption = carouselItems?.[0]?.review?.caption;
+                if (firstDishCaption?.trim()) {
+                  visitText = firstDishCaption.trim();
+                }
+              }
+            } else {
+              // LEGACY LOGIC: visitCaption or any caption
+              visitText =
+                typeof visitCaption === 'string' && visitCaption.trim().length
+                  ? visitCaption.trim()
+                  : (currentItem.review.visitCaption ||
+                     currentItem.review.caption ||
+                     '');
+            }
+
             if (!visitText) return null;
             return (
               <p className="mt-1 mb-3 text-sm text-gray-900 leading-snug border-l-4 border-gray-600 rounded-l-md pl-3 bg-gray-50 py-2 pr-2">
@@ -1253,12 +1291,36 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
             );
           }
 
-          // Dish context
+          // Dish context: viewing a specific dish
           const source = dishContextItem || currentItem;
-          if (source.review.caption) {
+          const dishCaption = source.review.caption?.trim();
+
+          if (useNewLogic) {
+            // NEW LOGIC: dish caption first, then visitCaption as fallback, then nothing
+            if (dishCaption) {
+              return (
+                <p className="mt-1 mb-3 text-sm text-gray-900 leading-snug border-l-4 border-gray-600 rounded-l-md pl-3 bg-gray-50 py-2 pr-2">
+                  {dishCaption}
+                </p>
+              );
+            }
+            // Fallback to visitCaption if dish has no caption
+            const fallbackVisitCaption = visitCaption?.trim() || currentItem.review.visitCaption?.trim();
+            if (fallbackVisitCaption) {
+              return (
+                <p className="mt-1 mb-3 text-sm text-gray-900 leading-snug border-l-4 border-gray-600 rounded-l-md pl-3 bg-gray-50 py-2 pr-2">
+                  {fallbackVisitCaption}
+                </p>
+              );
+            }
+            return null;
+          }
+
+          // LEGACY LOGIC: just show dish caption if it exists
+          if (dishCaption) {
             return (
               <p className="mt-1 mb-3 text-sm text-gray-900 leading-snug border-l-4 border-gray-600 rounded-l-md pl-3 bg-gray-50 py-2 pr-2">
-                {source.review.caption}
+                {dishCaption}
               </p>
             );
           }

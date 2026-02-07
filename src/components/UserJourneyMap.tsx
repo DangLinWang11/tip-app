@@ -421,39 +421,70 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({
             searchActive={false}
           />
 
-          {/* Demo label keeps example pins explicit to avoid confusion */}
-          <div className="pointer-events-none absolute top-4 left-4 z-30">
-            <div className="rounded-full bg-white/90 backdrop-blur border border-gray-200 px-3 py-1 text-xs font-semibold text-gray-700">
-              Demo journey · Example pins
-            </div>
-          </div>
-
-          {/* Demo onboarding card: explain map + CTA */}
+          {/* Demo onboarding card: explain map + CTA - positioned at TOP */}
           <div
             className="absolute inset-x-0 z-30 px-4"
-            style={{ bottom: '76px' }}
+            style={{ top: 'calc(env(safe-area-inset-top, 0px) + 16px)' }}
           >
             <div className="bg-white/95 backdrop-blur border border-gray-200 rounded-2xl p-4 shadow-lg">
               <h3 className="text-base font-semibold text-gray-900 mb-1">
                 Welcome to your Food Journey Map!
               </h3>
-              <p className="text-sm text-gray-600 mb-4">
+              <p className="text-sm text-gray-600 mb-3">
                 Every food you review becomes a pin here.
                 Tap a pin to see what it will look like.
               </p>
-              <div className="flex flex-col gap-2">
-                <button
-                  onClick={() => navigate('/create')}
-                  className="w-full bg-primary text-white py-2.5 rounded-xl font-semibold hover:bg-red-600 transition-colors"
-                >
-                  Add your first review
-                </button>
-                <button
-                  onClick={() => navigate('/create', { state: { focusRestaurantSearch: true } })}
-                  className="w-full border border-gray-300 text-gray-700 py-2.5 rounded-xl font-semibold hover:bg-gray-50 transition-colors"
-                >
-                  Search a place
-                </button>
+              <button
+                onClick={() => navigate('/create')}
+                className="w-full bg-primary text-white py-2.5 rounded-xl font-semibold hover:bg-red-600 transition-colors"
+              >
+                Add your first review
+              </button>
+            </div>
+          </div>
+
+          {/* Journey Stats pill for demo mode */}
+          <div className="pointer-events-none absolute left-4 z-30" style={{ bottom: '88px' }}>
+            <div className="rounded-2xl bg-white/90 backdrop-blur-xl shadow-[0_12px_28px_rgba(0,0,0,0.18)] border border-white/70 px-3 py-1.5 flex items-center gap-2.5">
+              <div className="flex items-center justify-center w-6 flex-shrink-0">
+                <svg width="24" height="30" viewBox="0 0 24 34" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <defs>
+                    <linearGradient id="journey_grad_demo" x1="12" y1="2" x2="12" y2="30" gradientUnits="userSpaceOnUse">
+                      <stop offset="0%" stopColor="#FF6B6B"/>
+                      <stop offset="100%" stopColor="#EE2D2D"/>
+                    </linearGradient>
+                    <radialGradient id="journey_depth_demo" cx="40%" cy="35%" r="70%">
+                      <stop offset="0%" stopColor="white" stopOpacity="0.12" />
+                      <stop offset="100%" stopColor="white" stopOpacity="0" />
+                    </radialGradient>
+                    <radialGradient id="journey_shine_demo" cx="0%" cy="0%" r="100%">
+                      <stop offset="0%" stopColor="white" stopOpacity="0.6" />
+                      <stop offset="100%" stopColor="white" stopOpacity="0" />
+                    </radialGradient>
+                  </defs>
+                  <path
+                    d="M 12 2
+                       C 6.5 2, 2 6.5, 2 12
+                       C 2 17.5, 12 30, 12 30
+                       C 12 30, 22 17.5, 22 12
+                       C 22 6.5, 17.5 2, 12 2 Z"
+                    fill="url(#journey_grad_demo)"
+                    stroke="white"
+                    strokeWidth="2.25"
+                  />
+                  <circle cx="12" cy="12" r="10" fill="url(#journey_depth_demo)" />
+                  <circle cx="9.2" cy="7.6" r="2.6" fill="url(#journey_shine_demo)" />
+                  <text x="12" y="12" fontFamily="'Poppins', sans-serif" fontSize="12" fontWeight="800"
+                    textAnchor="middle" dominantBaseline="central" fill="#FFFFFF">
+                    5
+                  </text>
+                </svg>
+              </div>
+              <div className="flex flex-col items-start text-left leading-tight">
+                <span className="text-[11px] uppercase tracking-[0.16em] text-gray-400">Journey Stats (Demo)</span>
+                <span className="text-[13px] font-semibold text-gray-800">
+                  🍽 5 places · 🌍 1 country
+                </span>
               </div>
             </div>
           </div>
@@ -485,7 +516,7 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({
             className="w-full h-full"
             showMyLocationButton={showControls}
             showGoogleControl={false}
-            myLocationButtonOffset={80}
+            myLocationButtonOffset={16}
             initialCenter={mapCenter}
             initialZoom={initialZoom}
             countryStats={countryStatsWithBoundsData}
@@ -504,6 +535,9 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({
           style={{ top: fullBleed ? 'env(safe-area-inset-top)' : 0 }}
         />
         <div className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-white/90 via-white/40 to-transparent" />
+
+        {/* Bottom-right overlay to help cover Google controls */}
+        <div className="pointer-events-none absolute bottom-0 right-0 w-24 h-10 bg-gradient-to-l from-white via-white/90 to-transparent z-10" />
 
         <AnimatePresence>
           {showLegend && stats.places > 0 && (

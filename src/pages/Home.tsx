@@ -12,6 +12,7 @@ import { useReviewStore } from '../stores/reviewStore';
 import { useFollowStore } from '../stores/followStore';
 import { getTierFromPoints } from '../badges/badgeTiers';
 import FloatingUserStatsBox from '../components/FloatingUserStatsBox';
+import { OnboardingDialog } from '../components/onboarding/OnboardingTooltip';
 
 const Home: React.FC = () => {
   const mountStart = performance.now?.() ?? Date.now();
@@ -787,15 +788,15 @@ const Home: React.FC = () => {
   const baseFeedPosts = renderedFeedPosts.length > 0 ? renderedFeedPosts : feedPosts;
   const featuredExamplePost = useMemo(() => {
     if (!isNewUser || baseFeedPosts.length === 0) return null;
-    const matchesJackDustyDec16 = (post: any) => {
+    const matchesSpicyFoodieJackDusty = (post: any) => {
       const restaurantName = String(post?.restaurant?.name || '').trim().toLowerCase();
+      const authorName = String(post?.author?.name || post?.author?.username || '').trim().toLowerCase();
+      // Match "Jack Dusty" restaurant AND "Spicy Foodie" author (Spicy Foodie339)
       if (restaurantName !== 'jack dusty') return false;
-      const rawDate = post?.review?.createdAt ?? post?.review?.createdAtMs ?? post?.review?.date;
-      const parsed = new Date(rawDate);
-      if (Number.isNaN(parsed.getTime())) return false;
-      return parsed.getMonth() === 11 && parsed.getDate() === 16;
+      if (!authorName.includes('spicy') && !authorName.includes('foodie')) return false;
+      return true;
     };
-    return baseFeedPosts.find(matchesJackDustyDec16) || null;
+    return baseFeedPosts.find(matchesSpicyFoodieJackDusty) || null;
   }, [isNewUser, baseFeedPosts]);
   const displayFeedPosts = useMemo(() => {
     if (!featuredExamplePost) return baseFeedPosts;
@@ -963,27 +964,21 @@ const Home: React.FC = () => {
           {/* Section Header */}
           <h2 className="text-lg font-bold text-black">Community Feed</h2>
 
+          {/* Onboarding dialogs for new users viewing the featured example post */}
           {isNewUser && featuredExamplePost && (
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-4 py-3">
-              <p className="text-sm font-semibold text-gray-900">
-                One visit. Multiple items. Rate anything, anywhere.
-              </p>
-              <p className="text-xs text-gray-500 mt-1">Tap the restaurant or any item to explore.</p>
-            </div>
-          )}
-          {isNewUser && !featuredExamplePost && (
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-4 py-3">
-              <p className="text-sm font-semibold text-gray-900">
-                This is what reviews look like on TIP. Add your first review to start.
-              </p>
-              <div className="mt-3">
-                <Link
-                  to="/create"
-                  className="inline-flex items-center bg-primary text-white px-4 py-2 rounded-full text-sm font-medium hover:bg-red-600 transition-colors"
-                >
-                  Add Your First Review
-                </Link>
-              </div>
+            <div className="space-y-2">
+              <OnboardingDialog
+                id="home-profile-tooltip"
+                title="Explore Profiles"
+                description="Click on the profile photo to visit their profile page and see all their reviews."
+                show={true}
+              />
+              <OnboardingDialog
+                id="home-restaurant-tooltip"
+                title="Discover Restaurants"
+                description="Click on the restaurant name to go to the restaurant page. Find menu items, ratings, and location info there."
+                show={true}
+              />
             </div>
           )}
           

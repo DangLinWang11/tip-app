@@ -778,7 +778,8 @@ const Wizard: React.FC = () => {
     autosaveState,
     expandedDishIds,
     setExpandedDishIds,
-    toggleDishExpanded
+    toggleDishExpanded,
+    isNewUser
   }), [
     visitDraft,
     dishDrafts,
@@ -802,7 +803,8 @@ const Wizard: React.FC = () => {
     submitReview,
     autosaveState,
     expandedDishIds,
-    toggleDishExpanded
+    toggleDishExpanded,
+    isNewUser
   ]);
 
   const stepOrder = useMemo<WizardStepKey[]>(() => (
@@ -851,9 +853,20 @@ const Wizard: React.FC = () => {
           {isNewUser && (
             <div className="mb-3 rounded-xl border border-slate-200 bg-white px-4 py-3">
               <p className="text-[11px] uppercase tracking-[0.18em] text-slate-400">How it works</p>
-              <p className="mt-1 text-sm text-slate-700">- Search the restaurant you're reviewing.</p>
-              <p className="text-sm text-slate-700">- Add multiple items from one visit.</p>
-              <p className="text-sm text-slate-700">- Rate anything, anywhere.</p>
+              <ul className="mt-1 text-sm text-slate-700 space-y-1">
+                <li className="flex items-start gap-2">
+                  <span className="text-primary mt-0.5">•</span>
+                  <span>Search the restaurant you're reviewing.</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-primary mt-0.5">•</span>
+                  <span>Add multiple items from one visit.</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-primary mt-0.5">•</span>
+                  <span>Rate anything, anywhere.</span>
+                </li>
+              </ul>
             </div>
           )}
         </div>

@@ -5,6 +5,7 @@ import { useI18n } from '../../lib/i18n/useI18n';
 import { useReviewWizard } from './WizardContext';
 import ConfettiEffect from './ConfettiEffect';
 import { ToGoFeedback, DineInFeedback } from '../../dev/types/review';
+import { OnboardingDialog } from '../onboarding/OnboardingTooltip';
 
 const BUSINESS_TAGS = [
   'Great Staff',
@@ -51,6 +52,7 @@ const StepWrapUp: React.FC = () => {
     resetDraft,
     pendingUploads,
     pendingUploadCount,
+    isNewUser,
   } = useReviewWizard();
 
   const [successIds, setSuccessIds] = useState<string[] | null>(null);
@@ -218,6 +220,16 @@ const StepWrapUp: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      {/* Onboarding tooltip for new users */}
+      {isNewUser && (
+        <OnboardingDialog
+          id="step-wrapup-submit-tooltip"
+          title="Almost Done!"
+          description="This is where you submit your review! You can also add a caption for your post here."
+          show={true}
+        />
+      )}
+
       {/* Lightweight Context Header */}
       <div className="space-y-3">
         <div>
