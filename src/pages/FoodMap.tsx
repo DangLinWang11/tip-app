@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { MapIcon, TrendingUpIcon, StarIcon, ClockIcon, MessageCircleIcon, PlusIcon, ArrowLeft, Star, X, Edit2, MapPinIcon, Store, TrendingUp } from 'lucide-react';
 import { Link, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { fetchUserReviews, convertUserReviewsToFeedPosts, FirebaseReview, PersonalNote, addPersonalNote, updatePersonalNote, deletePersonalNote } from '../services/reviewService';
@@ -6,13 +6,11 @@ import { getUserProfile, getCurrentUser, getUserByUsername } from '../lib/fireba
 import LocationPinIcon from '../components/icons/LocationPinIcon';
 import DishIcon from '../components/icons/DishIcon';
 import { useTour } from '../tour/TourProvider';
-import { tourSteps } from '../tour/tourSteps';
 
 const FoodMap: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { activeTourId, stepIndex, isOpen, next } = useTour();
-  const autoAdvancedRef = useRef(false);
   const [searchParams] = useSearchParams();
   const [userReviews, setUserReviews] = useState<any[]>([]);
   const [userProfile, setUserProfile] = useState<any>(null);
@@ -85,14 +83,9 @@ const FoodMap: React.FC = () => {
   }, [searchParams]);
 
   useEffect(() => {
-    if (autoAdvancedRef.current) return;
     if (!isOpen || activeTourId !== 'home') return;
     if (location.pathname !== '/list-view') return;
-    const currentStep = tourSteps.home.steps[stepIndex];
-    if (currentStep?.id === 'home-stats-box') {
-      autoAdvancedRef.current = true;
-      next();
-    }
+    // Tour advances here only when we navigate from the home snapshot step.
   }, [activeTourId, stepIndex, isOpen, next, location.pathname]);
   
   // Stats calculation from actual user data

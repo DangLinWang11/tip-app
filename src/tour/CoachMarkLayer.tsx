@@ -173,10 +173,10 @@ export const CoachMarkLayer: React.FC = () => {
 
   const handleNext = () => {
     if (activeTourId === 'home' && step.id === 'home-stats-box' && location.pathname === '/') {
-      next();
+      navigate('/list-view');
       window.setTimeout(() => {
         next();
-      }, 0);
+      }, 200);
       return;
     }
     if (activeTourId === 'home' && step.id === 'home-recent-visits-page') {
@@ -184,11 +184,6 @@ export const CoachMarkLayer: React.FC = () => {
       window.setTimeout(() => {
         next();
       }, 200);
-      return;
-    }
-    // Stats-box "Next" → navigate to list-view; FoodMap auto-advance handles next()
-    if (activeTourId === 'home' && step.id === 'home-stats-box') {
-      navigate('/list-view');
       return;
     }
     if (stepIndex === tour.steps.length - 1) {
