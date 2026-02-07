@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, startTransition } from 'react';
 import { EditIcon, GridIcon, BookmarkIcon, SearchIcon, PlusIcon, Star, Users, TrendingUp, Award, Share, User, MapIcon } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Store as StoreIcon } from 'lucide-react';
 import { useOwnedRestaurants } from '../hooks/useOwnedRestaurants';
 import FeedPost from '../components/FeedPost';
@@ -386,6 +386,7 @@ const SavedListsTab: React.FC<{ isNewUser?: boolean }> = ({ isNewUser = false })
 
 const Profile: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [activeTab, setActiveTab] = useState<'activity' | 'saved'>('activity');
   const [searchTerm, setSearchTerm] = useState('');
   const [firebaseReviews, setFirebaseReviews] = useState<FirebaseReview[]>([]);
@@ -600,7 +601,8 @@ const Profile: React.FC = () => {
   const tierProgress = getTierFromPoints(personalStats.pointsEarned);
   const isNewUser = personalStats.totalReviews === 0;
 
-  useAutoStartTour('profile', isNewUser);
+  const isProfileRoute = location.pathname === '/profile';
+  useAutoStartTour('profile', isProfileRoute && isNewUser);
 
   // Avatar component with initials fallback
   const UserAvatar: React.FC<{ size?: 'sm' | 'md' | 'lg' }> = ({ size = 'lg' }) => {

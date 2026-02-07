@@ -65,6 +65,7 @@ const FloatingUserStatsBox: React.FC<FloatingUserStatsBoxProps> = ({
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={{ type: 'spring', stiffness: 260, damping: 28, mass: 0.9 }}
+              data-tour="home-stats-box"
               className={GLASS_CARD_STYLES + ' p-3'}
             >
               {/* Top row: Avatar + Username/Tier | Stacked Pills */}

@@ -5,6 +5,15 @@ export const tourSteps: Record<TourId, TourDefinition> = {
     id: 'home',
     steps: [
       {
+        id: 'home-stats-box',
+        selector: '[data-tour="home-stats-box"]',
+        title: 'Your Snapshot',
+        body: 'Quick view of your profile stats. Tap Recent Visits to see your reviews and add notes.',
+        placement: 'top',
+        blockInteraction: true,
+        spotlightPadding: 10,
+      },
+      {
         id: 'home-profile-photo',
         selector: '[data-tour="home-featured-profile"]',
         title: 'Profiles',

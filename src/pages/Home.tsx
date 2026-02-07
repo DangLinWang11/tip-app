@@ -808,7 +808,8 @@ const Home: React.FC = () => {
     return [featured, ...rest];
   }, [featuredExamplePost, baseFeedPosts]);
 
-  useAutoStartTour('home', Boolean(featuredExamplePost));
+  const isHomeRoute = location.pathname === '/';
+  useAutoStartTour('home', isHomeRoute && Boolean(featuredExamplePost));
 
   // Only show loader on true cold start (no cache at all)
   // CRITICAL: Only block UI on absolute first load to ensure interactability
