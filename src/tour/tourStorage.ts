@@ -2,6 +2,9 @@ import type { TourId } from './types';
 
 const VERSION_KEY = 'tip.tour.version';
 const CURRENT_VERSION = '1';
+// TEMP: keep tours always available while copy/highlights are being tuned.
+// Set to false to restore one-time behavior.
+const FORCE_ALWAYS = true;
 
 const keyFor = (tourId: TourId) => `tip.tour.${tourId}.completed`;
 
@@ -22,6 +25,7 @@ const ensureVersion = (): void => {
 };
 
 export const getCompleted = (tourId: TourId): boolean => {
+  if (FORCE_ALWAYS) return false;
   if (!canUseStorage()) return false;
   try {
     ensureVersion();
@@ -32,6 +36,7 @@ export const getCompleted = (tourId: TourId): boolean => {
 };
 
 export const setCompleted = (tourId: TourId): void => {
+  if (FORCE_ALWAYS) return;
   if (!canUseStorage()) return;
   try {
     ensureVersion();
