@@ -56,7 +56,7 @@ const FloatingUserStatsBox: React.FC<FloatingUserStatsBoxProps> = ({
   return (
     <>
       {/* Placeholder to maintain layout space */}
-      <div ref={placeholderRef} className="mb-6">
+      <div ref={placeholderRef} className="mb-6" data-tour="home-stats-box">
         <AnimatePresence mode="wait">
           {!isCollapsed && (
             <motion.div

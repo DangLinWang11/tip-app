@@ -17,7 +17,7 @@ import type { TourStep } from './types';
 
 const waitForElement = (
   selector: string,
-  timeoutMs = 2500
+  timeoutMs = 4000
 ): Promise<HTMLElement | null> => {
   if (typeof document === 'undefined') return Promise.resolve(null);
 
