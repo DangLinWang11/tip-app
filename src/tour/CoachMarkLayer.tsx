@@ -12,6 +12,7 @@ import { CoachTooltip } from './CoachTooltip';
 import { TourOverlay } from './TourOverlay';
 import { tourSteps } from './tourSteps';
 import { useTour } from './TourProvider';
+import { useLocation } from 'react-router-dom';
 import type { TourStep } from './types';
 
 const waitForElement = (
@@ -52,6 +53,7 @@ const scrollIntoViewIfNeeded = (target: HTMLElement) => {
 };
 
 export const CoachMarkLayer: React.FC = () => {
+  const location = useLocation();
   const { activeTourId, stepIndex, isOpen, next, back, skip, complete } = useTour();
   const tour = activeTourId ? tourSteps[activeTourId] : null;
   const step: TourStep | null = tour ? tour.steps[stepIndex] : null;
@@ -137,7 +139,17 @@ export const CoachMarkLayer: React.FC = () => {
     });
   }, [targetEl, refs, update]);
 
-  if (!isOpen || !step || typeof document === 'undefined') return null;
+  const routeOk = (() => {
+    if (!activeTourId) return false;
+    const path = location.pathname;
+    if (activeTourId === 'home') return path === '/';
+    if (activeTourId === 'profile') return path === '/profile';
+    if (activeTourId === 'create_step2' || activeTourId === 'create_step3') return path.startsWith('/create');
+    if (activeTourId === 'map_demo') return path === '/food-map' || path === '/list-view';
+    return true;
+  })();
+
+  if (!isOpen || !step || typeof document === 'undefined' || !routeOk) return null;
 
   const overlay = (
     <div className="fixed inset-0 z-[9999]">

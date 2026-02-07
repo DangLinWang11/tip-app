@@ -909,6 +909,7 @@ const Home: React.FC = () => {
             <img 
               src="/images/tip-logo.png" 
               alt="Tip" 
+              data-tour="home-logo"
               className="w-36 h-20 object-contain -ml-2"
             />
           </div>

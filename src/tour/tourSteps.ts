@@ -5,12 +5,21 @@ export const tourSteps: Record<TourId, TourDefinition> = {
     id: 'home',
     steps: [
       {
+        id: 'home-intro',
+        selector: '[data-tour="home-logo"]',
+        title: 'Welcome to Tip',
+        body: 'Quick tour of your home feed. Skip anytime.',
+        placement: 'bottom',
+        blockInteraction: true,
+        spotlightPadding: 8,
+      },
+      {
         id: 'home-stats-box',
         selector: '[data-tour="home-stats-box"]',
         title: 'Your Snapshot',
         body: 'Quick view of your profile stats. Tap Recent Visits to see your reviews and add notes.',
         placement: 'top',
-        blockInteraction: true,
+        blockInteraction: false,
         spotlightPadding: 10,
       },
       {
