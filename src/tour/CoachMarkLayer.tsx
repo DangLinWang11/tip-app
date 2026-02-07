@@ -144,7 +144,7 @@ export const CoachMarkLayer: React.FC = () => {
     if (!activeTourId) return false;
     const path = location.pathname;
     if (activeTourId === 'home') {
-      if (path === '/') return true;
+      if (path === '/') return step?.id !== 'home-recent-visits-page';
       return path === '/list-view' && step?.id === 'home-recent-visits-page';
     }
     if (activeTourId === 'profile') return path === '/profile';
@@ -156,6 +156,13 @@ export const CoachMarkLayer: React.FC = () => {
   if (!isOpen || !step || typeof document === 'undefined' || !routeOk) return null;
 
   const handleNext = () => {
+    if (activeTourId === 'home' && step.id === 'home-stats-box' && location.pathname === '/') {
+      next();
+      window.setTimeout(() => {
+        next();
+      }, 0);
+      return;
+    }
     if (activeTourId === 'home' && step.id === 'home-recent-visits-page') {
       navigate('/');
       window.setTimeout(() => {
@@ -169,6 +176,13 @@ export const CoachMarkLayer: React.FC = () => {
       next();
     }
   };
+
+  const displayStepIndex =
+    activeTourId === 'home' && step.id === 'home-recent-visits-page' ? 0 : stepIndex;
+  const displayTotalSteps =
+    activeTourId === 'home' && step.id === 'home-recent-visits-page'
+      ? 1
+      : tour.steps.length;
 
   const overlay = (
     <div className="fixed inset-0 z-[9999]">
@@ -189,6 +203,8 @@ export const CoachMarkLayer: React.FC = () => {
               body={step.body}
               stepIndex={stepIndex}
               totalSteps={tour.steps.length}
+              displayStepIndex={displayStepIndex}
+              displayTotalSteps={displayTotalSteps}
               canGoBack={stepIndex > 0}
               isLast={stepIndex === tour.steps.length - 1}
               onBack={back}

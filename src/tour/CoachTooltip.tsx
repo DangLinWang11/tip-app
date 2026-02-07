@@ -7,6 +7,8 @@ interface CoachTooltipProps {
   body: string;
   stepIndex: number;
   totalSteps: number;
+  displayStepIndex?: number;
+  displayTotalSteps?: number;
   canGoBack: boolean;
   isLast: boolean;
   onBack: () => void;
@@ -22,12 +24,16 @@ export const CoachTooltip: React.FC<CoachTooltipProps> = ({
   body,
   stepIndex,
   totalSteps,
+  displayStepIndex,
+  displayTotalSteps,
   canGoBack,
   isLast,
   onBack,
   onNext,
   onSkip,
 }) => {
+  const shownStepIndex = displayStepIndex ?? stepIndex;
+  const shownTotalSteps = displayTotalSteps ?? totalSteps;
   return (
     <AnimatePresence mode="wait">
       <motion.div
@@ -51,7 +57,7 @@ export const CoachTooltip: React.FC<CoachTooltipProps> = ({
 
         <div className="flex items-center justify-between px-4 pb-3">
           <div className="text-[11px] text-slate-400">
-            {stepIndex + 1} / {totalSteps}
+            {shownStepIndex + 1} / {shownTotalSteps}
           </div>
           <div className="flex items-center gap-2">
             {canGoBack && (
