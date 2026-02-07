@@ -156,13 +156,6 @@ export const CoachMarkLayer: React.FC = () => {
   if (!isOpen || !step || typeof document === 'undefined' || !routeOk) return null;
 
   const handleNext = () => {
-    if (activeTourId === 'home' && step.id === 'home-stats-box' && location.pathname === '/') {
-      next();
-      window.setTimeout(() => {
-        next();
-      }, 0);
-      return;
-    }
     if (activeTourId === 'home' && step.id === 'home-recent-visits-page') {
       navigate('/');
       window.setTimeout(() => {
