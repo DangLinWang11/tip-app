@@ -169,30 +169,26 @@ const FoodMap: React.FC = () => {
     return `${mm}/${dd}/${yy}`;
   }
 
-  // Demo state for new users — shows stat pills and example visits
+  // Demo state for new users — shows stat cards and example visits
   const DemoState = () => (
     <div className="space-y-4">
-      {/* Stat Pills — matches StatPills + UserStatsPills design */}
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="flex items-center px-3 py-1.5 bg-blue-50 rounded-full text-sm">
-          <Store size={14} className="mr-1.5 text-blue-500" />
-          <span className="font-medium text-blue-700">5</span>
-          <span className="text-blue-600 ml-1">Restaurants</span>
+      {/* Stat Cards */}
+      <div className="grid grid-cols-2 gap-3">
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-3 text-center">
+          <p className="text-2xl font-bold text-primary">8.2</p>
+          <p className="text-xs text-gray-500 mt-1">Avg Rating</p>
         </div>
-        <div className="flex items-center px-3 py-1.5 bg-green-50 rounded-full text-sm">
-          <TrendingUp size={14} className="mr-1.5 text-green-500" />
-          <span className="font-medium text-green-700">8.2</span>
-          <span className="text-green-600 ml-1">Avg Rating</span>
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-3 text-center">
+          <p className="text-2xl font-bold text-primary">5</p>
+          <p className="text-xs text-gray-500 mt-1">Restaurants</p>
         </div>
-        <div className="flex items-center px-3 py-1.5 bg-blue-50 rounded-full text-sm">
-          <Star size={14} className="mr-1.5 text-blue-500" />
-          <span className="font-medium text-blue-700">12</span>
-          <span className="text-blue-600 ml-1">Reviews</span>
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-3 text-center">
+          <p className="text-2xl font-bold text-primary">12</p>
+          <p className="text-xs text-gray-500 mt-1">Dishes Tried</p>
         </div>
-        <div className="flex items-center px-3 py-1.5 bg-amber-50 rounded-full text-sm">
-          <DishIcon className="mr-1.5 text-amber-500" size={14} />
-          <span className="font-medium text-amber-700">18</span>
-          <span className="text-amber-600 ml-1">Dishes</span>
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-3 text-center">
+          <p className="text-2xl font-bold text-primary">240</p>
+          <p className="text-xs text-gray-500 mt-1">Points Earned</p>
         </div>
       </div>
 
