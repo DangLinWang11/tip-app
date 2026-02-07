@@ -973,23 +973,18 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
 
   const legacyLayout = (
     <div ref={containerRef} className="relative bg-white rounded-2xl overflow-hidden shadow-sm mb-4">
-      {isFeaturedExample && (
-        <div className="absolute top-3 left-3 z-10">
-          <span className="inline-flex items-center rounded-full bg-amber-50 text-amber-700 border border-amber-200 px-2.5 py-1 text-[11px] font-semibold">
-            Featured Example
-          </span>
-        </div>
-      )}
       {/* Absolute rating (bigger, nudged down & left) */}
       <div className="pointer-events-none absolute top-5 right-5 z-0">
         <RatingBadge rating={heroRating} size="xl" />
       </div>
 
       {/* Header */}
-      <div className="p-4 flex items-center gap-4">
+      <div
+        className="p-4 flex items-center gap-4"
+        data-tour={isFeaturedExample ? 'home-featured-profile' : undefined}
+      >
         <div
           className="relative cursor-pointer"
-          data-tour={isFeaturedExample ? 'home-featured-profile' : undefined}
           onClick={handleUsernameClick}
           role="button"
           tabIndex={0}
@@ -1046,10 +1041,12 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
           </div>
           {/* Restaurant line under header (legacy layout) */}
           {restaurant && (
-            <div className="mt-1 text-sm text-dark-gray flex items-center gap-0.5">
+            <div
+              className="mt-1 text-sm text-dark-gray flex items-center gap-0.5"
+              data-tour={isFeaturedExample ? 'home-featured-restaurant' : undefined}
+            >
               <LocationPinIcon size={14} className="text-red-500" />
               <span
-                data-tour={isFeaturedExample ? 'home-featured-restaurant' : undefined}
                 onClick={() => {
                   if (restaurantId) {
                     navigate(`/restaurant/${restaurantId}`);
@@ -1349,9 +1346,8 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
 
         {/* Single-dish row (name + rating) for solo layout */}
         {!isVisitPost && currentItem.dish && displayRating !== null && (
-          <div className="mb-2">
+          <div className="mb-2" data-tour={isFeaturedExample ? 'home-featured-menu-item-0' : undefined}>
             <button
-              data-tour={isFeaturedExample ? 'home-featured-menu-item-0' : undefined}
               type="button"
               onClick={handleDishClickEnhanced}
               className={`flex items-center justify-between w-full py-1.5 px-4 text-sm hover:bg-gray-50 rounded ${tapButtonClass}`}
@@ -1587,23 +1583,18 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
 
   const visitLayout = (
     <div ref={containerRef} className="relative bg-white rounded-2xl overflow-hidden shadow-sm mb-4">
-      {isFeaturedExample && (
-        <div className="absolute top-3 left-3 z-10">
-          <span className="inline-flex items-center rounded-full bg-amber-50 text-amber-700 border border-amber-200 px-2.5 py-1 text-[11px] font-semibold">
-            Featured Example
-          </span>
-        </div>
-      )}
       {/* Absolute rating (bigger, nudged down & left) */}
       <div className="pointer-events-none absolute top-5 right-5 z-0">
         <RatingBadge rating={heroRating} size="xl" />
       </div>
 
       {/* Header */}
-      <div className="p-4 flex items-center gap-4">
+      <div
+        className="p-4 flex items-center gap-4"
+        data-tour={isFeaturedExample ? 'home-featured-profile' : undefined}
+      >
         <div
           className="relative cursor-pointer"
-          data-tour={isFeaturedExample ? 'home-featured-profile' : undefined}
           onClick={handleUsernameClick}
           role="button"
           tabIndex={0}
@@ -1654,10 +1645,12 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
           </div>
           {/* Restaurant line under header (visit layout) */}
           {restaurant && (
-            <div className="mt-1 text-sm text-dark-gray flex items-center gap-0.5">
+            <div
+              className="mt-1 text-sm text-dark-gray flex items-center gap-0.5"
+              data-tour={isFeaturedExample ? 'home-featured-restaurant' : undefined}
+            >
               <LocationPinIcon size={14} className="text-red-500" />
               <span
-                data-tour={isFeaturedExample ? 'home-featured-restaurant' : undefined}
                 onClick={() => {
                   if (restaurantId) {
                     navigate(`/restaurant/${restaurantId}`);
@@ -1945,7 +1938,6 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
               <p className="text-sm font-semibold text-gray-900">{displayAuthorName}</p>
               <p className="text-xs text-gray-500">
                 rated <span
-                  data-tour={isFeaturedExample ? 'home-featured-restaurant' : undefined}
                   onClick={() => {
                     if (restaurantId) {
                       navigate(`/restaurant/${restaurantId}`);
@@ -1981,7 +1973,10 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
           )}
 
           {visitDishes && visitDishes.length > 0 && (
-            <div className="space-y-3">
+            <div
+              className="space-y-3"
+              data-tour={isFeaturedExample ? 'home-featured-menu-item-0' : undefined}
+            >
               {groupDishesByCategory(visitDishes).map(([category, dishes], categoryIndex) => {
                 const MAX_DISHES_PER_CATEGORY = 3;
                 const visible = dishes.slice(0, MAX_DISHES_PER_CATEGORY);
@@ -1995,7 +1990,6 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
                       {visible.map((dish: any, dishIndex: number) => (
                         <button
                           key={dish.id}
-                          data-tour={isFeaturedExample && categoryIndex === 0 && dishIndex === 0 ? 'home-featured-menu-item-0' : undefined}
                           onClick={() => navigateToDishReview(dish.id, dish.dishId)}
                           className={`flex items-center justify-between w-full py-1.5 px-4 text-sm hover:bg-gray-50 rounded ${tapButtonClass}`}
                         >
@@ -2313,13 +2307,6 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
   // NEW: Compact Layout (for posts without photos - text-only reviews)
   const compactLayout = (
     <div ref={containerRef} className="relative bg-white rounded-2xl overflow-hidden shadow-sm mb-4">
-      {isFeaturedExample && (
-        <div className="absolute top-3 left-3 z-10">
-          <span className="inline-flex items-center rounded-full bg-amber-50 text-amber-700 border border-amber-200 px-2.5 py-1 text-[11px] font-semibold">
-            Featured Example
-          </span>
-        </div>
-      )}
       {/* Top-right average rating */}
       <div className="pointer-events-none absolute top-5 right-5 z-10">
         <RatingBadge rating={compactAverageRating} size="xl" />
@@ -2327,10 +2314,12 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
 
       {/* Header */}
       <div className="p-4 pb-3">
-        <div className="flex items-center gap-3 mb-3">
+        <div
+          className="flex items-center gap-3 mb-3"
+          data-tour={isFeaturedExample ? 'home-featured-profile' : undefined}
+        >
           <div
             className="relative cursor-pointer"
-            data-tour={isFeaturedExample ? 'home-featured-profile' : undefined}
             onClick={handleUsernameClick}
             role="button"
             tabIndex={0}
@@ -2416,7 +2405,10 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
 
         {/* Dish list with category grouping */}
         {visitDishes && visitDishes.length > 0 && (
-          <div className="space-y-3">
+          <div
+            className="space-y-3"
+            data-tour={isFeaturedExample ? 'home-featured-menu-item-0' : undefined}
+          >
             {groupDishesByCategory(visitDishes).map(([category, dishes], categoryIndex) => (
               <div key={category}>
                 {/* Category label */}
@@ -2428,7 +2420,6 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
                   {dishes.map((dish: any, dishIndex: number) => (
                     <button
                       key={dish.id}
-                      data-tour={isFeaturedExample && categoryIndex === 0 && dishIndex === 0 ? 'home-featured-menu-item-0' : undefined}
                       onClick={() => navigateToDishReview(dish.id, dish.dishId)}
                       className={`flex items-center justify-between w-full py-1.5 px-4 text-sm hover:bg-gray-50 rounded ${tapButtonClass}`}
                     >
@@ -2448,7 +2439,7 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
 
         {/* Fallback: single dish if visitDishes not available */}
         {(!visitDishes || visitDishes.length === 0) && currentItem?.dish && displayRating !== null && (
-          <div className="mb-2">
+          <div className="mb-2" data-tour={isFeaturedExample ? 'home-featured-menu-item-0' : undefined}>
             {/* Category label for single dish */}
             {(() => {
               const dishCategory =
@@ -2464,7 +2455,6 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
             })()}
 
             <button
-              data-tour={isFeaturedExample ? 'home-featured-menu-item-0' : undefined}
               type="button"
               onClick={handleDishClickEnhanced}
               className={`flex items-center justify-between w-full py-1.5 px-4 text-sm hover:bg-gray-50 rounded ${tapButtonClass}`}

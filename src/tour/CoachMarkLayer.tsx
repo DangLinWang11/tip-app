@@ -102,6 +102,10 @@ export const CoachMarkLayer: React.FC = () => {
 
     let cancelled = false;
 
+    // Clear previous target immediately to prevent stale spotlight flicker
+    setTargetEl(null);
+    setTargetRect(null);
+
     const resolveTarget = async () => {
       const found = await waitForElement(step.selector);
       if (cancelled) return;
@@ -168,6 +172,13 @@ export const CoachMarkLayer: React.FC = () => {
   };
 
   const handleNext = () => {
+    if (activeTourId === 'home' && step.id === 'home-stats-box' && location.pathname === '/') {
+      next();
+      window.setTimeout(() => {
+        next();
+      }, 0);
+      return;
+    }
     if (activeTourId === 'home' && step.id === 'home-recent-visits-page') {
       navigate('/');
       window.setTimeout(() => {
