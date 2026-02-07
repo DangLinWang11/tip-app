@@ -26,10 +26,10 @@ export const tourSteps: Record<TourId, TourDefinition> = {
         id: 'home-recent-visits-page',
         selector: '[data-tour="recent-visits-content"]',
         title: 'Recent Visits',
-        body: 'An itemized list of your reviews with personal notes.',
-        placement: 'top',
+        body: 'Rate dishes, track restaurants, and add personal notes to remember what you loved.',
+        placement: 'bottom',
         blockInteraction: true,
-        spotlightPadding: 12,
+        spotlightPadding: 8,
       },
       {
         id: 'home-profile-photo',

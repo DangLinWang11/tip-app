@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { MapIcon, TrendingUpIcon, StarIcon, ClockIcon, MessageCircleIcon, PlusIcon, ArrowLeft, Star, X, Edit2, MapPinIcon } from 'lucide-react';
+import { MapIcon, TrendingUpIcon, StarIcon, ClockIcon, MessageCircleIcon, PlusIcon, ArrowLeft, Star, X, Edit2, MapPinIcon, Store, TrendingUp } from 'lucide-react';
 import { Link, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { fetchUserReviews, convertUserReviewsToFeedPosts, FirebaseReview, PersonalNote, addPersonalNote, updatePersonalNote, deletePersonalNote } from '../services/reviewService';
 import { getUserProfile, getCurrentUser, getUserByUsername } from '../lib/firebase';
 import LocationPinIcon from '../components/icons/LocationPinIcon';
+import DishIcon from '../components/icons/DishIcon';
 import { useTour } from '../tour/TourProvider';
 import { tourSteps } from '../tour/tourSteps';
 
@@ -168,31 +169,38 @@ const FoodMap: React.FC = () => {
     return `${mm}/${dd}/${yy}`;
   }
 
-  // Demo state for new users — shows example stat cards and visits
+  // Demo state for new users — shows stat pills and example visits
   const DemoState = () => (
     <div className="space-y-4">
-      {/* Demo Stat Cards */}
-      <div className="grid grid-cols-2 gap-3">
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-3 text-center">
-          <p className="text-2xl font-bold text-primary">8.2</p>
-          <p className="text-xs text-gray-500 mt-1">Avg Rating</p>
+      {/* Stat Pills — matches StatPills + UserStatsPills design */}
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="flex items-center px-3 py-1.5 bg-blue-50 rounded-full text-sm">
+          <Store size={14} className="mr-1.5 text-blue-500" />
+          <span className="font-medium text-blue-700">5</span>
+          <span className="text-blue-600 ml-1">Restaurants</span>
         </div>
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-3 text-center">
-          <p className="text-2xl font-bold text-gray-900">5</p>
-          <p className="text-xs text-gray-500 mt-1">Restaurants</p>
+        <div className="flex items-center px-3 py-1.5 bg-green-50 rounded-full text-sm">
+          <TrendingUp size={14} className="mr-1.5 text-green-500" />
+          <span className="font-medium text-green-700">8.2</span>
+          <span className="text-green-600 ml-1">Avg Rating</span>
         </div>
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-3 text-center">
-          <p className="text-2xl font-bold text-gray-900">12</p>
-          <p className="text-xs text-gray-500 mt-1">Dishes Tried</p>
+        <div className="flex items-center px-3 py-1.5 bg-blue-50 rounded-full text-sm">
+          <Star size={14} className="mr-1.5 text-blue-500" />
+          <span className="font-medium text-blue-700">12</span>
+          <span className="text-blue-600 ml-1">Reviews</span>
         </div>
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-3 text-center">
-          <p className="text-2xl font-bold text-gray-900">240</p>
-          <p className="text-xs text-gray-500 mt-1">Points Earned</p>
+        <div className="flex items-center px-3 py-1.5 bg-amber-50 rounded-full text-sm">
+          <DishIcon className="mr-1.5 text-amber-500" size={14} />
+          <span className="font-medium text-amber-700">18</span>
+          <span className="text-amber-600 ml-1">Dishes</span>
         </div>
       </div>
 
-      {/* Demo Visit 1 */}
-      <div className="bg-white rounded-xl shadow-sm border-2 border-gray-200 p-4">
+      {/* Demo Visit 1 — highlighted by tour */}
+      <div
+        data-tour="recent-visits-content"
+        className="bg-white rounded-xl shadow-sm border-2 border-gray-200 p-4"
+      >
         <div className="flex items-start justify-between mb-3">
           <div className="flex-1 min-w-0 pr-3">
             <div className="mb-2">
@@ -330,7 +338,7 @@ const FoodMap: React.FC = () => {
         </div>
       </div>
 
-      <div className="px-4 py-6" data-tour="recent-visits-content">
+      <div className="px-4 py-6">
         {/* If user has no reviews, show demo state */}
         {userReviews.length === 0 ? (
           <DemoState />
