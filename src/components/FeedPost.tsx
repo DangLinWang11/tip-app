@@ -979,12 +979,13 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
       </div>
 
       {/* Header */}
-      <div
-        className="p-4 flex items-center gap-4"
-        data-tour={isFeaturedExample ? 'home-featured-profile' : undefined}
-      >
+      <div className="p-4 flex items-center gap-4">
         <div
-          className="relative cursor-pointer"
+          className="flex items-center gap-4"
+          data-tour={isFeaturedExample ? 'home-featured-profile' : undefined}
+        >
+          <div
+            className="relative cursor-pointer"
           onClick={handleUsernameClick}
           role="button"
           tabIndex={0}
@@ -1004,7 +1005,7 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
             className="w-10 h-10 rounded-full object-cover"
           />
         </div>
-        <div className="flex-1 min-w-0">
+          <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5">
             {/* NEW: Username area with follow button */}
             <div className="relative flex items-center">
@@ -1039,12 +1040,11 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
               />
             )}
           </div>
+        </div>
+      </div>
           {/* Restaurant line under header (legacy layout) */}
           {restaurant && (
-            <div
-              className="mt-1 text-sm text-dark-gray flex items-center gap-0.5"
-              data-tour={isFeaturedExample ? 'home-featured-restaurant' : undefined}
-            >
+            <div className="mt-1 text-sm text-dark-gray flex items-center gap-0.5">
               <LocationPinIcon size={14} className="text-red-500" />
               <span
                 onClick={() => {
@@ -1067,6 +1067,7 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
                 <div
                   className="ml-1 w-8 h-5 flex items-center justify-center rounded-full flex-shrink-0"
                   style={{ backgroundColor: qualityColor }}
+                  data-tour={isFeaturedExample ? 'home-featured-restaurant' : undefined}
                 >
                   <span className="text-[11px] font-medium text-white">
                     {restaurant.qualityScore}%
@@ -1075,6 +1076,7 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
               )}
             </div>
           )}
+          </div>
         </div>
       </div>
 
@@ -1589,12 +1591,13 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
       </div>
 
       {/* Header */}
-      <div
-        className="p-4 flex items-center gap-4"
-        data-tour={isFeaturedExample ? 'home-featured-profile' : undefined}
-      >
+      <div className="p-4 flex items-center gap-4">
         <div
-          className="relative cursor-pointer"
+          className="flex items-center gap-4"
+          data-tour={isFeaturedExample ? 'home-featured-profile' : undefined}
+        >
+          <div
+            className="relative cursor-pointer"
           onClick={handleUsernameClick}
           role="button"
           tabIndex={0}
@@ -1608,7 +1611,7 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
         >
           <img src={author.image} alt={displayAuthorName} loading="lazy" decoding="async" className="w-10 h-10 rounded-full object-cover" />
         </div>
-        <div className="flex-1 min-w-0">
+          <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5">
             {/* NEW: Username area with follow button */}
             <div className="relative flex items-center">
@@ -1643,12 +1646,11 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
               />
             )}
           </div>
+        </div>
+      </div>
           {/* Restaurant line under header (visit layout) */}
           {restaurant && (
-            <div
-              className="mt-1 text-sm text-dark-gray flex items-center gap-0.5"
-              data-tour={isFeaturedExample ? 'home-featured-restaurant' : undefined}
-            >
+            <div className="mt-1 text-sm text-dark-gray flex items-center gap-0.5">
               <LocationPinIcon size={14} className="text-red-500" />
               <span
                 onClick={() => {
@@ -1671,6 +1673,7 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
                 <div
                   className="ml-1 w-8 h-5 flex items-center justify-center rounded-full flex-shrink-0"
                   style={{ backgroundColor: qualityColor }}
+                  data-tour={isFeaturedExample ? 'home-featured-restaurant' : undefined}
                 >
                   <span className="text-[11px] font-medium text-white">
                     {restaurant.qualityScore}%
@@ -1679,6 +1682,7 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
               )}
             </div>
           )}
+          </div>
         </div>
       </div>
 
@@ -2314,12 +2318,13 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
 
       {/* Header */}
       <div className="p-4 pb-3">
-        <div
-          className="flex items-center gap-3 mb-3"
-          data-tour={isFeaturedExample ? 'home-featured-profile' : undefined}
-        >
+        <div className="flex items-center gap-3 mb-3">
           <div
-            className="relative cursor-pointer"
+            className="flex items-center gap-3"
+            data-tour={isFeaturedExample ? 'home-featured-profile' : undefined}
+          >
+            <div
+              className="relative cursor-pointer"
             onClick={handleUsernameClick}
             role="button"
             tabIndex={0}
@@ -2339,7 +2344,7 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
               className="w-10 h-10 rounded-full object-cover"
             />
           </div>
-          <div className="flex-1 min-w-0">
+            <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5">
               {/* Username area with follow button */}
               <div className="relative flex items-center">
@@ -2365,13 +2370,15 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
                   </button>
                 )}
               </div>
-              {author.isVerified && (
-                <CheckCircleIcon
-                  size={16}
-                  className={isFollowingUser ? 'text-green-500' : 'text-gray-400'}
-                />
-              )}
-            </div>
+            {author.isVerified && (
+              <CheckCircleIcon
+                size={16}
+                className={isFollowingUser ? 'text-green-500' : 'text-gray-400'}
+              />
+            )}
+          </div>
+        </div>
+      </div>
             {/* Compact header: "username rated restaurantName" */}
             <p className="text-xs text-gray-500 mt-0.5">
               rated{' '}
@@ -2393,6 +2400,7 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
                 review.date
               )}
             </p>
+            </div>
           </div>
         </div>
 

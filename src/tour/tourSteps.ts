@@ -11,7 +11,7 @@ export const tourSteps: Record<TourId, TourDefinition> = {
         body: 'Quick tour of your home feed. Skip anytime.',
         placement: 'bottom',
         blockInteraction: true,
-        spotlightPadding: 3,
+        spotlightPadding: 2,
       },
       {
         id: 'home-stats-box',
@@ -44,10 +44,10 @@ export const tourSteps: Record<TourId, TourDefinition> = {
         id: 'home-restaurant-name',
         selector: '[data-tour="home-featured-restaurant"]',
         title: 'Restaurants',
-        body: 'Restaurant names open the full page. The percentage badge shows the restaurant\'s overall quality score based on all community ratings.',
+        body: 'Restaurant names open the full page. The % badge is the quality score.',
         placement: 'bottom',
         blockInteraction: true,
-        spotlightPadding: 12,
+        spotlightPadding: 6,
       },
       {
         id: 'home-menu-item',
