@@ -64,7 +64,7 @@ export const CoachMarkLayer: React.FC = () => {
 
   const placement = step?.placement ?? 'bottom';
 
-  const { refs, floatingStyles, middlewareData, update } = useFloating({
+  const { refs, floatingStyles, middlewareData, update, placement: resolvedPlacement } = useFloating({
     placement,
     middleware: [
       offset(10),
@@ -77,7 +77,7 @@ export const CoachMarkLayer: React.FC = () => {
 
   const arrowStyle = useMemo(() => {
     const { x, y } = middlewareData.arrow || {};
-    const basePlacement = placement.split('-')[0];
+    const basePlacement = (resolvedPlacement || placement).split('-')[0];
     const staticSide = {
       top: 'bottom',
       right: 'left',
@@ -90,7 +90,7 @@ export const CoachMarkLayer: React.FC = () => {
       top: y != null ? `${y}px` : '',
       [staticSide]: '-6px',
     } as React.CSSProperties;
-  }, [middlewareData.arrow, placement]);
+  }, [middlewareData.arrow, placement, resolvedPlacement]);
 
   useEffect(() => {
     if (!step || !isOpen) {
@@ -184,7 +184,7 @@ export const CoachMarkLayer: React.FC = () => {
             />
             <div
               ref={arrowRef}
-              className="absolute h-3 w-3 rotate-45 bg-white border border-white/70 shadow-[0_4px_12px_rgba(15,23,42,0.12)]"
+              className="absolute h-3 w-3 rotate-45 bg-white border border-white/70 shadow-none"
               style={arrowStyle}
             />
           </div>

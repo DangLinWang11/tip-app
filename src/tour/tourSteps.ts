@@ -11,7 +11,7 @@ export const tourSteps: Record<TourId, TourDefinition> = {
         body: 'Quick tour of your home feed. Skip anytime.',
         placement: 'bottom',
         blockInteraction: true,
-        spotlightPadding: 8,
+        spotlightPadding: 6,
       },
       {
         id: 'home-stats-box',
