@@ -155,6 +155,18 @@ export const CoachMarkLayer: React.FC = () => {
 
   if (!isOpen || !step || typeof document === 'undefined' || !routeOk) return null;
 
+  const handleBack = () => {
+    // Going back from recent-visits-page (on /list-view) to stats-box (on /)
+    if (activeTourId === 'home' && step.id === 'home-recent-visits-page') {
+      navigate('/');
+      window.setTimeout(() => {
+        back();
+      }, 200);
+      return;
+    }
+    back();
+  };
+
   const handleNext = () => {
     if (activeTourId === 'home' && step.id === 'home-recent-visits-page') {
       navigate('/');
@@ -205,7 +217,7 @@ export const CoachMarkLayer: React.FC = () => {
               displayTotalSteps={displayTotalSteps}
               canGoBack={stepIndex > 0}
               isLast={stepIndex === tour.steps.length - 1}
-              onBack={back}
+              onBack={handleBack}
               onNext={handleNext}
               onSkip={skip}
             />

@@ -168,74 +168,86 @@ const FoodMap: React.FC = () => {
     return `${mm}/${dd}/${yy}`;
   }
 
-  // Empty state for users with no reviews
-  const EmptyState = () => (
-    <div className="text-center py-12 px-4">
-      <div className="mb-6">
-        <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-          <MapPinIcon size={32} className="text-gray-400" />
+  // Demo state for new users — shows example stat cards and visits
+  const DemoState = () => (
+    <div className="space-y-4">
+      {/* Demo Stat Cards */}
+      <div className="grid grid-cols-2 gap-3">
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-3 text-center">
+          <p className="text-2xl font-bold text-primary">8.2</p>
+          <p className="text-xs text-gray-500 mt-1">Avg Rating</p>
         </div>
-        <h3 className="text-xl font-semibold text-gray-900 mb-2">No visits yet</h3>
-        <p className="text-gray-600 mb-6 max-w-sm mx-auto">
-          Start exploring restaurants and create your first review to see your food journey map!
-        </p>
-      </div>
-      
-      <div className="space-y-3 max-w-xs mx-auto">
-        <Link 
-          to="/create" 
-          className="block w-full bg-primary text-white py-3 px-6 rounded-full font-medium hover:bg-red-600 transition-colors"
-        >
-          Add Your First Review
-        </Link>
-        {!isNewUser && (
-          <Link 
-            to="/discover" 
-            className="block w-full border border-gray-300 text-gray-700 py-3 px-6 rounded-full font-medium hover:bg-gray-50 transition-colors flex items-center justify-center"
-          >
-            <MapIcon size={18} className="mr-2" />
-            Discover Restaurants
-          </Link>
-        )}
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-3 text-center">
+          <p className="text-2xl font-bold text-gray-900">5</p>
+          <p className="text-xs text-gray-500 mt-1">Restaurants</p>
+        </div>
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-3 text-center">
+          <p className="text-2xl font-bold text-gray-900">12</p>
+          <p className="text-xs text-gray-500 mt-1">Dishes Tried</p>
+        </div>
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-3 text-center">
+          <p className="text-2xl font-bold text-gray-900">240</p>
+          <p className="text-xs text-gray-500 mt-1">Points Earned</p>
+        </div>
       </div>
 
-      <div className="mt-10 max-w-md mx-auto text-left">
-        <div className="inline-flex items-center rounded-full bg-gray-100 text-gray-600 px-3 py-1 text-xs font-semibold mb-3">
-          Example visit
+      {/* Demo Visit 1 */}
+      <div className="bg-white rounded-xl shadow-sm border-2 border-gray-200 p-4">
+        <div className="flex items-start justify-between mb-3">
+          <div className="flex-1 min-w-0 pr-3">
+            <div className="mb-2">
+              <h3 className="font-bold text-black truncate">Truffle Rigatoni</h3>
+              <p className="text-sm text-gray-600 flex items-center truncate">
+                <LocationPinIcon className="text-red-500 mr-1 flex-shrink-0" size={18} />
+                <span className="truncate">North End Osteria</span>
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded-full text-xs">Tried 2x</span>
+              <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded-full text-xs">Visited 3x</span>
+              <span className="text-xs text-gray-400 flex items-center">
+                <span className="mx-1">&bull;</span>3d
+              </span>
+            </div>
+          </div>
+          <div className="ml-3 flex-shrink-0">
+            <span className="text-primary font-bold text-2xl">8.8</span>
+          </div>
         </div>
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
-          <div className="flex items-start justify-between mb-3">
-            <div className="flex-1 min-w-0 pr-3">
-              <div className="mb-2">
-                <h3 className="font-bold text-black truncate">Truffle Rigatoni</h3>
-                <p className="text-sm text-gray-600 flex items-center truncate">
-                  <LocationPinIcon className="text-red-500 mr-1 flex-shrink-0" size={18} />
-                  <span className="truncate">North End Osteria</span>
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded-full text-xs">
-                  Tried 1x
-                </span>
-                <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded-full text-xs">
-                  Visited 1x
-                </span>
-                <span className="text-xs text-gray-400 flex items-center">
-                  <span className="mx-1">•</span>
-                  3d
-                </span>
-              </div>
-            </div>
-            <div className="ml-3 flex-shrink-0">
-              <span className="text-primary font-bold text-2xl">8.8</span>
-            </div>
-          </div>
+        <div className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Personal note</p>
+          <p className="text-sm text-gray-600 italic">&ldquo;Ask for extra truffle next time.&rdquo;</p>
+          <p className="text-xs text-gray-400 mt-1">Jan 2, 2026</p>
+        </div>
+      </div>
 
-          <div className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Personal note</p>
-            <p className="text-sm text-gray-600 italic">"Ask for extra crispy next time."</p>
-            <p className="text-xs text-gray-400 mt-1">Jan 2, 2026</p>
+      {/* Demo Visit 2 */}
+      <div className="bg-white rounded-xl shadow-sm border-2 border-gray-200 p-4">
+        <div className="flex items-start justify-between mb-3">
+          <div className="flex-1 min-w-0 pr-3">
+            <div className="mb-2">
+              <h3 className="font-bold text-black truncate">Spicy Tuna Roll</h3>
+              <p className="text-sm text-gray-600 flex items-center truncate">
+                <LocationPinIcon className="text-red-500 mr-1 flex-shrink-0" size={18} />
+                <span className="truncate">Sushi Nakazawa</span>
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded-full text-xs">Tried 1x</span>
+              <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded-full text-xs">Visited 1x</span>
+              <span className="text-xs text-gray-400 flex items-center">
+                <span className="mx-1">&bull;</span>1w
+              </span>
+            </div>
           </div>
+          <div className="ml-3 flex-shrink-0">
+            <span className="text-primary font-bold text-2xl">9.2</span>
+          </div>
+        </div>
+        <div className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Personal note</p>
+          <p className="text-sm text-gray-600 italic">&ldquo;Best sushi spot so far. Sit at the bar.&rdquo;</p>
+          <p className="text-xs text-gray-400 mt-1">Dec 28, 2025</p>
         </div>
       </div>
     </div>
@@ -273,7 +285,7 @@ const FoodMap: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-white" data-tour="recent-visits-page">
+    <div className="min-h-screen bg-white">
       {/* Header */}
       <div className="bg-white px-4 py-6 shadow-sm">
         <div className="flex items-center justify-between mb-2">
@@ -318,10 +330,10 @@ const FoodMap: React.FC = () => {
         </div>
       </div>
 
-      <div className="px-4 py-6">
-        {/* If user has no reviews, show empty state */}
+      <div className="px-4 py-6" data-tour="recent-visits-content">
+        {/* If user has no reviews, show demo state */}
         {userReviews.length === 0 ? (
-          <EmptyState />
+          <DemoState />
         ) : (
           <>
             {/* Recent Visits Content */}
