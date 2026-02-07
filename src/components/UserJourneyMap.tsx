@@ -13,6 +13,7 @@ import { getTierFromPoints } from '../badges/badgeTiers';
 import CountrySelector from './CountrySelector';
 import AvatarBadge from './badges/AvatarBadge';
 import { demoJourneyCenter, demoJourneyRestaurants, demoJourneyZoom, type DemoRestaurant } from '../data/demoJourney';
+import { useAutoStartTour } from '../tour/TourProvider';
 
 interface FocusRestaurant {
   lat: number;
@@ -241,6 +242,7 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({
   }, [countryStats, countryBoundsData]);
 
   const isNewUser = visitedRestaurants.length === 0;
+  useAutoStartTour('map_demo', !loading && isNewUser);
 
   // Compute map center using fallback chain:
   // 0. focusRestaurant → 1. homeCountry → 2. most-visited country → 3. device location country → 4. world view
@@ -421,30 +423,21 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({
             searchActive={false}
           />
 
-          {/* Demo onboarding card: explain map + CTA - positioned at TOP */}
+          {/* Demo map badge anchor for tour */}
           <div
             className="absolute inset-x-0 z-30 px-4"
             style={{ top: 'calc(env(safe-area-inset-top, 0px) + 16px)' }}
           >
-            <div className="bg-white/95 backdrop-blur border border-gray-200 rounded-2xl p-4 shadow-lg">
-              <h3 className="text-base font-semibold text-gray-900 mb-1">
-                Welcome to your Food Journey Map!
-              </h3>
-              <p className="text-sm text-gray-600 mb-3">
-                Every food you review becomes a pin here.
-                Tap a pin to see what it will look like.
-              </p>
-              <button
-                onClick={() => navigate('/create')}
-                className="w-full bg-primary text-white py-2.5 rounded-xl font-semibold hover:bg-red-600 transition-colors"
-              >
-                Add your first review
-              </button>
+            <div
+              data-tour="mapdemo-welcome-anchor"
+              className="inline-flex items-center rounded-full bg-white/90 backdrop-blur border border-white/70 px-3 py-1 text-[11px] font-semibold text-gray-700 shadow-sm"
+            >
+              Demo map
             </div>
           </div>
 
           {/* Journey Stats pill for demo mode */}
-          <div className="pointer-events-none absolute left-4 z-30" style={{ bottom: '88px' }}>
+          <div className="pointer-events-none absolute left-4 z-30" style={{ bottom: '88px' }} data-tour="mapdemo-stats-pill">
             <div className="rounded-2xl bg-white/90 backdrop-blur-xl shadow-[0_12px_28px_rgba(0,0,0,0.18)] border border-white/70 px-3 py-1.5 flex items-center gap-2.5">
               <div className="flex items-center justify-center w-6 flex-shrink-0">
                 <svg width="24" height="30" viewBox="0 0 24 34" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -488,6 +481,13 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({
               </div>
             </div>
           </div>
+
+          {/* Demo pin anchor (invisible, used for coach mark) */}
+          <div
+            data-tour="mapdemo-pin"
+            className="absolute z-20 h-6 w-6 rounded-full"
+            style={{ left: '55%', top: '58%', transform: 'translate(-50%, -50%)', opacity: 0 }}
+          />
         </div>
 
         <DemoRestaurantModal

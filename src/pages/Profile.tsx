@@ -28,7 +28,7 @@ import StatPills from '../components/StatPills';
 import AvatarBadge from '../components/badges/AvatarBadge';
 import BadgeLadderModal from '../components/badges/BadgeLadderModal';
 import { getTierFromPoints } from '../badges/badgeTiers';
-import { OnboardingDialog } from '../components/onboarding/OnboardingTooltip';
+import { useAutoStartTour } from '../tour/TourProvider';
 
 // Simple cache for profile data to enable instant "back" navigation
 let cachedProfileData: {
@@ -600,6 +600,8 @@ const Profile: React.FC = () => {
   const tierProgress = getTierFromPoints(personalStats.pointsEarned);
   const isNewUser = personalStats.totalReviews === 0;
 
+  useAutoStartTour('profile', isNewUser);
+
   // Avatar component with initials fallback
   const UserAvatar: React.FC<{ size?: 'sm' | 'md' | 'lg' }> = ({ size = 'lg' }) => {
     const [imageError, setImageError] = useState(false);
@@ -702,7 +704,9 @@ const Profile: React.FC = () => {
               <h2 className="font-semibold text-lg text-gray-900 flex items-center">
                 {userProfile.actualName || userProfile.displayName || userProfile.username}
                 {!isNewUser && (
-                  <AvatarBadge tierIndex={tierProgress.tierIndex} size="inline" className="ml-1.5" />
+                  <span data-tour="profile-rank-badge" className="inline-flex">
+                    <AvatarBadge tierIndex={tierProgress.tierIndex} size="inline" className="ml-1.5" />
+                  </span>
                 )}
                 {userProfile.isVerified && (
                   <span className="ml-1 text-blue-500" title="Verified user">✓</span>
@@ -734,35 +738,17 @@ const Profile: React.FC = () => {
           )}
 
           {isNewUser && (
-            <>
-              {/* Onboarding dialogs for new users */}
-              <div className="mt-4 space-y-2">
-                <OnboardingDialog
-                  id="profile-ranking-tooltip"
-                  title="Your Rank Badge"
-                  description="Your rank badge appears next to your name and increases as you post more reviews. Earn XP and climb the tiers from Rookie to Legend!"
-                  show={true}
-                />
-                <OnboardingDialog
-                  id="profile-map-tooltip"
-                  title="Your Food Journey Map"
-                  description="Tap 'View My Map' below to see all your reviewed restaurants on an interactive map!"
-                  show={true}
-                />
-              </div>
-
-              <div className="mt-4 rounded-xl border border-gray-200 bg-white px-4 py-3">
-                <p className="text-sm font-semibold text-gray-900">
-                  Your profile, stats, and rank build as you review places.
-                </p>
-                <Link
-                  to="/create"
-                  className="mt-3 inline-flex items-center bg-primary text-white px-4 py-2 rounded-full text-sm font-medium hover:bg-red-600 transition-colors"
-                >
-                  Add Your First Review
-                </Link>
-              </div>
-            </>
+            <div className="mt-4 rounded-xl border border-gray-200 bg-white px-4 py-3">
+              <p className="text-sm font-semibold text-gray-900">
+                Your profile, stats, and rank build as you review places.
+              </p>
+              <Link
+                to="/create"
+                className="mt-3 inline-flex items-center bg-primary text-white px-4 py-2 rounded-full text-sm font-medium hover:bg-red-600 transition-colors"
+              >
+                Add Your First Review
+              </Link>
+            </div>
           )}
 
           {/* Action Buttons */}
@@ -804,25 +790,28 @@ const Profile: React.FC = () => {
           </div>
 
           {/* Stat Pills */}
-          <StatPills
-            restaurantsCount={personalStats.restaurantsTried}
-            averageRating={personalStats.averageRating}
-            username={userProfile.username}
-          />
+          <div data-tour="profile-rank-progress">
+            <StatPills
+              restaurantsCount={personalStats.restaurantsTried}
+              averageRating={personalStats.averageRating}
+              username={userProfile.username}
+            />
+          </div>
         </div>
 
         {/* Food Map Button */}
-        <div className="px-4 pb-4">
-          <button
-            onClick={() => {
-              setShowFoodMapModal(true);
-            }}
-            className="w-full bg-gradient-to-r from-primary to-red-500 text-white py-3 px-6 rounded-xl font-medium shadow-sm hover:shadow-md transition-all duration-200 flex items-center justify-center"
-          >
-            <MapIcon size={18} className="mr-2" />
-            View My Map
-          </button>
-        </div>
+          <div className="px-4 pb-4">
+            <button
+              data-tour="profile-view-map"
+              onClick={() => {
+                setShowFoodMapModal(true);
+              }}
+              className="w-full bg-gradient-to-r from-primary to-red-500 text-white py-3 px-6 rounded-xl font-medium shadow-sm hover:shadow-md transition-all duration-200 flex items-center justify-center"
+            >
+              <MapIcon size={18} className="mr-2" />
+              View My Map
+            </button>
+          </div>
 
         {/* Tier Rankings Section - Coming Soon */}
         {showTierRankings && (

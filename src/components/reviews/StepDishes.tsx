@@ -9,7 +9,7 @@ import { CUISINES, getCuisineLabel } from '../../utils/taxonomy';
 import { POSITIVE_ATTRIBUTES, NEGATIVE_ATTRIBUTES } from '../../data/tagDefinitions';
 import { db } from '../../lib/firebase';
 import { DishRecord } from './AddDishInline';
-import { OnboardingDialog } from '../onboarding/OnboardingTooltip';
+import { useAutoStartTour } from '../../tour/TourProvider';
 
 const StepDishes: React.FC = () => {
   const { t } = useI18n();
@@ -38,6 +38,8 @@ const StepDishes: React.FC = () => {
   const [addingMenuItem, setAddingMenuItem] = useState(false);
   const [customCuisineInputs, setCustomCuisineInputs] = useState<Record<string, string>>({});
   const [customCuisineSelections, setCustomCuisineSelections] = useState<Record<string, boolean>>({});
+
+  useAutoStartTour('create_step2', isNewUser);
 
   // Track uploading state per dish for direct thumbnail upload
   const [uploadingForDish, setUploadingForDish] = useState<Record<string, boolean>>({});
@@ -356,15 +358,7 @@ const StepDishes: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Onboarding tooltip for new users */}
-      {isNewUser && (
-        <OnboardingDialog
-          id="step-dishes-photo-tooltip"
-          title="Add Photos to Each Dish"
-          description="Tap the camera icon on each dish card to add photos. You can attach different photos to different items from your visit!"
-          show={true}
-        />
-      )}
+      {/* Onboarding dialog removed: replaced by coach-mark tour */}
 
       {/* Dishes List */}
       <div className="space-y-3">
@@ -398,61 +392,63 @@ const StepDishes: React.FC = () => {
                 isExpanded ? 'bg-rose-50/60 border-rose-100' : 'bg-rose-50/40 border-transparent hover:bg-rose-50/70'
               }`}
             >
-              {coverImage ? (
-                // Photo is attached - show non-clickable thumbnail with X button
-                <div className="relative flex-shrink-0 w-16 h-16 rounded-2xl overflow-hidden">
-                  <img
-                    src={coverImage}
-                    alt="Dish"
-                    className="w-full h-full object-cover"
-                  />
-                  {/* X button to remove photo - always visible */}
+              <div data-tour={index === 0 ? 'create-dish-camera' : undefined}>
+                {coverImage ? (
+                  // Photo is attached - show non-clickable thumbnail with X button
+                  <div className="relative flex-shrink-0 w-16 h-16 rounded-2xl overflow-hidden">
+                    <img
+                      src={coverImage}
+                      alt="Dish"
+                      className="w-full h-full object-cover"
+                    />
+                    {/* X button to remove photo - always visible */}
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        removeMediaFromDish(dish.id);
+                      }}
+                      className="absolute top-1 right-1 bg-red-500 hover:bg-red-600 rounded-full p-1 transition-colors shadow-sm"
+                      aria-label="Remove photo from this dish"
+                    >
+                      <X className="h-3 w-3 text-white" strokeWidth={3} />
+                    </button>
+                  </div>
+                ) : (
+                  // No photo - clickable to upload
                   <button
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation();
-                      removeMediaFromDish(dish.id);
+                      handleThumbnailClick(dish.id);
                     }}
-                    className="absolute top-1 right-1 bg-red-500 hover:bg-red-600 rounded-full p-1 transition-colors shadow-sm"
-                    aria-label="Remove photo from this dish"
+                    disabled={uploadingForDish[dish.id]}
+                    className={`relative flex-shrink-0 w-16 h-16 rounded-2xl flex items-center justify-center bg-slate-100 hover:bg-slate-200 transition-all cursor-pointer group focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-offset-2 ${
+                      uploadingForDish[dish.id] ? 'cursor-wait opacity-75' : ''
+                    }`}
+                    aria-label="Upload photo for this dish"
                   >
-                    <X className="h-3 w-3 text-white" strokeWidth={3} />
-                  </button>
-                </div>
-              ) : (
-                // No photo - clickable to upload
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleThumbnailClick(dish.id);
-                  }}
-                  disabled={uploadingForDish[dish.id]}
-                  className={`relative flex-shrink-0 w-16 h-16 rounded-2xl flex items-center justify-center bg-slate-100 hover:bg-slate-200 transition-all cursor-pointer group focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-offset-2 ${
-                    uploadingForDish[dish.id] ? 'cursor-wait opacity-75' : ''
-                  }`}
-                  aria-label="Upload photo for this dish"
-                >
-                  <div className="relative">
-                    <Camera className="h-10 w-10 text-slate-400 group-hover:text-slate-600 transition" />
-                    {/* Plus badge at top-right corner of camera icon */}
-                    <div className="absolute -top-1 -right-1 bg-red-500 rounded-full p-1">
-                      <Plus className="h-3 w-3 text-white" strokeWidth={3} />
-                    </div>
-                  </div>
-                  {/* Loading overlay during upload */}
-                  {uploadingForDish[dish.id] && (
-                    <>
-                      <div className="absolute inset-0 bg-white/80 flex items-center justify-center">
-                        <Loader2 className="h-5 w-5 animate-spin text-red-500" />
+                    <div className="relative">
+                      <Camera className="h-10 w-10 text-slate-400 group-hover:text-slate-600 transition" />
+                      {/* Plus badge at top-right corner of camera icon */}
+                      <div className="absolute -top-1 -right-1 bg-red-500 rounded-full p-1">
+                        <Plus className="h-3 w-3 text-white" strokeWidth={3} />
                       </div>
-                      <span className="sr-only" role="status" aria-live="polite">
-                        Uploading photos for {dish.dishName || 'dish'}
-                      </span>
-                    </>
-                  )}
-                </button>
-              )}
+                    </div>
+                    {/* Loading overlay during upload */}
+                    {uploadingForDish[dish.id] && (
+                      <>
+                        <div className="absolute inset-0 bg-white/80 flex items-center justify-center">
+                          <Loader2 className="h-5 w-5 animate-spin text-red-500" />
+                        </div>
+                        <span className="sr-only" role="status" aria-live="polite">
+                          Uploading photos for {dish.dishName || 'dish'}
+                        </span>
+                      </>
+                    )}
+                  </button>
+                )}
+              </div>
 
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between gap-2">
@@ -661,7 +657,7 @@ const StepDishes: React.FC = () => {
 
                 {/* Media Attachment */}
                 {mediaItems.length > 0 && (
-                  <div className="mt-4">
+                  <div className="mt-4" data-tour={index === 0 ? 'create-media-attach' : undefined}>
                     <label className="block text-xs font-medium text-slate-600 mb-2">
                       Choose a photo for this dish
                     </label>

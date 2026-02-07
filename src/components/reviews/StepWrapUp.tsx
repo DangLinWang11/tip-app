@@ -5,7 +5,7 @@ import { useI18n } from '../../lib/i18n/useI18n';
 import { useReviewWizard } from './WizardContext';
 import ConfettiEffect from './ConfettiEffect';
 import { ToGoFeedback, DineInFeedback } from '../../dev/types/review';
-import { OnboardingDialog } from '../onboarding/OnboardingTooltip';
+import { useAutoStartTour } from '../../tour/TourProvider';
 
 const BUSINESS_TAGS = [
   'Great Staff',
@@ -60,6 +60,8 @@ const StepWrapUp: React.FC = () => {
   const [selectedBusinessTags, setSelectedBusinessTags] = useState<string[]>(visitDraft.businessTags || []);
   const [selectedBusinessLowlights, setSelectedBusinessLowlights] = useState<string[]>(visitDraft.businessLowlights || []);
   const [countdown, setCountdown] = useState(5);
+
+  useAutoStartTour('create_step3', isNewUser);
 
   // Structured feedback state
   const [toGoFeedback, setToGoFeedback] = useState<ToGoFeedback>({});
@@ -220,15 +222,7 @@ const StepWrapUp: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Onboarding tooltip for new users */}
-      {isNewUser && (
-        <OnboardingDialog
-          id="step-wrapup-submit-tooltip"
-          title="Almost Done!"
-          description="This is where you submit your review! You can also add a caption for your post here."
-          show={true}
-        />
-      )}
+      {/* Onboarding dialog removed: replaced by coach-mark tour */}
 
       {/* Lightweight Context Header */}
       <div className="space-y-3">
@@ -614,6 +608,7 @@ const StepWrapUp: React.FC = () => {
         {/* Say something to the owner */}
         <div>
           <textarea
+            data-tour="create-caption-input"
             value={visitDraft.overallText || ''}
             onChange={(e) => setVisitDraft(prev => ({ ...prev, overallText: e.target.value || undefined }))}
             onBlur={() => {
@@ -695,6 +690,7 @@ const StepWrapUp: React.FC = () => {
           Back
         </button>
         <button
+          data-tour="create-submit-button"
           type="button"
           onClick={handleSubmit}
           disabled={disableSubmit}

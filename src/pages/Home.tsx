@@ -12,7 +12,7 @@ import { useReviewStore } from '../stores/reviewStore';
 import { useFollowStore } from '../stores/followStore';
 import { getTierFromPoints } from '../badges/badgeTiers';
 import FloatingUserStatsBox from '../components/FloatingUserStatsBox';
-import { OnboardingDialog } from '../components/onboarding/OnboardingTooltip';
+import { useAutoStartTour } from '../tour/TourProvider';
 
 const Home: React.FC = () => {
   const mountStart = performance.now?.() ?? Date.now();
@@ -802,12 +802,13 @@ const Home: React.FC = () => {
     if (!featuredExamplePost) return baseFeedPosts;
     const featured = {
       ...featuredExamplePost,
-      isFeaturedExample: true,
-      showTapHint: true
+      isFeaturedExample: true
     };
     const rest = baseFeedPosts.filter((post) => post?.id !== featuredExamplePost.id);
     return [featured, ...rest];
   }, [featuredExamplePost, baseFeedPosts]);
+
+  useAutoStartTour('home', Boolean(featuredExamplePost));
 
   // Only show loader on true cold start (no cache at all)
   // CRITICAL: Only block UI on absolute first load to ensure interactability
@@ -964,23 +965,7 @@ const Home: React.FC = () => {
           {/* Section Header */}
           <h2 className="text-lg font-bold text-black">Community Feed</h2>
 
-          {/* Onboarding dialogs for new users viewing the featured example post */}
-          {isNewUser && featuredExamplePost && (
-            <div className="space-y-2">
-              <OnboardingDialog
-                id="home-profile-tooltip"
-                title="Explore Profiles"
-                description="Click on the profile photo to visit their profile page and see all their reviews."
-                show={true}
-              />
-              <OnboardingDialog
-                id="home-restaurant-tooltip"
-                title="Discover Restaurants"
-                description="Click on the restaurant name to go to the restaurant page. Find menu items, ratings, and location info there."
-                show={true}
-              />
-            </div>
-          )}
+          {/* Onboarding dialogs removed: replaced by coach-mark tour */}
           
           {error && (
             <div className="max-w-md mx-auto bg-white rounded-xl shadow-sm p-8 text-center my-6">

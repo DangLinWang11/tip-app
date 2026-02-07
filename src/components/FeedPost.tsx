@@ -989,6 +989,7 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
       <div className="p-4 flex items-center gap-4">
         <div
           className="relative cursor-pointer"
+          data-tour={isFeaturedExample ? 'home-featured-profile' : undefined}
           onClick={handleUsernameClick}
           role="button"
           tabIndex={0}
@@ -1048,6 +1049,7 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
             <div className="mt-1 text-sm text-dark-gray flex items-center gap-0.5">
               <LocationPinIcon size={14} className="text-red-500" />
               <span
+                data-tour={isFeaturedExample ? 'home-featured-restaurant' : undefined}
                 onClick={() => {
                   if (restaurantId) {
                     navigate(`/restaurant/${restaurantId}`);
@@ -1349,6 +1351,7 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
         {!isVisitPost && currentItem.dish && displayRating !== null && (
           <div className="mb-2">
             <button
+              data-tour={isFeaturedExample ? 'home-featured-menu-item-0' : undefined}
               type="button"
               onClick={handleDishClickEnhanced}
               className={`flex items-center justify-between w-full py-1.5 px-4 text-sm hover:bg-gray-50 rounded ${tapButtonClass}`}
@@ -1600,6 +1603,7 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
       <div className="p-4 flex items-center gap-4">
         <div
           className="relative cursor-pointer"
+          data-tour={isFeaturedExample ? 'home-featured-profile' : undefined}
           onClick={handleUsernameClick}
           role="button"
           tabIndex={0}
@@ -1653,6 +1657,7 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
             <div className="mt-1 text-sm text-dark-gray flex items-center gap-0.5">
               <LocationPinIcon size={14} className="text-red-500" />
               <span
+                data-tour={isFeaturedExample ? 'home-featured-restaurant' : undefined}
                 onClick={() => {
                   if (restaurantId) {
                     navigate(`/restaurant/${restaurantId}`);
@@ -1940,6 +1945,7 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
               <p className="text-sm font-semibold text-gray-900">{displayAuthorName}</p>
               <p className="text-xs text-gray-500">
                 rated <span
+                  data-tour={isFeaturedExample ? 'home-featured-restaurant' : undefined}
                   onClick={() => {
                     if (restaurantId) {
                       navigate(`/restaurant/${restaurantId}`);
@@ -1976,7 +1982,7 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
 
           {visitDishes && visitDishes.length > 0 && (
             <div className="space-y-3">
-              {groupDishesByCategory(visitDishes).map(([category, dishes]) => {
+              {groupDishesByCategory(visitDishes).map(([category, dishes], categoryIndex) => {
                 const MAX_DISHES_PER_CATEGORY = 3;
                 const visible = dishes.slice(0, MAX_DISHES_PER_CATEGORY);
                 const remaining = dishes.length - visible.length;
@@ -1986,9 +1992,10 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
                     {/* Category label: left-aligned with left padding to match dish column */}
                     <p className="mt-2 text-[11px] tracking-wide text-gray-500 uppercase pl-4">{category}</p>
                     <div className="space-y-1">
-                      {visible.map((dish: any) => (
+                      {visible.map((dish: any, dishIndex: number) => (
                         <button
                           key={dish.id}
+                          data-tour={isFeaturedExample && categoryIndex === 0 && dishIndex === 0 ? 'home-featured-menu-item-0' : undefined}
                           onClick={() => navigateToDishReview(dish.id, dish.dishId)}
                           className={`flex items-center justify-between w-full py-1.5 px-4 text-sm hover:bg-gray-50 rounded ${tapButtonClass}`}
                         >
@@ -2323,6 +2330,7 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
         <div className="flex items-center gap-3 mb-3">
           <div
             className="relative cursor-pointer"
+            data-tour={isFeaturedExample ? 'home-featured-profile' : undefined}
             onClick={handleUsernameClick}
             role="button"
             tabIndex={0}
@@ -2379,6 +2387,7 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
             <p className="text-xs text-gray-500 mt-0.5">
               rated{' '}
               <span
+                data-tour={isFeaturedExample ? 'home-featured-restaurant' : undefined}
                 onClick={() => {
                   if (restaurantId) {
                     navigate(`/restaurant/${restaurantId}`);
@@ -2408,7 +2417,7 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
         {/* Dish list with category grouping */}
         {visitDishes && visitDishes.length > 0 && (
           <div className="space-y-3">
-            {groupDishesByCategory(visitDishes).map(([category, dishes]) => (
+            {groupDishesByCategory(visitDishes).map(([category, dishes], categoryIndex) => (
               <div key={category}>
                 {/* Category label */}
                 <p className="text-[11px] tracking-wide text-gray-500 uppercase pl-4 mb-1">
@@ -2416,9 +2425,10 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
                 </p>
                 {/* Dishes in this category */}
                 <div className="space-y-1">
-                  {dishes.map((dish: any) => (
+                  {dishes.map((dish: any, dishIndex: number) => (
                     <button
                       key={dish.id}
+                      data-tour={isFeaturedExample && categoryIndex === 0 && dishIndex === 0 ? 'home-featured-menu-item-0' : undefined}
                       onClick={() => navigateToDishReview(dish.id, dish.dishId)}
                       className={`flex items-center justify-between w-full py-1.5 px-4 text-sm hover:bg-gray-50 rounded ${tapButtonClass}`}
                     >
@@ -2454,6 +2464,7 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
             })()}
 
             <button
+              data-tour={isFeaturedExample ? 'home-featured-menu-item-0' : undefined}
               type="button"
               onClick={handleDishClickEnhanced}
               className={`flex items-center justify-between w-full py-1.5 px-4 text-sm hover:bg-gray-50 rounded ${tapButtonClass}`}
