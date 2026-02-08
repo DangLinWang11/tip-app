@@ -70,7 +70,9 @@ export const CoachMarkLayer: React.FC = () => {
       ? 6
       : step?.id === 'home-stats-box'
         ? 19
-        : 10;
+        : step?.id === 'home-recent-visits-stats'
+          ? 24
+          : 10;
   const { refs, floatingStyles, middlewareData, update, placement: resolvedPlacement } = useFloating({
     placement,
     middleware: [
