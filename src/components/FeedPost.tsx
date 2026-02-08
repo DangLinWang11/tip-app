@@ -1047,7 +1047,7 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
           {restaurant && (
             <div className="px-4">
               <div
-                className="mt-1 text-sm text-dark-gray flex items-center gap-0.5"
+                className="mt-1 pl-[3.5rem] text-sm text-dark-gray flex items-center gap-0.5"
                 data-tour={isFeaturedExample ? 'home-featured-restaurant' : undefined}
               >
                 <LocationPinIcon size={14} className="text-red-500" />
@@ -1655,7 +1655,7 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
           {restaurant && (
             <div className="px-4">
               <div
-                className="mt-1 text-sm text-dark-gray flex items-center gap-0.5"
+                className="mt-1 pl-[3.5rem] text-sm text-dark-gray flex items-center gap-0.5"
                 data-tour={isFeaturedExample ? 'home-featured-restaurant' : undefined}
               >
                 <LocationPinIcon size={14} className="text-red-500" />
