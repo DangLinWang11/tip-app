@@ -73,18 +73,19 @@ export const CoachMarkLayer: React.FC = () => {
       : step?.id === 'home-recent-visits-stats'
           ? 16
           : step?.id === 'home-menu-item'
-            ? 3
+            ? -2
             : step?.id === 'home-profile-restaurant'
               ? 14
             : 10;
+  const shouldFlip = step?.id !== 'home-menu-item';
   const { refs, floatingStyles, middlewareData, update, placement: resolvedPlacement } = useFloating({
     placement,
     middleware: [
       offset(offsetValue),
-      flip({ padding: 12 }),
+      shouldFlip ? flip({ padding: 12 }) : undefined,
       shift({ padding: 12 }),
       arrow({ element: arrowRef, padding: 8 }),
-    ],
+    ].filter(Boolean) as any,
     whileElementsMounted: autoUpdate,
   });
 
