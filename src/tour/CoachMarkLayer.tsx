@@ -148,8 +148,8 @@ export const CoachMarkLayer: React.FC = () => {
     if (!activeTourId) return false;
     const path = location.pathname;
     if (activeTourId === 'home') {
-      if (path === '/') return step?.id !== 'home-recent-visits-page';
-      return path === '/list-view' && step?.id === 'home-recent-visits-page';
+      if (path === '/') return !step?.id?.startsWith('home-recent-visits');
+      return path === '/list-view' && step?.id?.startsWith('home-recent-visits');
     }
     if (activeTourId === 'profile') return path === '/profile';
     if (activeTourId === 'create_step2' || activeTourId === 'create_step3') return path.startsWith('/create');
@@ -160,8 +160,8 @@ export const CoachMarkLayer: React.FC = () => {
   if (!isOpen || !step || typeof document === 'undefined' || !routeOk) return null;
 
   const handleBack = () => {
-    // Going back from recent-visits-page (on /list-view) to stats-box (on /)
-    if (activeTourId === 'home' && step.id === 'home-recent-visits-page') {
+    // Going back from recent-visits stats (on /list-view) to stats-box (on /)
+    if (activeTourId === 'home' && step.id === 'home-recent-visits-stats') {
       navigate('/');
       window.setTimeout(() => {
         back();
@@ -177,7 +177,7 @@ export const CoachMarkLayer: React.FC = () => {
       navigate('/list-view');
       return;
     }
-    if (activeTourId === 'home' && step.id === 'home-recent-visits-page') {
+    if (activeTourId === 'home' && step.id === 'home-recent-visits-card') {
       navigate('/');
       window.setTimeout(() => {
         next();
@@ -191,12 +191,12 @@ export const CoachMarkLayer: React.FC = () => {
     }
   };
 
-  const displayStepIndex =
-    activeTourId === 'home' && step.id === 'home-recent-visits-page' ? 0 : stepIndex;
-  const displayTotalSteps =
-    activeTourId === 'home' && step.id === 'home-recent-visits-page'
-      ? 1
-      : tour.steps.length;
+  const isRecentVisitsStep =
+    activeTourId === 'home' && step.id.startsWith('home-recent-visits');
+  const displayStepIndex = isRecentVisitsStep
+    ? (step.id === 'home-recent-visits-stats' ? 0 : 1)
+    : stepIndex;
+  const displayTotalSteps = isRecentVisitsStep ? 2 : tour.steps.length;
 
   const overlay = (
     <div className="fixed inset-0 z-[9999]">

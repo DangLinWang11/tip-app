@@ -171,20 +171,23 @@ const FoodMap: React.FC = () => {
   const DemoState = () => (
             <div className="space-y-4" data-tour="recent-visits-content">
       {/* Stat Cards */}
-      <div className="grid grid-cols-2 gap-3">
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-3 text-center">
+      <div
+        className="grid grid-cols-4 gap-3"
+        data-tour="recent-visits-stats"
+      >
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-3 text-center flex flex-col items-center justify-center">
           <p className="text-2xl font-bold text-primary">8.2</p>
           <p className="text-xs text-gray-500 mt-1">Avg Rating</p>
         </div>
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-3 text-center">
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-3 text-center flex flex-col items-center justify-center">
           <p className="text-2xl font-bold text-primary">5</p>
           <p className="text-xs text-gray-500 mt-1">Restaurants</p>
         </div>
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-3 text-center">
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-3 text-center flex flex-col items-center justify-center">
           <p className="text-2xl font-bold text-primary">12</p>
           <p className="text-xs text-gray-500 mt-1">Dishes Tried</p>
         </div>
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-3 text-center">
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-3 text-center flex flex-col items-center justify-center">
           <p className="text-2xl font-bold text-primary">240</p>
           <p className="text-xs text-gray-500 mt-1">Points Earned</p>
         </div>
@@ -192,7 +195,7 @@ const FoodMap: React.FC = () => {
 
       {/* Demo Visit 1 — highlighted by tour */}
       <div
-        data-tour="recent-visits-content"
+        data-tour="recent-visits-first-card"
         className="bg-white rounded-xl shadow-sm border-2 border-gray-200 p-4"
       >
         <div className="flex items-start justify-between mb-3">

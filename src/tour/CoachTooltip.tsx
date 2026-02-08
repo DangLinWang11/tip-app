@@ -75,7 +75,7 @@ export const CoachTooltip: React.FC<CoachTooltipProps> = ({
               onClick={onNext}
               className="inline-flex items-center gap-1 rounded-full bg-primary px-3 py-1 text-xs font-semibold text-white hover:bg-red-600"
             >
-              {isLast ? 'Done' : 'Next'}
+              {isLast ? 'Done' : stepIndex === 1 ? 'NEXT' : 'Next'}
               <ChevronRight size={12} />
             </button>
             <button
