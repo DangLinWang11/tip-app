@@ -74,7 +74,9 @@ export const CoachMarkLayer: React.FC = () => {
           ? 16
           : step?.id === 'home-menu-item'
             ? 8
-          : 10;
+            : step?.id === 'home-profile-restaurant'
+              ? 14
+            : 10;
   const { refs, floatingStyles, middlewareData, update, placement: resolvedPlacement } = useFloating({
     placement,
     middleware: [
