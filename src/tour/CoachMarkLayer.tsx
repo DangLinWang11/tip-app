@@ -69,7 +69,7 @@ export const CoachMarkLayer: React.FC = () => {
     step?.id === 'home-recent-visits-card' || step?.id === 'home-profile-photo'
       ? 6
       : step?.id === 'home-stats-box'
-        ? 18
+        ? 19
         : 10;
   const { refs, floatingStyles, middlewareData, update, placement: resolvedPlacement } = useFloating({
     placement,
@@ -126,12 +126,10 @@ export const CoachMarkLayer: React.FC = () => {
       }
 
       scrollIntoViewIfNeeded(found);
-      window.setTimeout(() => {
-        if (cancelled) return;
-        setTargetEl(found);
-        setTargetRect(found.getBoundingClientRect());
-        refs.setReference(found);
-      }, step?.id === 'home-profile-photo' ? 140 : 180);
+      if (cancelled) return;
+      setTargetEl(found);
+      setTargetRect(found.getBoundingClientRect());
+      refs.setReference(found);
     };
 
     resolveTarget();
