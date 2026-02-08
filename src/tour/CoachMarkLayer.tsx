@@ -66,7 +66,11 @@ export const CoachMarkLayer: React.FC = () => {
   const placement = step?.placement ?? 'bottom';
 
   const offsetValue =
-    step?.id === 'home-recent-visits-card' || step?.id === 'home-profile-photo' ? 6 : 10;
+    step?.id === 'home-recent-visits-card' || step?.id === 'home-profile-photo'
+      ? 6
+      : step?.id === 'home-stats-box'
+        ? 12
+        : 10;
   const { refs, floatingStyles, middlewareData, update, placement: resolvedPlacement } = useFloating({
     placement,
     middleware: [
