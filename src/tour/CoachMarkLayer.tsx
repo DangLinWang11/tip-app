@@ -73,7 +73,7 @@ export const CoachMarkLayer: React.FC = () => {
       : step?.id === 'home-recent-visits-stats'
           ? 16
           : step?.id === 'home-menu-item'
-            ? 8
+            ? 6
             : step?.id === 'home-profile-restaurant'
               ? 14
             : 10;

@@ -53,7 +53,7 @@ export const tourSteps: Record<TourId, TourDefinition> = {
         id: 'home-menu-item',
         selector: '[data-tour="home-featured-menu-item-0"]',
         title: 'Menu Items',
-        body: 'Rate multiple dishes at once. Click to explore ratings and photos.',
+        body: 'Rate multiple dishes at once. Click here to explore ratings and photos.',
         placement: 'top',
         blockInteraction: true,
         spotlightPadding: 14,
