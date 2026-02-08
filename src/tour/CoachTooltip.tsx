@@ -14,6 +14,8 @@ interface CoachTooltipProps {
   onBack: () => void;
   onNext: () => void;
   onSkip: () => void;
+  arrowRef?: React.Ref<HTMLDivElement>;
+  arrowStyle?: React.CSSProperties;
 }
 
 const baseCard =
@@ -31,6 +33,8 @@ export const CoachTooltip: React.FC<CoachTooltipProps> = ({
   onBack,
   onNext,
   onSkip,
+  arrowRef,
+  arrowStyle,
 }) => {
   const shownStepIndex = displayStepIndex ?? stepIndex;
   const shownTotalSteps = displayTotalSteps ?? totalSteps;
@@ -46,6 +50,13 @@ export const CoachTooltip: React.FC<CoachTooltipProps> = ({
         role="dialog"
         aria-live="polite"
       >
+        {arrowRef && (
+          <div
+            ref={arrowRef}
+            className="absolute h-3 w-3 rotate-45 bg-white border border-white/70 shadow-none"
+            style={arrowStyle}
+          />
+        )}
         <div className="px-4 pt-4 pb-3">
           {title && (
             <div className="text-[13px] font-semibold text-slate-900 mb-1">

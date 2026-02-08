@@ -217,26 +217,21 @@ export const CoachMarkLayer: React.FC = () => {
           style={floatingStyles}
           className="pointer-events-auto"
         >
-          <div className="relative">
-            <CoachTooltip
-              title={step.title}
-              body={step.body}
-              stepIndex={stepIndex}
-              totalSteps={tour.steps.length}
-              displayStepIndex={displayStepIndex}
-              displayTotalSteps={displayTotalSteps}
-              canGoBack={stepIndex > 0}
-              isLast={stepIndex === tour.steps.length - 1}
-              onBack={handleBack}
-              onNext={handleNext}
-              onSkip={skip}
-            />
-            <div
-              ref={arrowRef}
-              className="absolute h-3 w-3 rotate-45 bg-white border border-white/70 shadow-none"
-              style={arrowStyle}
-            />
-          </div>
+          <CoachTooltip
+            title={step.title}
+            body={step.body}
+            stepIndex={stepIndex}
+            totalSteps={tour.steps.length}
+            displayStepIndex={displayStepIndex}
+            displayTotalSteps={displayTotalSteps}
+            canGoBack={stepIndex > 0}
+            isLast={stepIndex === tour.steps.length - 1}
+            onBack={handleBack}
+            onNext={handleNext}
+            onSkip={skip}
+            arrowRef={arrowRef}
+            arrowStyle={arrowStyle}
+          />
         </div>
       </div>
     </div>
