@@ -1046,17 +1046,46 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
         </div>
         {/* Restaurant line under header (legacy layout) */}
         {restaurant && (
-          <div className="px-4">
-            <div
-                className={`relative pl-[3.5rem] text-sm text-dark-gray flex items-center gap-0.5 ${isFeaturedExample ? '-mt-6' : 'mt-1'}`}
-            >
-              {isFeaturedExample && (
+          isFeaturedExample ? (
+            <div className="px-4">
+              <div className="relative pl-[3.5rem] text-sm text-dark-gray flex items-center gap-0.5 -mt-6">
                 <span
                   data-tour="home-featured-restaurant"
                   className="pointer-events-none absolute left-[15%] w-[40%] inset-y-0"
                   aria-hidden="true"
                 />
-              )}
+                <LocationPinIcon size={14} className="text-red-500" />
+                <span
+                  onClick={() => {
+                    if (restaurantId) {
+                      navigate(`/restaurant/${restaurantId}`);
+                    } else {
+                      console.warn('Restaurant ID missing for:', restaurant?.name, 'Review ID:', id);
+                    }
+                  }}
+                  className={`max-w-32 truncate ${restaurantId ? 'hover:text-primary cursor-pointer' : 'text-gray-500'} ${tapHighlightClass}`}
+                >
+                  {restaurant.name}
+                </span>
+                {review.serviceSpeed && (
+                  <span className="ml-1 text-xs flex-shrink-0">
+                    {review.serviceSpeed === 'fast' ? '?' : review.serviceSpeed === 'normal' ? '??' : '??'}
+                  </span>
+                )}
+                {restaurant.qualityScore !== undefined && qualityColor && (
+                  <div
+                    className="ml-1 w-8 h-5 flex items-center justify-center rounded-full flex-shrink-0"
+                    style={{ backgroundColor: qualityColor }}
+                  >
+                    <span className="text-[11px] font-medium text-white">
+                      {restaurant.qualityScore}%
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="mt-1 text-sm text-dark-gray flex items-center gap-0.5">
               <LocationPinIcon size={14} className="text-red-500" />
               <span
                 onClick={() => {
@@ -1072,7 +1101,7 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
               </span>
               {review.serviceSpeed && (
                 <span className="ml-1 text-xs flex-shrink-0">
-                  {review.serviceSpeed === 'fast' ? '⚡' : review.serviceSpeed === 'normal' ? '⏱️' : '🐌'}
+                  {review.serviceSpeed === 'fast' ? '?' : review.serviceSpeed === 'normal' ? '??' : '??'}
                 </span>
               )}
               {restaurant.qualityScore !== undefined && qualityColor && (
@@ -1086,7 +1115,7 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
                 </div>
               )}
             </div>
-          </div>
+          )
         )}
       </div>
 
@@ -1662,17 +1691,46 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
         </div>
         {/* Restaurant line under header (visit layout) */}
         {restaurant && (
-          <div className="px-4">
-            <div
-                className={`relative pl-[3.5rem] text-sm text-dark-gray flex items-center gap-0.5 ${isFeaturedExample ? '-mt-6' : 'mt-1'}`}
-            >
-              {isFeaturedExample && (
+          isFeaturedExample ? (
+            <div className="px-4">
+              <div className="relative pl-[3.5rem] text-sm text-dark-gray flex items-center gap-0.5 -mt-6">
                 <span
                   data-tour="home-featured-restaurant"
                   className="pointer-events-none absolute left-[15%] w-[40%] inset-y-0"
                   aria-hidden="true"
                 />
-              )}
+                <LocationPinIcon size={14} className="text-red-500" />
+                <span
+                  onClick={() => {
+                    if (restaurantId) {
+                      navigate(`/restaurant/${restaurantId}`);
+                    } else {
+                      console.warn('Restaurant ID missing for:', restaurant?.name, 'Review ID:', id);
+                    }
+                  }}
+                  className={`max-w-32 truncate ${restaurantId ? 'hover:text-primary cursor-pointer' : 'text-gray-500'} ${tapHighlightClass}`}
+                >
+                  {restaurant.name}
+                </span>
+                {review.serviceSpeed && (
+                  <span className="ml-1 text-xs flex-shrink-0">
+                    {review.serviceSpeed === 'fast' ? '?' : review.serviceSpeed === 'normal' ? '??' : '??'}
+                  </span>
+                )}
+                {restaurant.qualityScore !== undefined && qualityColor && (
+                  <div
+                    className="ml-1 w-8 h-5 flex items-center justify-center rounded-full flex-shrink-0"
+                    style={{ backgroundColor: qualityColor }}
+                  >
+                    <span className="text-[11px] font-medium text-white">
+                      {restaurant.qualityScore}%
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="mt-1 text-sm text-dark-gray flex items-center gap-0.5">
               <LocationPinIcon size={14} className="text-red-500" />
               <span
                 onClick={() => {
@@ -1688,7 +1746,7 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
               </span>
               {review.serviceSpeed && (
                 <span className="ml-1 text-xs flex-shrink-0">
-                  {review.serviceSpeed === 'fast' ? '⚡' : review.serviceSpeed === 'normal' ? '⏱️' : '🐌'}
+                  {review.serviceSpeed === 'fast' ? '?' : review.serviceSpeed === 'normal' ? '??' : '??'}
                 </span>
               )}
               {restaurant.qualityScore !== undefined && qualityColor && (
@@ -1702,7 +1760,7 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
                 </div>
               )}
             </div>
-          </div>
+          )
         )}
       </div>
 
