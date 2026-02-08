@@ -13,6 +13,7 @@ import { useFollowStore } from '../stores/followStore';
 import { getTierFromPoints } from '../badges/badgeTiers';
 import FloatingUserStatsBox from '../components/FloatingUserStatsBox';
 import { useAutoStartTour } from '../tour/TourProvider';
+import { getHomeFeaturedHidden } from '../tour/tourStorage';
 
 const Home: React.FC = () => {
   const mountStart = performance.now?.() ?? Date.now();
@@ -588,6 +589,11 @@ const Home: React.FC = () => {
     };
   }, [currentUser, userReviews, userProfile?.stats]);
   const isNewUser = userReviews.length === 0;
+  const [hideFeaturedExample, setHideFeaturedExample] = useState(false);
+
+  useEffect(() => {
+    setHideFeaturedExample(getHomeFeaturedHidden());
+  }, []);
 
   // STABILITY: Memoize user recent reviews to prevent slice recalculation
   const userRecentReviews = useMemo(() => {
@@ -787,6 +793,7 @@ const Home: React.FC = () => {
     userReviews.length > 0;
   const baseFeedPosts = renderedFeedPosts.length > 0 ? renderedFeedPosts : feedPosts;
   const featuredExamplePost = useMemo(() => {
+    if (hideFeaturedExample) return null;
     if (!isNewUser || baseFeedPosts.length === 0) return null;
     const matchesSpicyFoodieJackDusty = (post: any) => {
       const restaurantName = String(post?.restaurant?.name || '').trim().toLowerCase();
@@ -797,7 +804,7 @@ const Home: React.FC = () => {
       return true;
     };
     return baseFeedPosts.find(matchesSpicyFoodieJackDusty) || null;
-  }, [isNewUser, baseFeedPosts]);
+  }, [hideFeaturedExample, isNewUser, baseFeedPosts]);
   const displayFeedPosts = useMemo(() => {
     if (!featuredExamplePost) return baseFeedPosts;
     const featured = {

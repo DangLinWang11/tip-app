@@ -45,3 +45,23 @@ export const setCompleted = (tourId: TourId): void => {
     // ignore storage failures
   }
 };
+
+const HOME_FEATURED_HIDE_KEY = 'tip.tour.home.featured.hidden';
+
+export const setHomeFeaturedHidden = (): void => {
+  if (!canUseStorage()) return;
+  try {
+    window.localStorage.setItem(HOME_FEATURED_HIDE_KEY, '1');
+  } catch {
+    // ignore storage failures
+  }
+};
+
+export const getHomeFeaturedHidden = (): boolean => {
+  if (!canUseStorage()) return false;
+  try {
+    return window.localStorage.getItem(HOME_FEATURED_HIDE_KEY) === '1';
+  } catch {
+    return false;
+  }
+};

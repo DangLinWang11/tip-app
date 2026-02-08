@@ -1,6 +1,6 @@
 import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
 import { CoachMarkLayer } from './CoachMarkLayer';
-import { getCompleted, setCompleted } from './tourStorage';
+import { getCompleted, setCompleted, setHomeFeaturedHidden } from './tourStorage';
 import { tourSteps } from './tourSteps';
 import type { TourId } from './types';
 
@@ -50,7 +50,12 @@ export const TourProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [activeTourId]);
 
   const complete = useCallback(() => {
-    if (activeTourId) setCompleted(activeTourId);
+    if (activeTourId) {
+      setCompleted(activeTourId);
+      if (activeTourId === 'home') {
+        setHomeFeaturedHidden();
+      }
+    }
     setIsOpen(false);
     setActiveTourId(null);
     setStepIndex(0);
