@@ -17,7 +17,7 @@ export const tourSteps: Record<TourId, TourDefinition> = {
         id: 'home-stats-box',
         selector: '[data-tour="home-stats-box"]',
         title: 'Your Snapshot',
-        body: 'Quick view of your profile stats. Click next to see all your reviews, and to add your personal notes.',
+        body: 'QUICK VIEW OF YOUR PROFILE STATS. CLICK NEXT TO SEE ALL YOUR REVIEWS, AND TO ADD YOUR PERSONAL NOTES.',
         placement: 'top',
         blockInteraction: false,
         spotlightPadding: 10,

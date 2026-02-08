@@ -65,10 +65,12 @@ export const CoachMarkLayer: React.FC = () => {
 
   const placement = step?.placement ?? 'bottom';
 
+  const offsetValue =
+    step?.id === 'home-recent-visits-card' || step?.id === 'home-profile-photo' ? 6 : 10;
   const { refs, floatingStyles, middlewareData, update, placement: resolvedPlacement } = useFloating({
     placement,
     middleware: [
-      offset(10),
+      offset(offsetValue),
       flip({ padding: 12 }),
       shift({ padding: 12 }),
       arrow({ element: arrowRef, padding: 8 }),
@@ -125,7 +127,7 @@ export const CoachMarkLayer: React.FC = () => {
         setTargetEl(found);
         setTargetRect(found.getBoundingClientRect());
         refs.setReference(found);
-      }, 220);
+      }, step?.id === 'home-profile-photo' ? 140 : 180);
     };
 
     resolveTarget();
@@ -181,7 +183,7 @@ export const CoachMarkLayer: React.FC = () => {
       navigate('/');
       window.setTimeout(() => {
         next();
-      }, 200);
+      }, 80);
       return;
     }
     if (stepIndex === tour.steps.length - 1) {
