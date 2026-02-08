@@ -44,7 +44,7 @@ export const tourSteps: Record<TourId, TourDefinition> = {
         id: 'home-profile-photo',
         selector: '[data-tour="home-featured-profile"]',
         title: 'Profiles',
-        body: 'Tap a profile to see their reviews.',
+        body: "Tap a profile to see that user's reviews and Food Map.",
         placement: 'bottom',
         blockInteraction: true,
         spotlightPadding: 8,
