@@ -59,7 +59,7 @@ export const CoachTooltip: React.FC<CoachTooltipProps> = ({
           <div className="text-[11px] text-slate-400">
             {shownStepIndex + 1} / {shownTotalSteps}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 ml-1">
             {canGoBack && (
               <button
                 type="button"

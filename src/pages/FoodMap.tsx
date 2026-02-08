@@ -180,7 +180,7 @@ const FoodMap: React.FC = () => {
           <p className="text-xs text-gray-500 mt-1">Avg Rating</p>
         </div>
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-3 text-center flex flex-col items-center justify-center">
-          <p className="text-2xl font-bold text-primary">5</p>
+          <p className="text-2xl font-bold text-primary relative -top-0.5">5</p>
           <p className="text-xs text-gray-500 mt-1">Restaurants</p>
         </div>
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-3 text-center flex flex-col items-center justify-center">

@@ -1045,7 +1045,10 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
       </div>
           {/* Restaurant line under header (legacy layout) */}
           {restaurant && (
-            <div className="mt-1 text-sm text-dark-gray flex items-center gap-0.5">
+            <div
+              className="mt-1 text-sm text-dark-gray flex items-center gap-0.5"
+              data-tour={isFeaturedExample ? 'home-featured-restaurant' : undefined}
+            >
               <LocationPinIcon size={14} className="text-red-500" />
               <span
                 onClick={() => {
@@ -1068,7 +1071,6 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
                 <div
                   className="ml-1 w-8 h-5 flex items-center justify-center rounded-full flex-shrink-0"
                   style={{ backgroundColor: qualityColor }}
-                  data-tour={isFeaturedExample ? 'home-featured-restaurant' : undefined}
                 >
                   <span className="text-[11px] font-medium text-white">
                     {restaurant.qualityScore}%
@@ -1649,7 +1651,10 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
       </div>
           {/* Restaurant line under header (visit layout) */}
           {restaurant && (
-            <div className="mt-1 text-sm text-dark-gray flex items-center gap-0.5">
+            <div
+              className="mt-1 text-sm text-dark-gray flex items-center gap-0.5"
+              data-tour={isFeaturedExample ? 'home-featured-restaurant' : undefined}
+            >
               <LocationPinIcon size={14} className="text-red-500" />
               <span
                 onClick={() => {
@@ -1672,7 +1677,6 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
                 <div
                   className="ml-1 w-8 h-5 flex items-center justify-center rounded-full flex-shrink-0"
                   style={{ backgroundColor: qualityColor }}
-                  data-tour={isFeaturedExample ? 'home-featured-restaurant' : undefined}
                 >
                   <span className="text-[11px] font-medium text-white">
                     {restaurant.qualityScore}%

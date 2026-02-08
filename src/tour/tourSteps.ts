@@ -35,7 +35,7 @@ export const tourSteps: Record<TourId, TourDefinition> = {
         id: 'home-recent-visits-card',
         selector: '[data-tour="recent-visits-first-card"]',
         title: 'Recent Visits',
-        body: 'Each visit shows the dish, rating, and your personal note.',
+        body: 'Each review you make for a dish will be here. Add a personal note for your next visit!',
         placement: 'bottom',
         blockInteraction: true,
         spotlightPadding: 8,
