@@ -2529,8 +2529,6 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
             </button>
           </div>
         </div>
-      </div>
-
       {/* Modals (reuse from other layouts) */}
       {isActionSheetOpen && (
         <div
