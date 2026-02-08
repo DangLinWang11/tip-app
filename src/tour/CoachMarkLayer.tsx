@@ -67,7 +67,7 @@ export const CoachMarkLayer: React.FC = () => {
 
   const offsetValue =
     step?.id === 'home-recent-visits-card' || step?.id === 'home-profile-photo'
-      ? 6
+      ? 12
       : step?.id === 'home-stats-box'
         ? 19
         : step?.id === 'home-recent-visits-stats'
