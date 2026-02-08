@@ -978,115 +978,117 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
         <RatingBadge rating={heroRating} size="xl" />
       </div>
 
-      {/* Header */}
-      <div className="p-4 flex items-center gap-4">
-        <div
-          className="flex items-center gap-4"
-          data-tour={isFeaturedExample ? 'home-featured-profile' : undefined}
-        >
+      {/* Header + Restaurant (featured combined highlight) */}
+      <div data-tour={isFeaturedExample ? 'home-featured-profile-restaurant' : undefined}>
+        <div className="p-4 flex items-center gap-4">
           <div
-            className="relative cursor-pointer"
-            onClick={handleUsernameClick}
-            role="button"
-            tabIndex={0}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                handleUsernameClick();
-              }
-            }}
-            aria-label={`View ${displayAuthorName}'s profile`}
+            className="flex items-center gap-4"
+            data-tour={isFeaturedExample ? 'home-featured-profile' : undefined}
           >
-            <img
-              src={author.image}
-              alt={displayAuthorName}
-              loading="lazy"
-              decoding="async"
-              className="w-10 h-10 rounded-full object-cover"
-            />
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-1.5">
-              {/* NEW: Username area with follow button */}
-              <div className="relative flex items-center">
-                <span
-                  onClick={handleUsernameClick}
-                  className="font-medium cursor-pointer hover:text-primary max-w-[150px] truncate inline-block align-middle"
-                >
-                  {displayAuthorName}
-                </span>
-                <AvatarBadge tierIndex={authorTier.tierIndex} size="inline" className="ml-1.5" />
-                {/* Follow button: + icon when not following, green check when following */}
-                {!isOwnPost && (
-                  <button
-                    onClick={handleFollowToggle}
-                    disabled={followLoading}
-                    aria-label={isFollowingUser ? 'Following' : 'Follow'}
-                    className={`ml-2 -mt-0.5 flex items-center justify-center transition-all duration-200 flex-shrink-0 w-6 h-6 rounded-full border ${
-                      isFollowingUser
-                        ? (showFollowConfirmation ? 'border-green-500 text-green-600 bg-green-50' : 'border-transparent bg-transparent text-transparent')
-                        : 'border-gray-300 text-gray-600 bg-white hover:border-gray-400 hover:text-gray-700'
-                    } ${followLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+            <div
+              className="relative cursor-pointer"
+              onClick={handleUsernameClick}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  handleUsernameClick();
+                }
+              }}
+              aria-label={`View ${displayAuthorName}'s profile`}
+            >
+              <img
+                src={author.image}
+                alt={displayAuthorName}
+                loading="lazy"
+                decoding="async"
+                className="w-10 h-10 rounded-full object-cover"
+              />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-1.5">
+                {/* NEW: Username area with follow button */}
+                <div className="relative flex items-center">
+                  <span
+                    onClick={handleUsernameClick}
+                    className="font-medium cursor-pointer hover:text-primary max-w-[150px] truncate inline-block align-middle"
                   >
-                    {isFollowingUser ? (showFollowConfirmation ? <Check size={14} /> : null) : <Plus size={14} />}
-                  </button>
+                    {displayAuthorName}
+                  </span>
+                  <AvatarBadge tierIndex={authorTier.tierIndex} size="inline" className="ml-1.5" />
+                  {/* Follow button: + icon when not following, green check when following */}
+                  {!isOwnPost && (
+                    <button
+                      onClick={handleFollowToggle}
+                      disabled={followLoading}
+                      aria-label={isFollowingUser ? 'Following' : 'Follow'}
+                      className={`ml-2 -mt-0.5 flex items-center justify-center transition-all duration-200 flex-shrink-0 w-6 h-6 rounded-full border ${
+                        isFollowingUser
+                          ? (showFollowConfirmation ? 'border-green-500 text-green-600 bg-green-50' : 'border-transparent bg-transparent text-transparent')
+                          : 'border-gray-300 text-gray-600 bg-white hover:border-gray-400 hover:text-gray-700'
+                      } ${followLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                    >
+                      {isFollowingUser ? (showFollowConfirmation ? <Check size={14} /> : null) : <Plus size={14} />}
+                    </button>
+                  )}
+                </div>
+                {/* NEW: Checkmark that changes color based on follow status */}
+                {author.isVerified && (
+                  <CheckCircleIcon
+                    size={16}
+                    className={isFollowingUser ? 'text-green-500' : 'text-gray-400'}
+                  />
                 )}
               </div>
-              {/* NEW: Checkmark that changes color based on follow status */}
-              {author.isVerified && (
-                <CheckCircleIcon
-                  size={16}
-                  className={isFollowingUser ? 'text-green-500' : 'text-gray-400'}
-                />
-              )}
             </div>
           </div>
         </div>
-      </div>
-          {/* Restaurant line under header (legacy layout) */}
-          {restaurant && (
-            <div className="px-4">
-              <div
-                className={`relative pl-[3.5rem] text-sm text-dark-gray flex items-center gap-0.5 ${isFeaturedExample ? '-mt-6' : 'mt-1'}`}
-              >
-                {isFeaturedExample && (
-                  <span
-                    data-tour="home-featured-restaurant"
-                    className="pointer-events-none absolute left-[15%] w-[40%] inset-y-0"
-                    aria-hidden="true"
-                  />
-                )}
-                <LocationPinIcon size={14} className="text-red-500" />
+        {/* Restaurant line under header (legacy layout) */}
+        {restaurant && (
+          <div className="px-4">
+            <div
+              className={`relative pl-[3.5rem] text-sm text-dark-gray flex items-center gap-0.5 ${isFeaturedExample ? '-mt-6' : 'mt-1'}`}
+            >
+              {isFeaturedExample && (
                 <span
-                  onClick={() => {
-                    if (restaurantId) {
-                      navigate(`/restaurant/${restaurantId}`);
-                    } else {
-                      console.warn('Restaurant ID missing for:', restaurant?.name, 'Review ID:', id);
-                    }
-                  }}
-                  className={`max-w-32 truncate ${restaurantId ? 'hover:text-primary cursor-pointer' : 'text-gray-500'} ${tapHighlightClass}`}
-                >
-                  {restaurant.name}
+                  data-tour="home-featured-restaurant"
+                  className="pointer-events-none absolute left-[15%] w-[40%] inset-y-0"
+                  aria-hidden="true"
+                />
+              )}
+              <LocationPinIcon size={14} className="text-red-500" />
+              <span
+                onClick={() => {
+                  if (restaurantId) {
+                    navigate(`/restaurant/${restaurantId}`);
+                  } else {
+                    console.warn('Restaurant ID missing for:', restaurant?.name, 'Review ID:', id);
+                  }
+                }}
+                className={`max-w-32 truncate ${restaurantId ? 'hover:text-primary cursor-pointer' : 'text-gray-500'} ${tapHighlightClass}`}
+              >
+                {restaurant.name}
+              </span>
+              {review.serviceSpeed && (
+                <span className="ml-1 text-xs flex-shrink-0">
+                  {review.serviceSpeed === 'fast' ? '⚡' : review.serviceSpeed === 'normal' ? '⏱️' : '🐌'}
                 </span>
-                {review.serviceSpeed && (
-                  <span className="ml-1 text-xs flex-shrink-0">
-                    {review.serviceSpeed === 'fast' ? '⚡' : review.serviceSpeed === 'normal' ? '⏱️' : '🐌'}
+              )}
+              {restaurant.qualityScore !== undefined && qualityColor && (
+                <div
+                  className="ml-1 w-8 h-5 flex items-center justify-center rounded-full flex-shrink-0"
+                  style={{ backgroundColor: qualityColor }}
+                >
+                  <span className="text-[11px] font-medium text-white">
+                    {restaurant.qualityScore}%
                   </span>
-                )}
-                {restaurant.qualityScore !== undefined && qualityColor && (
-                  <div
-                    className="ml-1 w-8 h-5 flex items-center justify-center rounded-full flex-shrink-0"
-                    style={{ backgroundColor: qualityColor }}
-                  >
-                    <span className="text-[11px] font-medium text-white">
-                      {restaurant.qualityScore}%
-                    </span>
-                  </div>
-                )}
-              </div>
+                </div>
+              )}
             </div>
-          )}
+          </div>
+        )}
+      </div>
 
       {showTapHint && (
         <p className="px-4 pb-1 text-xs text-gray-500">
@@ -1598,109 +1600,111 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
         <RatingBadge rating={heroRating} size="xl" />
       </div>
 
-      {/* Header */}
-      <div className="p-4 flex items-center gap-4">
-        <div
-          className="flex items-center gap-4"
-          data-tour={isFeaturedExample ? 'home-featured-profile' : undefined}
-        >
+      {/* Header + Restaurant (featured combined highlight) */}
+      <div data-tour={isFeaturedExample ? 'home-featured-profile-restaurant' : undefined}>
+        <div className="p-4 flex items-center gap-4">
           <div
-            className="relative cursor-pointer"
-            onClick={handleUsernameClick}
-            role="button"
-            tabIndex={0}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                handleUsernameClick();
-              }
-            }}
-            aria-label={`View ${displayAuthorName}'s profile`}
+            className="flex items-center gap-4"
+            data-tour={isFeaturedExample ? 'home-featured-profile' : undefined}
           >
-            <img src={author.image} alt={displayAuthorName} loading="lazy" decoding="async" className="w-10 h-10 rounded-full object-cover" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-1.5">
-              {/* NEW: Username area with follow button */}
-              <div className="relative flex items-center">
-                <span
-                  onClick={handleUsernameClick}
-                  className="font-medium cursor-pointer hover:text-primary max-w-[150px] truncate inline-block align-middle"
-                >
-                  {displayAuthorName}
-                </span>
-                <AvatarBadge tierIndex={authorTier.tierIndex} size="inline" className="ml-1.5" />
-                {/* Follow button: + icon when not following, green check when following */}
-                {!isOwnPost && (
-                  <button
-                    onClick={handleFollowToggle}
-                    disabled={followLoading}
-                    aria-label={isFollowingUser ? 'Following' : 'Follow'}
-                    className={`ml-2 -mt-0.5 flex items-center justify-center transition-all duration-200 flex-shrink-0 w-6 h-6 rounded-full border ${
-                      isFollowingUser
-                        ? (showFollowConfirmation ? 'border-green-500 text-green-600 bg-green-50' : 'border-transparent bg-transparent text-transparent')
-                        : 'border-gray-300 text-gray-600 bg-white hover:border-gray-400 hover:text-gray-700'
-                    } ${followLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+            <div
+              className="relative cursor-pointer"
+              onClick={handleUsernameClick}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  handleUsernameClick();
+                }
+              }}
+              aria-label={`View ${displayAuthorName}'s profile`}
+            >
+              <img src={author.image} alt={displayAuthorName} loading="lazy" decoding="async" className="w-10 h-10 rounded-full object-cover" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-1.5">
+                {/* NEW: Username area with follow button */}
+                <div className="relative flex items-center">
+                  <span
+                    onClick={handleUsernameClick}
+                    className="font-medium cursor-pointer hover:text-primary max-w-[150px] truncate inline-block align-middle"
                   >
-                    {isFollowingUser ? (showFollowConfirmation ? <Check size={14} /> : null) : <Plus size={14} />}
-                  </button>
+                    {displayAuthorName}
+                  </span>
+                  <AvatarBadge tierIndex={authorTier.tierIndex} size="inline" className="ml-1.5" />
+                  {/* Follow button: + icon when not following, green check when following */}
+                  {!isOwnPost && (
+                    <button
+                      onClick={handleFollowToggle}
+                      disabled={followLoading}
+                      aria-label={isFollowingUser ? 'Following' : 'Follow'}
+                      className={`ml-2 -mt-0.5 flex items-center justify-center transition-all duration-200 flex-shrink-0 w-6 h-6 rounded-full border ${
+                        isFollowingUser
+                          ? (showFollowConfirmation ? 'border-green-500 text-green-600 bg-green-50' : 'border-transparent bg-transparent text-transparent')
+                          : 'border-gray-300 text-gray-600 bg-white hover:border-gray-400 hover:text-gray-700'
+                      } ${followLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                    >
+                      {isFollowingUser ? (showFollowConfirmation ? <Check size={14} /> : null) : <Plus size={14} />}
+                    </button>
+                  )}
+                </div>
+                {/* NEW: Checkmark that changes color based on follow status */}
+                {author.isVerified && (
+                  <CheckCircleIcon
+                    size={16}
+                    className={isFollowingUser ? 'text-green-500' : 'text-gray-400'}
+                  />
                 )}
               </div>
-              {/* NEW: Checkmark that changes color based on follow status */}
-              {author.isVerified && (
-                <CheckCircleIcon
-                  size={16}
-                  className={isFollowingUser ? 'text-green-500' : 'text-gray-400'}
-                />
-              )}
             </div>
           </div>
         </div>
-      </div>
-          {/* Restaurant line under header (visit layout) */}
-          {restaurant && (
-            <div className="px-4">
-              <div
-                className={`relative pl-[3.5rem] text-sm text-dark-gray flex items-center gap-0.5 ${isFeaturedExample ? '-mt-6' : 'mt-1'}`}
-              >
-                {isFeaturedExample && (
-                  <span
-                    data-tour="home-featured-restaurant"
-                    className="pointer-events-none absolute left-[15%] w-[40%] inset-y-0"
-                    aria-hidden="true"
-                  />
-                )}
-                <LocationPinIcon size={14} className="text-red-500" />
+        {/* Restaurant line under header (visit layout) */}
+        {restaurant && (
+          <div className="px-4">
+            <div
+              className={`relative pl-[3.5rem] text-sm text-dark-gray flex items-center gap-0.5 ${isFeaturedExample ? '-mt-6' : 'mt-1'}`}
+            >
+              {isFeaturedExample && (
                 <span
-                  onClick={() => {
-                    if (restaurantId) {
-                      navigate(`/restaurant/${restaurantId}`);
-                    } else {
-                      console.warn('Restaurant ID missing for:', restaurant?.name, 'Review ID:', id);
-                    }
-                  }}
-                  className={`max-w-32 truncate ${restaurantId ? 'hover:text-primary cursor-pointer' : 'text-gray-500'} ${tapHighlightClass}`}
-                >
-                  {restaurant.name}
+                  data-tour="home-featured-restaurant"
+                  className="pointer-events-none absolute left-[15%] w-[40%] inset-y-0"
+                  aria-hidden="true"
+                />
+              )}
+              <LocationPinIcon size={14} className="text-red-500" />
+              <span
+                onClick={() => {
+                  if (restaurantId) {
+                    navigate(`/restaurant/${restaurantId}`);
+                  } else {
+                    console.warn('Restaurant ID missing for:', restaurant?.name, 'Review ID:', id);
+                  }
+                }}
+                className={`max-w-32 truncate ${restaurantId ? 'hover:text-primary cursor-pointer' : 'text-gray-500'} ${tapHighlightClass}`}
+              >
+                {restaurant.name}
+              </span>
+              {review.serviceSpeed && (
+                <span className="ml-1 text-xs flex-shrink-0">
+                  {review.serviceSpeed === 'fast' ? '⚡' : review.serviceSpeed === 'normal' ? '⏱️' : '🐌'}
                 </span>
-                {review.serviceSpeed && (
-                  <span className="ml-1 text-xs flex-shrink-0">
-                    {review.serviceSpeed === 'fast' ? '⚡' : review.serviceSpeed === 'normal' ? '⏱️' : '🐌'}
+              )}
+              {restaurant.qualityScore !== undefined && qualityColor && (
+                <div
+                  className="ml-1 w-8 h-5 flex items-center justify-center rounded-full flex-shrink-0"
+                  style={{ backgroundColor: qualityColor }}
+                >
+                  <span className="text-[11px] font-medium text-white">
+                    {restaurant.qualityScore}%
                   </span>
-                )}
-                {restaurant.qualityScore !== undefined && qualityColor && (
-                  <div
-                    className="ml-1 w-8 h-5 flex items-center justify-center rounded-full flex-shrink-0"
-                    style={{ backgroundColor: qualityColor }}
-                  >
-                    <span className="text-[11px] font-medium text-white">
-                      {restaurant.qualityScore}%
-                    </span>
-                  </div>
-                )}
-              </div>
+                </div>
+              )}
             </div>
-          )}
+          </div>
+        )}
+      </div>
 
       {showTapHint && (
         <p className="px-4 pb-1 text-xs text-gray-500">
