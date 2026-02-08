@@ -1047,9 +1047,15 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
           {restaurant && (
             <div className="px-4">
               <div
-                className={`pl-[3.5rem] text-sm text-dark-gray flex items-center gap-0.5 ${isFeaturedExample ? '-mt-4' : 'mt-1'}`}
-                data-tour={isFeaturedExample ? 'home-featured-restaurant' : undefined}
+                className={`relative pl-[3.5rem] text-sm text-dark-gray flex items-center gap-0.5 ${isFeaturedExample ? '-mt-4' : 'mt-1'}`}
               >
+                {isFeaturedExample && (
+                  <span
+                    data-tour="home-featured-restaurant"
+                    className="pointer-events-none absolute left-[15%] w-[40%] inset-y-0"
+                    aria-hidden="true"
+                  />
+                )}
                 <LocationPinIcon size={14} className="text-red-500" />
                 <span
                   onClick={() => {
@@ -1655,9 +1661,15 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
           {restaurant && (
             <div className="px-4">
               <div
-                className={`pl-[3.5rem] text-sm text-dark-gray flex items-center gap-0.5 ${isFeaturedExample ? '-mt-4' : 'mt-1'}`}
-                data-tour={isFeaturedExample ? 'home-featured-restaurant' : undefined}
+                className={`relative pl-[3.5rem] text-sm text-dark-gray flex items-center gap-0.5 ${isFeaturedExample ? '-mt-4' : 'mt-1'}`}
               >
+                {isFeaturedExample && (
+                  <span
+                    data-tour="home-featured-restaurant"
+                    className="pointer-events-none absolute left-[15%] w-[40%] inset-y-0"
+                    aria-hidden="true"
+                  />
+                )}
                 <LocationPinIcon size={14} className="text-red-500" />
                 <span
                   onClick={() => {
