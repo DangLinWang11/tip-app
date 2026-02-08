@@ -11,7 +11,7 @@ export const tourSteps: Record<TourId, TourDefinition> = {
         body: 'Quick tour of your home feed. Skip anytime.',
         placement: 'bottom',
         blockInteraction: true,
-        spotlightPadding: 2,
+        spotlightPadding: 1,
       },
       {
         id: 'home-stats-box',
@@ -29,7 +29,7 @@ export const tourSteps: Record<TourId, TourDefinition> = {
         body: 'Rate dishes, track restaurants, and add personal notes to remember what you loved.',
         placement: 'bottom',
         blockInteraction: true,
-        spotlightPadding: 8,
+        spotlightPadding: 4,
       },
       {
         id: 'home-profile-photo',
@@ -47,7 +47,7 @@ export const tourSteps: Record<TourId, TourDefinition> = {
         body: 'Restaurant names open the full page. The % badge is the quality score.',
         placement: 'bottom',
         blockInteraction: true,
-        spotlightPadding: 6,
+        spotlightPadding: 4,
       },
       {
         id: 'home-menu-item',

@@ -6,6 +6,7 @@ import { getUserProfile, getCurrentUser, getUserByUsername } from '../lib/fireba
 import LocationPinIcon from '../components/icons/LocationPinIcon';
 import DishIcon from '../components/icons/DishIcon';
 import { useTour } from '../tour/TourProvider';
+import { tourSteps } from '../tour/tourSteps';
 
 const FoodMap: React.FC = () => {
   const navigate = useNavigate();
@@ -85,7 +86,11 @@ const FoodMap: React.FC = () => {
   useEffect(() => {
     if (!isOpen || activeTourId !== 'home') return;
     if (location.pathname !== '/list-view') return;
-    // Tour advances here only when we navigate from the home snapshot step.
+
+    const currentStepId = tourSteps.home.steps[stepIndex]?.id;
+    if (currentStepId === 'home-stats-box') {
+      next();
+    }
   }, [activeTourId, stepIndex, isOpen, next, location.pathname]);
   
   // Stats calculation from actual user data
@@ -164,7 +169,7 @@ const FoodMap: React.FC = () => {
 
   // Demo state for new users — shows stat cards and example visits
   const DemoState = () => (
-    <div className="space-y-4">
+            <div className="space-y-4" data-tour="recent-visits-content">
       {/* Stat Cards */}
       <div className="grid grid-cols-2 gap-3">
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-3 text-center">

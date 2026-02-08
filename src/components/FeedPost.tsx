@@ -986,59 +986,60 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
         >
           <div
             className="relative cursor-pointer"
-          onClick={handleUsernameClick}
-          role="button"
-          tabIndex={0}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault();
-              handleUsernameClick();
-            }
-          }}
-          aria-label={`View ${displayAuthorName}'s profile`}
-        >
-          <img
-            src={author.image}
-            alt={displayAuthorName}
-            loading="lazy"
-            decoding="async"
-            className="w-10 h-10 rounded-full object-cover"
-          />
-        </div>
+            onClick={handleUsernameClick}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                handleUsernameClick();
+              }
+            }}
+            aria-label={`View ${displayAuthorName}'s profile`}
+          >
+            <img
+              src={author.image}
+              alt={displayAuthorName}
+              loading="lazy"
+              decoding="async"
+              className="w-10 h-10 rounded-full object-cover"
+            />
+          </div>
           <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5">
-            {/* NEW: Username area with follow button */}
-            <div className="relative flex items-center">
-              <span
-                onClick={handleUsernameClick}
-                className="font-medium cursor-pointer hover:text-primary max-w-[150px] truncate inline-block align-middle"
-              >
-                {displayAuthorName}
-              </span>
-              <AvatarBadge tierIndex={authorTier.tierIndex} size="inline" className="ml-1.5" />
-              {/* Follow button: + icon when not following, green check when following */}
-              {!isOwnPost && (
-                <button
-                  onClick={handleFollowToggle}
-                  disabled={followLoading}
-                  aria-label={isFollowingUser ? 'Following' : 'Follow'}
-                    className={`ml-2 -mt-0.5 flex items-center justify-center transition-all duration-200 flex-shrink-0 w-6 h-6 rounded-full border ${
-                    isFollowingUser
-                      ? (showFollowConfirmation ? 'border-green-500 text-green-600 bg-green-50' : 'border-transparent bg-transparent text-transparent')
-                      : 'border-gray-300 text-gray-600 bg-white hover:border-gray-400 hover:text-gray-700'
-                  } ${followLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+            <div className="flex items-center gap-1.5">
+              {/* NEW: Username area with follow button */}
+              <div className="relative flex items-center">
+                <span
+                  onClick={handleUsernameClick}
+                  className="font-medium cursor-pointer hover:text-primary max-w-[150px] truncate inline-block align-middle"
                 >
-                  {isFollowingUser ? (showFollowConfirmation ? <Check size={14} /> : null) : <Plus size={14} />}
-                </button>
+                  {displayAuthorName}
+                </span>
+                <AvatarBadge tierIndex={authorTier.tierIndex} size="inline" className="ml-1.5" />
+                {/* Follow button: + icon when not following, green check when following */}
+                {!isOwnPost && (
+                  <button
+                    onClick={handleFollowToggle}
+                    disabled={followLoading}
+                    aria-label={isFollowingUser ? 'Following' : 'Follow'}
+                    className={`ml-2 -mt-0.5 flex items-center justify-center transition-all duration-200 flex-shrink-0 w-6 h-6 rounded-full border ${
+                      isFollowingUser
+                        ? (showFollowConfirmation ? 'border-green-500 text-green-600 bg-green-50' : 'border-transparent bg-transparent text-transparent')
+                        : 'border-gray-300 text-gray-600 bg-white hover:border-gray-400 hover:text-gray-700'
+                    } ${followLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                  >
+                    {isFollowingUser ? (showFollowConfirmation ? <Check size={14} /> : null) : <Plus size={14} />}
+                  </button>
+                )}
+              </div>
+              {/* NEW: Checkmark that changes color based on follow status */}
+              {author.isVerified && (
+                <CheckCircleIcon
+                  size={16}
+                  className={isFollowingUser ? 'text-green-500' : 'text-gray-400'}
+                />
               )}
             </div>
-            {/* NEW: Checkmark that changes color based on follow status */}
-            {author.isVerified && (
-              <CheckCircleIcon
-                size={16}
-                className={isFollowingUser ? 'text-green-500' : 'text-gray-400'}
-              />
-            )}
           </div>
         </div>
       </div>
@@ -1076,9 +1077,6 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
               )}
             </div>
           )}
-          </div>
-        </div>
-      </div>
 
       {showTapHint && (
         <p className="px-4 pb-1 text-xs text-gray-500">
@@ -1598,53 +1596,54 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
         >
           <div
             className="relative cursor-pointer"
-          onClick={handleUsernameClick}
-          role="button"
-          tabIndex={0}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault();
-              handleUsernameClick();
-            }
-          }}
-          aria-label={`View ${displayAuthorName}'s profile`}
-        >
-          <img src={author.image} alt={displayAuthorName} loading="lazy" decoding="async" className="w-10 h-10 rounded-full object-cover" />
-        </div>
+            onClick={handleUsernameClick}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                handleUsernameClick();
+              }
+            }}
+            aria-label={`View ${displayAuthorName}'s profile`}
+          >
+            <img src={author.image} alt={displayAuthorName} loading="lazy" decoding="async" className="w-10 h-10 rounded-full object-cover" />
+          </div>
           <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5">
-            {/* NEW: Username area with follow button */}
-            <div className="relative flex items-center">
-              <span
-                onClick={handleUsernameClick}
-                className="font-medium cursor-pointer hover:text-primary max-w-[150px] truncate inline-block align-middle"
-              >
-                {displayAuthorName}
-              </span>
-              <AvatarBadge tierIndex={authorTier.tierIndex} size="inline" className="ml-1.5" />
-              {/* Follow button: + icon when not following, green check when following */}
-              {!isOwnPost && (
-                <button
-                  onClick={handleFollowToggle}
-                  disabled={followLoading}
-                  aria-label={isFollowingUser ? 'Following' : 'Follow'}
-                    className={`ml-2 -mt-0.5 flex items-center justify-center transition-all duration-200 flex-shrink-0 w-6 h-6 rounded-full border ${
-                    isFollowingUser
-                      ? (showFollowConfirmation ? 'border-green-500 text-green-600 bg-green-50' : 'border-transparent bg-transparent text-transparent')
-                      : 'border-gray-300 text-gray-600 bg-white hover:border-gray-400 hover:text-gray-700'
-                  } ${followLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+            <div className="flex items-center gap-1.5">
+              {/* NEW: Username area with follow button */}
+              <div className="relative flex items-center">
+                <span
+                  onClick={handleUsernameClick}
+                  className="font-medium cursor-pointer hover:text-primary max-w-[150px] truncate inline-block align-middle"
                 >
-                  {isFollowingUser ? (showFollowConfirmation ? <Check size={14} /> : null) : <Plus size={14} />}
-                </button>
+                  {displayAuthorName}
+                </span>
+                <AvatarBadge tierIndex={authorTier.tierIndex} size="inline" className="ml-1.5" />
+                {/* Follow button: + icon when not following, green check when following */}
+                {!isOwnPost && (
+                  <button
+                    onClick={handleFollowToggle}
+                    disabled={followLoading}
+                    aria-label={isFollowingUser ? 'Following' : 'Follow'}
+                    className={`ml-2 -mt-0.5 flex items-center justify-center transition-all duration-200 flex-shrink-0 w-6 h-6 rounded-full border ${
+                      isFollowingUser
+                        ? (showFollowConfirmation ? 'border-green-500 text-green-600 bg-green-50' : 'border-transparent bg-transparent text-transparent')
+                        : 'border-gray-300 text-gray-600 bg-white hover:border-gray-400 hover:text-gray-700'
+                    } ${followLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                  >
+                    {isFollowingUser ? (showFollowConfirmation ? <Check size={14} /> : null) : <Plus size={14} />}
+                  </button>
+                )}
+              </div>
+              {/* NEW: Checkmark that changes color based on follow status */}
+              {author.isVerified && (
+                <CheckCircleIcon
+                  size={16}
+                  className={isFollowingUser ? 'text-green-500' : 'text-gray-400'}
+                />
               )}
             </div>
-            {/* NEW: Checkmark that changes color based on follow status */}
-            {author.isVerified && (
-              <CheckCircleIcon
-                size={16}
-                className={isFollowingUser ? 'text-green-500' : 'text-gray-400'}
-              />
-            )}
           </div>
         </div>
       </div>
@@ -1682,9 +1681,6 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
               )}
             </div>
           )}
-          </div>
-        </div>
-      </div>
 
       {showTapHint && (
         <p className="px-4 pb-1 text-xs text-gray-500">
@@ -2325,84 +2321,84 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
           >
             <div
               className="relative cursor-pointer"
-            onClick={handleUsernameClick}
-            role="button"
-            tabIndex={0}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                handleUsernameClick();
-              }
-            }}
-            aria-label={`View ${displayAuthorName}'s profile`}
-          >
-            <img
-              src={author.image}
-              alt={displayAuthorName}
-              loading="lazy"
-              decoding="async"
-              className="w-10 h-10 rounded-full object-cover"
-            />
-          </div>
+              onClick={handleUsernameClick}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  handleUsernameClick();
+                }
+              }}
+              aria-label={`View ${displayAuthorName}'s profile`}
+            >
+              <img
+                src={author.image}
+                alt={displayAuthorName}
+                loading="lazy"
+                decoding="async"
+                className="w-10 h-10 rounded-full object-cover"
+              />
+            </div>
             <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-1.5">
-              {/* Username area with follow button */}
-              <div className="relative flex items-center">
-                <span
-                  onClick={handleUsernameClick}
-                  className="font-medium cursor-pointer hover:text-primary max-w-[150px] truncate inline-block align-middle"
-                >
-                  {displayAuthorName}
-                </span>
-                <AvatarBadge tierIndex={authorTier.tierIndex} size="inline" className="ml-1.5" />
-                {!isOwnPost && (
-                  <button
-                    onClick={handleFollowToggle}
-                    disabled={followLoading}
-                    aria-label={isFollowingUser ? 'Following' : 'Follow'}
-                    className={`ml-2 -mt-0.5 flex items-center justify-center transition-all duration-200 flex-shrink-0 w-6 h-6 rounded-full border ${
-                      isFollowingUser
-                        ? (showFollowConfirmation ? 'border-green-500 text-green-600 bg-green-50' : 'border-transparent bg-transparent text-transparent')
-                        : 'border-gray-300 text-gray-600 bg-white hover:border-gray-400 hover:text-gray-700'
-                    } ${followLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+              <div className="flex items-center gap-1.5">
+                {/* Username area with follow button */}
+                <div className="relative flex items-center">
+                  <span
+                    onClick={handleUsernameClick}
+                    className="font-medium cursor-pointer hover:text-primary max-w-[150px] truncate inline-block align-middle"
                   >
-                    {isFollowingUser ? (showFollowConfirmation ? <Check size={14} /> : null) : <Plus size={14} />}
-                  </button>
+                    {displayAuthorName}
+                  </span>
+                  <AvatarBadge tierIndex={authorTier.tierIndex} size="inline" className="ml-1.5" />
+                  {!isOwnPost && (
+                    <button
+                      onClick={handleFollowToggle}
+                      disabled={followLoading}
+                      aria-label={isFollowingUser ? 'Following' : 'Follow'}
+                      className={`ml-2 -mt-0.5 flex items-center justify-center transition-all duration-200 flex-shrink-0 w-6 h-6 rounded-full border ${
+                        isFollowingUser
+                          ? (showFollowConfirmation ? 'border-green-500 text-green-600 bg-green-50' : 'border-transparent bg-transparent text-transparent')
+                          : 'border-gray-300 text-gray-600 bg-white hover:border-gray-400 hover:text-gray-700'
+                      } ${followLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                    >
+                      {isFollowingUser ? (showFollowConfirmation ? <Check size={14} /> : null) : <Plus size={14} />}
+                    </button>
+                  )}
+                </div>
+                {author.isVerified && (
+                  <CheckCircleIcon
+                    size={16}
+                    className={isFollowingUser ? 'text-green-500' : 'text-gray-400'}
+                  />
                 )}
               </div>
-            {author.isVerified && (
-              <CheckCircleIcon
-                size={16}
-                className={isFollowingUser ? 'text-green-500' : 'text-gray-400'}
-              />
-            )}
-          </div>
-        </div>
-      </div>
-            {/* Compact header: "username rated restaurantName" */}
-            <p className="text-xs text-gray-500 mt-0.5">
-              rated{' '}
-              <span
-                data-tour={isFeaturedExample ? 'home-featured-restaurant' : undefined}
-                onClick={() => {
-                  if (restaurantId) {
-                    navigate(`/restaurant/${restaurantId}`);
-                  }
-                }}
-                className={`font-medium text-gray-800 ${restaurantId ? 'hover:text-primary cursor-pointer' : ''} ${tapHighlightClass}`}
-              >
-                {restaurant?.name}
-              </span>
-              {' · '}
-              {formatRelativeTime(
-                (review as any).createdAt ??
-                (review as any).createdAtMs ??
-                review.date
-              )}
-            </p>
             </div>
           </div>
         </div>
+
+        {/* Compact header: "username rated restaurantName" */}
+        <p className="text-xs text-gray-500 mt-0.5">
+          rated{' '}
+          <span
+            data-tour={isFeaturedExample ? 'home-featured-restaurant' : undefined}
+            onClick={() => {
+              if (restaurantId) {
+                navigate(`/restaurant/${restaurantId}`);
+              }
+            }}
+            className={`font-medium text-gray-800 ${restaurantId ? 'hover:text-primary cursor-pointer' : ''} ${tapHighlightClass}`}
+          >
+            {restaurant?.name}
+          </span>
+          {' · '}
+          {formatRelativeTime(
+            (review as any).createdAt ??
+            (review as any).createdAtMs ??
+            review.date
+          )}
+        </p>
+      </div>
 
         {/* Caption */}
         {(visitCaption || currentItem?.review?.caption) && (

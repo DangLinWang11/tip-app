@@ -173,10 +173,8 @@ export const CoachMarkLayer: React.FC = () => {
 
   const handleNext = () => {
     if (activeTourId === 'home' && step.id === 'home-stats-box' && location.pathname === '/') {
+      // Navigate to Recent Visits; FoodMap will advance to the next step on /list-view.
       navigate('/list-view');
-      window.setTimeout(() => {
-        next();
-      }, 200);
       return;
     }
     if (activeTourId === 'home' && step.id === 'home-recent-visits-page') {
