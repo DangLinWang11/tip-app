@@ -47,7 +47,7 @@ export const tourSteps: Record<TourId, TourDefinition> = {
         body: "Tap a profile or restaurant to open each page. The number shows the review's rating.",
         placement: 'bottom',
         blockInteraction: true,
-        spotlightPadding: 4,
+        spotlightPadding: 2,
       },
       {
         id: 'home-menu-item',

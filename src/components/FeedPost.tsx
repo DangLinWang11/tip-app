@@ -2664,7 +2664,7 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
                             dish.image !== 'undefined' &&
                             dish.image !== 'null';
 
-  const isCompactPost = (hasNoPhotos || !hasValidDishImage) && (
+  const isCompactPost = !isFeaturedExample && (hasNoPhotos || !hasValidDishImage) && (
     (visitDishes && visitDishes.length > 0) || // Visit with dishes but no photos
     (dishId && !hasMediaItems) || // Single dish review with no photos
     (review && !hasMediaItems) || // Any review with no photos
