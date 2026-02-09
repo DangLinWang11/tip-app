@@ -980,9 +980,9 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
 
       {/* Header + Restaurant (featured combined highlight) */}
       <div data-tour={isFeaturedExample ? 'home-featured-profile-restaurant' : undefined}>
-        <div className="p-4 flex items-center gap-4">
+        <div className="p-4 flex items-start gap-4">
           <div
-            className="flex items-center gap-4"
+            className="flex items-start gap-4"
             data-tour={isFeaturedExample ? 'home-featured-profile' : undefined}
           >
             <div
@@ -1041,82 +1041,45 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
                   />
                 )}
               </div>
-            </div>
-          </div>
-        </div>
-        {/* Restaurant line under header (legacy layout) */}
-        {restaurant && (
-          isFeaturedExample ? (
-            <div className="px-4">
-              <div className="relative pl-[3.5rem] text-sm text-dark-gray flex items-center gap-0.5 -mt-6">
-                <span
-                  data-tour="home-featured-restaurant"
-                  className="pointer-events-none absolute left-[15%] w-[40%] inset-y-0"
-                  aria-hidden="true"
-                />
-                <LocationPinIcon size={14} className="text-red-500" />
-                <span
-                  onClick={() => {
-                    if (restaurantId) {
-                      navigate(`/restaurant/${restaurantId}`);
-                    } else {
-                      console.warn('Restaurant ID missing for:', restaurant?.name, 'Review ID:', id);
-                    }
-                  }}
-                  className={`max-w-32 truncate ${restaurantId ? 'hover:text-primary cursor-pointer' : 'text-gray-500'} ${tapHighlightClass}`}
-                >
-                  {restaurant.name}
-                </span>
-                {review.serviceSpeed && (
-                  <span className="ml-1 text-xs flex-shrink-0">
-                    {review.serviceSpeed === 'fast' ? '?' : review.serviceSpeed === 'normal' ? '??' : '??'}
-                  </span>
-                )}
-                {restaurant.qualityScore !== undefined && qualityColor && (
-                  <div
-                    className="ml-1 w-8 h-5 flex items-center justify-center rounded-full flex-shrink-0"
-                    style={{ backgroundColor: qualityColor }}
-                  >
-                    <span className="text-[11px] font-medium text-white">
-                      {restaurant.qualityScore}%
-                    </span>
-                  </div>
-                )}
-              </div>
-            </div>
-          ) : (
-            <div className="mt-1 text-sm text-dark-gray flex items-center gap-0.5">
-              <LocationPinIcon size={14} className="text-red-500" />
-              <span
-                onClick={() => {
-                  if (restaurantId) {
-                    navigate(`/restaurant/${restaurantId}`);
-                  } else {
-                    console.warn('Restaurant ID missing for:', restaurant?.name, 'Review ID:', id);
-                  }
-                }}
-                className={`max-w-32 truncate ${restaurantId ? 'hover:text-primary cursor-pointer' : 'text-gray-500'} ${tapHighlightClass}`}
-              >
-                {restaurant.name}
-              </span>
-              {review.serviceSpeed && (
-                <span className="ml-1 text-xs flex-shrink-0">
-                  {review.serviceSpeed === 'fast' ? '?' : review.serviceSpeed === 'normal' ? '??' : '??'}
-                </span>
-              )}
-              {restaurant.qualityScore !== undefined && qualityColor && (
+              {/* Restaurant line inside header text column */}
+              {restaurant && (
                 <div
-                  className="ml-1 w-8 h-5 flex items-center justify-center rounded-full flex-shrink-0"
-                  style={{ backgroundColor: qualityColor }}
+                  className="mt-1 text-sm text-dark-gray flex items-center gap-0.5"
+                  data-tour={isFeaturedExample ? 'home-featured-restaurant' : undefined}
                 >
-                  <span className="text-[11px] font-medium text-white">
-                    {restaurant.qualityScore}%
+                  <LocationPinIcon size={14} className="text-red-500" />
+                  <span
+                    onClick={() => {
+                      if (restaurantId) {
+                        navigate(`/restaurant/${restaurantId}`);
+                      } else {
+                        console.warn('Restaurant ID missing for:', restaurant?.name, 'Review ID:', id);
+                      }
+                    }}
+                    className={`max-w-32 truncate ${restaurantId ? 'hover:text-primary cursor-pointer' : 'text-gray-500'} ${tapHighlightClass}`}
+                  >
+                    {restaurant.name}
                   </span>
+                  {review.serviceSpeed && (
+                    <span className="ml-1 text-xs flex-shrink-0">
+                      {review.serviceSpeed === 'fast' ? '?' : review.serviceSpeed === 'normal' ? '??' : '??'}
+                    </span>
+                  )}
+                  {restaurant.qualityScore !== undefined && qualityColor && (
+                    <div
+                      className="ml-1 w-8 h-5 flex items-center justify-center rounded-full flex-shrink-0"
+                      style={{ backgroundColor: qualityColor }}
+                    >
+                      <span className="text-[11px] font-medium text-white">
+                        {restaurant.qualityScore}%
+                      </span>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
-          )
-        )}
+          </div>
+        </div>
       </div>
 
       {showTapHint && (
@@ -1631,9 +1594,9 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
 
       {/* Header + Restaurant (featured combined highlight) */}
       <div data-tour={isFeaturedExample ? 'home-featured-profile-restaurant' : undefined}>
-        <div className="p-4 flex items-center gap-4">
+        <div className="p-4 flex items-start gap-4">
           <div
-            className="flex items-center gap-4"
+            className="flex items-start gap-4"
             data-tour={isFeaturedExample ? 'home-featured-profile' : undefined}
           >
             <div
@@ -1686,82 +1649,45 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
                   />
                 )}
               </div>
-            </div>
-          </div>
-        </div>
-        {/* Restaurant line under header (visit layout) */}
-        {restaurant && (
-          isFeaturedExample ? (
-            <div className="px-4">
-              <div className="relative pl-[3.5rem] text-sm text-dark-gray flex items-center gap-0.5 -mt-6">
-                <span
-                  data-tour="home-featured-restaurant"
-                  className="pointer-events-none absolute left-[15%] w-[40%] inset-y-0"
-                  aria-hidden="true"
-                />
-                <LocationPinIcon size={14} className="text-red-500" />
-                <span
-                  onClick={() => {
-                    if (restaurantId) {
-                      navigate(`/restaurant/${restaurantId}`);
-                    } else {
-                      console.warn('Restaurant ID missing for:', restaurant?.name, 'Review ID:', id);
-                    }
-                  }}
-                  className={`max-w-32 truncate ${restaurantId ? 'hover:text-primary cursor-pointer' : 'text-gray-500'} ${tapHighlightClass}`}
-                >
-                  {restaurant.name}
-                </span>
-                {review.serviceSpeed && (
-                  <span className="ml-1 text-xs flex-shrink-0">
-                    {review.serviceSpeed === 'fast' ? '?' : review.serviceSpeed === 'normal' ? '??' : '??'}
-                  </span>
-                )}
-                {restaurant.qualityScore !== undefined && qualityColor && (
-                  <div
-                    className="ml-1 w-8 h-5 flex items-center justify-center rounded-full flex-shrink-0"
-                    style={{ backgroundColor: qualityColor }}
-                  >
-                    <span className="text-[11px] font-medium text-white">
-                      {restaurant.qualityScore}%
-                    </span>
-                  </div>
-                )}
-              </div>
-            </div>
-          ) : (
-            <div className="mt-1 text-sm text-dark-gray flex items-center gap-0.5">
-              <LocationPinIcon size={14} className="text-red-500" />
-              <span
-                onClick={() => {
-                  if (restaurantId) {
-                    navigate(`/restaurant/${restaurantId}`);
-                  } else {
-                    console.warn('Restaurant ID missing for:', restaurant?.name, 'Review ID:', id);
-                  }
-                }}
-                className={`max-w-32 truncate ${restaurantId ? 'hover:text-primary cursor-pointer' : 'text-gray-500'} ${tapHighlightClass}`}
-              >
-                {restaurant.name}
-              </span>
-              {review.serviceSpeed && (
-                <span className="ml-1 text-xs flex-shrink-0">
-                  {review.serviceSpeed === 'fast' ? '?' : review.serviceSpeed === 'normal' ? '??' : '??'}
-                </span>
-              )}
-              {restaurant.qualityScore !== undefined && qualityColor && (
+              {/* Restaurant line inside header text column */}
+              {restaurant && (
                 <div
-                  className="ml-1 w-8 h-5 flex items-center justify-center rounded-full flex-shrink-0"
-                  style={{ backgroundColor: qualityColor }}
+                  className="mt-1 text-sm text-dark-gray flex items-center gap-0.5"
+                  data-tour={isFeaturedExample ? 'home-featured-restaurant' : undefined}
                 >
-                  <span className="text-[11px] font-medium text-white">
-                    {restaurant.qualityScore}%
+                  <LocationPinIcon size={14} className="text-red-500" />
+                  <span
+                    onClick={() => {
+                      if (restaurantId) {
+                        navigate(`/restaurant/${restaurantId}`);
+                      } else {
+                        console.warn('Restaurant ID missing for:', restaurant?.name, 'Review ID:', id);
+                      }
+                    }}
+                    className={`max-w-32 truncate ${restaurantId ? 'hover:text-primary cursor-pointer' : 'text-gray-500'} ${tapHighlightClass}`}
+                  >
+                    {restaurant.name}
                   </span>
+                  {review.serviceSpeed && (
+                    <span className="ml-1 text-xs flex-shrink-0">
+                      {review.serviceSpeed === 'fast' ? '?' : review.serviceSpeed === 'normal' ? '??' : '??'}
+                    </span>
+                  )}
+                  {restaurant.qualityScore !== undefined && qualityColor && (
+                    <div
+                      className="ml-1 w-8 h-5 flex items-center justify-center rounded-full flex-shrink-0"
+                      style={{ backgroundColor: qualityColor }}
+                    >
+                      <span className="text-[11px] font-medium text-white">
+                        {restaurant.qualityScore}%
+                      </span>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
-          )
-        )}
+          </div>
+        </div>
       </div>
 
       {showTapHint && (

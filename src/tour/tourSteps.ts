@@ -17,7 +17,7 @@ export const tourSteps: Record<TourId, TourDefinition> = {
         id: 'home-stats-box',
         selector: '[data-tour="home-stats-box"]',
         title: 'Your Snapshot',
-        body: 'Quick view of your profile stats. Click NEXT to see all your reviews, and to add your personal notes.',
+        body: 'Here is a quick view of your profile stats. Click NEXT to see your Recent Visits page.',
         placement: 'top',
         blockInteraction: false,
         spotlightPadding: 10,
@@ -47,7 +47,7 @@ export const tourSteps: Record<TourId, TourDefinition> = {
         body: "Tap a profile or restaurant to open each page. The number shows the review's rating.",
         placement: 'bottom',
         blockInteraction: true,
-        spotlightPadding: 0,
+        spotlightPadding: 4,
       },
       {
         id: 'home-menu-item',
