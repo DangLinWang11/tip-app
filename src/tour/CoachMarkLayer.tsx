@@ -166,7 +166,9 @@ export const CoachMarkLayer: React.FC = () => {
     return true;
   })();
 
-  if (!isOpen || !step || typeof document === 'undefined' || !routeOk) return null;
+  // Don't render anything if tour isn't active or route doesn't match.
+  // Also wait until target element is found to avoid a flash of dark overlay with no spotlight.
+  if (!isOpen || !step || typeof document === 'undefined' || !routeOk || !targetEl) return null;
 
   const handleBack = () => {
     // Going back from recent-visits card (on /list-view) to stats-box (on /)

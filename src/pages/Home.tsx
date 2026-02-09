@@ -12,7 +12,7 @@ import { useReviewStore } from '../stores/reviewStore';
 import { useFollowStore } from '../stores/followStore';
 import { getTierFromPoints } from '../badges/badgeTiers';
 import FloatingUserStatsBox from '../components/FloatingUserStatsBox';
-import { useAutoStartTour } from '../tour/TourProvider';
+import { useAutoStartTour, useTour } from '../tour/TourProvider';
 import { getHomeFeaturedHidden } from '../tour/tourStorage';
 
 const Home: React.FC = () => {
@@ -27,6 +27,8 @@ const Home: React.FC = () => {
 
   const navigate = useNavigate();
   const location = useLocation();
+  const { activeTourId, isOpen: isTourOpen } = useTour();
+  const isHomeTourActive = isTourOpen && activeTourId === 'home';
 
   // STABILITY: Use specific Zustand selectors to prevent unnecessary re-renders
   const firebaseReviews = useReviewStore(state => state.reviews);
@@ -793,7 +795,7 @@ const Home: React.FC = () => {
     userReviews.length > 0;
   const baseFeedPosts = renderedFeedPosts.length > 0 ? renderedFeedPosts : feedPosts;
   const featuredExamplePost = useMemo(() => {
-    if (hideFeaturedExample) return null;
+    if (hideFeaturedExample && !isHomeTourActive) return null;
     if (!isNewUser || baseFeedPosts.length === 0) return null;
     const matchesSpicyFoodieJackDusty = (post: any) => {
       const restaurantName = String(post?.restaurant?.name || '').trim().toLowerCase();
@@ -804,7 +806,7 @@ const Home: React.FC = () => {
       return true;
     };
     return baseFeedPosts.find(matchesSpicyFoodieJackDusty) || null;
-  }, [hideFeaturedExample, isNewUser, baseFeedPosts]);
+  }, [hideFeaturedExample, isNewUser, baseFeedPosts, isHomeTourActive]);
   const displayFeedPosts = useMemo(() => {
     if (!featuredExamplePost) return baseFeedPosts;
     const featured = {
@@ -1006,7 +1008,8 @@ const Home: React.FC = () => {
           
           {/* Feed Posts */}
           {/* NON-BLOCKING RENDER: Only show feed after hydration + frame wait */}
-          {!feedReady ? (
+          {/* Skip gate when home tour is active — feed data is already in store from before navigation */}
+          {!feedReady && !isHomeTourActive ? (
             // Show skeleton/placeholder while waiting for hydration and frame
             <div className="space-y-4">
               {[1, 2, 3].map((i) => (
