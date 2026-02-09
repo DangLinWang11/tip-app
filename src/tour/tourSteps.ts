@@ -23,15 +23,6 @@ export const tourSteps: Record<TourId, TourDefinition> = {
         spotlightPadding: 10,
       },
       {
-        id: 'home-recent-visits-stats',
-        selector: '[data-tour="recent-visits-stats"]',
-        title: 'Recent Visits',
-        body: 'A quick snapshot of your totals and progress.',
-        placement: 'bottom',
-        blockInteraction: true,
-        spotlightPadding: 6,
-      },
-      {
         id: 'home-recent-visits-card',
         selector: '[data-tour="recent-visits-first-card"]',
         title: 'Recent Visits',

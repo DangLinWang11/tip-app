@@ -167,29 +167,21 @@ const FoodMap: React.FC = () => {
     return `${mm}/${dd}/${yy}`;
   }
 
-  // Demo state for new users — shows stat cards and example visits
+  // Demo state for new users — shows search bar and example visits
   const DemoState = () => (
             <div className="space-y-4" data-tour="recent-visits-content">
-      {/* Stat Cards */}
-      <div
-        className="grid grid-cols-4 gap-3"
-        data-tour="recent-visits-stats"
-      >
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-3 text-center flex flex-col items-center justify-center">
-          <p className="text-2xl font-bold text-primary">8.2</p>
-          <p className="text-xs text-gray-500 mt-1">Avg Rating</p>
-        </div>
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-3 text-center flex flex-col items-center justify-center">
-          <p className="text-2xl font-bold text-primary relative -top-0.5">5</p>
-          <p className="text-xs text-gray-500 mt-1">Restaurants</p>
-        </div>
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-3 text-center flex flex-col items-center justify-center">
-          <p className="text-2xl font-bold text-primary">12</p>
-          <p className="text-xs text-gray-500 mt-1">Dishes Tried</p>
-        </div>
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-3 text-center flex flex-col items-center justify-center">
-          <p className="text-2xl font-bold text-primary">240</p>
-          <p className="text-xs text-gray-500 mt-1">Points Earned</p>
+      {/* Search Bar (matches normal list-view) */}
+      <div className="relative">
+        <input
+          type="text"
+          placeholder="Search places or items..."
+          readOnly
+          className="w-full bg-gray-100 rounded-full py-3 px-4 pl-10 text-gray-700"
+        />
+        <div className="absolute left-3 top-1/2 transform -translate-y-1/2">
+          <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
         </div>
       </div>
 
