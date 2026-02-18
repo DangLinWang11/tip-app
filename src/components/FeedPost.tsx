@@ -239,6 +239,7 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
   const authorTier = getTierFromPoints(effectiveAuthorPoints);
   const tapHighlightClass = showTapHint ? 'text-primary underline underline-offset-2' : '';
   const tapButtonClass = showTapHint ? 'border border-primary/20 bg-primary/5' : '';
+  const shouldEagerLoad = isNearViewport || isFeaturedExample;
 
   // Sync local follow state when prop changes (e.g., when navigating back to home)
   useEffect(() => {
@@ -1116,7 +1117,7 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
                     <img
                       src={item.dish.image}
                       alt={item.dish.name}
-                      loading={isNearViewport || index < 3 ? "eager" : "lazy"}
+                      loading={shouldEagerLoad || index < 3 ? "eager" : "lazy"}
                       decoding="async"
                       onLoad={() => handleImageLoad(item.dish.image)}
                       className={`w-full h-full object-cover absolute inset-0 transition-opacity duration-300 ${
@@ -1139,7 +1140,7 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
                   <img
                     src={currentItem.dish.image}
                     alt={currentItem.dish.name}
-                    loading={isNearViewport ? "eager" : "lazy"}
+                    loading={shouldEagerLoad ? "eager" : "lazy"}
                     decoding="async"
                     onLoad={() => handleImageLoad(currentItem.dish.image)}
                     className={`w-full h-full object-cover absolute inset-0 transition-opacity duration-300 ${
@@ -1727,7 +1728,7 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
                       <img
                         src={displayUrl}
                         alt={item.dishName || 'Visit photo'}
-                        loading={isNearViewport || index < 3 ? "eager" : "lazy"}
+                        loading={shouldEagerLoad || index < 3 ? "eager" : "lazy"}
                         decoding="async"
                         onLoad={() => handleImageLoad(displayUrl)}
                         onError={(e) => {
@@ -1772,7 +1773,7 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
                       <img
                         src={item.dish.image}
                         alt={item.dish.name}
-                        loading={isNearViewport || index < 3 ? "eager" : "lazy"}
+                        loading={shouldEagerLoad || index < 3 ? "eager" : "lazy"}
                         decoding="async"
                         onLoad={() => handleImageLoad(item.dish.image)}
                         className={`w-full h-full object-cover absolute inset-0 transition-opacity duration-300 ${
@@ -1786,7 +1787,7 @@ const FeedPostComponent: React.FC<FeedPostProps> = ({
                     <img
                       src={currentItem.dish.image}
                       alt={currentItem.dish.name}
-                      loading={isNearViewport ? "eager" : "lazy"}
+                      loading={shouldEagerLoad ? "eager" : "lazy"}
                       decoding="async"
                       onLoad={() => handleImageLoad(currentItem.dish.image)}
                       className={`w-full h-full object-cover absolute inset-0 transition-opacity duration-300 ${
