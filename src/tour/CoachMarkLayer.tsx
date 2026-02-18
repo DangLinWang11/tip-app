@@ -168,14 +168,14 @@ export const CoachMarkLayer: React.FC = () => {
         const shouldBlock = step?.blockInteraction ?? true;
         const rect = target.getBoundingClientRect();
         const viewHeight = window.innerHeight || 0;
-        const margin = 24;
-        const needsScroll = rect.top < margin || rect.bottom > viewHeight - margin;
+        // Use a larger bottom margin to account for the nav bar (~64px).
+        // Without this, elements sitting just above the nav bar pass the
+        // needsScroll check as "visible" even though the nav bar covers them.
+        const topMargin = 24;
+        const bottomMargin = 80;
+        const needsScroll = rect.top < topMargin || rect.bottom > viewHeight - bottomMargin;
         if (!needsScroll) return Promise.resolve();
         const useInstantScroll = step?.id === 'home-menu-item';
-
-        const minOffset = 120;
-        const offset = Math.max(minOffset, (viewHeight - rect.height) / 2);
-        const desiredTop = Math.max(0, rect.top + window.scrollY - offset);
 
         if (shouldBlock) {
           if (scrollAssistRef.current) {
@@ -190,7 +190,10 @@ export const CoachMarkLayer: React.FC = () => {
           unlockScroll();
 
           if (useInstantScroll) {
-            window.scrollTo({ top: desiredTop, behavior: 'auto' });
+            // Use scrollIntoView so the correct scrollable ancestor is targeted.
+            // window.scrollTo targets only the window scroll, which may not be
+            // the actual scrolling container used by the page.
+            target.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'instant' });
             return new Promise((resolve) => {
               requestAnimationFrame(() => {
                 // Scroll has been painted; safe to re-lock and clear the flag.
@@ -246,7 +249,7 @@ export const CoachMarkLayer: React.FC = () => {
           });
         }
         if (useInstantScroll) {
-          window.scrollTo({ top: desiredTop, behavior: 'auto' });
+          target.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'instant' });
           return new Promise((resolve) => {
             requestAnimationFrame(() => {
               requestAnimationFrame(() => resolve());
