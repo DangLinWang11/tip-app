@@ -60,6 +60,7 @@ export const CoachMarkLayer: React.FC = () => {
     htmlOverflow: string;
     htmlOverscrollBehavior: string;
   } | null>(null);
+  const allowScrollLockRef = useRef(false);
   const scrollAssistRef = useRef<{
     cleanup: () => void;
   } | null>(null);
@@ -107,6 +108,7 @@ export const CoachMarkLayer: React.FC = () => {
 
   const lockScroll = useCallback(() => {
     if (typeof document === 'undefined') return;
+    if (!allowScrollLockRef.current) return;
     if (scrollLockRef.current) return;
 
     const { body, documentElement } = document;
@@ -137,10 +139,28 @@ export const CoachMarkLayer: React.FC = () => {
     documentElement.style.overscrollBehavior = prev.htmlOverscrollBehavior;
   }, []);
 
+  const forceUnlockScroll = useCallback(() => {
+    if (scrollAssistRef.current) {
+      scrollAssistRef.current.cleanup();
+      scrollAssistRef.current = null;
+    }
+    unlockScroll();
+  }, [unlockScroll]);
+
   const scrollIntoViewIfNeeded = useCallback(
     (target: HTMLElement) => {
       try {
         const shouldBlock = step?.blockInteraction ?? true;
+        const rect = target.getBoundingClientRect();
+        const viewHeight = window.innerHeight || 0;
+        const margin = 24;
+        const needsScroll = rect.top < margin || rect.bottom > viewHeight - margin;
+        if (!needsScroll) return;
+
+        const minOffset = 120;
+        const offset = Math.max(minOffset, (viewHeight - rect.height) / 2);
+        const desiredTop = Math.max(0, rect.top + window.scrollY - offset);
+
         if (shouldBlock) {
           if (scrollAssistRef.current) {
             scrollAssistRef.current.cleanup();
@@ -150,7 +170,7 @@ export const CoachMarkLayer: React.FC = () => {
           unlockScroll();
 
           const requestScroll = () => {
-            target.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'smooth' });
+            window.scrollTo({ top: desiredTop, behavior: 'smooth' });
           };
 
           requestAnimationFrame(() => {
@@ -164,17 +184,19 @@ export const CoachMarkLayer: React.FC = () => {
             if (idleTimeout) window.clearTimeout(idleTimeout);
             if (maxTimeout) window.clearTimeout(maxTimeout);
             window.removeEventListener('scroll', onScroll);
-            lockScroll();
+            if (allowScrollLockRef.current) {
+              lockScroll();
+            }
             scrollAssistRef.current = null;
           };
 
           const onScroll = () => {
             if (idleTimeout) window.clearTimeout(idleTimeout);
-            idleTimeout = window.setTimeout(finish, 140);
+            idleTimeout = window.setTimeout(finish, 200);
           };
 
           window.addEventListener('scroll', onScroll, { passive: true });
-          maxTimeout = window.setTimeout(finish, 900);
+          maxTimeout = window.setTimeout(finish, 1600);
 
           scrollAssistRef.current = {
             cleanup: () => {
@@ -186,7 +208,7 @@ export const CoachMarkLayer: React.FC = () => {
 
           return;
         }
-        target.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'smooth' });
+        window.scrollTo({ top: desiredTop, behavior: 'smooth' });
       } catch {
         // no-op
       }
@@ -263,6 +285,15 @@ export const CoachMarkLayer: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    if (isOpen) {
+      allowScrollLockRef.current = true;
+      return;
+    }
+    allowScrollLockRef.current = false;
+    forceUnlockScroll();
+  }, [isOpen, forceUnlockScroll]);
+
+  useEffect(() => {
     const shouldBlock = isOpen && !!step && (step.blockInteraction ?? true);
     if (!shouldBlock) return;
     lockScroll();
@@ -317,6 +348,12 @@ export const CoachMarkLayer: React.FC = () => {
       return;
     }
     if (stepIndex === tour.steps.length - 1) {
+      if (activeTourId === 'home' && location.pathname === '/') {
+        forceUnlockScroll();
+        requestAnimationFrame(() => {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+      }
       complete();
     } else {
       next();
