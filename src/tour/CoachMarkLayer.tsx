@@ -163,6 +163,31 @@ export const CoachMarkLayer: React.FC = () => {
     });
   }, [targetEl, refs, update]);
 
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+
+    const shouldBlock = isOpen && !!step && (step.blockInteraction ?? true);
+    if (!shouldBlock) return;
+
+    const { body, documentElement } = document;
+    const prevBodyOverflow = body.style.overflow;
+    const prevBodyTouchAction = body.style.touchAction;
+    const prevHtmlOverflow = documentElement.style.overflow;
+    const prevHtmlOverscrollBehavior = documentElement.style.overscrollBehavior;
+
+    body.style.overflow = 'hidden';
+    body.style.touchAction = 'none';
+    documentElement.style.overflow = 'hidden';
+    documentElement.style.overscrollBehavior = 'none';
+
+    return () => {
+      body.style.overflow = prevBodyOverflow;
+      body.style.touchAction = prevBodyTouchAction;
+      documentElement.style.overflow = prevHtmlOverflow;
+      documentElement.style.overscrollBehavior = prevHtmlOverscrollBehavior;
+    };
+  }, [isOpen, step]);
+
   const routeOk = (() => {
     if (!activeTourId) return false;
     const path = location.pathname;

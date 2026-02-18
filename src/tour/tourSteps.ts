@@ -19,7 +19,7 @@ export const tourSteps: Record<TourId, TourDefinition> = {
         title: 'Your Snapshot',
         body: 'Here is a quick view of your profile stats. Click NEXT to see your Recent Visits page.',
         placement: 'top',
-        blockInteraction: false,
+        blockInteraction: true,
         spotlightPadding: 10,
       },
       {

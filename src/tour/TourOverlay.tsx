@@ -36,11 +36,22 @@ export const TourOverlay: React.FC<TourOverlayProps> = ({
       }
     : null;
 
+  const handleBlockEvent = (event: React.SyntheticEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+  };
+
   return (
     <div
       className="fixed inset-0"
-      style={{ pointerEvents: blockInteraction ? 'auto' : 'none' }}
+      style={{
+        pointerEvents: blockInteraction ? 'auto' : 'none',
+        touchAction: blockInteraction ? 'none' : 'auto',
+        overscrollBehavior: blockInteraction ? 'none' : 'auto',
+      }}
       aria-hidden="true"
+      onWheel={blockInteraction ? handleBlockEvent : undefined}
+      onTouchMove={blockInteraction ? handleBlockEvent : undefined}
     >
       {rect && (
         <div
