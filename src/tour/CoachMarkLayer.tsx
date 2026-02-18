@@ -74,7 +74,7 @@ export const CoachMarkLayer: React.FC = () => {
       : step?.id === 'home-stats-box'
         ? 19
         : step?.id === 'home-menu-item'
-          ? 15
+          ? 27
           : step?.id === 'home-profile-restaurant'
             ? 14
             : 10;
@@ -140,6 +140,16 @@ export const CoachMarkLayer: React.FC = () => {
     documentElement.style.overscrollBehavior = prev.htmlOverscrollBehavior;
   }, []);
 
+  const hardUnlockScroll = useCallback(() => {
+    if (typeof document === 'undefined') return;
+    const { body, documentElement } = document;
+    body.style.overflow = '';
+    body.style.touchAction = '';
+    documentElement.style.overflow = '';
+    documentElement.style.overscrollBehavior = '';
+    scrollLockRef.current = null;
+  }, []);
+
   const forceUnlockScroll = useCallback(() => {
     if (scrollAssistRef.current) {
       scrollAssistRef.current.cleanup();
@@ -147,7 +157,8 @@ export const CoachMarkLayer: React.FC = () => {
       scrollAssistRef.current = null;
     }
     unlockScroll();
-  }, [unlockScroll]);
+    hardUnlockScroll();
+  }, [hardUnlockScroll, unlockScroll]);
 
   const scrollIntoViewIfNeeded = useCallback(
     (target: HTMLElement): Promise<void> => {
@@ -337,8 +348,9 @@ export const CoachMarkLayer: React.FC = () => {
       return;
     }
     allowScrollLockRef.current = false;
+    hardUnlockScroll();
     forceUnlockScroll();
-  }, [isOpen, forceUnlockScroll]);
+  }, [isOpen, forceUnlockScroll, hardUnlockScroll]);
 
   useEffect(() => {
     const shouldBlock = isOpen && !!step && (step.blockInteraction ?? true);
@@ -396,6 +408,7 @@ export const CoachMarkLayer: React.FC = () => {
     }
     if (stepIndex === tour.steps.length - 1) {
       if (activeTourId === 'home' && location.pathname === '/') {
+        hardUnlockScroll();
         forceUnlockScroll();
         requestAnimationFrame(() => {
           window.scrollTo({ top: 0, behavior: 'smooth' });

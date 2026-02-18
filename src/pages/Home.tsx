@@ -597,6 +597,12 @@ const Home: React.FC = () => {
     setHideFeaturedExample(getHomeFeaturedHidden());
   }, []);
 
+  useEffect(() => {
+    if (!isTourOpen && getHomeFeaturedHidden()) {
+      setHideFeaturedExample(true);
+    }
+  }, [isTourOpen]);
+
   // STABILITY: Memoize user recent reviews to prevent slice recalculation
   const userRecentReviews = useMemo(() => {
     console.log('[Home][useMemo] Recalculating userRecentReviews', {
