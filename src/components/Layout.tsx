@@ -8,7 +8,6 @@ import Profile from '../pages/Profile';
 import MyFoodMap from '../pages/MyFoodMap';
 import FoodMap from '../pages/FoodMap';
 import RecentActivity from '../pages/RecentActivity';
-import { TourProvider } from '../tour/TourProvider';
 
 const Layout: React.FC = () => {
   const location = useLocation();
@@ -51,20 +50,18 @@ const Layout: React.FC = () => {
   });
 
   return (
-    <TourProvider>
-      <div className="app-container">
-        <main className="pb-20 touch-pan-y">
-          {isPersistentRoute ? (
-            <PersistentShell>
-              {persistentRoutes}
-            </PersistentShell>
-          ) : (
-            <Outlet />
-          )}
-        </main>
-        <BottomNavigation />
-      </div>
-    </TourProvider>
+    <div className="app-container">
+      <main className="pb-20 touch-pan-y">
+        {isPersistentRoute ? (
+          <PersistentShell>
+            {persistentRoutes}
+          </PersistentShell>
+        ) : (
+          <Outlet />
+        )}
+      </main>
+      <BottomNavigation />
+    </div>
   );
 };
 export default Layout;

@@ -28,7 +28,6 @@ import StatPills from '../components/StatPills';
 import AvatarBadge from '../components/badges/AvatarBadge';
 import BadgeLadderModal from '../components/badges/BadgeLadderModal';
 import { getTierFromPoints } from '../badges/badgeTiers';
-import { useAutoStartTour } from '../tour/TourProvider';
 
 // Simple cache for profile data to enable instant "back" navigation
 let cachedProfileData: {
@@ -602,7 +601,6 @@ const Profile: React.FC = () => {
   const isNewUser = personalStats.totalReviews === 0;
 
   const isProfileRoute = location.pathname === '/profile';
-  useAutoStartTour('profile', isProfileRoute && isNewUser);
 
   // Avatar component with initials fallback
   const UserAvatar: React.FC<{ size?: 'sm' | 'md' | 'lg' }> = ({ size = 'lg' }) => {

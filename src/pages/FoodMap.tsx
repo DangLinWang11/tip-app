@@ -1,17 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { MapIcon, TrendingUpIcon, StarIcon, ClockIcon, MessageCircleIcon, PlusIcon, ArrowLeft, Star, X, Edit2, MapPinIcon, Store, TrendingUp } from 'lucide-react';
-import { Link, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { fetchUserReviews, convertUserReviewsToFeedPosts, FirebaseReview, PersonalNote, addPersonalNote, updatePersonalNote, deletePersonalNote } from '../services/reviewService';
 import { getUserProfile, getCurrentUser, getUserByUsername } from '../lib/firebase';
 import LocationPinIcon from '../components/icons/LocationPinIcon';
 import DishIcon from '../components/icons/DishIcon';
-import { useTour } from '../tour/TourProvider';
-import { tourSteps } from '../tour/tourSteps';
 
 const FoodMap: React.FC = () => {
   const navigate = useNavigate();
-  const location = useLocation();
-  const { activeTourId, stepIndex, isOpen, next } = useTour();
   const [searchParams] = useSearchParams();
   const [userReviews, setUserReviews] = useState<any[]>([]);
   const [userProfile, setUserProfile] = useState<any>(null);
@@ -83,15 +79,7 @@ const FoodMap: React.FC = () => {
     loadUserData();
   }, [searchParams]);
 
-  useEffect(() => {
-    if (!isOpen || activeTourId !== 'home') return;
-    if (location.pathname !== '/list-view') return;
-
-    const currentStepId = tourSteps.home.steps[stepIndex]?.id;
-    if (currentStepId === 'home-stats-box') {
-      next();
-    }
-  }, [activeTourId, stepIndex, isOpen, next, location.pathname]);
+  
   
   // Stats calculation from actual user data
   // Calculate stats from actual user reviews and profile

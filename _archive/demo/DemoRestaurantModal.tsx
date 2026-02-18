@@ -1,6 +1,6 @@
 import React from 'react';
 import { X } from 'lucide-react';
-import type { DemoRestaurant } from '../data/demoJourney';
+import type { DemoRestaurant } from './demoJourney';
 
 interface DemoRestaurantModalProps {
   restaurant: DemoRestaurant | null;

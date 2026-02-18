@@ -1,10 +1,8 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Globe2, X, ChevronDown } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import RestaurantMap from './RestaurantMap';
 import UserRestaurantModal from './UserRestaurantModal';
-import DemoRestaurantModal from './DemoRestaurantModal';
 import { getUserVisitedRestaurants, UserVisitedRestaurant } from '../services/reviewService';
 import { CountryData, getCountryByCode, getCountryCentroid } from '../data/countries';
 import { getCountryFromCoordinates } from '../utils/reverseGeocode';
@@ -12,10 +10,6 @@ import { getCurrentUser, getUserProfile } from '../lib/firebase';
 import { getTierFromPoints } from '../badges/badgeTiers';
 import CountrySelector from './CountrySelector';
 import AvatarBadge from './badges/AvatarBadge';
-import { demoJourneyCenter, demoJourneyRestaurants, demoJourneyZoom, type DemoRestaurant } from '../data/demoJourney';
-import { useAutoStartTour, useTour } from '../tour/TourProvider';
-import { tourSteps } from '../tour/tourSteps';
-import { getMapDemoHidden } from '../tour/tourStorage';
 
 interface FocusRestaurant {
   lat: number;
@@ -57,7 +51,6 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({
   focusRestaurant,
   fullBleed = false
 }) => {
-  const navigate = useNavigate();
   const isOwnMap = !userId;
 
   // Self-load current user's profile for own map to fill in missing avatar/tier
@@ -90,8 +83,6 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [selectedRestaurant, setSelectedRestaurant] = useState<UserVisitedRestaurant | null>(null);
   const [showModal, setShowModal] = useState(false);
-  const [selectedDemoRestaurant, setSelectedDemoRestaurant] = useState<DemoRestaurant | null>(null);
-  const [showDemoModal, setShowDemoModal] = useState(false);
   const [deviceCountry, setDeviceCountry] = useState<string | null>(null);
   const [homeCountryOverride, setHomeCountryOverride] = useState<string | null>(null);
   const [countryPickerOpen, setCountryPickerOpen] = useState(false);
@@ -99,8 +90,6 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({
   const prevMapZoomRef = React.useRef<number>(2);
   const [resetTrigger, setResetTrigger] = useState(0);
   const [activeCountryCode, setActiveCountryCode] = useState<string | null>(null);
-  const [hideMapDemo, setHideMapDemo] = useState(getMapDemoHidden());
-  const { activeTourId, stepIndex, isOpen: isTourOpen } = useTour();
 
   const handleResetView = () => {
     setActiveCountryCode(null);
@@ -246,43 +235,12 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({
   }, [countryStats, countryBoundsData]);
 
   const isNewUser = visitedRestaurants.length === 0;
-  const isMapDemoTourActive = isTourOpen && activeTourId === 'map_demo';
-  const currentMapDemoStepId = isMapDemoTourActive
-    ? tourSteps.map_demo.steps[stepIndex]?.id
-    : null;
-  const isEmptyMapStep = currentMapDemoStepId === 'mapdemo-empty';
-  const showDemoMap = isNewUser && !hideMapDemo && !isEmptyMapStep;
-  const forceWorldView = isEmptyMapStep;
-
-  useAutoStartTour('map_demo', !loading && isNewUser && isOwnMap && !hideMapDemo);
-
-  useEffect(() => {
-    if (!isMapDemoTourActive && getMapDemoHidden()) {
-      setHideMapDemo(true);
-    }
-  }, [isMapDemoTourActive]);
-
-  useEffect(() => {
-    if (!isMapDemoTourActive || currentMapDemoStepId !== 'mapdemo-pin') {
-      setShowDemoModal(false);
-      setSelectedDemoRestaurant(null);
-      return;
-    }
-    const demoRestaurant = demoJourneyRestaurants[0];
-    if (demoRestaurant) {
-      setSelectedDemoRestaurant(demoRestaurant);
-      setShowDemoModal(true);
-    }
-  }, [currentMapDemoStepId, isMapDemoTourActive]);
 
   // Compute map center using fallback chain:
   // 0. focusRestaurant → 1. homeCountry → 2. most-visited country → 3. device location country → 4. world view
   const { mapCenter, mapZoom: initialZoom } = useMemo(() => {
-    if (forceWorldView) {
+    if (isNewUser) {
       return { mapCenter: { lat: 20, lng: 0 }, mapZoom: 2 };
-    }
-    if (showDemoMap) {
-      return { mapCenter: demoJourneyCenter, mapZoom: demoJourneyZoom };
     }
     // 0. Focus on specific restaurant (post-review)
     if (focusRestaurant) {
@@ -311,7 +269,7 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({
 
     // 4. World view fallback
     return { mapCenter: { lat: 20, lng: 0 }, mapZoom: 2 };
-  }, [focusRestaurant, effectiveHomeCountry, countryStats, deviceCountry, forceWorldView, showDemoMap]);
+  }, [focusRestaurant, effectiveHomeCountry, countryStats, deviceCountry, isNewUser]);
 
   useEffect(() => {
     setMapZoom(initialZoom);
@@ -370,14 +328,6 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({
     setSelectedRestaurant(null);
   };
 
-  const handleDemoRestaurantClick = (restaurantId: string) => {
-    const demoRestaurant = demoJourneyRestaurants.find(r => r.id === restaurantId);
-    if (demoRestaurant) {
-      setSelectedDemoRestaurant(demoRestaurant);
-      setShowDemoModal(true);
-    }
-  };
-
   // Convert UserVisitedRestaurant to format expected by RestaurantMap
   const mapRestaurants = visitedRestaurants.map(restaurant => ({
     id: restaurant.id,
@@ -422,114 +372,6 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({
           </button>
         </div>
       </div>
-    );
-  }
-
-  if (showDemoMap) {
-    return (
-      <>
-        <div className={`${className} relative ${fullBleed ? '' : 'overflow-hidden rounded-2xl bg-white'}`}>
-          <RestaurantMap
-            mapType="restaurant"
-            restaurants={[]}
-            demoRestaurants={demoJourneyRestaurants.map(r => ({
-              id: r.id,
-              name: r.name,
-              qualityPercentage: Math.round((r.rating / 10) * 100),
-              location: r.location,
-              cuisine: r.cuisine,
-              rating: r.rating,
-              priceRange: '$',
-              visitCount: r.visitCount,
-              countryCode: r.countryCode,
-            }))}
-            demoMode
-            onDemoRestaurantClick={handleDemoRestaurantClick}
-            showQualityPercentages={false}
-            className="w-full h-full"
-            showMyLocationButton={false}
-            showGoogleControl={false}
-            initialCenter={demoJourneyCenter}
-            initialZoom={demoJourneyZoom}
-            mapRestriction={mapRestriction}
-            minZoom={2}
-            maxZoom={18}
-            searchActive={false}
-          />
-
-          {/* Demo map badge anchor for tour */}
-          <div
-            className="absolute inset-x-0 z-30 px-4"
-            style={{ top: 'calc(env(safe-area-inset-top, 0px) + 16px)' }}
-          >
-            <div
-              data-tour="mapdemo-welcome-anchor"
-              className="inline-flex items-center rounded-full bg-white/90 backdrop-blur border border-white/70 px-3 py-1 text-[11px] font-semibold text-gray-700 shadow-sm"
-            >
-              Demo map
-            </div>
-          </div>
-
-          {/* Journey Stats pill for demo mode */}
-          <div className="pointer-events-none absolute left-4 z-30" style={{ bottom: '88px' }} data-tour="mapdemo-stats-pill">
-            <div className="rounded-2xl bg-white/90 backdrop-blur-xl shadow-[0_12px_28px_rgba(0,0,0,0.18)] border border-white/70 px-3 py-1.5 flex items-center gap-2.5">
-              <div className="flex items-center justify-center w-6 flex-shrink-0">
-                <svg width="24" height="30" viewBox="0 0 24 34" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <defs>
-                    <linearGradient id="journey_grad_demo" x1="12" y1="2" x2="12" y2="30" gradientUnits="userSpaceOnUse">
-                      <stop offset="0%" stopColor="#FF6B6B"/>
-                      <stop offset="100%" stopColor="#EE2D2D"/>
-                    </linearGradient>
-                    <radialGradient id="journey_depth_demo" cx="40%" cy="35%" r="70%">
-                      <stop offset="0%" stopColor="white" stopOpacity="0.12" />
-                      <stop offset="100%" stopColor="white" stopOpacity="0" />
-                    </radialGradient>
-                    <radialGradient id="journey_shine_demo" cx="0%" cy="0%" r="100%">
-                      <stop offset="0%" stopColor="white" stopOpacity="0.6" />
-                      <stop offset="100%" stopColor="white" stopOpacity="0" />
-                    </radialGradient>
-                  </defs>
-                  <path
-                    d="M 12 2
-                       C 6.5 2, 2 6.5, 2 12
-                       C 2 17.5, 12 30, 12 30
-                       C 12 30, 22 17.5, 22 12
-                       C 22 6.5, 17.5 2, 12 2 Z"
-                    fill="url(#journey_grad_demo)"
-                    stroke="white"
-                    strokeWidth="2.25"
-                  />
-                  <circle cx="12" cy="12" r="10" fill="url(#journey_depth_demo)" />
-                  <circle cx="9.2" cy="7.6" r="2.6" fill="url(#journey_shine_demo)" />
-                  <text x="12" y="12" fontFamily="'Poppins', sans-serif" fontSize="12" fontWeight="800"
-                    textAnchor="middle" dominantBaseline="central" fill="#FFFFFF">
-                    5
-                  </text>
-                </svg>
-              </div>
-              <div className="flex flex-col items-start text-left leading-tight">
-                <span className="text-[11px] uppercase tracking-[0.16em] text-gray-400">Journey Stats (Demo)</span>
-                <span className="text-[13px] font-semibold text-gray-800">
-                  🍽 5 places · 🌍 1 country
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Demo pin anchor (invisible, used for coach mark) */}
-          <div
-            data-tour="mapdemo-pin"
-            className="absolute z-20 h-6 w-6 rounded-full"
-            style={{ left: '55%', top: '58%', transform: 'translate(-50%, -50%)', opacity: 0 }}
-          />
-        </div>
-
-        <DemoRestaurantModal
-          restaurant={selectedDemoRestaurant}
-          isOpen={showDemoModal}
-          onClose={() => setShowDemoModal(false)}
-        />
-      </>
     );
   }
 

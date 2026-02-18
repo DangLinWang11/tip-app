@@ -12,8 +12,6 @@ import { useReviewStore } from '../stores/reviewStore';
 import { useFollowStore } from '../stores/followStore';
 import { getTierFromPoints } from '../badges/badgeTiers';
 import FloatingUserStatsBox from '../components/FloatingUserStatsBox';
-import { useAutoStartTour, useTour } from '../tour/TourProvider';
-import { getHomeFeaturedHidden } from '../tour/tourStorage';
 
 const Home: React.FC = () => {
   const mountStart = performance.now?.() ?? Date.now();
@@ -27,8 +25,6 @@ const Home: React.FC = () => {
 
   const navigate = useNavigate();
   const location = useLocation();
-  const { activeTourId, isOpen: isTourOpen } = useTour();
-  const isHomeTourActive = isTourOpen && activeTourId === 'home';
 
   // STABILITY: Use specific Zustand selectors to prevent unnecessary re-renders
   const firebaseReviews = useReviewStore(state => state.reviews);
@@ -591,17 +587,6 @@ const Home: React.FC = () => {
     };
   }, [currentUser, userReviews, userProfile?.stats]);
   const isNewUser = userReviews.length === 0;
-  const [hideFeaturedExample, setHideFeaturedExample] = useState(false);
-
-  useEffect(() => {
-    setHideFeaturedExample(getHomeFeaturedHidden());
-  }, []);
-
-  useEffect(() => {
-    if (!isTourOpen && getHomeFeaturedHidden()) {
-      setHideFeaturedExample(true);
-    }
-  }, [isTourOpen]);
 
   // STABILITY: Memoize user recent reviews to prevent slice recalculation
   const userRecentReviews = useMemo(() => {
@@ -800,31 +785,7 @@ const Home: React.FC = () => {
     firebaseReviews.length > 0 ||
     userReviews.length > 0;
   const baseFeedPosts = renderedFeedPosts.length > 0 ? renderedFeedPosts : feedPosts;
-  const featuredExamplePost = useMemo(() => {
-    if (hideFeaturedExample && !isHomeTourActive) return null;
-    if (!isNewUser || baseFeedPosts.length === 0) return null;
-    const matchesSpicyFoodieJackDusty = (post: any) => {
-      const restaurantName = String(post?.restaurant?.name || '').trim().toLowerCase();
-      const authorName = String(post?.author?.name || post?.author?.username || '').trim().toLowerCase();
-      // Match "Jack Dusty" restaurant AND "Spicy Foodie" author (Spicy Foodie339)
-      if (restaurantName !== 'jack dusty') return false;
-      if (!authorName.includes('spicy') && !authorName.includes('foodie')) return false;
-      return true;
-    };
-    return baseFeedPosts.find(matchesSpicyFoodieJackDusty) || null;
-  }, [hideFeaturedExample, isNewUser, baseFeedPosts, isHomeTourActive]);
-  const displayFeedPosts = useMemo(() => {
-    if (!featuredExamplePost) return baseFeedPosts;
-    const featured = {
-      ...featuredExamplePost,
-      isFeaturedExample: true
-    };
-    const rest = baseFeedPosts.filter((post) => post?.id !== featuredExamplePost.id);
-    return [featured, ...rest];
-  }, [featuredExamplePost, baseFeedPosts]);
-
-  const isHomeRoute = location.pathname === '/';
-  useAutoStartTour('home', isHomeRoute && Boolean(featuredExamplePost));
+  const displayFeedPosts = baseFeedPosts;
 
   // Only show loader on true cold start (no cache at all)
   // CRITICAL: Only block UI on absolute first load to ensure interactability
@@ -1014,8 +975,7 @@ const Home: React.FC = () => {
           
           {/* Feed Posts */}
           {/* NON-BLOCKING RENDER: Only show feed after hydration + frame wait */}
-          {/* Skip gate when home tour is active — feed data is already in store from before navigation */}
-          {!feedReady && !isHomeTourActive ? (
+          {!feedReady ? (
             // Show skeleton/placeholder while waiting for hydration and frame
             <div className="space-y-4">
               {[1, 2, 3].map((i) => (
