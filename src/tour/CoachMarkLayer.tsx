@@ -61,7 +61,6 @@ export const CoachMarkLayer: React.FC = () => {
     htmlOverscrollBehavior: string;
   } | null>(null);
   const allowScrollLockRef = useRef(false);
-  const scrollPendingRef = useRef(false);
   const scrollAssistRef = useRef<{
     cleanup: () => void;
     resolve?: () => void;
@@ -152,7 +151,6 @@ export const CoachMarkLayer: React.FC = () => {
   }, []);
 
   const forceUnlockScroll = useCallback(() => {
-    scrollPendingRef.current = false;
     if (scrollAssistRef.current) {
       scrollAssistRef.current.cleanup();
       scrollAssistRef.current.resolve?.();
@@ -175,7 +173,6 @@ export const CoachMarkLayer: React.FC = () => {
         const bottomMargin = 80;
         const needsScroll = rect.top < topMargin || rect.bottom > viewHeight - bottomMargin;
         if (!needsScroll) return Promise.resolve();
-        const useInstantScroll = step?.id === 'home-menu-item';
 
         if (shouldBlock) {
           if (scrollAssistRef.current) {
@@ -184,27 +181,7 @@ export const CoachMarkLayer: React.FC = () => {
             scrollAssistRef.current = null;
           }
 
-          // Signal to the step-lock effect that a scroll is in flight so it
-          // doesn't re-apply overflow:hidden and cancel the scroll.
-          scrollPendingRef.current = true;
           unlockScroll();
-
-          if (useInstantScroll) {
-            // Use scrollIntoView so the correct scrollable ancestor is targeted.
-            // window.scrollTo targets only the window scroll, which may not be
-            // the actual scrolling container used by the page.
-            target.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'instant' });
-            return new Promise((resolve) => {
-              requestAnimationFrame(() => {
-                // Scroll has been painted; safe to re-lock and clear the flag.
-                scrollPendingRef.current = false;
-                if (allowScrollLockRef.current) {
-                  lockScroll();
-                }
-                requestAnimationFrame(() => resolve());
-              });
-            });
-          }
 
           return new Promise((resolve) => {
             const requestScroll = () => {
@@ -222,7 +199,6 @@ export const CoachMarkLayer: React.FC = () => {
               if (idleTimeout) window.clearTimeout(idleTimeout);
               if (maxTimeout) window.clearTimeout(maxTimeout);
               window.removeEventListener('scroll', onScroll);
-              scrollPendingRef.current = false;
               if (allowScrollLockRef.current) {
                 lockScroll();
               }
@@ -246,14 +222,6 @@ export const CoachMarkLayer: React.FC = () => {
               },
               resolve,
             };
-          });
-        }
-        if (useInstantScroll) {
-          target.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'instant' });
-          return new Promise((resolve) => {
-            requestAnimationFrame(() => {
-              requestAnimationFrame(() => resolve());
-            });
           });
         }
         return new Promise((resolve) => {
@@ -297,7 +265,7 @@ export const CoachMarkLayer: React.FC = () => {
     // If so, keep the old spotlight visible so the CSS transition can animate
     // smoothly from the old position to the new one.
     const immediateTarget = document.querySelector(step.selector) as HTMLElement | null;
-    if (!immediateTarget || step.id === 'home-menu-item') {
+    if (!immediateTarget) {
       // Cross-page transition — element doesn't exist yet, clear old target
       setTargetEl(null);
       setTargetRect(null);
@@ -366,11 +334,7 @@ export const CoachMarkLayer: React.FC = () => {
   useEffect(() => {
     const shouldBlock = isOpen && !!step && (step.blockInteraction ?? true);
     if (!shouldBlock) return;
-    // Skip locking if scrollIntoViewIfNeeded already has a scroll in flight.
-    // It will call lockScroll() itself once the scroll has painted.
-    if (!scrollPendingRef.current) {
-      lockScroll();
-    }
+    lockScroll();
     return () => {
       unlockScroll();
     };
