@@ -63,6 +63,7 @@ export const CoachMarkLayer: React.FC = () => {
   const allowScrollLockRef = useRef(false);
   const scrollAssistRef = useRef<{
     cleanup: () => void;
+    resolve?: () => void;
   } | null>(null);
 
   const placement = step?.placement ?? 'bottom';
@@ -73,7 +74,7 @@ export const CoachMarkLayer: React.FC = () => {
       : step?.id === 'home-stats-box'
         ? 19
         : step?.id === 'home-menu-item'
-          ? 3
+          ? 9
           : step?.id === 'home-profile-restaurant'
             ? 14
             : 10;
@@ -142,37 +143,74 @@ export const CoachMarkLayer: React.FC = () => {
   const forceUnlockScroll = useCallback(() => {
     if (scrollAssistRef.current) {
       scrollAssistRef.current.cleanup();
+      scrollAssistRef.current.resolve?.();
       scrollAssistRef.current = null;
     }
     unlockScroll();
   }, [unlockScroll]);
 
   const scrollIntoViewIfNeeded = useCallback(
-    (target: HTMLElement) => {
+    (target: HTMLElement): Promise<void> => {
       try {
         const shouldBlock = step?.blockInteraction ?? true;
         const rect = target.getBoundingClientRect();
         const viewHeight = window.innerHeight || 0;
         const margin = 24;
         const needsScroll = rect.top < margin || rect.bottom > viewHeight - margin;
-        if (!needsScroll) return;
+        if (!needsScroll) return Promise.resolve();
 
         if (shouldBlock) {
           if (scrollAssistRef.current) {
             scrollAssistRef.current.cleanup();
+            scrollAssistRef.current.resolve?.();
             scrollAssistRef.current = null;
           }
 
           unlockScroll();
 
-          const requestScroll = () => {
-            target.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'smooth' });
-          };
+          return new Promise((resolve) => {
+            const requestScroll = () => {
+              target.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'smooth' });
+            };
 
-          requestAnimationFrame(() => {
-            requestScroll();
+            requestAnimationFrame(() => {
+              requestScroll();
+            });
+
+            let maxTimeout: number | null = null;
+            let idleTimeout: number | null = null;
+
+            const finish = () => {
+              if (idleTimeout) window.clearTimeout(idleTimeout);
+              if (maxTimeout) window.clearTimeout(maxTimeout);
+              window.removeEventListener('scroll', onScroll);
+              if (allowScrollLockRef.current) {
+                lockScroll();
+              }
+              scrollAssistRef.current = null;
+              resolve();
+            };
+
+            const onScroll = () => {
+              if (idleTimeout) window.clearTimeout(idleTimeout);
+              idleTimeout = window.setTimeout(finish, 180);
+            };
+
+            window.addEventListener('scroll', onScroll, { passive: true });
+            maxTimeout = window.setTimeout(finish, 1400);
+
+            scrollAssistRef.current = {
+              cleanup: () => {
+                if (idleTimeout) window.clearTimeout(idleTimeout);
+                if (maxTimeout) window.clearTimeout(maxTimeout);
+                window.removeEventListener('scroll', onScroll);
+              },
+              resolve,
+            };
           });
-
+        }
+        return new Promise((resolve) => {
+          target.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'smooth' });
           let maxTimeout: number | null = null;
           let idleTimeout: number | null = null;
 
@@ -180,33 +218,20 @@ export const CoachMarkLayer: React.FC = () => {
             if (idleTimeout) window.clearTimeout(idleTimeout);
             if (maxTimeout) window.clearTimeout(maxTimeout);
             window.removeEventListener('scroll', onScroll);
-            if (allowScrollLockRef.current) {
-              lockScroll();
-            }
-            scrollAssistRef.current = null;
+            resolve();
           };
 
           const onScroll = () => {
             if (idleTimeout) window.clearTimeout(idleTimeout);
-            idleTimeout = window.setTimeout(finish, 200);
+            idleTimeout = window.setTimeout(finish, 180);
           };
 
           window.addEventListener('scroll', onScroll, { passive: true });
-          maxTimeout = window.setTimeout(finish, 1600);
-
-          scrollAssistRef.current = {
-            cleanup: () => {
-              if (idleTimeout) window.clearTimeout(idleTimeout);
-              if (maxTimeout) window.clearTimeout(maxTimeout);
-              window.removeEventListener('scroll', onScroll);
-            },
-          };
-
-          return;
-        }
-        target.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'smooth' });
+          maxTimeout = window.setTimeout(finish, 1000);
+        });
       } catch {
         // no-op
+        return Promise.resolve();
       }
     },
     [lockScroll, step?.blockInteraction, unlockScroll]
@@ -244,7 +269,7 @@ export const CoachMarkLayer: React.FC = () => {
         return;
       }
 
-      scrollIntoViewIfNeeded(found);
+      await scrollIntoViewIfNeeded(found);
 
       // Wait a frame after scroll to get the settled position
       requestAnimationFrame(() => {
@@ -275,6 +300,7 @@ export const CoachMarkLayer: React.FC = () => {
     return () => {
       if (scrollAssistRef.current) {
         scrollAssistRef.current.cleanup();
+        scrollAssistRef.current.resolve?.();
         scrollAssistRef.current = null;
       }
     };
