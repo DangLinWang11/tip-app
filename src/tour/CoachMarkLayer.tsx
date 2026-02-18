@@ -74,7 +74,7 @@ export const CoachMarkLayer: React.FC = () => {
       : step?.id === 'home-stats-box'
         ? 19
         : step?.id === 'home-menu-item'
-          ? 9
+          ? 15
           : step?.id === 'home-profile-restaurant'
             ? 14
             : 10;
@@ -158,6 +158,11 @@ export const CoachMarkLayer: React.FC = () => {
         const margin = 24;
         const needsScroll = rect.top < margin || rect.bottom > viewHeight - margin;
         if (!needsScroll) return Promise.resolve();
+        const useInstantScroll = step?.id === 'home-menu-item';
+
+        const minOffset = 120;
+        const offset = Math.max(minOffset, (viewHeight - rect.height) / 2);
+        const desiredTop = Math.max(0, rect.top + window.scrollY - offset);
 
         if (shouldBlock) {
           if (scrollAssistRef.current) {
@@ -167,6 +172,18 @@ export const CoachMarkLayer: React.FC = () => {
           }
 
           unlockScroll();
+
+          if (useInstantScroll) {
+            window.scrollTo({ top: desiredTop, behavior: 'auto' });
+            if (allowScrollLockRef.current) {
+              lockScroll();
+            }
+            return new Promise((resolve) => {
+              requestAnimationFrame(() => {
+                requestAnimationFrame(resolve);
+              });
+            });
+          }
 
           return new Promise((resolve) => {
             const requestScroll = () => {
@@ -207,6 +224,14 @@ export const CoachMarkLayer: React.FC = () => {
               },
               resolve,
             };
+          });
+        }
+        if (useInstantScroll) {
+          window.scrollTo({ top: desiredTop, behavior: 'auto' });
+          return new Promise((resolve) => {
+            requestAnimationFrame(() => {
+              requestAnimationFrame(resolve);
+            });
           });
         }
         return new Promise((resolve) => {
@@ -250,7 +275,7 @@ export const CoachMarkLayer: React.FC = () => {
     // If so, keep the old spotlight visible so the CSS transition can animate
     // smoothly from the old position to the new one.
     const immediateTarget = document.querySelector(step.selector) as HTMLElement | null;
-    if (!immediateTarget) {
+    if (!immediateTarget || step.id === 'home-menu-item') {
       // Cross-page transition — element doesn't exist yet, clear old target
       setTargetEl(null);
       setTargetRect(null);
