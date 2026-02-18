@@ -61,6 +61,7 @@ export const CoachMarkLayer: React.FC = () => {
     htmlOverscrollBehavior: string;
   } | null>(null);
   const allowScrollLockRef = useRef(false);
+  const scrollPendingRef = useRef(false);
   const scrollAssistRef = useRef<{
     cleanup: () => void;
     resolve?: () => void;
@@ -151,6 +152,7 @@ export const CoachMarkLayer: React.FC = () => {
   }, []);
 
   const forceUnlockScroll = useCallback(() => {
+    scrollPendingRef.current = false;
     if (scrollAssistRef.current) {
       scrollAssistRef.current.cleanup();
       scrollAssistRef.current.resolve?.();
@@ -182,13 +184,17 @@ export const CoachMarkLayer: React.FC = () => {
             scrollAssistRef.current = null;
           }
 
+          // Signal to the step-lock effect that a scroll is in flight so it
+          // doesn't re-apply overflow:hidden and cancel the scroll.
+          scrollPendingRef.current = true;
           unlockScroll();
 
           if (useInstantScroll) {
             window.scrollTo({ top: desiredTop, behavior: 'auto' });
             return new Promise((resolve) => {
               requestAnimationFrame(() => {
-                // Scroll has been painted; now safe to re-lock without cancelling it
+                // Scroll has been painted; safe to re-lock and clear the flag.
+                scrollPendingRef.current = false;
                 if (allowScrollLockRef.current) {
                   lockScroll();
                 }
@@ -213,6 +219,7 @@ export const CoachMarkLayer: React.FC = () => {
               if (idleTimeout) window.clearTimeout(idleTimeout);
               if (maxTimeout) window.clearTimeout(maxTimeout);
               window.removeEventListener('scroll', onScroll);
+              scrollPendingRef.current = false;
               if (allowScrollLockRef.current) {
                 lockScroll();
               }
@@ -356,7 +363,11 @@ export const CoachMarkLayer: React.FC = () => {
   useEffect(() => {
     const shouldBlock = isOpen && !!step && (step.blockInteraction ?? true);
     if (!shouldBlock) return;
-    lockScroll();
+    // Skip locking if scrollIntoViewIfNeeded already has a scroll in flight.
+    // It will call lockScroll() itself once the scroll has painted.
+    if (!scrollPendingRef.current) {
+      lockScroll();
+    }
     return () => {
       unlockScroll();
     };
