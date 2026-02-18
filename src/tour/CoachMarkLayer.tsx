@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import {
   arrow,
@@ -44,14 +44,6 @@ const waitForElement = (
   });
 };
 
-const scrollIntoViewIfNeeded = (target: HTMLElement) => {
-  try {
-    target.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'smooth' });
-  } catch {
-    // no-op
-  }
-};
-
 export const CoachMarkLayer: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -62,6 +54,12 @@ export const CoachMarkLayer: React.FC = () => {
   const [targetEl, setTargetEl] = useState<HTMLElement | null>(null);
   const [targetRect, setTargetRect] = useState<DOMRect | null>(null);
   const arrowRef = useRef<HTMLDivElement | null>(null);
+  const scrollLockRef = useRef<{
+    bodyOverflow: string;
+    bodyTouchAction: string;
+    htmlOverflow: string;
+    htmlOverscrollBehavior: string;
+  } | null>(null);
 
   const placement = step?.placement ?? 'bottom';
 
@@ -103,6 +101,56 @@ export const CoachMarkLayer: React.FC = () => {
       [staticSide]: '-6px',
     } as React.CSSProperties;
   }, [middlewareData.arrow, placement, resolvedPlacement]);
+
+  const lockScroll = useCallback(() => {
+    if (typeof document === 'undefined') return;
+    if (scrollLockRef.current) return;
+
+    const { body, documentElement } = document;
+    scrollLockRef.current = {
+      bodyOverflow: body.style.overflow,
+      bodyTouchAction: body.style.touchAction,
+      htmlOverflow: documentElement.style.overflow,
+      htmlOverscrollBehavior: documentElement.style.overscrollBehavior,
+    };
+
+    body.style.overflow = 'hidden';
+    body.style.touchAction = 'none';
+    documentElement.style.overflow = 'hidden';
+    documentElement.style.overscrollBehavior = 'none';
+  }, []);
+
+  const unlockScroll = useCallback(() => {
+    if (typeof document === 'undefined') return;
+    if (!scrollLockRef.current) return;
+
+    const { body, documentElement } = document;
+    const prev = scrollLockRef.current;
+    scrollLockRef.current = null;
+
+    body.style.overflow = prev.bodyOverflow;
+    body.style.touchAction = prev.bodyTouchAction;
+    documentElement.style.overflow = prev.htmlOverflow;
+    documentElement.style.overscrollBehavior = prev.htmlOverscrollBehavior;
+  }, []);
+
+  const scrollIntoViewIfNeeded = useCallback(
+    (target: HTMLElement) => {
+      try {
+        const shouldBlock = step?.blockInteraction ?? true;
+        if (shouldBlock) {
+          unlockScroll();
+          target.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'auto' });
+          lockScroll();
+          return;
+        }
+        target.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'smooth' });
+      } catch {
+        // no-op
+      }
+    },
+    [lockScroll, step?.blockInteraction, unlockScroll]
+  );
 
   useEffect(() => {
     if (!step || !isOpen) {
@@ -152,7 +200,7 @@ export const CoachMarkLayer: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [step, isOpen, refs, next, complete, stepIndex, tour]);
+  }, [step, isOpen, refs, next, complete, stepIndex, tour, scrollIntoViewIfNeeded]);
 
   useEffect(() => {
     if (!targetEl || !refs.floating.current) return;
@@ -164,29 +212,13 @@ export const CoachMarkLayer: React.FC = () => {
   }, [targetEl, refs, update]);
 
   useEffect(() => {
-    if (typeof document === 'undefined') return;
-
     const shouldBlock = isOpen && !!step && (step.blockInteraction ?? true);
     if (!shouldBlock) return;
-
-    const { body, documentElement } = document;
-    const prevBodyOverflow = body.style.overflow;
-    const prevBodyTouchAction = body.style.touchAction;
-    const prevHtmlOverflow = documentElement.style.overflow;
-    const prevHtmlOverscrollBehavior = documentElement.style.overscrollBehavior;
-
-    body.style.overflow = 'hidden';
-    body.style.touchAction = 'none';
-    documentElement.style.overflow = 'hidden';
-    documentElement.style.overscrollBehavior = 'none';
-
+    lockScroll();
     return () => {
-      body.style.overflow = prevBodyOverflow;
-      body.style.touchAction = prevBodyTouchAction;
-      documentElement.style.overflow = prevHtmlOverflow;
-      documentElement.style.overscrollBehavior = prevHtmlOverscrollBehavior;
+      unlockScroll();
     };
-  }, [isOpen, step]);
+  }, [isOpen, lockScroll, step, unlockScroll]);
 
   const routeOk = (() => {
     if (!activeTourId) return false;
