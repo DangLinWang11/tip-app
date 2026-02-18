@@ -113,12 +113,18 @@ export const CoachMarkLayer: React.FC = () => {
 
     let cancelled = false;
 
-    // Clear previous target immediately to prevent stale spotlight flicker
-    setTargetEl(null);
-    setTargetRect(null);
+    // Check if the new target already exists in the DOM (same-page transition).
+    // If so, keep the old spotlight visible so the CSS transition can animate
+    // smoothly from the old position to the new one.
+    const immediateTarget = document.querySelector(step.selector) as HTMLElement | null;
+    if (!immediateTarget) {
+      // Cross-page transition — element doesn't exist yet, clear old target
+      setTargetEl(null);
+      setTargetRect(null);
+    }
 
     const resolveTarget = async () => {
-      const found = await waitForElement(step.selector);
+      const found = immediateTarget || await waitForElement(step.selector);
       if (cancelled) return;
 
       if (!found) {
@@ -131,10 +137,14 @@ export const CoachMarkLayer: React.FC = () => {
       }
 
       scrollIntoViewIfNeeded(found);
-      if (cancelled) return;
-      setTargetEl(found);
-      setTargetRect(found.getBoundingClientRect());
-      refs.setReference(found);
+
+      // Wait a frame after scroll to get the settled position
+      requestAnimationFrame(() => {
+        if (cancelled) return;
+        setTargetEl(found);
+        setTargetRect(found.getBoundingClientRect());
+        refs.setReference(found);
+      });
     };
 
     resolveTarget();
@@ -215,7 +225,7 @@ export const CoachMarkLayer: React.FC = () => {
       <div className="fixed inset-0 pointer-events-none">
         <div
           ref={refs.setFloating}
-          style={floatingStyles}
+          style={{ ...floatingStyles, transition: 'transform 300ms ease-out' }}
           className="pointer-events-auto"
         >
           <CoachTooltip
