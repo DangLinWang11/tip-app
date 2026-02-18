@@ -157,10 +157,6 @@ export const CoachMarkLayer: React.FC = () => {
         const needsScroll = rect.top < margin || rect.bottom > viewHeight - margin;
         if (!needsScroll) return;
 
-        const minOffset = 120;
-        const offset = Math.max(minOffset, (viewHeight - rect.height) / 2);
-        const desiredTop = Math.max(0, rect.top + window.scrollY - offset);
-
         if (shouldBlock) {
           if (scrollAssistRef.current) {
             scrollAssistRef.current.cleanup();
@@ -170,7 +166,7 @@ export const CoachMarkLayer: React.FC = () => {
           unlockScroll();
 
           const requestScroll = () => {
-            window.scrollTo({ top: desiredTop, behavior: 'smooth' });
+            target.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'smooth' });
           };
 
           requestAnimationFrame(() => {
@@ -208,7 +204,7 @@ export const CoachMarkLayer: React.FC = () => {
 
           return;
         }
-        window.scrollTo({ top: desiredTop, behavior: 'smooth' });
+        target.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'smooth' });
       } catch {
         // no-op
       }

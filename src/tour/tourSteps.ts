@@ -35,7 +35,7 @@ export const tourSteps: Record<TourId, TourDefinition> = {
         id: 'home-profile-restaurant',
         selector: '[data-tour="home-featured-profile-restaurant"]',
         title: 'Profiles & Restaurants',
-        body: "Tap a profile or restaurant to open each page. The number shows the review's rating.",
+        body: "You can tap a profile or restaurant to open each page. The number on the right shows the review's rating.",
         placement: 'bottom',
         blockInteraction: true,
         spotlightPadding: 4,
