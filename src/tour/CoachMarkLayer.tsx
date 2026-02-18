@@ -60,6 +60,9 @@ export const CoachMarkLayer: React.FC = () => {
     htmlOverflow: string;
     htmlOverscrollBehavior: string;
   } | null>(null);
+  const scrollAssistRef = useRef<{
+    cleanup: () => void;
+  } | null>(null);
 
   const placement = step?.placement ?? 'bottom';
 
@@ -139,9 +142,48 @@ export const CoachMarkLayer: React.FC = () => {
       try {
         const shouldBlock = step?.blockInteraction ?? true;
         if (shouldBlock) {
+          if (scrollAssistRef.current) {
+            scrollAssistRef.current.cleanup();
+            scrollAssistRef.current = null;
+          }
+
           unlockScroll();
-          target.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'auto' });
-          lockScroll();
+
+          const requestScroll = () => {
+            target.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'smooth' });
+          };
+
+          requestAnimationFrame(() => {
+            requestScroll();
+          });
+
+          let maxTimeout: number | null = null;
+          let idleTimeout: number | null = null;
+
+          const finish = () => {
+            if (idleTimeout) window.clearTimeout(idleTimeout);
+            if (maxTimeout) window.clearTimeout(maxTimeout);
+            window.removeEventListener('scroll', onScroll);
+            lockScroll();
+            scrollAssistRef.current = null;
+          };
+
+          const onScroll = () => {
+            if (idleTimeout) window.clearTimeout(idleTimeout);
+            idleTimeout = window.setTimeout(finish, 140);
+          };
+
+          window.addEventListener('scroll', onScroll, { passive: true });
+          maxTimeout = window.setTimeout(finish, 900);
+
+          scrollAssistRef.current = {
+            cleanup: () => {
+              if (idleTimeout) window.clearTimeout(idleTimeout);
+              if (maxTimeout) window.clearTimeout(maxTimeout);
+              window.removeEventListener('scroll', onScroll);
+            },
+          };
+
           return;
         }
         target.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'smooth' });
@@ -210,6 +252,15 @@ export const CoachMarkLayer: React.FC = () => {
       setTargetRect(targetEl.getBoundingClientRect());
     });
   }, [targetEl, refs, update]);
+
+  useEffect(() => {
+    return () => {
+      if (scrollAssistRef.current) {
+        scrollAssistRef.current.cleanup();
+        scrollAssistRef.current = null;
+      }
+    };
+  }, []);
 
   useEffect(() => {
     const shouldBlock = isOpen && !!step && (step.blockInteraction ?? true);
