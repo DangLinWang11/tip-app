@@ -397,7 +397,7 @@ const FoodMap: React.FC = () => {
                     {/* Personal Notes - Only show for own profile */}
                     {isOwnProfile && (
                     <div
-                      className="ml-11"
+                      className="ml-6"
                       onClick={(e) => e.stopPropagation()}
                       onMouseDown={(e) => e.stopPropagation()}
                       onTouchStart={(e) => e.stopPropagation()}
