@@ -186,12 +186,13 @@ export const CoachMarkLayer: React.FC = () => {
 
           if (useInstantScroll) {
             window.scrollTo({ top: desiredTop, behavior: 'auto' });
-            if (allowScrollLockRef.current) {
-              lockScroll();
-            }
             return new Promise((resolve) => {
               requestAnimationFrame(() => {
-                requestAnimationFrame(resolve);
+                // Scroll has been painted; now safe to re-lock without cancelling it
+                if (allowScrollLockRef.current) {
+                  lockScroll();
+                }
+                requestAnimationFrame(() => resolve());
               });
             });
           }
@@ -241,7 +242,7 @@ export const CoachMarkLayer: React.FC = () => {
           window.scrollTo({ top: desiredTop, behavior: 'auto' });
           return new Promise((resolve) => {
             requestAnimationFrame(() => {
-              requestAnimationFrame(resolve);
+              requestAnimationFrame(() => resolve());
             });
           });
         }
