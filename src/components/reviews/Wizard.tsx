@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
+import { X } from 'lucide-react';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { saveReview, type ReviewData, buildReviewCreatePayload } from '../../services/reviewService';
 import { db, getCurrentUser, getUserProfile } from '../../lib/firebase';
@@ -212,6 +213,7 @@ const Wizard: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [autosaveState, setAutosaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [expandedDishIds, setExpandedDishIds] = useState<string[]>([]);
+  const [showHowItWorks, setShowHowItWorks] = useState(true);
   const autosaveTimeout = useRef<number>();
   const lastStorageKeyRef = useRef<string | null>(null);
   const submissionCompleteRef = useRef(false);
@@ -851,26 +853,34 @@ const Wizard: React.FC = () => {
             </span>
           </div>
           <div className="mb-3"><ProgressBar steps={steps} currentStep={currentStep} onStepClick={goToStep} /></div>
-          {isNewUser && (
-            <div className="mb-3 rounded-xl border border-slate-200 bg-white px-4 py-3">
-              <p className="text-[11px] uppercase tracking-[0.18em] text-slate-400">How it works</p>
-              <ul className="mt-1 text-sm text-slate-700 space-y-1">
-                <li className="flex items-start gap-2">
-                  <span className="text-primary mt-0.5">•</span>
-                  <span>Search the restaurant you're reviewing.</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-primary mt-0.5">•</span>
-                  <span>Add multiple items from one visit.</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-primary mt-0.5">•</span>
-                  <span>Rate anything, anywhere.</span>
-                </li>
-              </ul>
-            </div>
-          )}
         </div>
+        {isNewUser && currentStep === 0 && showHowItWorks && (
+          <div className="relative mb-4 rounded-xl border border-slate-200 bg-white px-4 py-3">
+            <button
+              type="button"
+              onClick={() => setShowHowItWorks(false)}
+              className="absolute top-2 right-2 h-7 w-7 rounded-full bg-white text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors flex items-center justify-center"
+              aria-label="Dismiss how it works"
+            >
+              <X className="h-4 w-4" />
+            </button>
+            <p className="text-[11px] uppercase tracking-[0.18em] text-slate-400">How it works</p>
+            <ul className="mt-1 text-sm text-slate-700 space-y-1">
+              <li className="flex items-start gap-2">
+                <span className="text-primary mt-0.5">-</span>
+                <span>Search the restaurant you're reviewing.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-primary mt-0.5">-</span>
+                <span>Add multiple items from one visit.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-primary mt-0.5">-</span>
+                <span>Rate anything, anywhere.</span>
+              </li>
+            </ul>
+          </div>
+        )}
         <AnimatePresence mode="wait">
           <motion.div
             key={steps[currentStep].key}
