@@ -407,17 +407,45 @@ const FoodMap: React.FC = () => {
                         <div className="space-y-4">
                           {visit.carouselItems && visit.carouselItems.map((carouselItem: any, itemIndex: number) => (
                             <div key={carouselItem.id || itemIndex} className="space-y-2">
+                              {/* Add New Note for this dish */}
+                              <div className="flex items-center min-w-0 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
+                                <input
+                                  type="text"
+                                  placeholder="Add personal note..."
+                                  className="flex-1 min-w-0 bg-transparent text-gray-600 placeholder-gray-400 border-none outline-none"
+                                  style={{ fontSize: '16px' }}
+                                  onBlur={async (e) => {
+                                    const noteText = e.target.value.trim();
+                                    if (noteText) {
+                                      try {
+                                        await addPersonalNote(carouselItem.id, noteText);
+                                        await loadUserData();
+                                        e.target.value = '';
+                                      } catch (error) {
+                                        console.error('Failed to add note:', error);
+                                      }
+                                    }
+                                  }}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                      e.currentTarget.blur();
+                                    }
+                                  }}
+                                />
+                                <PlusIcon size={16} className="text-gray-400" />
+                              </div>
+
                               {/* Existing Notes for this dish */}
                               {carouselItem.personalNotes && carouselItem.personalNotes.length > 0 && (
                                 <div className="space-y-2">
                                   {carouselItem.personalNotes.map((note: PersonalNote) => (
-                                    <div key={note.id} className="flex items-center justify-between min-w-0 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
+                                    <div key={note.id} className="flex items-start justify-between min-w-0 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
                                       {editingNote?.reviewId === carouselItem.id && editingNote?.noteId === note.id ? (
                                         <input
                                           type="text"
                                           defaultValue={note.text}
                                           autoFocus
-                                          className="flex-1 min-w-0 bg-transparent text-gray-600 border-none outline-none truncate"
+                                          className="flex-1 min-w-0 bg-transparent text-gray-600 border-none outline-none"
                                           style={{ fontSize: '16px' }}
                                           onBlur={async (e) => {
                                             try {
@@ -442,16 +470,14 @@ const FoodMap: React.FC = () => {
                                       ) : (
                                         <>
                                           <div className="flex-1 min-w-0">
-                                            <div className="flex items-center min-w-0">
-                                              <span className="text-sm text-gray-600 italic truncate flex-1 min-w-0">"{note.text}"</span>
-                                              <span className="text-xs text-gray-400 ml-2 flex-shrink-0">
-                                                - {new Date(note.timestamp instanceof Date ? note.timestamp : note.timestamp.seconds ? note.timestamp.seconds * 1000 : note.timestamp).toLocaleDateString('en-US', {
-                                                  month: 'short',
-                                                  day: 'numeric',
-                                                  year: 'numeric'
-                                                })}
-                                              </span>
-                                            </div>
+                                            <p className="text-sm text-gray-600 italic break-words">"{note.text}"</p>
+                                            <p className="text-xs text-gray-400 mt-1">
+                                              {new Date(note.timestamp instanceof Date ? note.timestamp : note.timestamp.seconds ? note.timestamp.seconds * 1000 : note.timestamp).toLocaleDateString('en-US', {
+                                                month: 'short',
+                                                day: 'numeric',
+                                                year: 'numeric'
+                                              })}
+                                            </p>
                                           </div>
                                           <div className="flex items-center space-x-1 ml-2">
                                             <button
@@ -481,33 +507,6 @@ const FoodMap: React.FC = () => {
                                 </div>
                               )}
 
-                              {/* Add New Note for this dish */}
-                              <div className="flex items-center min-w-0 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
-                                <input
-                                  type="text"
-                                  placeholder="Add personal note..."
-                                  className="flex-1 min-w-0 bg-transparent text-gray-600 placeholder-gray-400 border-none outline-none truncate"
-                                  style={{ fontSize: '16px' }}
-                                  onBlur={async (e) => {
-                                    const noteText = e.target.value.trim();
-                                    if (noteText) {
-                                      try {
-                                        await addPersonalNote(carouselItem.id, noteText);
-                                        await loadUserData();
-                                        e.target.value = '';
-                                      } catch (error) {
-                                        console.error('Failed to add note:', error);
-                                      }
-                                    }
-                                  }}
-                                  onKeyDown={(e) => {
-                                    if (e.key === 'Enter') {
-                                      e.currentTarget.blur();
-                                    }
-                                  }}
-                                />
-                                <PlusIcon size={16} className="text-gray-400" />
-                              </div>
                             </div>
                           ))}
                         </div>
@@ -516,17 +515,45 @@ const FoodMap: React.FC = () => {
                         <div className="space-y-2">
                           <p className="text-xs text-gray-500">Personal Notes:</p>
 
+                          {/* Add New Note */}
+                          <div className="flex items-center min-w-0 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
+                            <input
+                              type="text"
+                              placeholder="Add personal note..."
+                              className="flex-1 min-w-0 bg-transparent text-gray-600 placeholder-gray-400 border-none outline-none"
+                              style={{ fontSize: '16px' }}
+                              onBlur={async (e) => {
+                                const noteText = e.target.value.trim();
+                                if (noteText) {
+                                  try {
+                                    await addPersonalNote(visit.id, noteText);
+                                    await loadUserData();
+                                    e.target.value = '';
+                                  } catch (error) {
+                                    console.error('Failed to add note:', error);
+                                  }
+                                }
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  e.currentTarget.blur();
+                                }
+                              }}
+                            />
+                            <PlusIcon size={16} className="text-gray-400" />
+                          </div>
+
                           {/* Existing Notes */}
                           {visit.personalNotes && visit.personalNotes.length > 0 && (
                             <div className="space-y-2">
                               {visit.personalNotes.map((note: PersonalNote) => (
-                                <div key={note.id} className="flex items-center justify-between min-w-0 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
+                                <div key={note.id} className="flex items-start justify-between min-w-0 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
                                   {editingNote?.reviewId === visit.id && editingNote?.noteId === note.id ? (
                                     <input
                                       type="text"
                                       defaultValue={note.text}
                                       autoFocus
-                                      className="flex-1 min-w-0 bg-transparent text-gray-600 border-none outline-none truncate"
+                                      className="flex-1 min-w-0 bg-transparent text-gray-600 border-none outline-none"
                                       style={{ fontSize: '16px' }}
                                       onBlur={async (e) => {
                                         try {
@@ -551,16 +578,14 @@ const FoodMap: React.FC = () => {
                                   ) : (
                                     <>
                                       <div className="flex-1 min-w-0">
-                                        <div className="flex items-center min-w-0">
-                                          <span className="text-sm text-gray-600 italic truncate flex-1 min-w-0">"{note.text}"</span>
-                                          <span className="text-xs text-gray-400 ml-2 flex-shrink-0">
-                                            - {new Date(note.timestamp instanceof Date ? note.timestamp : note.timestamp.seconds ? note.timestamp.seconds * 1000 : note.timestamp).toLocaleDateString('en-US', {
-                                              month: 'short',
-                                              day: 'numeric',
-                                              year: 'numeric'
-                                            })}
-                                          </span>
-                                        </div>
+                                        <p className="text-sm text-gray-600 italic break-words">"{note.text}"</p>
+                                        <p className="text-xs text-gray-400 mt-1">
+                                          {new Date(note.timestamp instanceof Date ? note.timestamp : note.timestamp.seconds ? note.timestamp.seconds * 1000 : note.timestamp).toLocaleDateString('en-US', {
+                                            month: 'short',
+                                            day: 'numeric',
+                                            year: 'numeric'
+                                          })}
+                                        </p>
                                       </div>
                                       <div className="flex items-center space-x-1 ml-2">
                                         <button
@@ -589,34 +614,6 @@ const FoodMap: React.FC = () => {
                               ))}
                             </div>
                           )}
-
-                          {/* Add New Note */}
-                          <div className="flex items-center min-w-0 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
-                            <input
-                              type="text"
-                              placeholder="Add personal note..."
-                              className="flex-1 min-w-0 bg-transparent text-gray-600 placeholder-gray-400 border-none outline-none truncate"
-                              style={{ fontSize: '16px' }}
-                              onBlur={async (e) => {
-                                const noteText = e.target.value.trim();
-                                if (noteText) {
-                                  try {
-                                    await addPersonalNote(visit.id, noteText);
-                                    await loadUserData();
-                                    e.target.value = '';
-                                  } catch (error) {
-                                    console.error('Failed to add note:', error);
-                                  }
-                                }
-                              }}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter') {
-                                  e.currentTarget.blur();
-                                }
-                              }}
-                            />
-                            <PlusIcon size={16} className="text-gray-400" />
-                          </div>
                         </div>
                       )}
                     </div>
