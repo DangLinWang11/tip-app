@@ -270,7 +270,7 @@ export const CoachMarkLayer: React.FC = () => {
         return Promise.resolve();
       }
     },
-    [lockScroll, step?.blockInteraction, unlockScroll]
+    [lockScroll, step?.blockInteraction, step?.id, unlockScroll]
   );
 
   useEffect(() => {
@@ -433,7 +433,7 @@ export const CoachMarkLayer: React.FC = () => {
       <div className="fixed inset-0 pointer-events-none">
         <div
           ref={refs.setFloating}
-          style={{ ...floatingStyles, transition: 'transform 300ms ease-out' }}
+          style={floatingStyles}
           className="pointer-events-auto"
         >
           <CoachTooltip

@@ -108,12 +108,18 @@ export const useAutoStartTour = (
   enabledCondition: boolean
 ): void => {
   const { startTour, isTourCompleted, isTourRunning, activeTourId } = useTour();
+  const hasStartedRef = React.useRef(false);
 
   React.useEffect(() => {
-    if (!enabledCondition) return;
+    if (!enabledCondition) {
+      hasStartedRef.current = false;
+      return;
+    }
     if (isTourRunning) return;
     if (activeTourId && activeTourId !== tourId) return;
     if (isTourCompleted(tourId)) return;
+    if (hasStartedRef.current) return;
+    hasStartedRef.current = true;
     startTour(tourId);
   }, [enabledCondition, isTourCompleted, isTourRunning, activeTourId, tourId, startTour]);
 };
