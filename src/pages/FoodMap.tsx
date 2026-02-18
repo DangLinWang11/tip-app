@@ -397,7 +397,7 @@ const FoodMap: React.FC = () => {
                     {/* Personal Notes - Only show for own profile */}
                     {isOwnProfile && (
                     <div
-                      className="ml-6"
+                      className="ml-2"
                       onClick={(e) => e.stopPropagation()}
                       onMouseDown={(e) => e.stopPropagation()}
                       onTouchStart={(e) => e.stopPropagation()}
@@ -411,7 +411,7 @@ const FoodMap: React.FC = () => {
                               {carouselItem.personalNotes && carouselItem.personalNotes.length > 0 && (
                                 <div className="space-y-2">
                                   {carouselItem.personalNotes.map((note: PersonalNote) => (
-                                    <div key={note.id} className="flex items-center justify-between min-w-0 bg-gray-50 border border-gray-200 rounded-lg px-4 py-2">
+                                    <div key={note.id} className="flex items-center justify-between min-w-0 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
                                       {editingNote?.reviewId === carouselItem.id && editingNote?.noteId === note.id ? (
                                         <input
                                           type="text"
@@ -482,7 +482,7 @@ const FoodMap: React.FC = () => {
                               )}
 
                               {/* Add New Note for this dish */}
-                              <div className="flex items-center min-w-0 bg-gray-50 border border-gray-200 rounded-lg px-4 py-2">
+                              <div className="flex items-center min-w-0 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
                                 <input
                                   type="text"
                                   placeholder="Add personal note..."
@@ -520,7 +520,7 @@ const FoodMap: React.FC = () => {
                           {visit.personalNotes && visit.personalNotes.length > 0 && (
                             <div className="space-y-2">
                               {visit.personalNotes.map((note: PersonalNote) => (
-                                <div key={note.id} className="flex items-center justify-between min-w-0 bg-gray-50 border border-gray-200 rounded-lg px-4 py-2">
+                                <div key={note.id} className="flex items-center justify-between min-w-0 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
                                   {editingNote?.reviewId === visit.id && editingNote?.noteId === note.id ? (
                                     <input
                                       type="text"
@@ -591,7 +591,7 @@ const FoodMap: React.FC = () => {
                           )}
 
                           {/* Add New Note */}
-                          <div className="flex items-center min-w-0 bg-gray-50 border border-gray-200 rounded-lg px-4 py-2">
+                          <div className="flex items-center min-w-0 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
                             <input
                               type="text"
                               placeholder="Add personal note..."
