@@ -206,13 +206,16 @@ export const CoachMarkLayer: React.FC = () => {
   if (!isOpen || !step || typeof document === 'undefined' || !routeOk || !targetEl) return null;
 
   const handleBack = () => {
-    // Going back from recent-visits card (on /list-view) to stats-box (on /)
-    if (activeTourId === 'home' && step.id === 'home-recent-visits-card') {
-      navigate('/');
-      window.setTimeout(() => {
-        back();
-      }, 200);
-      return;
+    const prevStep = tour.steps[stepIndex - 1];
+    if (activeTourId === 'home' && prevStep) {
+      const targetPath = prevStep.id.startsWith('home-recent-visits') ? '/list-view' : '/';
+      if (location.pathname !== targetPath) {
+        navigate(targetPath);
+        window.setTimeout(() => {
+          back();
+        }, 200);
+        return;
+      }
     }
     back();
   };
