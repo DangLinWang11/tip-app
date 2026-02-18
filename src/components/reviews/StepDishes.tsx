@@ -9,7 +9,6 @@ import { CUISINES, getCuisineLabel } from '../../utils/taxonomy';
 import { POSITIVE_ATTRIBUTES, NEGATIVE_ATTRIBUTES } from '../../data/tagDefinitions';
 import { db } from '../../lib/firebase';
 import { DishRecord } from './AddDishInline';
-import { useAutoStartTour } from '../../tour/TourProvider';
 
 const StepDishes: React.FC = () => {
   const { t } = useI18n();
@@ -29,7 +28,6 @@ const StepDishes: React.FC = () => {
     expandedDishIds,
     toggleDishExpanded,
     setExpandedDishIds,
-    isNewUser,
   } = useReviewWizard();
 
   const [menuItems, setMenuItems] = useState<DishRecord[]>([]);
@@ -39,7 +37,6 @@ const StepDishes: React.FC = () => {
   const [customCuisineInputs, setCustomCuisineInputs] = useState<Record<string, string>>({});
   const [customCuisineSelections, setCustomCuisineSelections] = useState<Record<string, boolean>>({});
 
-  useAutoStartTour('create_step2', isNewUser);
 
   // Track uploading state per dish for direct thumbnail upload
   const [uploadingForDish, setUploadingForDish] = useState<Record<string, boolean>>({});

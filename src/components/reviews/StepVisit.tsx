@@ -169,6 +169,7 @@ const StepVisit: React.FC = () => {
   const [nearbyGooglePlaces, setNearbyGooglePlaces] = useState<GoogleFallbackPlace[]>([]);
   const [loadingNearbyPlaces, setLoadingNearbyPlaces] = useState(false);
 
+
   useEffect(() => {
     const shouldFocus = Boolean((location.state as any)?.focusRestaurantSearch);
     if (!shouldFocus || didFocusSearch) return;
@@ -671,7 +672,10 @@ const StepVisit: React.FC = () => {
       </section>
 
       {/* Restaurant Selection */}
-      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-md shadow-slate-200/60 space-y-6">
+      <section
+        className="rounded-3xl border border-slate-200 bg-white p-6 shadow-md shadow-slate-200/60 space-y-6"
+        data-tour="create-visit-intro"
+      >
         <div>
           <h2 className="text-lg font-semibold text-slate-900">{t('basic.restaurant')}</h2>
         </div>

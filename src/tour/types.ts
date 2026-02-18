@@ -1,8 +1,7 @@
 export type TourId =
   | 'home'
   | 'profile'
-  | 'create_step2'
-  | 'create_step3'
+  | 'create'
   | 'map_demo';
 
 export type TourPlacement =

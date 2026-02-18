@@ -56,7 +56,11 @@ const MyFoodMap: React.FC = () => {
       />
 
       {/* Journey stats pill (matches Food Journey map styling) */}
-      <div className="pointer-events-none absolute left-4 z-30" style={{ bottom: '88px' }}>
+      <div
+        className="pointer-events-none absolute left-4 z-30"
+        style={{ bottom: '88px' }}
+        data-tour="mapdemo-empty-stats"
+      >
         <div className="rounded-2xl bg-white/90 backdrop-blur-xl shadow-[0_12px_28px_rgba(0,0,0,0.18)] border border-white/70 px-3 py-1.5 flex items-center gap-2.5">
           <div className="flex items-center justify-center w-6 flex-shrink-0">
             <svg width="24" height="30" viewBox="0 0 24 34" fill="none" xmlns="http://www.w3.org/2000/svg">

@@ -1,6 +1,6 @@
 import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
 import { CoachMarkLayer } from './CoachMarkLayer';
-import { getCompleted, setCompleted, setHomeFeaturedHidden } from './tourStorage';
+import { getCompleted, setCompleted, setHomeFeaturedHidden, setMapDemoHidden } from './tourStorage';
 import { tourSteps } from './tourSteps';
 import type { TourId } from './types';
 
@@ -9,6 +9,7 @@ interface TourContextValue {
   stepIndex: number;
   isOpen: boolean;
   startTour: (tourId: TourId) => void;
+  startTourAtStep: (tourId: TourId, stepIndex: number) => void;
   next: () => void;
   back: () => void;
   skip: () => void;
@@ -34,6 +35,15 @@ export const TourProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsOpen(true);
   }, []);
 
+  const startTourAtStep = useCallback((tourId: TourId, step: number) => {
+    const tour = tourSteps[tourId];
+    if (!tour || tour.steps.length === 0) return;
+    const nextIndex = Math.max(0, Math.min(step, tour.steps.length - 1));
+    setActiveTourId(tourId);
+    setStepIndex(nextIndex);
+    setIsOpen(true);
+  }, []);
+
   const next = useCallback(() => {
     setStepIndex((prev) => prev + 1);
   }, []);
@@ -43,7 +53,12 @@ export const TourProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const skip = useCallback(() => {
-    if (activeTourId) setCompleted(activeTourId);
+    if (activeTourId) {
+      setCompleted(activeTourId);
+      if (activeTourId === 'map_demo') {
+        setMapDemoHidden();
+      }
+    }
     setIsOpen(false);
     setActiveTourId(null);
     setStepIndex(0);
@@ -54,6 +69,9 @@ export const TourProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setCompleted(activeTourId);
       if (activeTourId === 'home') {
         setHomeFeaturedHidden();
+      }
+      if (activeTourId === 'map_demo') {
+        setMapDemoHidden();
       }
     }
     setIsOpen(false);
@@ -68,6 +86,7 @@ export const TourProvider: React.FC<{ children: React.ReactNode }> = ({ children
     stepIndex,
     isOpen,
     startTour,
+    startTourAtStep,
     next,
     back,
     skip,
@@ -79,6 +98,7 @@ export const TourProvider: React.FC<{ children: React.ReactNode }> = ({ children
     stepIndex,
     isOpen,
     startTour,
+    startTourAtStep,
     next,
     back,
     skip,

@@ -348,7 +348,9 @@ export const CoachMarkLayer: React.FC = () => {
       return path === '/list-view' && step?.id?.startsWith('home-recent-visits');
     }
     if (activeTourId === 'profile') return path === '/profile';
-    if (activeTourId === 'create_step2' || activeTourId === 'create_step3') return path.startsWith('/create');
+    if (activeTourId === 'create') {
+      return path.startsWith('/create');
+    }
     if (activeTourId === 'map_demo') return path === '/food-map' || path === '/list-view';
     return true;
   })();
@@ -358,6 +360,11 @@ export const CoachMarkLayer: React.FC = () => {
   if (!isOpen || !step || typeof document === 'undefined' || !routeOk || !targetEl) return null;
 
   const handleBack = () => {
+    if (activeTourId === 'create') {
+      if (step.id === 'create-add-photo' || step.id === 'create-caption') {
+        window.dispatchEvent(new CustomEvent('tip:create-tour-back'));
+      }
+    }
     const prevStep = tour.steps[stepIndex - 1];
     if (activeTourId === 'home' && prevStep) {
       const targetPath = prevStep.id.startsWith('home-recent-visits') ? '/list-view' : '/';
@@ -373,6 +380,11 @@ export const CoachMarkLayer: React.FC = () => {
   };
 
   const handleNext = () => {
+    if (activeTourId === 'create') {
+      if (step.id === 'create-visit-intro' || step.id === 'create-attach-photo') {
+        window.dispatchEvent(new CustomEvent('tip:create-tour-next'));
+      }
+    }
     if (activeTourId === 'home' && step.id === 'home-stats-box' && location.pathname === '/') {
       // Navigate to Recent Visits; FoodMap will advance to the next step on /list-view.
       navigate('/list-view');

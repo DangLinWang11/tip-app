@@ -13,7 +13,9 @@ import { getTierFromPoints } from '../badges/badgeTiers';
 import CountrySelector from './CountrySelector';
 import AvatarBadge from './badges/AvatarBadge';
 import { demoJourneyCenter, demoJourneyRestaurants, demoJourneyZoom, type DemoRestaurant } from '../data/demoJourney';
-import { useAutoStartTour } from '../tour/TourProvider';
+import { useAutoStartTour, useTour } from '../tour/TourProvider';
+import { tourSteps } from '../tour/tourSteps';
+import { getMapDemoHidden } from '../tour/tourStorage';
 
 interface FocusRestaurant {
   lat: number;
@@ -97,6 +99,8 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({
   const prevMapZoomRef = React.useRef<number>(2);
   const [resetTrigger, setResetTrigger] = useState(0);
   const [activeCountryCode, setActiveCountryCode] = useState<string | null>(null);
+  const [hideMapDemo, setHideMapDemo] = useState(getMapDemoHidden());
+  const { activeTourId, stepIndex, isOpen: isTourOpen } = useTour();
 
   const handleResetView = () => {
     setActiveCountryCode(null);
@@ -242,12 +246,42 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({
   }, [countryStats, countryBoundsData]);
 
   const isNewUser = visitedRestaurants.length === 0;
-  useAutoStartTour('map_demo', !loading && isNewUser);
+  const isMapDemoTourActive = isTourOpen && activeTourId === 'map_demo';
+  const currentMapDemoStepId = isMapDemoTourActive
+    ? tourSteps.map_demo.steps[stepIndex]?.id
+    : null;
+  const isEmptyMapStep = currentMapDemoStepId === 'mapdemo-empty';
+  const showDemoMap = isNewUser && !hideMapDemo && !isEmptyMapStep;
+  const forceWorldView = isEmptyMapStep;
+
+  useAutoStartTour('map_demo', !loading && isNewUser && isOwnMap && !hideMapDemo);
+
+  useEffect(() => {
+    if (!isMapDemoTourActive && getMapDemoHidden()) {
+      setHideMapDemo(true);
+    }
+  }, [isMapDemoTourActive]);
+
+  useEffect(() => {
+    if (!isMapDemoTourActive || currentMapDemoStepId !== 'mapdemo-pin') {
+      setShowDemoModal(false);
+      setSelectedDemoRestaurant(null);
+      return;
+    }
+    const demoRestaurant = demoJourneyRestaurants[0];
+    if (demoRestaurant) {
+      setSelectedDemoRestaurant(demoRestaurant);
+      setShowDemoModal(true);
+    }
+  }, [currentMapDemoStepId, isMapDemoTourActive]);
 
   // Compute map center using fallback chain:
   // 0. focusRestaurant → 1. homeCountry → 2. most-visited country → 3. device location country → 4. world view
   const { mapCenter, mapZoom: initialZoom } = useMemo(() => {
-    if (isNewUser) {
+    if (forceWorldView) {
+      return { mapCenter: { lat: 20, lng: 0 }, mapZoom: 2 };
+    }
+    if (showDemoMap) {
       return { mapCenter: demoJourneyCenter, mapZoom: demoJourneyZoom };
     }
     // 0. Focus on specific restaurant (post-review)
@@ -277,7 +311,7 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({
 
     // 4. World view fallback
     return { mapCenter: { lat: 20, lng: 0 }, mapZoom: 2 };
-  }, [focusRestaurant, effectiveHomeCountry, countryStats, deviceCountry, isNewUser]);
+  }, [focusRestaurant, effectiveHomeCountry, countryStats, deviceCountry, forceWorldView, showDemoMap]);
 
   useEffect(() => {
     setMapZoom(initialZoom);
@@ -391,7 +425,7 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({
     );
   }
 
-  if (isNewUser) {
+  if (showDemoMap) {
     return (
       <>
         <div className={`${className} relative ${fullBleed ? '' : 'overflow-hidden rounded-2xl bg-white'}`}>

@@ -18,7 +18,10 @@ const DemoRestaurantModal: React.FC<DemoRestaurantModalProps> = ({ restaurant, i
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[85vh] overflow-hidden shadow-2xl">
+      <div
+        className="bg-white rounded-2xl max-w-2xl w-full max-h-[85vh] overflow-hidden shadow-2xl"
+        data-tour="mapdemo-pin-card"
+      >
         <div className="bg-white p-6 relative border-b border-gray-100">
           <button
             onClick={onClose}

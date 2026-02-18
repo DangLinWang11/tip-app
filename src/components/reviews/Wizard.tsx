@@ -16,6 +16,7 @@ import { WizardContext } from './WizardContext';
 import { useFeature } from '../../utils/features';
 import { buildExplicitTags, buildDerivedTags, buildMealTimeTags, buildServiceSpeedTags } from '../../data/tagDefinitions';
 import { useReviewStore } from '../../stores/reviewStore';
+import { useTour } from '../../tour/TourProvider';
 
 const buildStorageKey = (uid: string, restaurantId?: string | null) => `review-visit-draft:${uid}:${restaurantId || 'new'}`;
 
@@ -190,6 +191,7 @@ const STEP_COMPONENTS: Record<WizardStepKey, React.ComponentType> = {
 const Wizard: React.FC = () => {
   const { t, language } = useI18n();
   const { clearCache } = useReviewStore();
+  const { startTourAtStep, isTourCompleted, isTourRunning, activeTourId } = useTour();
 
   const [userId, setUserId] = useState<string>('');
   const [authChecked, setAuthChecked] = useState(false);
@@ -253,6 +255,16 @@ const Wizard: React.FC = () => {
       cancelled = true;
     };
   }, [userId]);
+
+  useEffect(() => {
+    if (!isNewUser) return;
+    if (isTourRunning) return;
+    if (activeTourId && activeTourId !== 'create') return;
+    if (isTourCompleted('create')) return;
+
+    const tourIndex = currentStep <= 0 ? 0 : currentStep === 1 ? 1 : 3;
+    startTourAtStep('create', tourIndex);
+  }, [activeTourId, currentStep, isNewUser, isTourCompleted, isTourRunning, startTourAtStep]);
 
   const rewardMessages = useMemo(() => ({
     taste: t('reward.tasteBonus'),
@@ -593,6 +605,23 @@ const Wizard: React.FC = () => {
     autosaveImmediate(); // Save immediately, no validation needed
     setCurrentStep((step) => Math.max(step - 1, 0));
   }, [autosaveImmediate]);
+
+  useEffect(() => {
+    const handleTourNext = () => {
+      goNext();
+    };
+    const handleTourBack = () => {
+      goBack();
+    };
+
+    window.addEventListener('tip:create-tour-next', handleTourNext as EventListener);
+    window.addEventListener('tip:create-tour-back', handleTourBack as EventListener);
+
+    return () => {
+      window.removeEventListener('tip:create-tour-next', handleTourNext as EventListener);
+      window.removeEventListener('tip:create-tour-back', handleTourBack as EventListener);
+    };
+  }, [goNext, goBack]);
 
   const goToStep = useCallback((stepIndex: number) => {
     autosaveImmediate(); // Save immediately before navigation

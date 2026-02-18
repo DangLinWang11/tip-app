@@ -5,7 +5,6 @@ import { useI18n } from '../../lib/i18n/useI18n';
 import { useReviewWizard } from './WizardContext';
 import ConfettiEffect from './ConfettiEffect';
 import { ToGoFeedback, DineInFeedback } from '../../dev/types/review';
-import { useAutoStartTour } from '../../tour/TourProvider';
 
 const BUSINESS_TAGS = [
   'Great Staff',
@@ -52,7 +51,6 @@ const StepWrapUp: React.FC = () => {
     resetDraft,
     pendingUploads,
     pendingUploadCount,
-    isNewUser,
   } = useReviewWizard();
 
   const [successIds, setSuccessIds] = useState<string[] | null>(null);
@@ -61,7 +59,6 @@ const StepWrapUp: React.FC = () => {
   const [selectedBusinessLowlights, setSelectedBusinessLowlights] = useState<string[]>(visitDraft.businessLowlights || []);
   const [countdown, setCountdown] = useState(5);
 
-  useAutoStartTour('create_step3', isNewUser);
 
   // Structured feedback state
   const [toGoFeedback, setToGoFeedback] = useState<ToGoFeedback>({});

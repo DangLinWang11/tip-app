@@ -4,7 +4,7 @@ const VERSION_KEY = 'tip.tour.version';
 const CURRENT_VERSION = '1';
 // TEMP: keep tours always available while copy/highlights are being tuned.
 // Set to false to restore one-time behavior.
-const FORCE_ALWAYS = true;
+const FORCE_ALWAYS = false;
 
 const keyFor = (tourId: TourId) => `tip.tour.${tourId}.completed`;
 
@@ -47,6 +47,7 @@ export const setCompleted = (tourId: TourId): void => {
 };
 
 const HOME_FEATURED_HIDE_KEY = 'tip.tour.home.featured.hidden';
+const MAP_DEMO_HIDE_KEY = 'tip.tour.mapdemo.hidden';
 
 export const setHomeFeaturedHidden = (): void => {
   if (!canUseStorage()) return;
@@ -61,6 +62,24 @@ export const getHomeFeaturedHidden = (): boolean => {
   if (!canUseStorage()) return false;
   try {
     return window.localStorage.getItem(HOME_FEATURED_HIDE_KEY) === '1';
+  } catch {
+    return false;
+  }
+};
+
+export const setMapDemoHidden = (): void => {
+  if (!canUseStorage()) return;
+  try {
+    window.localStorage.setItem(MAP_DEMO_HIDE_KEY, '1');
+  } catch {
+    // ignore storage failures
+  }
+};
+
+export const getMapDemoHidden = (): boolean => {
+  if (!canUseStorage()) return false;
+  try {
+    return window.localStorage.getItem(MAP_DEMO_HIDE_KEY) === '1';
   } catch {
     return false;
   }
