@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo, startTransition } from 'react';
-import { GridIcon, BookmarkIcon, SearchIcon, PlusIcon, Star, Users, TrendingUp, Share, User, MapIcon } from 'lucide-react';
+import { EditIcon, GridIcon, BookmarkIcon, SearchIcon, PlusIcon, Star, Users, TrendingUp, Share, User, MapIcon } from 'lucide-react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Store as StoreIcon } from 'lucide-react';
 import { useOwnedRestaurants } from '../hooks/useOwnedRestaurants';
@@ -716,8 +716,9 @@ const Profile: React.FC = () => {
                     navigate('/profile/edit');
                   });
                 }}
-                className="mt-2 inline-flex items-center justify-center rounded-full border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                className="mt-2 inline-flex items-center justify-center gap-1.5 rounded-full border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors"
               >
+                <EditIcon size={12} className="text-gray-600" />
                 Edit
               </button>
             </div>
