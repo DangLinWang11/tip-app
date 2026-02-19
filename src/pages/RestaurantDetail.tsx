@@ -3,7 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeftIcon, StarIcon, MapPinIcon, PhoneIcon, ClockIcon, BookmarkIcon, ShareIcon, ChevronRightIcon, ChevronLeftIcon, Utensils, Soup, Salad, Coffee, Cake, Fish, Pizza, Sandwich, ChefHat, ChevronDown, Globe, DollarSign } from 'lucide-react';
+import { ArrowLeftIcon, StarIcon, MapPinIcon, PhoneIcon, ClockIcon, BookmarkIcon, ShareIcon, ChevronRightIcon, ChevronLeftIcon, Utensils, Soup, Salad, Coffee, Cake, Fish, Pizza, Sandwich, ChefHat, ChevronDown, Globe, DollarSign, X } from 'lucide-react';
 import BottomNavigation from '../components/BottomNavigation';
 import SaveToListModal from '../components/SaveToListModal';
 import { calculateRestaurantQualityScore } from '../services/reviewService';
@@ -78,7 +78,11 @@ const RestaurantDetail: React.FC = () => {
   const [showAllHours, setShowAllHours] = useState(false);
   const [heroImageIndex, setHeroImageIndex] = useState(0);
   const heroScrollRef = useRef<HTMLDivElement>(null);
+  const heroModalScrollRef = useRef<HTMLDivElement>(null);
   const isProgrammaticScroll = useRef(false);
+  const isProgrammaticModalScroll = useRef(false);
+  const [isHeroModalOpen, setIsHeroModalOpen] = useState(false);
+  const [failedHeroImages, setFailedHeroImages] = useState<Set<string>>(new Set());
 
   // Helper to collect visit photos from all reviews (both legacy and new structures)
   const getVisitPhotosFromReviews = (reviewsList: Review[] | undefined | null): string[] => {
@@ -158,6 +162,16 @@ const RestaurantDetail: React.FC = () => {
     }
 
     return true;
+  };
+
+  const registerFailedHeroImage = (url?: string | null) => {
+    if (!url) return;
+    setFailedHeroImages((prev) => {
+      if (prev.has(url)) return prev;
+      const next = new Set(prev);
+      next.add(url);
+      return next;
+    });
   };
 
   const extractReviewTags = (review: any): { tasteChips: string[]; audienceTags: string[] } => {
@@ -380,9 +394,29 @@ const getCurrentDayHours = (hours: Record<string, string>) => {
   }
   heroImages.push(...limitedVisitPhotos);
 
-  const hasHeroImages = heroImages.length > 0;
-  const currentImage = hasHeroImages ? heroImages[heroImageIndex] : null;
-  const hasMultipleImages = heroImages.length > 1;
+  const displayHeroImages = heroImages.filter((url) => !failedHeroImages.has(url));
+  const hasHeroImages = displayHeroImages.length > 0;
+  const currentImage = hasHeroImages ? displayHeroImages[heroImageIndex] : null;
+  const hasMultipleImages = displayHeroImages.length > 1;
+
+  useEffect(() => {
+    if (!hasHeroImages) {
+      if (heroImageIndex !== 0) setHeroImageIndex(0);
+      return;
+    }
+    if (heroImageIndex >= displayHeroImages.length) {
+      setHeroImageIndex(Math.max(0, displayHeroImages.length - 1));
+    }
+  }, [displayHeroImages.length, hasHeroImages, heroImageIndex]);
+
+  useEffect(() => {
+    if (!isHeroModalOpen) return;
+    const originalBodyOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = originalBodyOverflow;
+    };
+  }, [isHeroModalOpen]);
 
   // Handle scroll-based navigation for hero images
   const handleHeroScroll = (e: React.UIEvent<HTMLDivElement>) => {
@@ -395,13 +429,14 @@ const getCurrentDayHours = (hours: Record<string, string>) => {
     const itemWidth = container.offsetWidth;
     const newIndex = Math.round(scrollLeft / itemWidth);
 
-    if (newIndex !== heroImageIndex && newIndex >= 0 && newIndex < heroImages.length) {
+    if (newIndex !== heroImageIndex && newIndex >= 0 && newIndex < displayHeroImages.length) {
       setHeroImageIndex(newIndex);
     }
   };
 
   const goPrevImage = () => {
-    const newIndex = heroImageIndex === 0 ? heroImages.length - 1 : heroImageIndex - 1;
+    if (!hasHeroImages) return;
+    const newIndex = heroImageIndex === 0 ? displayHeroImages.length - 1 : heroImageIndex - 1;
     setHeroImageIndex(newIndex);
 
     isProgrammaticScroll.current = true;
@@ -415,10 +450,25 @@ const getCurrentDayHours = (hours: Record<string, string>) => {
         isProgrammaticScroll.current = false;
       }, 350);
     }
+
+    if (isHeroModalOpen) {
+      isProgrammaticModalScroll.current = true;
+      if (heroModalScrollRef.current) {
+        const itemWidth = heroModalScrollRef.current.offsetWidth;
+        heroModalScrollRef.current.scrollTo({
+          left: newIndex * itemWidth,
+          behavior: 'smooth'
+        });
+      }
+      setTimeout(() => {
+        isProgrammaticModalScroll.current = false;
+      }, 350);
+    }
   };
 
   const goNextImage = () => {
-    const newIndex = heroImageIndex === heroImages.length - 1 ? 0 : heroImageIndex + 1;
+    if (!hasHeroImages) return;
+    const newIndex = heroImageIndex === displayHeroImages.length - 1 ? 0 : heroImageIndex + 1;
     setHeroImageIndex(newIndex);
 
     isProgrammaticScroll.current = true;
@@ -430,6 +480,20 @@ const getCurrentDayHours = (hours: Record<string, string>) => {
       });
       setTimeout(() => {
         isProgrammaticScroll.current = false;
+      }, 350);
+    }
+
+    if (isHeroModalOpen) {
+      isProgrammaticModalScroll.current = true;
+      if (heroModalScrollRef.current) {
+        const itemWidth = heroModalScrollRef.current.offsetWidth;
+        heroModalScrollRef.current.scrollTo({
+          left: newIndex * itemWidth,
+          behavior: 'smooth'
+        });
+      }
+      setTimeout(() => {
+        isProgrammaticModalScroll.current = false;
       }, 350);
     }
   };
@@ -448,7 +512,48 @@ const getCurrentDayHours = (hours: Record<string, string>) => {
         isProgrammaticScroll.current = false;
       }, 350);
     }
+
+    if (isHeroModalOpen) {
+      isProgrammaticModalScroll.current = true;
+      if (heroModalScrollRef.current) {
+        const itemWidth = heroModalScrollRef.current.offsetWidth;
+        heroModalScrollRef.current.scrollTo({
+          left: index * itemWidth,
+          behavior: 'smooth'
+        });
+      }
+      setTimeout(() => {
+        isProgrammaticModalScroll.current = false;
+      }, 350);
+    }
   };
+
+  const openHeroModal = (index: number) => {
+    if (!hasHeroImages) return;
+    setHeroImageIndex(index);
+    setIsHeroModalOpen(true);
+    isProgrammaticModalScroll.current = true;
+    setTimeout(() => {
+      if (heroModalScrollRef.current) {
+        const itemWidth = heroModalScrollRef.current.offsetWidth;
+        heroModalScrollRef.current.scrollTo({ left: index * itemWidth, behavior: 'auto' });
+      }
+      isProgrammaticModalScroll.current = false;
+    }, 0);
+  };
+
+  const handleHeroModalScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    if (isProgrammaticModalScroll.current) return;
+    const container = e.currentTarget;
+    const scrollLeft = container.scrollLeft;
+    const itemWidth = container.offsetWidth;
+    const newIndex = Math.round(scrollLeft / itemWidth);
+    if (newIndex !== heroImageIndex && newIndex >= 0 && newIndex < displayHeroImages.length) {
+      setHeroImageIndex(newIndex);
+    }
+  };
+
+  const closeHeroModal = () => setIsHeroModalOpen(false);
 
   const hasReviews = reviews.length > 0;
   const isGoogleOnlyListing = !hasReviews && restaurant.source === 'google_places';
@@ -489,7 +594,7 @@ const getCurrentDayHours = (hours: Record<string, string>) => {
               WebkitOverflowScrolling: 'touch'
             }}
           >
-            {heroImages.map((imageUrl, index) => (
+            {displayHeroImages.map((imageUrl, index) => (
               <div
                 key={index}
                 className="w-full h-full flex-shrink-0 snap-center"
@@ -498,6 +603,8 @@ const getCurrentDayHours = (hours: Record<string, string>) => {
                   src={imageUrl}
                   alt={`${restaurant?.name ?? 'Restaurant'} - Image ${index + 1}`}
                   className="w-full h-full object-cover"
+                  onClick={() => openHeroModal(index)}
+                  onError={() => registerFailedHeroImage(imageUrl)}
                 />
               </div>
             ))}
@@ -534,7 +641,7 @@ const getCurrentDayHours = (hours: Record<string, string>) => {
         {/* Dot indicators (shown if multiple images) */}
         {hasMultipleImages && (
           <div className="absolute bottom-16 left-1/2 -translate-x-1/2 z-20 flex gap-1.5">
-            {heroImages.map((_, idx) => (
+            {displayHeroImages.map((_, idx) => (
               <button
                 key={idx}
                 onClick={() => handleDotClick(idx)}
@@ -573,6 +680,73 @@ const getCurrentDayHours = (hours: Record<string, string>) => {
           </div>
         </div>
       </div>
+      {isHeroModalOpen && hasHeroImages && (
+        <div
+          className="fixed inset-0 z-[80] bg-black/90 flex items-center justify-center"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) closeHeroModal();
+          }}
+        >
+          <button
+            onClick={closeHeroModal}
+            className="absolute top-4 right-4 z-[90] bg-white/90 hover:bg-white rounded-full p-2"
+            aria-label="Close image viewer"
+          >
+            <X size={18} className="text-gray-900" />
+          </button>
+          {hasMultipleImages && (
+            <button
+              onClick={(e) => { e.stopPropagation(); goPrevImage(); }}
+              className="absolute left-3 top-1/2 -translate-y-1/2 z-[90] bg-white/70 hover:bg-white rounded-full p-2"
+              aria-label="Previous image"
+            >
+              <ChevronLeftIcon size={18} className="text-gray-900" />
+            </button>
+          )}
+          {hasMultipleImages && (
+            <button
+              onClick={(e) => { e.stopPropagation(); goNextImage(); }}
+              className="absolute right-3 top-1/2 -translate-y-1/2 z-[90] bg-white/70 hover:bg-white rounded-full p-2"
+              aria-label="Next image"
+            >
+              <ChevronRightIcon size={18} className="text-gray-900" />
+            </button>
+          )}
+          <div
+            ref={heroModalScrollRef}
+            className="flex overflow-x-scroll snap-x snap-mandatory w-full h-full"
+            onScroll={handleHeroModalScroll}
+            style={{
+              scrollSnapType: 'x mandatory',
+              scrollBehavior: 'smooth',
+              WebkitOverflowScrolling: 'touch'
+            }}
+          >
+            {displayHeroImages.map((imageUrl, index) => (
+              <div key={index} className="w-full h-full flex-shrink-0 snap-center flex items-center justify-center">
+                <img
+                  src={imageUrl}
+                  alt={`${restaurant?.name ?? 'Restaurant'} - Image ${index + 1}`}
+                  className="w-full h-full object-contain"
+                  onError={() => registerFailedHeroImage(imageUrl)}
+                />
+              </div>
+            ))}
+          </div>
+          {hasMultipleImages && (
+            <div className="absolute bottom-5 left-1/2 -translate-x-1/2 flex space-x-1.5 z-[90]">
+              {displayHeroImages.map((_, idx) => (
+                <button
+                  key={idx}
+                  onClick={(e) => { e.stopPropagation(); handleDotClick(idx); }}
+                  className={`w-2 h-2 rounded-full transition-all ${idx === heroImageIndex ? 'bg-white w-4' : 'bg-white/50'}`}
+                  aria-label={`Go to image ${idx + 1}`}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
       <div className="bg-white p-4 shadow-sm">
         <div className="flex justify-between items-start">
           <div>
@@ -878,6 +1052,7 @@ const getCurrentDayHours = (hours: Record<string, string>) => {
             const images = Array.isArray((review as any)?.media?.photos) ? (review as any).media.photos : (review.images || []);
             const primaryImage = images && images.length > 0 ? images[0] : null;
             const extraImages = primaryImage ? images.slice(1, 4) : images.slice(0, 3);
+            const authorLabel = author?.username || author?.name || 'Anonymous';
             return (
               <div key={review.id} className="border-b border-light-gray pb-4 last:border-0">
                 <div className="flex items-start gap-3">
@@ -897,23 +1072,24 @@ const getCurrentDayHours = (hours: Record<string, string>) => {
                   <div className="flex-1 min-w-0">
                     <div className="flex justify-between items-start mb-1">
                       <div className="min-w-0">
-                        <p
-                          className="text-sm font-medium text-gray-900 truncate cursor-pointer hover:text-primary"
-                          onClick={() => author?.username && navigate('/user/' + author.username)}
-                        >
-                          {author?.name || 'Anonymous'}
-                          <span className="text-xs text-gray-500 ml-1">· {createdAtText}</span>
+                        <p className="text-sm font-semibold uppercase tracking-wide text-red-500 truncate">
+                          {review.dish || 'Dish'}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          <span className="uppercase tracking-wide text-gray-400">Rated by</span>{' '}
+                          <span
+                            className="font-medium text-gray-700 cursor-pointer hover:text-primary"
+                            onClick={() => author?.username && navigate('/user/' + author.username)}
+                          >
+                            {authorLabel}
+                          </span>
+                          <span className="text-gray-400"> ? {createdAtText}</span>
                         </p>
                       </div>
                       <RatingBadge rating={review.rating} size="md" />
                     </div>
-                    {review.dish && (
-                      <p className="text-sm font-medium text-gray-900 mb-1">
-                        {review.dish}
-                      </p>
-                    )}
                     {(review as any).caption && (
-                      <p className="text-sm text-gray-700 mb-2">{(review as any).caption}</p>
+                      <p className="text-sm text-gray-700 mt-2">{(review as any).caption}</p>
                     )}
                     {(tasteChips.length > 0 || audienceTags.length > 0) && (
                       <div className="flex flex-wrap gap-1.5 mb-2">
