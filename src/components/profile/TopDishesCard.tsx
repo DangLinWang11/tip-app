@@ -1,4 +1,5 @@
 import React from 'react';
+import { Trophy } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import type { TopDish } from '../../utils/topDishes';
 
@@ -26,9 +27,11 @@ const TopDishesCard: React.FC<TopDishesCardProps> = ({ topDishes }) => {
 
   return (
     <div className={`${GLASS_CARD} p-5 h-full`}>
-      <div className="flex items-center justify-between px-2">
+      <div className="flex items-center justify-between px-1">
         <div className="flex items-center gap-2">
-          <span className="w-6" aria-hidden="true" />
+          <span className="w-5 flex items-center justify-center text-primary" aria-hidden="true">
+            <Trophy size={16} />
+          </span>
           <h3 className="text-sm font-semibold text-gray-800">Top Dishes</h3>
         </div>
         <button
@@ -51,9 +54,9 @@ const TopDishesCard: React.FC<TopDishesCardProps> = ({ topDishes }) => {
               key={`${dish.dishId || dish.representativeReviewId}-${index}`}
               type="button"
               onClick={() => handleRowClick(dish)}
-              className="w-full flex items-center gap-3 rounded-2xl px-2 py-1.5 hover:bg-white/80 transition-colors text-left"
+              className="w-full flex items-center gap-3 rounded-2xl px-1 py-1.5 hover:bg-white/80 transition-colors text-left"
             >
-              <span className="w-6 text-center text-sm font-semibold text-primary">
+              <span className="w-5 text-center text-sm font-semibold text-primary">
                 {index + 1}
               </span>
               <div className="min-w-0 flex-1">

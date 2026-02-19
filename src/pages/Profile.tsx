@@ -698,12 +698,15 @@ const Profile: React.FC = () => {
         {/* Profile Info Section - Instagram Style */}
         <div className="p-4">
           <div className="flex items-start">
-            {/* Avatar */}
-            <div className="relative">
+            {/* Avatar + Tier */}
+            <div className="flex flex-col items-center">
               <UserAvatar size="lg" />
+              <span className="mt-2 inline-flex items-center rounded-full border border-primary/20 bg-primary/5 px-3 py-1 text-xs font-semibold text-primary">
+                {tierProgress.tierName || 'Member'}
+              </span>
             </div>
 
-            {/* Name and Stats */}
+            {/* Name, Stats, Bio */}
             <div className="ml-4 flex-1 min-w-0">
               {/* Actual Name */}
               <h2 className="font-semibold text-lg text-gray-900 flex items-center">
@@ -734,29 +737,20 @@ const Profile: React.FC = () => {
                 onFollowersClick={() => navigate(`/user/${userProfile.username}/connections?tab=followers`)}
                 onFollowingClick={() => navigate(`/user/${userProfile.username}/connections?tab=following`)}
               />
-            </div>
-          </div>
 
-          {/* Bio + Tier Pill */}
-          <div className="mt-3 flex items-start justify-between gap-3">
-            {userProfile.bio ? (
-              <p
-                className="text-sm text-gray-600 whitespace-pre-line min-w-0 flex-1 overflow-hidden"
-                style={{
-                  display: '-webkit-box',
-                  WebkitLineClamp: 3,
-                  WebkitBoxOrient: 'vertical'
-                }}
-              >
-                {userProfile.bio}
-              </p>
-            ) : (
-              <div className="min-w-0 flex-1" />
-            )}
-            <div className="flex-shrink-0">
-              <span className="inline-flex items-center rounded-full border border-primary/20 bg-primary/5 px-3 py-1 text-xs font-semibold text-primary">
-                {tierProgress.tierName || 'Member'}
-              </span>
+              {/* Bio */}
+              {userProfile.bio ? (
+                <p
+                  className="mt-2 text-sm text-gray-600 whitespace-pre-line min-w-0 overflow-hidden"
+                  style={{
+                    display: '-webkit-box',
+                    WebkitLineClamp: 3,
+                    WebkitBoxOrient: 'vertical'
+                  }}
+                >
+                  {userProfile.bio}
+                </p>
+              ) : null}
             </div>
           </div>
 
