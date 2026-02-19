@@ -359,28 +359,6 @@ const getCurrentDayHours = (hours: Record<string, string>) => {
     load();
   }, [reviews]);
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-light-gray flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-dark-gray">Loading restaurant...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!restaurant) {
-    return (
-      <div className="min-h-screen bg-light-gray flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-lg font-medium text-dark-gray mb-4">Restaurant not found</p>
-          <Link to="/" className="text-primary hover:underline">Back to Home</Link>
-        </div>
-      </div>
-    );
-  }
-
   // Build hero images slideshow
   const visitPhotos = getVisitPhotosFromReviews(reviews);
   const limitedVisitPhotos = visitPhotos.filter(isValidHeroImage).slice(0, 10);
@@ -396,7 +374,6 @@ const getCurrentDayHours = (hours: Record<string, string>) => {
 
   const displayHeroImages = heroImages.filter((url) => !failedHeroImages.has(url));
   const hasHeroImages = displayHeroImages.length > 0;
-  const currentImage = hasHeroImages ? displayHeroImages[heroImageIndex] : null;
   const hasMultipleImages = displayHeroImages.length > 1;
 
   useEffect(() => {
@@ -554,6 +531,28 @@ const getCurrentDayHours = (hours: Record<string, string>) => {
   };
 
   const closeHeroModal = () => setIsHeroModalOpen(false);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-light-gray flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-dark-gray">Loading restaurant...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!restaurant) {
+    return (
+      <div className="min-h-screen bg-light-gray flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-lg font-medium text-dark-gray mb-4">Restaurant not found</p>
+          <Link to="/" className="text-primary hover:underline">Back to Home</Link>
+        </div>
+      </div>
+    );
+  }
 
   const hasReviews = reviews.length > 0;
   const isGoogleOnlyListing = !hasReviews && restaurant.source === 'google_places';
@@ -1073,18 +1072,16 @@ const getCurrentDayHours = (hours: Record<string, string>) => {
                     <div className="flex justify-between items-start mb-1">
                       <div className="min-w-0">
                         <p className="text-sm font-semibold uppercase tracking-wide text-red-500 truncate">
-                          {review.dish || 'Dish'}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          <span className="uppercase tracking-wide text-gray-400">Rated by</span>{' '}
+                          {review.dish || 'Dish'}{' '}
+                          <span className="text-red-500">RATED BY</span>{' '}
                           <span
-                            className="font-medium text-gray-700 cursor-pointer hover:text-primary"
+                            className="text-red-500 hover:underline cursor-pointer"
                             onClick={() => author?.username && navigate('/user/' + author.username)}
                           >
                             {authorLabel}
                           </span>
-                          <span className="text-gray-400"> ? {createdAtText}</span>
                         </p>
+                        <p className="text-xs text-gray-500">{createdAtText}</p>
                       </div>
                       <RatingBadge rating={review.rating} size="md" />
                     </div>
