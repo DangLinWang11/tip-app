@@ -64,6 +64,18 @@ export const createDefaultTemplates = async (): Promise<{ success: boolean; erro
 
     console.log('🎯 Creating default templates for user:', currentUser.uid);
 
+    // If user previously dismissed templates, do not recreate them
+    try {
+      const userSnap = await getDoc(doc(db, 'users', currentUser.uid));
+      const dismissed = userSnap.exists() ? Boolean((userSnap.data() as any)?.templatesDismissed) : false;
+      if (dismissed) {
+        console.log('✅ Templates dismissed by user; skipping creation');
+        return { success: true };
+      }
+    } catch (err) {
+      console.warn('Failed to read template dismissal flag; continuing:', err);
+    }
+
     // Check if templates already exist
     const existingLists = await getUserSavedLists();
     if (!existingLists.success) {
@@ -97,6 +109,15 @@ export const createDefaultTemplates = async (): Promise<{ success: boolean; erro
 
     await Promise.all(templatePromises);
     console.log('✅ Default templates created successfully');
+
+    // Mark templates as active (not dismissed)
+    try {
+      await updateDoc(doc(db, 'users', currentUser.uid), {
+        templatesDismissed: false
+      });
+    } catch (updateError) {
+      console.warn('Failed to update template dismissal flag:', updateError);
+    }
     return { success: true };
   } catch (error: any) {
     console.error('❌ Failed to create default templates:', error);
@@ -390,6 +411,26 @@ export const deleteSavedList = async (
 
     await deleteDoc(doc(db, 'savedLists', listId));
     console.log('✅ List deleted successfully');
+
+    // If user deleted their last template list, remember dismissal so we don't recreate
+    if (listData.type === 'template') {
+      try {
+        const listsRef = collection(db, 'savedLists');
+        const q = query(
+          listsRef,
+          where('userId', '==', currentUser.uid),
+          where('type', '==', 'template')
+        );
+        const remaining = await getDocs(q);
+        if (remaining.empty) {
+          await updateDoc(doc(db, 'users', currentUser.uid), {
+            templatesDismissed: true
+          });
+        }
+      } catch (checkError) {
+        console.warn('Failed to update template dismissal flag:', checkError);
+      }
+    }
     
     return { success: true };
   } catch (error: any) {

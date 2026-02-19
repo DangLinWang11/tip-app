@@ -168,18 +168,26 @@ export const getFollowers = async (userId?: string): Promise<Follow[]> => {
     if (!targetUserId) return [];
 
     const followsRef = collection(db, 'follows');
+    // Avoid orderBy here to prevent composite index requirements; sort client-side.
     const q = query(
       followsRef,
-      where('followingId', '==', targetUserId),
-      orderBy('timestamp', 'desc')
+      where('followingId', '==', targetUserId)
     );
     
     const snapshot = await getDocs(q);
-    return snapshot.docs.map(doc => ({
+    const followers = snapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data(),
       timestamp: doc.data().timestamp.toDate()
     } as Follow));
+
+    followers.sort((a, b) => {
+      const aTime = a.timestamp instanceof Date ? a.timestamp.getTime() : new Date(a.timestamp as any).getTime();
+      const bTime = b.timestamp instanceof Date ? b.timestamp.getTime() : new Date(b.timestamp as any).getTime();
+      return bTime - aTime;
+    });
+
+    return followers;
   } catch (error) {
     console.error('Error getting followers list:', error);
     return [];
