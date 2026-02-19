@@ -33,9 +33,9 @@ const Layout: React.FC = () => {
 
   // Define main tab routes that should persist (never unmount)
   const persistentRoutes = [
-    { path: '/', element: <Home /> },
+    { path: '/', element: <Home />, exact: true },
     { path: '/discover/list', element: <DiscoverList /> },
-    { path: '/profile', element: <Profile /> },
+    { path: '/profile', element: <Profile />, exact: true },
     { path: '/food-map', element: <MyFoodMap /> },
     { path: '/list-view', element: <FoodMap /> },
     { path: '/recent-activity', element: <RecentActivity /> },
@@ -43,6 +43,9 @@ const Layout: React.FC = () => {
 
   // Check if current route is a persistent tab route
   const isPersistentRoute = persistentRoutes.some(route => {
+    if (route.exact) {
+      return location.pathname === route.path;
+    }
     if (route.path === '/') {
       return location.pathname === '/';
     }

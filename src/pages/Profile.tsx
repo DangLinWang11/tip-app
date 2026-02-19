@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, startTransition } from 'react';
+import React, { useState, useEffect, useRef, useMemo, startTransition } from 'react';
 import { EditIcon, GridIcon, BookmarkIcon, SearchIcon, PlusIcon, Star, Users, TrendingUp, Award, Share, User, MapIcon } from 'lucide-react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Store as StoreIcon } from 'lucide-react';
@@ -24,10 +24,11 @@ import { getFollowCounts } from '../services/followService';
 import ProfileHeader from '../components/ProfileHeader';
 import ExpandedMapModal from '../components/ExpandedMapModal';
 import ProfileStats from '../components/ProfileStats';
-import StatPills from '../components/StatPills';
 import AvatarBadge from '../components/badges/AvatarBadge';
 import BadgeLadderModal from '../components/badges/BadgeLadderModal';
 import { getTierFromPoints } from '../badges/badgeTiers';
+import HighlightsSection from '../components/profile/HighlightsSection';
+import { getTopDishes } from '../utils/topDishes';
 
 // Simple cache for profile data to enable instant "back" navigation
 let cachedProfileData: {
@@ -38,6 +39,18 @@ let cachedProfileData: {
 } | null = null;
 
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
+const extractCityFromLocation = (location?: string | null): string => {
+  if (!location) return '';
+  const parts = location
+    .split(',')
+    .map(part => part.trim())
+    .filter(Boolean);
+
+  if (parts.length >= 3) return parts[1];
+  if (parts.length === 2) return parts[0];
+  return parts[0] || '';
+};
 
 // Skeleton UI Component for loading state
 const ProfileSkeleton: React.FC = () => {
@@ -492,7 +505,7 @@ const Profile: React.FC = () => {
           return;
         }
 
-        const reviews = await fetchUserReviews(50);
+        const reviews = await fetchUserReviews(200);
         setFirebaseReviews(reviews);
         
         // Convert current user's reviews to feed post format
@@ -597,6 +610,17 @@ const Profile: React.FC = () => {
       : 0),
     pointsEarned: Math.max(userProfile?.stats?.pointsEarned || 0, firebaseReviews.length * 20)
   };
+
+  const topDishes = useMemo(() => getTopDishes(firebaseReviews, 3), [firebaseReviews]);
+
+  const citiesCount = useMemo(() => {
+    const cities = new Set<string>();
+    firebaseReviews.forEach((review) => {
+      const city = extractCityFromLocation(review.location);
+      if (city) cities.add(city);
+    });
+    return cities.size;
+  }, [firebaseReviews]);
   const tierProgress = getTierFromPoints(personalStats.pointsEarned);
   const isNewUser = personalStats.totalReviews === 0;
 
@@ -789,12 +813,13 @@ const Profile: React.FC = () => {
             )}
           </div>
 
-          {/* Stat Pills */}
+          {/* Highlights */}
           <div data-tour="profile-rank-progress">
-            <StatPills
+            <HighlightsSection
+              topDishes={topDishes}
               restaurantsCount={personalStats.restaurantsTried}
-              averageRating={personalStats.averageRating}
-              username={userProfile.username}
+              dishesReviewed={personalStats.totalReviews}
+              citiesCount={citiesCount}
             />
           </div>
         </div>

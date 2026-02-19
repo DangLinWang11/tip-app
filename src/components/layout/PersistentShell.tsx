@@ -6,6 +6,7 @@ interface PersistentShellProps {
   children: Array<{
     path: string;
     element: React.ReactElement;
+    exact?: boolean;
   }>;
 }
 
@@ -29,9 +30,11 @@ export const PersistentShell: React.FC<PersistentShellProps> = ({ children }) =>
     <>
       {children.map(({ path, element }) => {
         // Match exact path for index route, or starts-with for other routes
-        const isActive = path === '/'
-          ? location.pathname === '/'
-          : location.pathname.startsWith(path);
+        const isActive = exact
+          ? location.pathname === path
+          : path === '/'
+            ? location.pathname === '/'
+            : location.pathname.startsWith(path);
 
         console.log('[PersistentShell]', {
           path,

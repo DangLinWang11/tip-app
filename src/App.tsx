@@ -11,6 +11,7 @@ import Create from './pages/Create';
 import Notifications from './pages/Notifications';
 import Profile from './pages/Profile';
 import PublicProfile from './pages/PublicProfile';
+import TopDishes from './pages/TopDishes';
 import UserFoodMapPage from './pages/UserFoodMapPage';
 import RecentActivity from './pages/RecentActivity';
 import EditProfile from './pages/EditProfile';
@@ -255,6 +256,7 @@ export function App() {
                 />
                 <Route path="recent-activity" element={<RecentActivity />} />
                 <Route path="profile" element={<Profile />} />
+                <Route path="profile/top" element={<TopDishes />} />
                 <Route path="user/:username" element={<PublicProfile />} />
                 <Route path="user/:username/connections" element={<FollowersFollowing />} />
                 <Route path="user/:username/restaurants" element={<UserRestaurants />} />
