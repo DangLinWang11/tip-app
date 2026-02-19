@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, startTransition } from 'react';
-import { ArrowLeftIcon, MapIcon, MapPinIcon, SearchIcon, PlusIcon, CheckIcon, EditIcon, Share, User, Star, Users, TrendingUp, Store, Award } from 'lucide-react';
+import { ArrowLeftIcon, MapIcon, MapPinIcon, SearchIcon, PlusIcon, CheckIcon, EditIcon, Share, User, Star, Users, TrendingUp, Store } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import FeedPost from '../components/FeedPost';
 import { fetchUserReviews, convertReviewsToFeedPosts, FirebaseReview } from '../services/reviewService';
@@ -423,6 +423,15 @@ const PublicProfile: React.FC = () => {
           from { opacity: 0; }
           to { opacity: 1; }
         }
+        @keyframes badgeHeartbeat {
+          0%, 100% { transform: scale(1); }
+          45% { transform: scale(1.04); }
+          65% { transform: scale(1); }
+        }
+        .badge-heartbeat {
+          animation: badgeHeartbeat 2.8s ease-in-out infinite;
+          transform-origin: center;
+        }
       `}</style>
 
       {/* New Instagram-style Header */}
@@ -446,7 +455,14 @@ const PublicProfile: React.FC = () => {
               {/* Actual Name */}
               <h2 className="font-semibold text-lg text-gray-900 flex items-center">
                 {userProfile?.actualName || userProfile?.displayName || username}
-                <AvatarBadge tierIndex={tierProgress.tierIndex} size="inline" className="ml-1.5" />
+                <button
+                  type="button"
+                  onClick={() => setShowBadgeModal(true)}
+                  className="inline-flex items-center badge-heartbeat ml-1.5"
+                  aria-label="View badges"
+                >
+                  <AvatarBadge tierIndex={tierProgress.tierIndex} size="inline" />
+                </button>
                 {userProfile?.isVerified && (
                   <span className="ml-1 text-blue-500" title="Verified user">✓</span>
                 )}
@@ -498,7 +514,7 @@ const PublicProfile: React.FC = () => {
             </button>
           )}
 
-          {/* Action buttons for own profile */}
+          {/* Action button for own profile */}
           {isOwnProfile && (
             <div className="flex space-x-2 mt-4">
               <button
@@ -511,26 +527,6 @@ const PublicProfile: React.FC = () => {
               >
                 <EditIcon size={14} className="mr-1.5" />
                 Edit Profile
-              </button>
-
-              <button
-                onClick={() => setShowBadgeModal(true)}
-                className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium flex items-center hover:bg-gray-50 transition-colors"
-              >
-                <Award size={14} className="mr-1.5" />
-                Badges
-              </button>
-            </div>
-          )}
-
-          {!isOwnProfile && (
-            <div className="mt-3">
-              <button
-                onClick={() => setShowBadgeModal(true)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium flex items-center justify-center hover:bg-gray-50 transition-colors"
-              >
-                <Award size={14} className="mr-1.5" />
-                View Rank
               </button>
             </div>
           )}

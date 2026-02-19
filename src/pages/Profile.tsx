@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo, startTransition } from 'react';
-import { EditIcon, GridIcon, BookmarkIcon, SearchIcon, PlusIcon, Star, Users, TrendingUp, Award, Share, User, MapIcon } from 'lucide-react';
+import { GridIcon, BookmarkIcon, SearchIcon, PlusIcon, Star, Users, TrendingUp, Share, User, MapIcon } from 'lucide-react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Store as StoreIcon } from 'lucide-react';
 import { useOwnedRestaurants } from '../hooks/useOwnedRestaurants';
@@ -685,6 +685,15 @@ const Profile: React.FC = () => {
           from { opacity: 0; }
           to { opacity: 1; }
         }
+        @keyframes badgeHeartbeat {
+          0%, 100% { transform: scale(1); }
+          45% { transform: scale(1.04); }
+          65% { transform: scale(1); }
+        }
+        .badge-heartbeat {
+          animation: badgeHeartbeat 2.8s ease-in-out infinite;
+          transform-origin: center;
+        }
       `}</style>
 
       {/* New Instagram-style Header */}
@@ -698,12 +707,19 @@ const Profile: React.FC = () => {
         {/* Profile Info Section - Instagram Style */}
         <div className="p-4">
           <div className="flex items-start">
-            {/* Avatar + Tier */}
+            {/* Avatar + Edit */}
             <div className="flex flex-col items-center">
               <UserAvatar size="lg" />
-              <span className="mt-2 inline-flex items-center rounded-full border border-primary/20 bg-primary/5 px-3 py-1 text-xs font-semibold text-primary">
-                {tierProgress.tierName || 'Member'}
-              </span>
+              <button
+                onClick={() => {
+                  startTransition(() => {
+                    navigate('/profile/edit');
+                  });
+                }}
+                className="mt-2 inline-flex items-center justify-center rounded-full border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+              >
+                Edit
+              </button>
             </div>
 
             {/* Name, Stats, Bio */}
@@ -712,9 +728,15 @@ const Profile: React.FC = () => {
               <h2 className="font-semibold text-lg text-gray-900 flex items-center">
                 {userProfile.actualName || userProfile.displayName || userProfile.username}
                 {!isNewUser && (
-                  <span data-tour="profile-rank-badge" className="inline-flex">
-                    <AvatarBadge tierIndex={tierProgress.tierIndex} size="inline" className="ml-1.5" />
-                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setShowBadgeModal(true)}
+                    className="inline-flex items-center badge-heartbeat ml-1.5"
+                    aria-label="View badges"
+                    data-tour="profile-rank-badge"
+                  >
+                    <AvatarBadge tierIndex={tierProgress.tierIndex} size="inline" />
+                  </button>
                 )}
                 {userProfile.isVerified && (
                   <span className="ml-1 text-blue-500" title="Verified user">✓</span>
@@ -768,29 +790,9 @@ const Profile: React.FC = () => {
             </div>
           )}
 
-          {/* Action Buttons */}
-          <div className="flex space-x-2 mt-4">
-            <button
-              onClick={() => {
-                startTransition(() => {
-                  navigate('/profile/edit');
-                });
-              }}
-              className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium flex items-center hover:bg-gray-50 transition-colors"
-            >
-              <EditIcon size={14} className="mr-1.5" />
-              Edit Profile
-            </button>
-
-            <button
-              onClick={() => setShowBadgeModal(true)}
-              className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium flex items-center hover:bg-gray-50 transition-colors"
-            >
-              <Award size={14} className="mr-1.5" />
-              Badges
-            </button>
-
-            {ownsAny && (
+          {/* Owner Action */}
+          {ownsAny && (
+            <div className="flex mt-3">
               <button
                 onClick={() => {
                   startTransition(() => {
@@ -803,8 +805,8 @@ const Profile: React.FC = () => {
                 <StoreIcon size={14} className="mr-1.5" />
                 Your Restaurant
               </button>
-            )}
-          </div>
+            </div>
+          )}
 
           {/* Highlights */}
           <div data-tour="profile-rank-progress">
