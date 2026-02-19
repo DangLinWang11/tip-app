@@ -25,10 +25,10 @@ const TopDishesCard: React.FC<TopDishesCardProps> = ({ topDishes }) => {
   };
 
   return (
-    <div className={`${GLASS_CARD} p-6 h-full`}>
-      <div className="flex items-center justify-between">
+    <div className={`${GLASS_CARD} p-5 h-full`}>
+      <div className="flex items-center justify-between px-2">
         <div className="flex items-center gap-2">
-          <span className="text-lg">🏆</span>
+          <span className="w-6" aria-hidden="true" />
           <h3 className="text-sm font-semibold text-gray-800">Top Dishes</h3>
         </div>
         <button
@@ -41,32 +41,32 @@ const TopDishesCard: React.FC<TopDishesCardProps> = ({ topDishes }) => {
       </div>
 
       {topDishes.length === 0 ? (
-        <div className="mt-5 rounded-2xl bg-white/80 border border-white/70 px-4 py-3 text-sm text-gray-600">
+        <div className="mt-3 rounded-2xl bg-white/80 border border-white/70 px-4 py-2.5 text-sm text-gray-600">
           Rate your first dish to see your Top 3.
         </div>
       ) : (
-        <div className="mt-4 space-y-3">
+        <div className="mt-3 space-y-2">
           {topDishes.map((dish, index) => (
             <button
               key={`${dish.dishId || dish.representativeReviewId}-${index}`}
               type="button"
               onClick={() => handleRowClick(dish)}
-              className="w-full flex items-center gap-3 rounded-2xl px-3 py-2 hover:bg-white/80 transition-colors text-left"
+              className="w-full flex items-center gap-3 rounded-2xl px-2 py-1.5 hover:bg-white/80 transition-colors text-left"
             >
-              <span className="text-base font-semibold text-gray-900 w-5 text-center">
+              <span className="w-6 text-center text-sm font-semibold text-primary">
                 {index + 1}
               </span>
               <div className="min-w-0 flex-1">
-                <div className="truncate text-sm font-medium text-gray-900">
+                <div className="truncate text-sm font-medium text-gray-900 leading-tight">
                   {dish.dishName}
                 </div>
                 {dish.restaurantName ? (
-                  <div className="text-xs text-gray-500 truncate">
+                  <div className="text-xs text-gray-500 truncate leading-tight">
                     {dish.restaurantName}
                   </div>
                 ) : null}
               </div>
-              <span className="rounded-full bg-accent text-white px-2 py-1 text-xs font-semibold">
+              <span className="rounded-full bg-accent text-white px-2 py-0.5 text-xs font-semibold">
                 {dish.averageRating.toFixed(1)}
               </span>
             </button>

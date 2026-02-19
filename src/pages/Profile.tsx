@@ -737,10 +737,28 @@ const Profile: React.FC = () => {
             </div>
           </div>
 
-          {/* Bio - Below avatar */}
-          {userProfile.bio && (
-            <p className="text-sm text-gray-600 mt-3 whitespace-pre-line">{userProfile.bio}</p>
-          )}
+          {/* Bio + Tier Pill */}
+          <div className="mt-3 flex items-start justify-between gap-3">
+            {userProfile.bio ? (
+              <p
+                className="text-sm text-gray-600 whitespace-pre-line min-w-0 flex-1 overflow-hidden"
+                style={{
+                  display: '-webkit-box',
+                  WebkitLineClamp: 3,
+                  WebkitBoxOrient: 'vertical'
+                }}
+              >
+                {userProfile.bio}
+              </p>
+            ) : (
+              <div className="min-w-0 flex-1" />
+            )}
+            <div className="flex-shrink-0">
+              <span className="inline-flex items-center rounded-full border border-primary/20 bg-primary/5 px-3 py-1 text-xs font-semibold text-primary">
+                {tierProgress.tierName || 'Member'}
+              </span>
+            </div>
+          </div>
 
           {isNewUser && (
             <div className="mt-4 rounded-xl border border-gray-200 bg-white px-4 py-3">
