@@ -40,33 +40,26 @@ export const DISH_STYLES = [
 
 export const POSITIVE_ATTRIBUTES = [
   { value: 'spicy', label: 'Spicy' },
-  { value: 'mild', label: 'Mild' },
   { value: 'sweet', label: 'Sweet' },
-  { value: 'zesty', label: 'Zesty' },
-  { value: 'umami_rich', label: 'Umami-rich' },
-  { value: 'garlicky', label: 'Garlicky' },
   { value: 'well_seasoned', label: 'Well-seasoned' },
   { value: 'balanced', label: 'Balanced' },
   { value: 'fresh', label: 'Fresh' },
-  { value: 'scratch_made', label: 'Scratch-made' },
-  { value: 'high_quality_ingredients', label: 'High-quality ingredients' },
+  { value: 'scratch_made', label: 'Scratch made' },
   { value: 'comfort_food', label: 'Comfort food' },
   { value: 'beautiful_presentation', label: 'Beautiful presentation' },
 ] as const;
 
 export const NEGATIVE_ATTRIBUTES = [
-  { value: 'under_seasoned', label: 'Under-seasoned' },
+  { value: 'under_seasoned', label: 'Underseasoned' },
   { value: 'needs_reheating', label: 'Needs reheating' },
-  { value: 'poor_quality_ingredients', label: 'Poor quality ingredients' },
+  { value: 'not_fresh', label: 'Not fresh' },
   { value: 'too_greasy', label: 'Too greasy' },
   { value: 'dry', label: 'Dry' },
   { value: 'soggy', label: 'Soggy' },
-  { value: 'served_cold', label: 'Served cold' },
   { value: 'overcooked', label: 'Overcooked' },
   { value: 'undercooked', label: 'Undercooked' },
-  { value: 'bland', label: 'Bland' },
   { value: 'overpowering_flavors', label: 'Overpowering flavors' },
-  { value: 'not_as_described', label: 'Not as described' },
+  { value: 'bland', label: 'Bland' },
 ] as const;
 
 // Legacy: Keep for backward compatibility

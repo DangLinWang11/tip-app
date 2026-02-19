@@ -1,20 +1,39 @@
 import React, { useState, useEffect } from 'react';
 import UserJourneyMap from '../components/UserJourneyMap';
 import { getCurrentUser, getUserProfile } from '../lib/firebase';
+import { getUserVisitedRestaurants } from '../services/reviewService';
 import { getTierFromPoints } from '../badges/badgeTiers';
 import BottomNavigation from '../components/BottomNavigation';
 
 const MyFoodMap: React.FC = () => {
   const [userProfile, setUserProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [journeyStats, setJourneyStats] = useState<{ reviews: number; countries: number }>({ reviews: 0, countries: 0 });
 
   useEffect(() => {
     const loadProfile = async () => {
       try {
-        const result = await getUserProfile();
-        if (result.success && result.profile) {
-          setUserProfile(result.profile);
+        const [profileResult, visitedRestaurants] = await Promise.all([
+          getUserProfile(),
+          getUserVisitedRestaurants()
+        ]);
+
+        if (profileResult.success && profileResult.profile) {
+          setUserProfile(profileResult.profile);
         }
+
+        const reviews = visitedRestaurants.reduce((sum, restaurant) => {
+          const count = typeof restaurant.reviewCount === 'number'
+            ? restaurant.reviewCount
+            : (typeof restaurant.totalReviews === 'number' ? restaurant.totalReviews : 0);
+          return sum + count;
+        }, 0);
+        const countries = new Set(
+          visitedRestaurants
+            .map((restaurant) => restaurant.countryCode)
+            .filter((code): code is string => Boolean(code))
+        ).size;
+        setJourneyStats({ reviews, countries });
       } catch (error) {
         console.error('Failed to load profile:', error);
       } finally {
@@ -26,8 +45,8 @@ const MyFoodMap: React.FC = () => {
 
   const currentUser = getCurrentUser();
   const tierInfo = getTierFromPoints(userProfile?.stats?.pointsEarned ?? 0);
-  const journeyPlaces = userProfile?.stats?.totalRestaurants ?? 0;
-  const journeyCountries = userProfile?.stats?.totalCountries ?? 0;
+  const journeyReviews = journeyStats.reviews;
+  const journeyCountries = journeyStats.countries;
 
   if (loading) {
     return (
@@ -92,14 +111,14 @@ const MyFoodMap: React.FC = () => {
               <circle cx="9.2" cy="7.6" r="2.6" fill="url(#journey_shine_my_map)" />
               <text x="12" y="12" fontFamily="'Poppins', sans-serif" fontSize="12" fontWeight="800"
                 textAnchor="middle" dominantBaseline="central" fill="#FFFFFF">
-                {journeyPlaces >= 100 ? '99+' : journeyPlaces}
+                {journeyReviews >= 100 ? '99+' : journeyReviews}
               </text>
             </svg>
           </div>
           <div className="flex flex-col items-start text-left leading-tight">
             <span className="text-[11px] uppercase tracking-[0.16em] text-gray-400">Journey Stats</span>
             <span className="text-[13px] font-semibold text-gray-800">
-              🍽 {journeyPlaces} places · 🌍 {journeyCountries} countries
+              🍽 {journeyReviews} reviews · 🌍 {journeyCountries} countries
             </span>
           </div>
         </div>

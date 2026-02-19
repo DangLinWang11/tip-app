@@ -15,13 +15,13 @@ import { MealTimeTag } from '../../dev/types/review';
 import { getQualityColor } from '../../utils/qualityScore';
 
 const MEAL_TIME_OPTIONS: Array<{ value: MealTimeTag; labelKey: string; emoji: string; fallback: string }> = [
-  { value: 'breakfast', labelKey: 'mealTime.breakfast', emoji: '🌅', fallback: 'Breakfast' },
-  { value: 'brunch', labelKey: 'mealTime.brunch', emoji: '🥂', fallback: 'Brunch' },
-  { value: 'lunch', labelKey: 'mealTime.lunch', emoji: '🌤️', fallback: 'Lunch' },
-  { value: 'dinner', labelKey: 'mealTime.dinner', emoji: '🌙', fallback: 'Dinner' },
-  { value: 'late_night', labelKey: 'mealTime.lateNight', emoji: '🌃', fallback: 'Late Night' },
-  { value: 'dessert', labelKey: 'mealTime.dessert', emoji: '🍰', fallback: 'Dessert' },
-  { value: 'snack', labelKey: 'mealTime.snack', emoji: '🍿', fallback: 'Snack' }
+  { value: 'breakfast', labelKey: 'mealTime.breakfast', emoji: '\u{1F373}', fallback: 'Breakfast' },
+  { value: 'brunch', labelKey: 'mealTime.brunch', emoji: '\u{1F942}', fallback: 'Brunch' },
+  { value: 'lunch', labelKey: 'mealTime.lunch', emoji: '\u{1F96A}', fallback: 'Lunch' },
+  { value: 'dinner', labelKey: 'mealTime.dinner', emoji: '\u{1F37D}\uFE0F', fallback: 'Dinner' },
+  { value: 'late_night', labelKey: 'mealTime.lateNight', emoji: '\u{1F319}', fallback: 'Late Night' },
+  { value: 'dessert', labelKey: 'mealTime.dessert', emoji: '\u{1F370}', fallback: 'Dessert' },
+  { value: 'date_night', labelKey: 'mealTime.dateNight', emoji: '\u2764\uFE0F', fallback: 'Date Night' }
 ];
 
 const PRICE_LEVELS: Array<'$' | '$$' | '$$$' | '$$$$'> = ['$', '$$', '$$$', '$$$$'];
@@ -706,14 +706,14 @@ const StepVisit: React.FC = () => {
           {/* Selected Restaurant Display */}
           {selectedRestaurant ? (
             <div className="mt-4">
-              <div className="w-full rounded-2xl border-2 border-red-400 bg-red-50 px-4 py-3">
+              <div className="w-full rounded-2xl border-2 border-red-400 bg-red-50 px-3 py-2">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <MapPin className="w-5 h-5 text-red-500" />
+                    <MapPin className="w-4 h-4 text-red-500" />
                     <div>
-                      <p className="text-base font-semibold text-slate-900">{selectedRestaurant.name}</p>
+                      <p className="text-sm font-semibold text-slate-900">{selectedRestaurant.name}</p>
                       {(selectedRestaurant.address || selectedRestaurant.location?.formatted) && (
-                        <p className="text-sm text-slate-500">
+                        <p className="text-xs text-slate-500">
                           {selectedRestaurant.address || selectedRestaurant.location?.formatted}
                         </p>
                       )}
@@ -726,7 +726,7 @@ const StepVisit: React.FC = () => {
                       setRestaurantQuery('');
                       setPlacePredictions([]);
                     }}
-                    className="text-sm font-medium text-red-600 hover:text-red-700"
+                    className="text-xs font-medium text-red-600 hover:text-red-700"
                   >
                     Change
                   </button>
@@ -899,7 +899,7 @@ const StepVisit: React.FC = () => {
       {selectedRestaurant && (
         <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-md shadow-slate-200/60">
           <div className="mb-3">
-            <h3 className="text-base font-semibold text-slate-900">Did you order to-go?</h3>
+            <h3 className="text-sm font-semibold text-slate-900">Did you order to-go?</h3>
             <p className="text-sm text-slate-500">Select one</p>
           </div>
           <div className="flex gap-2">
@@ -931,7 +931,7 @@ const StepVisit: React.FC = () => {
       {selectedRestaurant && (
         <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-md shadow-slate-200/60">
           <div className="mb-3">
-            <h3 className="text-base font-semibold text-slate-900">How expensive is this restaurant?</h3>
+            <h3 className="text-sm font-semibold text-slate-900">How expensive is this restaurant?</h3>
             <p className="text-sm text-slate-500">Select one</p>
           </div>
           <div className="flex gap-2">
@@ -959,49 +959,11 @@ const StepVisit: React.FC = () => {
         </section>
       )}
 
-      {/* Service Speed */}
-      {selectedRestaurant && (
-        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-md shadow-slate-200/60">
-          <div className="mb-3">
-            <h3 className="text-base font-semibold text-slate-900">How fast was the service?</h3>
-            <p className="text-sm text-slate-500">Select one</p>
-          </div>
-          <div className="flex gap-2">
-            {(['slow', 'normal', 'fast'] as const).map((speed) => {
-              const active = visitDraft.serviceSpeed === speed;
-              const config = {
-                slow: { icon: '🐌', label: 'Slow' },
-                normal: { icon: '⏱️', label: 'Average' },
-                fast: { icon: '⚡', label: 'Fast' }
-              };
-              return (
-                <button
-                  key={speed}
-                  type="button"
-                  onClick={() => setVisitDraft((prev) => ({
-                    ...prev,
-                    serviceSpeed: prev.serviceSpeed === speed ? null : speed
-                  }))}
-                  className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold transition ${
-                    active
-                      ? 'bg-red-500 text-white shadow-md shadow-red-200/60'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                  }`}
-                >
-                  <span>{config[speed].icon}</span>
-                  <span>{config[speed].label}</span>
-                </button>
-              );
-            })}
-          </div>
-        </section>
-      )}
-
       {/* Meal Time Selection */}
       {selectedRestaurant && (
         <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-md shadow-slate-200/60">
           <div className="mb-4">
-            <h2 className="text-lg font-semibold text-slate-900">When did you dine?</h2>
+            <h2 className="text-lg font-semibold text-slate-900">Why did you dine?</h2>
           </div>
           <div className="flex flex-wrap gap-2">
             {MEAL_TIME_OPTIONS.map((option) => {

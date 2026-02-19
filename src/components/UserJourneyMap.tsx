@@ -283,13 +283,18 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({
   }), []);
 
   const stats = useMemo(() => {
-    const places = visitedRestaurants.length;
+    const reviews = visitedRestaurants.reduce((sum, restaurant) => {
+      const count = typeof restaurant.reviewCount === 'number'
+        ? restaurant.reviewCount
+        : (typeof restaurant.totalReviews === 'number' ? restaurant.totalReviews : 0);
+      return sum + count;
+    }, 0);
     const countries = countryStats.length;
     const dates = visitedRestaurants
       .map(r => Date.parse(r.lastVisit))
       .filter((value) => Number.isFinite(value));
     const since = dates.length > 0 ? new Date(Math.min(...dates)).getFullYear() : null;
-    return { places, countries, since };
+    return { reviews, countries, since };
   }, [visitedRestaurants, countryStats]);
 
   const handleCountrySelect = (country: CountryData) => {
@@ -416,9 +421,9 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({
         <div className="pointer-events-none absolute bottom-0 right-0 w-24 h-10 bg-gradient-to-l from-white via-white/90 to-transparent z-10" />
 
         <AnimatePresence>
-          {showLegend && stats.places > 0 && (
+          {showLegend && stats.reviews > 0 && (
             <motion.button
-              key={`journey-stats-${stats.places}-${stats.countries}`}
+              key={`journey-stats-${stats.reviews}-${stats.countries}`}
               type="button"
               initial={{ opacity: 0, y: 12, scale: 0.98 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -455,13 +460,13 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({
                     />
                     <circle cx="12" cy="12" r="10" fill="url(#journey_depth)" />
                     <circle cx="9.2" cy="7.6" r="2.6" fill="url(#journey_shine)" />
-                    <text x="12" y="12" fontFamily="'Poppins', sans-serif" fontSize="12" fontWeight="800" textAnchor="middle" dominantBaseline="central" fill="#FFFFFF">{stats.places >= 100 ? '99+' : stats.places}</text>
+                    <text x="12" y="12" fontFamily="'Poppins', sans-serif" fontSize="12" fontWeight="800" textAnchor="middle" dominantBaseline="central" fill="#FFFFFF">{stats.reviews >= 100 ? '99+' : stats.reviews}</text>
                   </svg>
                 </div>
                 <div className="flex flex-col items-start text-left leading-tight">
                   <span className="text-[11px] uppercase tracking-[0.16em] text-gray-400">Journey Stats</span>
                   <span className="text-[13px] font-semibold text-gray-800">
-                    🍽 {stats.places} places · 🌍 {stats.countries} countries
+                    🍽 {stats.reviews} reviews · 🌍 {stats.countries} countries
                   </span>
                   {stats.since && <span className="text-[11px] font-normal text-gray-500">since {stats.since}</span>}
                 </div>

@@ -1,6 +1,6 @@
 export type DishCategory = 'appetizer' | 'entree' | 'handheld' | 'side' | 'dessert' | 'drink';
 
-export type MealTimeTag = 'breakfast' | 'brunch' | 'lunch' | 'dinner' | 'late_night' | 'dessert' | 'snack';
+export type MealTimeTag = 'breakfast' | 'brunch' | 'lunch' | 'dinner' | 'late_night' | 'dessert' | 'date_night' | 'snack';
 
 export type ServiceSpeed = 'fast' | 'normal' | 'slow';
 

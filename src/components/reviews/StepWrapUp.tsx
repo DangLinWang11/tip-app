@@ -455,7 +455,7 @@ const StepWrapUp: React.FC = () => {
           </div>
         </div>
       ) : visitDraft.isToGo === false ? (
-        <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl p-6 border-2 border-purple-200 shadow-md">
+        <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl p-4 border-2 border-purple-200 shadow-md">
           <h2 className="text-lg font-bold text-purple-900 mb-2 flex items-center gap-2">
             🍽️ Service & Vibes
           </h2>
@@ -463,11 +463,11 @@ const StepWrapUp: React.FC = () => {
             Quick feedback on your dine-in experience
           </p>
 
-          <div className="space-y-4">
+          <div className="space-y-3">
             {/* Wait time */}
             <div>
               <p className="text-sm font-semibold text-slate-800 mb-2">How was the wait time?</p>
-              <div className="flex gap-2">
+              <div className="flex gap-1.5">
                 {[
                   { value: 'too_long' as const, label: '🐌 Too Long' },
                   { value: 'fine' as const, label: '👍 Fine' },
@@ -477,7 +477,7 @@ const StepWrapUp: React.FC = () => {
                     key={value}
                     type="button"
                     onClick={() => setDineInFeedback(prev => ({ ...prev, waitTime: value }))}
-                    className={`flex-1 px-3 py-2 rounded-xl text-sm font-medium transition-all ${
+                    className={`flex-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
                       dineInFeedback.waitTime === value
                         ? 'bg-purple-600 text-white shadow-md scale-105'
                         : 'bg-white text-slate-700 hover:bg-purple-100 border border-purple-200'
@@ -492,7 +492,7 @@ const StepWrapUp: React.FC = () => {
             {/* Staff friendliness */}
             <div>
               <p className="text-sm font-semibold text-slate-800 mb-2">Staff friendliness?</p>
-              <div className="flex gap-2">
+              <div className="flex gap-1.5">
                 {[
                   { value: 'low' as const, label: '😕 Low' },
                   { value: 'ok' as const, label: '😐 OK' },
@@ -502,7 +502,7 @@ const StepWrapUp: React.FC = () => {
                     key={value}
                     type="button"
                     onClick={() => setDineInFeedback(prev => ({ ...prev, staffFriendliness: value }))}
-                    className={`flex-1 px-3 py-2 rounded-xl text-sm font-medium transition-all ${
+                    className={`flex-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
                       dineInFeedback.staffFriendliness === value
                         ? 'bg-purple-600 text-white shadow-md scale-105'
                         : 'bg-white text-slate-700 hover:bg-purple-100 border border-purple-200'
@@ -517,7 +517,7 @@ const StepWrapUp: React.FC = () => {
             {/* Noise level */}
             <div>
               <p className="text-sm font-semibold text-slate-800 mb-2">Noise level?</p>
-              <div className="flex gap-2">
+              <div className="flex gap-1.5">
                 {[
                   { value: 'too_loud' as const, label: '📢 Too Loud' },
                   { value: 'fine' as const, label: '👌 Fine' },
@@ -527,7 +527,7 @@ const StepWrapUp: React.FC = () => {
                     key={value}
                     type="button"
                     onClick={() => setDineInFeedback(prev => ({ ...prev, noiseLevel: value }))}
-                    className={`flex-1 px-3 py-2 rounded-xl text-sm font-medium transition-all ${
+                    className={`flex-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
                       dineInFeedback.noiseLevel === value
                         ? 'bg-purple-600 text-white shadow-md scale-105'
                         : 'bg-white text-slate-700 hover:bg-purple-100 border border-purple-200'
@@ -548,7 +548,7 @@ const StepWrapUp: React.FC = () => {
         <div>
           <h2 className="text-lg font-semibold text-slate-900 mb-2">What stood out?</h2>
           <p className="text-xs text-slate-500 mb-3">Select up to {MAX_BUSINESS_TAGS} highlights</p>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-1.5">
             {BUSINESS_TAGS.map(tag => {
               const isSelected = selectedBusinessTags.includes(tag);
               const isMaxed = selectedBusinessTags.length >= MAX_BUSINESS_TAGS && !isSelected;
@@ -558,7 +558,7 @@ const StepWrapUp: React.FC = () => {
                   type="button"
                   onClick={() => toggleBusinessTag(tag)}
                   disabled={isMaxed}
-                  className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                  className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
                     isSelected
                       ? 'bg-green-100 text-green-700 shadow-sm'
                       : isMaxed
@@ -577,7 +577,7 @@ const StepWrapUp: React.FC = () => {
         <div>
           <h2 className="text-lg font-semibold text-slate-900 mb-2">Any lowlights?</h2>
           <p className="text-xs text-slate-500 mb-3">Select up to {MAX_BUSINESS_LOWLIGHTS} lowlights (optional)</p>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-1.5">
             {BUSINESS_LOWLIGHTS.map(tag => {
               const isSelected = selectedBusinessLowlights.includes(tag);
               const isMaxed = selectedBusinessLowlights.length >= MAX_BUSINESS_LOWLIGHTS && !isSelected;
@@ -587,7 +587,7 @@ const StepWrapUp: React.FC = () => {
                   type="button"
                   onClick={() => toggleBusinessLowlight(tag)}
                   disabled={isMaxed}
-                  className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                  className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
                     isSelected
                       ? 'bg-red-100 text-red-700 shadow-sm'
                       : isMaxed

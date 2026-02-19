@@ -8,13 +8,13 @@ import { BAD_WORDS } from './profanity';
 import type { MealTimeTag, ServiceSpeed } from '../../dev/types/review';
 
 const MEAL_TIME_OPTIONS: Array<{ value: MealTimeTag; labelKey: string; emoji: string }> = [
-  { value: 'breakfast', labelKey: 'mealTime.breakfast', emoji: '🌅' },
-  { value: 'brunch', labelKey: 'mealTime.brunch', emoji: '🥂' },
-  { value: 'lunch', labelKey: 'mealTime.lunch', emoji: '🌤️' },
-  { value: 'dinner', labelKey: 'mealTime.dinner', emoji: '🌙' },
-  { value: 'late_night', labelKey: 'mealTime.lateNight', emoji: '🌃' },
-  { value: 'dessert', labelKey: 'mealTime.dessert', emoji: '🍰' },
-  { value: 'snack', labelKey: 'mealTime.snack', emoji: '🍿' }
+  { value: 'breakfast', labelKey: 'mealTime.breakfast', emoji: '\u{1F373}' },
+  { value: 'brunch', labelKey: 'mealTime.brunch', emoji: '\u{1F942}' },
+  { value: 'lunch', labelKey: 'mealTime.lunch', emoji: '\u{1F96A}' },
+  { value: 'dinner', labelKey: 'mealTime.dinner', emoji: '\u{1F37D}\uFE0F' },
+  { value: 'late_night', labelKey: 'mealTime.lateNight', emoji: '\u{1F319}' },
+  { value: 'dessert', labelKey: 'mealTime.dessert', emoji: '\u{1F370}' },
+  { value: 'date_night', labelKey: 'mealTime.dateNight', emoji: '\u2764\uFE0F' }
 ];
 
 const SERVICE_SPEED_OPTIONS: Array<{ value: ServiceSpeed; labelKey: string }> = [
