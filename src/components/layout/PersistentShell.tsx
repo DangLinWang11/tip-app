@@ -28,7 +28,7 @@ export const PersistentShell: React.FC<PersistentShellProps> = ({ children }) =>
 
   return (
     <>
-      {children.map(({ path, element }) => {
+      {children.map(({ path, element, exact }) => {
         // Match exact path for index route, or starts-with for other routes
         const isActive = exact
           ? location.pathname === path
