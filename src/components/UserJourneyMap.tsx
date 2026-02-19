@@ -26,6 +26,7 @@ interface UserJourneyMapProps {
   userName?: string;
   userAvatar?: string; // avatar URL from user profile
   userTierIndex?: number;
+  reviewCountOverride?: number;
   allowHomeCountryOverride?: boolean;
   onClose?: () => void;
   onBack?: () => void;
@@ -44,6 +45,7 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({
   userName,
   userAvatar,
   userTierIndex,
+  reviewCountOverride,
   allowHomeCountryOverride = true,
   onClose,
   onBack,
@@ -283,19 +285,22 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({
   }), []);
 
   const stats = useMemo(() => {
-    const reviews = visitedRestaurants.reduce((sum, restaurant) => {
+    const computedReviews = visitedRestaurants.reduce((sum, restaurant) => {
       const count = typeof restaurant.reviewCount === 'number'
         ? restaurant.reviewCount
         : (typeof restaurant.totalReviews === 'number' ? restaurant.totalReviews : 0);
       return sum + count;
     }, 0);
+    const reviews = (typeof reviewCountOverride === 'number' && Number.isFinite(reviewCountOverride))
+      ? Math.max(0, reviewCountOverride)
+      : computedReviews;
     const countries = countryStats.length;
     const dates = visitedRestaurants
       .map(r => Date.parse(r.lastVisit))
       .filter((value) => Number.isFinite(value));
     const since = dates.length > 0 ? new Date(Math.min(...dates)).getFullYear() : null;
     return { reviews, countries, since };
-  }, [visitedRestaurants, countryStats]);
+  }, [visitedRestaurants, countryStats, reviewCountOverride]);
 
   const handleCountrySelect = (country: CountryData) => {
     if (!allowHomeCountryOverride || typeof window === 'undefined') return;

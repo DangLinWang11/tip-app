@@ -128,6 +128,38 @@ const RestaurantDetail: React.FC = () => {
     return out;
   };
 
+  const isValidHeroImage = (url?: string | null): boolean => {
+    if (!url || typeof url !== 'string' || url.trim() === '') return false;
+    const urlLower = url.toLowerCase();
+
+    if (urlLower.includes('tip-logo') ||
+        urlLower.includes('/images/tip-logo') ||
+        urlLower.includes('tip_logo') ||
+        urlLower.includes('/tip-logo') ||
+        urlLower.includes('tiplogo') ||
+        urlLower.includes('placeholder')) {
+      return false;
+    }
+
+    if (urlLower.includes('maps.googleapis.com/maps/api/staticmap') ||
+        urlLower.includes('googleapis.com/maps/api/staticmap') ||
+        urlLower.includes('maps.gstatic') ||
+        urlLower.includes('gstatic.com/mapfiles') ||
+        urlLower.includes('googleusercontent.com/maps') ||
+        urlLower.includes('streetview') ||
+        urlLower.includes('maptile')) {
+      return false;
+    }
+
+    if (urlLower.includes('photo_not_available') ||
+        urlLower.includes('no_image') ||
+        urlLower.includes('notfound')) {
+      return false;
+    }
+
+    return true;
+  };
+
   const extractReviewTags = (review: any): { tasteChips: string[]; audienceTags: string[] } => {
     const tasteChips: string[] = [];
     const audienceTags: string[] = [];
@@ -337,11 +369,14 @@ const getCurrentDayHours = (hours: Record<string, string>) => {
 
   // Build hero images slideshow
   const visitPhotos = getVisitPhotosFromReviews(reviews);
-  const limitedVisitPhotos = visitPhotos.slice(0, 10);
+  const limitedVisitPhotos = visitPhotos.filter(isValidHeroImage).slice(0, 10);
+  const googlePhotos = Array.isArray(restaurant?.googlePhotos)
+    ? restaurant.googlePhotos.filter(isValidHeroImage)
+    : [];
 
   const heroImages: string[] = [];
-  if (restaurant?.googlePhotos && restaurant.googlePhotos.length > 0) {
-    heroImages.push(restaurant.googlePhotos[0]);
+  if (googlePhotos.length > 0) {
+    heroImages.push(googlePhotos[0]);
   }
   heroImages.push(...limitedVisitPhotos);
 
@@ -691,9 +726,9 @@ const getCurrentDayHours = (hours: Record<string, string>) => {
         </div>
       </div>
       <div className="mt-6 px-4">
-        <h2 className="font-semibold text-2xl mb-6 text-gray-900">Menu</h2>
+        <h2 className="font-semibold text-2xl mb-4 text-gray-900">Menu</h2>
         {menuItems.length > 0 ? (
-          <div className="space-y-4">
+          <div className="space-y-3">
             {Object.entries(groupedMenu).map(([category, items]) => {
               const isOpen = openSections.has(category);
               const IconComponent = getCategoryIcon(category);
@@ -701,13 +736,13 @@ const getCurrentDayHours = (hours: Record<string, string>) => {
                 <div key={category} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                   <button
                     onClick={() => toggleSection(category)}
-                    className="w-full flex items-center justify-between p-6 hover:bg-gray-50 transition-colors"
+                    className="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-50 transition-colors"
                   >
                     <div className="flex items-center">
-                      <div className="w-10 h-10 bg-gray-50 rounded-full flex items-center justify-center mr-4">
-                        <IconComponent size={20} className="text-red-500" style={{ color: '#ff3131' }} />
+                      <div className="w-9 h-9 bg-gray-50 rounded-full flex items-center justify-center mr-3">
+                        <IconComponent size={18} className="text-red-500" style={{ color: '#ff3131' }} />
                       </div>
-                      <h3 className="font-semibold text-lg text-gray-900">{category || 'Custom'}</h3>
+                      <h3 className="font-semibold text-base text-gray-900">{category || 'Custom'}</h3>
                     </div>
                     <ChevronDown 
                       size={20} 
@@ -715,24 +750,24 @@ const getCurrentDayHours = (hours: Record<string, string>) => {
                     />
                   </button>
                   {isOpen && (
-                    <div className="px-6 pb-6 space-y-3">
+                    <div className="px-5 pb-4 space-y-2">
                       {items.map(item => {
                         const ItemIcon = getCategoryIcon(item.category || category);
                         return (
                         <div
                           key={item.id}
-                          className="flex cursor-pointer hover:bg-gray-50 p-3 rounded-xl transition-colors group"
+                          className="flex cursor-pointer hover:bg-gray-50 px-3 py-2 rounded-xl transition-colors group"
                           onClick={() => navigate(`/dish/${item.id}`)}
                         >
                           {item.coverImage ? (
                             <img
                               src={item.coverImage}
                               alt={item.name}
-                              className="w-16 h-16 rounded-xl object-cover flex-shrink-0"
+                              className="w-14 h-14 rounded-xl object-cover flex-shrink-0"
                             />
                           ) : (
-                            <div className="w-16 h-16 rounded-xl bg-gray-100 flex items-center justify-center flex-shrink-0">
-                              <ItemIcon size={24} className="text-gray-400" />
+                            <div className="w-14 h-14 rounded-xl bg-gray-100 flex items-center justify-center flex-shrink-0">
+                              <ItemIcon size={20} className="text-gray-400" />
                             </div>
                           )}
                           <div className="ml-3 flex-1 min-w-0">
@@ -747,7 +782,7 @@ const getCurrentDayHours = (hours: Record<string, string>) => {
                                 )}
                               </div>
                             </div>
-                            <p className="text-gray-600 text-sm line-clamp-2 mt-1">
+                            <p className="text-gray-600 text-sm line-clamp-2 mt-0.5">
                               {item.description || 'Delicious dish'}
                             </p>
                             {/* Users often say chips (aggregated top tags) */}
@@ -841,16 +876,25 @@ const getCurrentDayHours = (hours: Record<string, string>) => {
               return new Date(ms).toLocaleDateString();
             })();
             const images = Array.isArray((review as any)?.media?.photos) ? (review as any).media.photos : (review.images || []);
+            const primaryImage = images && images.length > 0 ? images[0] : null;
+            const extraImages = primaryImage ? images.slice(1, 4) : images.slice(0, 3);
             return (
               <div key={review.id} className="border-b border-light-gray pb-4 last:border-0">
-                <div className="flex items-start">
-                  <img
-                    src={author?.image || getAvatarUrl({ username: review.userId, displayName: author?.name })}
-                    alt={author?.name || 'User'}
-                    className="w-10 h-10 rounded-full object-cover cursor-pointer"
-                    onClick={() => author?.username && navigate('/user/' + author.username)}
-                  />
-                  <div className="ml-3 flex-1">
+                <div className="flex items-start gap-3">
+                  <div className="w-14 h-14 rounded-xl bg-gray-100 overflow-hidden flex-shrink-0">
+                    {primaryImage ? (
+                      <img
+                        src={primaryImage}
+                        alt={review.dish || 'Dish'}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <Utensils size={18} className="text-gray-400" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
                     <div className="flex justify-between items-start mb-1">
                       <div className="min-w-0">
                         <p
@@ -858,8 +902,8 @@ const getCurrentDayHours = (hours: Record<string, string>) => {
                           onClick={() => author?.username && navigate('/user/' + author.username)}
                         >
                           {author?.name || 'Anonymous'}
+                          <span className="text-xs text-gray-500 ml-1">· {createdAtText}</span>
                         </p>
-                        <span className="text-xs text-gray-500">{createdAtText}</span>
                       </div>
                       <RatingBadge rating={review.rating} size="md" />
                     </div>
@@ -897,9 +941,9 @@ const getCurrentDayHours = (hours: Record<string, string>) => {
                         ))}
                       </div>
                     )}
-                    {images && images.length > 0 && (
+                    {extraImages && extraImages.length > 0 && (
                       <div className="flex mt-3 space-x-2">
-                        {images.slice(0, 3).map((src, i) => (
+                        {extraImages.map((src, i) => (
                           <img key={i} src={src} alt="Review" className="w-16 h-16 rounded-md object-cover" />
                         ))}
                       </div>

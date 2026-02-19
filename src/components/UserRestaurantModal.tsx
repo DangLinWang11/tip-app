@@ -145,8 +145,8 @@ const UserRestaurantModal: React.FC<UserRestaurantModalProps> = ({
       className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
       onClick={handleBackdropClick}
     >
-      <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[85vh] overflow-hidden shadow-2xl">
-        <div className="bg-white p-6 relative">
+      <div className="bg-white rounded-2xl max-w-2xl w-full h-[78vh] max-h-[78vh] overflow-hidden shadow-2xl flex flex-col">
+        <div className="bg-white p-6 relative border-b border-gray-100">
           <button
             onClick={onClose}
             className="absolute top-4 right-4 p-2 hover:bg-gray-100 rounded-full transition-colors"
@@ -186,7 +186,7 @@ const UserRestaurantModal: React.FC<UserRestaurantModalProps> = ({
           </div>
         </div>
 
-        <div className="overflow-y-auto max-h-[60vh]">
+        <div className="flex-1 min-h-0 overflow-y-auto">
           {loading ? (
             <div className="flex items-center justify-center py-12">
               <div className="text-center">
@@ -219,7 +219,7 @@ const UserRestaurantModal: React.FC<UserRestaurantModalProps> = ({
               </p>
             </div>
           ) : (
-            <div className="px-4 pb-6">
+            <div className="px-4 pb-6 pt-4 min-h-[280px]">
               <div className="space-y-3">
                 {reviews.map((review) => (
                   <div

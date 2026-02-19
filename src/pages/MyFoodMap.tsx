@@ -18,16 +18,21 @@ const MyFoodMap: React.FC = () => {
           getUserVisitedRestaurants()
         ]);
 
+        let profileReviewCount: number | null = null;
         if (profileResult.success && profileResult.profile) {
           setUserProfile(profileResult.profile);
+          if (typeof profileResult.profile?.stats?.totalReviews === 'number') {
+            profileReviewCount = profileResult.profile.stats.totalReviews;
+          }
         }
 
-        const reviews = visitedRestaurants.reduce((sum, restaurant) => {
+        const computedReviews = visitedRestaurants.reduce((sum, restaurant) => {
           const count = typeof restaurant.reviewCount === 'number'
             ? restaurant.reviewCount
             : (typeof restaurant.totalReviews === 'number' ? restaurant.totalReviews : 0);
           return sum + count;
         }, 0);
+        const reviews = typeof profileReviewCount === 'number' ? profileReviewCount : computedReviews;
         const countries = new Set(
           visitedRestaurants
             .map((restaurant) => restaurant.countryCode)
@@ -70,6 +75,7 @@ const MyFoodMap: React.FC = () => {
         userName={userProfile?.username || userProfile?.displayName}
         userTierIndex={tierInfo.tierIndex}
         userAvatar={userProfile?.avatar || userProfile?.photoURL || currentUser?.photoURL}
+        reviewCountOverride={journeyReviews}
         homeCountry={userProfile?.homeCountry}
         allowHomeCountryOverride={true}
       />

@@ -15,6 +15,7 @@ interface ExpandedMapModalProps {
   userName?: string;      // optional userName for header display
   userTierIndex?: number; // badge tier index for header display
   userAvatar?: string;    // avatar URL from user profile
+  reviewCountOverride?: number;
   homeCountry?: string;   // ISO country code for map centering
   allowHomeCountryOverride?: boolean;
   focusRestaurant?: FocusRestaurant;
@@ -27,6 +28,7 @@ const ExpandedMapModal: React.FC<ExpandedMapModalProps> = ({
   userName,
   userTierIndex,
   userAvatar,
+  reviewCountOverride,
   homeCountry,
   allowHomeCountryOverride = true,
   focusRestaurant
@@ -96,6 +98,7 @@ const ExpandedMapModal: React.FC<ExpandedMapModalProps> = ({
             userName={userName}
             userTierIndex={userTierIndex}
             userAvatar={userAvatar}
+            reviewCountOverride={reviewCountOverride}
             homeCountry={homeCountry}
             focusRestaurant={focusRestaurant}
             onClose={() => { unlockScroll(); onClose(); }}
