@@ -40,17 +40,6 @@ let cachedProfileData: {
 
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
-const extractCityFromLocation = (location?: string | null): string => {
-  if (!location) return '';
-  const parts = location
-    .split(',')
-    .map(part => part.trim())
-    .filter(Boolean);
-
-  if (parts.length >= 3) return parts[1];
-  if (parts.length === 2) return parts[0];
-  return parts[0] || '';
-};
 
 // Skeleton UI Component for loading state
 const ProfileSkeleton: React.FC = () => {
@@ -613,14 +602,6 @@ const Profile: React.FC = () => {
 
   const topDishes = useMemo(() => getTopDishes(firebaseReviews, 3), [firebaseReviews]);
 
-  const citiesCount = useMemo(() => {
-    const cities = new Set<string>();
-    firebaseReviews.forEach((review) => {
-      const city = extractCityFromLocation(review.location);
-      if (city) cities.add(city);
-    });
-    return cities.size;
-  }, [firebaseReviews]);
   const tierProgress = getTierFromPoints(personalStats.pointsEarned);
   const isNewUser = personalStats.totalReviews === 0;
 
@@ -817,9 +798,6 @@ const Profile: React.FC = () => {
           <div data-tour="profile-rank-progress">
             <HighlightsSection
               topDishes={topDishes}
-              restaurantsCount={personalStats.restaurantsTried}
-              dishesReviewed={personalStats.totalReviews}
-              citiesCount={citiesCount}
             />
           </div>
         </div>
