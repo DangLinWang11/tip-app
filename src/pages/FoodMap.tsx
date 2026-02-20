@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { MapIcon, TrendingUpIcon, StarIcon, ClockIcon, MessageCircleIcon, PlusIcon, ArrowLeft, Star, X, Edit2, MapPinIcon, Store, TrendingUp } from 'lucide-react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { fetchUserReviews, convertUserReviewsToFeedPosts, FirebaseReview, PersonalNote, addPersonalNote, updatePersonalNote, deletePersonalNote } from '../services/reviewService';
+import { fetchUserReviews, convertUserReviewsToFeedPosts, FirebaseReview, PersonalNote, addPersonalNote, updatePersonalNote } from '../services/reviewService';
 import { getUserProfile, getCurrentUser, getUserByUsername } from '../lib/firebase';
 import LocationPinIcon from '../components/icons/LocationPinIcon';
 import DishIcon from '../components/icons/DishIcon';
@@ -15,6 +15,7 @@ const FoodMap: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [editingNote, setEditingNote] = useState<{reviewId: string, noteId: string} | null>(null);
   const [isOwnProfile, setIsOwnProfile] = useState(true);
+  const [noteDrafts, setNoteDrafts] = useState<Record<string, string>>({});
   const isNewUser = userReviews.length === 0;
 
   // Load user data function
@@ -124,6 +125,22 @@ const FoodMap: React.FC = () => {
 
   const handleAddNote = (visitId: number) => {
     console.log(`Add note for visit ${visitId}`);
+  };
+
+  const updateNoteDraft = (reviewId: string, value: string) => {
+    setNoteDrafts((prev) => ({ ...prev, [reviewId]: value }));
+  };
+
+  const submitNote = async (reviewId: string, existingCount: number) => {
+    const noteText = (noteDrafts[reviewId] || '').trim();
+    if (!noteText || existingCount >= 3) return;
+    try {
+      await addPersonalNote(reviewId, noteText);
+      await loadUserData();
+      setNoteDrafts((prev) => ({ ...prev, [reviewId]: '' }));
+    } catch (error) {
+      console.error('Failed to add note:', error);
+    }
   };
 
   // Feed-style compact timestamp (m, h, d, or MM/DD/YY)
@@ -408,32 +425,38 @@ const FoodMap: React.FC = () => {
                           {visit.carouselItems && visit.carouselItems.map((carouselItem: any, itemIndex: number) => (
                             <div key={carouselItem.id || itemIndex} className="space-y-2">
                               {/* Add New Note for this dish */}
+                              {(() => {
+                                const notesCount = carouselItem.personalNotes?.length ?? 0;
+                                const isLimitReached = notesCount >= 3;
+                                return (
                               <div className="flex items-center min-w-0 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
                                 <input
                                   type="text"
-                                  placeholder="Add personal note..."
+                                  placeholder={isLimitReached ? 'Limit reached (3 max)' : 'Add personal note...'}
                                   className="flex-1 min-w-0 bg-transparent text-gray-600 placeholder-gray-400 border-none outline-none"
                                   style={{ fontSize: '16px' }}
-                                  onBlur={async (e) => {
-                                    const noteText = e.target.value.trim();
-                                    if (noteText) {
-                                      try {
-                                        await addPersonalNote(carouselItem.id, noteText);
-                                        await loadUserData();
-                                        e.target.value = '';
-                                      } catch (error) {
-                                        console.error('Failed to add note:', error);
-                                      }
-                                    }
-                                  }}
+                                  value={noteDrafts[carouselItem.id] || ''}
+                                  disabled={isLimitReached}
+                                  onChange={(e) => updateNoteDraft(carouselItem.id, e.target.value)}
                                   onKeyDown={(e) => {
                                     if (e.key === 'Enter') {
-                                      e.currentTarget.blur();
+                                      e.preventDefault();
+                                      submitNote(carouselItem.id, notesCount);
                                     }
                                   }}
                                 />
-                                <PlusIcon size={16} className="text-gray-400" />
+                                <button
+                                  type="button"
+                                  onClick={() => submitNote(carouselItem.id, notesCount)}
+                                  disabled={isLimitReached}
+                                  className={`ml-2 flex items-center justify-center ${isLimitReached ? 'text-gray-300' : 'text-gray-500 hover:text-gray-700'}`}
+                                  aria-label="Add note"
+                                >
+                                  <PlusIcon size={16} />
+                                </button>
                               </div>
+                                );
+                              })()}
 
                               {/* Existing Notes for this dish */}
                               {carouselItem.personalNotes && carouselItem.personalNotes.length > 0 && (
@@ -479,31 +502,18 @@ const FoodMap: React.FC = () => {
                                               })}
                                             </p>
                                           </div>
-                                          <div className="flex items-center space-x-1 ml-2">
-                                            <button
-                                              onClick={() => setEditingNote({ reviewId: carouselItem.id, noteId: note.id })}
-                                              className="text-gray-400 hover:text-gray-600 transition-colors"
-                                            >
-                                              <Edit2 size={14} />
-                                            </button>
-                                            <button
-                                              onClick={async () => {
-                                                try {
-                                                  await deletePersonalNote(carouselItem.id, note.id);
-                                                  await loadUserData();
-                                                } catch (error) {
-                                                  console.error('Failed to delete note:', error);
-                                                }
-                                              }}
-                                              className="text-gray-400 hover:text-red-600 transition-colors"
-                                            >
-                                              <X size={14} />
-                                            </button>
-                                          </div>
-                                        </>
-                                      )}
-                                    </div>
-                                  ))}
+                                      <div className="flex items-center space-x-1 ml-2">
+                                        <button
+                                          onClick={() => setEditingNote({ reviewId: carouselItem.id, noteId: note.id })}
+                                          className="text-gray-400 hover:text-gray-600 transition-colors"
+                                        >
+                                          <Edit2 size={14} />
+                                        </button>
+                                      </div>
+                                    </>
+                                  )}
+                                </div>
+                              ))}
                                 </div>
                               )}
 
@@ -516,32 +526,38 @@ const FoodMap: React.FC = () => {
                           <p className="text-xs text-gray-500">Personal Notes:</p>
 
                           {/* Add New Note */}
-                          <div className="flex items-center min-w-0 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
-                            <input
-                              type="text"
-                              placeholder="Add personal note..."
-                              className="flex-1 min-w-0 bg-transparent text-gray-600 placeholder-gray-400 border-none outline-none"
-                              style={{ fontSize: '16px' }}
-                              onBlur={async (e) => {
-                                const noteText = e.target.value.trim();
-                                if (noteText) {
-                                  try {
-                                    await addPersonalNote(visit.id, noteText);
-                                    await loadUserData();
-                                    e.target.value = '';
-                                  } catch (error) {
-                                    console.error('Failed to add note:', error);
-                                  }
-                                }
-                              }}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter') {
-                                  e.currentTarget.blur();
-                                }
-                              }}
-                            />
-                            <PlusIcon size={16} className="text-gray-400" />
-                          </div>
+                          {(() => {
+                            const notesCount = visit.personalNotes?.length ?? 0;
+                            const isLimitReached = notesCount >= 3;
+                            return (
+                              <div className="flex items-center min-w-0 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
+                                <input
+                                  type="text"
+                                  placeholder={isLimitReached ? 'Limit reached (3 max)' : 'Add personal note...'}
+                                  className="flex-1 min-w-0 bg-transparent text-gray-600 placeholder-gray-400 border-none outline-none"
+                                  style={{ fontSize: '16px' }}
+                                  value={noteDrafts[visit.id] || ''}
+                                  disabled={isLimitReached}
+                                  onChange={(e) => updateNoteDraft(visit.id, e.target.value)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                      e.preventDefault();
+                                      submitNote(visit.id, notesCount);
+                                    }
+                                  }}
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => submitNote(visit.id, notesCount)}
+                                  disabled={isLimitReached}
+                                  className={`ml-2 flex items-center justify-center ${isLimitReached ? 'text-gray-300' : 'text-gray-500 hover:text-gray-700'}`}
+                                  aria-label="Add note"
+                                >
+                                  <PlusIcon size={16} />
+                                </button>
+                              </div>
+                            );
+                          })()}
 
                           {/* Existing Notes */}
                           {visit.personalNotes && visit.personalNotes.length > 0 && (
@@ -593,19 +609,6 @@ const FoodMap: React.FC = () => {
                                           className="text-gray-400 hover:text-gray-600 transition-colors"
                                         >
                                           <Edit2 size={14} />
-                                        </button>
-                                        <button
-                                          onClick={async () => {
-                                            try {
-                                              await deletePersonalNote(visit.id, note.id);
-                                              await loadUserData();
-                                            } catch (error) {
-                                              console.error('Failed to delete note:', error);
-                                            }
-                                          }}
-                                          className="text-gray-400 hover:text-red-600 transition-colors"
-                                        >
-                                          <X size={14} />
                                         </button>
                                       </div>
                                     </>

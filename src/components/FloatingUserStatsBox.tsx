@@ -28,6 +28,8 @@ const FloatingUserStatsBox: React.FC<FloatingUserStatsBoxProps> = ({
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [avatarError, setAvatarError] = useState(false);
   const placeholderRef = useRef<HTMLDivElement>(null);
+  const displayName = 'you';
+  const displayTierName = 'you';
 
   useEffect(() => {
     const COLLAPSE_AT = 220;
@@ -77,13 +79,13 @@ const FloatingUserStatsBox: React.FC<FloatingUserStatsBoxProps> = ({
                     {resolvedAvatar ? (
                       <img
                         src={resolvedAvatar}
-                        alt={username}
+                        alt={displayName}
                         onError={() => setAvatarError(true)}
                         className="h-12 w-12 rounded-full object-cover shadow-md border-2 border-white"
                       />
                     ) : (
                       <div className="h-12 w-12 rounded-full bg-gradient-to-br from-rose-500 to-red-600 text-white flex items-center justify-center font-semibold text-base shadow-md">
-                        {username.slice(0, 1).toUpperCase()}
+                        {displayName.slice(0, 1).toUpperCase()}
                       </div>
                     )}
                   </div>
@@ -91,10 +93,10 @@ const FloatingUserStatsBox: React.FC<FloatingUserStatsBoxProps> = ({
                   {/* Username and Tier Name - min-w-0 allows text truncation */}
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
-                      <h3 className="font-semibold text-gray-900 text-base max-w-[120px] truncate">{username}</h3>
+                      <h3 className="font-semibold text-gray-900 text-base max-w-[120px] truncate">{displayName}</h3>
                       <AvatarBadge tierIndex={tierIndex} size="feed" className="flex-shrink-0" />
                     </div>
-                    <p className="text-sm text-gray-500 truncate">{tierName}</p>
+                    <p className="text-sm text-gray-500 truncate">{displayTierName}</p>
                   </div>
                 </div>
 
