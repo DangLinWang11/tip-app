@@ -445,9 +445,29 @@ const PublicProfile: React.FC = () => {
         {/* Profile Info Section - Instagram Style */}
         <div className="p-4">
           <div className="flex items-start">
-            {/* Avatar */}
-            <div className="relative">
+            {/* Avatar + Follow Button */}
+            <div className="relative flex flex-col items-center">
               <UserAvatar />
+              {!isOwnProfile && (
+                <button
+                  onClick={handleFollowToggle}
+                  disabled={followLoading}
+                  className={`mt-2 px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-1.5 border transition-colors ${
+                    isFollowingUser
+                      ? 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                      : 'border-primary text-primary hover:bg-red-50'
+                  } ${followLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                >
+                  {followLoading ? (
+                    <div className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                  ) : isFollowingUser ? (
+                    <CheckIcon size={14} />
+                  ) : (
+                    <PlusIcon size={14} />
+                  )}
+                  {isFollowingUser ? 'Following' : 'Follow'}
+                </button>
+              )}
             </div>
 
             {/* Name and Stats */}
@@ -490,28 +510,6 @@ const PublicProfile: React.FC = () => {
           {/* Bio - Below avatar */}
           {userProfile?.bio && (
             <p className="text-sm text-gray-600 mt-3 whitespace-pre-line">{userProfile.bio}</p>
-          )}
-
-          {/* Follow/Unfollow Button - Full width below bio */}
-          {!isOwnProfile && (
-            <button
-              onClick={handleFollowToggle}
-              disabled={followLoading}
-              className={`w-full mt-4 py-2.5 rounded-lg font-medium transition-colors flex items-center justify-center ${
-                isFollowingUser
-                  ? 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  : 'bg-primary text-white hover:bg-red-600'
-              } ${followLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-            >
-              {followLoading ? (
-                <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2" />
-              ) : isFollowingUser ? (
-                <CheckIcon size={16} className="mr-2" />
-              ) : (
-                <PlusIcon size={16} className="mr-2" />
-              )}
-              {isFollowingUser ? 'Following' : 'Follow'}
-            </button>
           )}
 
           {/* Action button for own profile */}

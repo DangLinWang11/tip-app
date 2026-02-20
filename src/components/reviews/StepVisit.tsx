@@ -48,18 +48,22 @@ const RestaurantSearchInput = React.memo(({
   onChange,
   placeholder,
   className,
-  inputRef
+  inputRef,
+  onClear
 }: {
   value: string;
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   placeholder: string;
   className: string;
   inputRef?: React.Ref<HTMLInputElement>;
+  onClear?: () => void;
 }) => {
   const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
     // Prevent page scroll when input focuses
     e.target.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
   };
+
+  const showClear = value.trim().length > 0;
 
   return (
     <div className="relative">
@@ -70,10 +74,23 @@ const RestaurantSearchInput = React.memo(({
         placeholder={placeholder}
         className={className}
         autoComplete="off"
+        inputMode="search"
+        enterKeyHint="search"
         onFocus={handleFocus}
         ref={inputRef}
       />
-      <MapPin className="absolute right-4 top-3.5 h-5 w-5 text-slate-400" />
+      {showClear ? (
+        <button
+          type="button"
+          onClick={onClear}
+          className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
+          aria-label="Clear search"
+        >
+          <X className="h-4 w-4" />
+        </button>
+      ) : (
+        <MapPin className="absolute right-4 top-3.5 h-5 w-5 text-slate-400" />
+      )}
     </div>
   );
 });
@@ -149,6 +166,7 @@ const StepVisit: React.FC = () => {
 
   const [restaurantQuery, setRestaurantQuery] = useState('');
   const restaurantSearchRef = useRef<HTMLInputElement>(null);
+  const restaurantResultsRef = useRef<HTMLDivElement>(null);
   const [didFocusSearch, setDidFocusSearch] = useState(false);
   const [restaurants, setRestaurants] = useState<RestaurantOption[]>([]);
   const [loadingRestaurants, setLoadingRestaurants] = useState(false);
@@ -214,6 +232,22 @@ const StepVisit: React.FC = () => {
     );
   }, []);
 
+  const isFoodOrDrinkPrediction = (prediction: google.maps.places.AutocompletePrediction) => {
+    if (!prediction.types || prediction.types.length === 0) return true;
+    return prediction.types.some((type) =>
+      type.includes('restaurant') ||
+      type.includes('food') ||
+      type.includes('cafe') ||
+      type.includes('bar') ||
+      type.includes('brewery') ||
+      type.includes('winery') ||
+      type.includes('distillery') ||
+      type.includes('night_club') ||
+      type === 'meal_takeaway' ||
+      type === 'meal_delivery'
+    );
+  };
+
   const fetchGooglePlaces = async (searchText: string) => {
     if (!searchText || searchText.length < 2 || !mapsLoaded || typeof google === 'undefined') return;
 
@@ -221,12 +255,14 @@ const StepVisit: React.FC = () => {
       const service = new google.maps.places.AutocompleteService();
       const request = {
         input: searchText,
-        types: ['restaurant']
+        types: ['establishment']
       };
 
       service.getPlacePredictions(request, async (predictions, status) => {
         if (status === google.maps.places.PlacesServiceStatus.OK && predictions) {
-          setPlacePredictions(predictions.slice(0, 5));
+          const filtered = predictions.filter(isFoodOrDrinkPrediction);
+          const finalList = filtered.length > 0 ? filtered : predictions;
+          setPlacePredictions(finalList.slice(0, 5));
         } else {
           setPlacePredictions([]);
         }
@@ -291,7 +327,8 @@ const StepVisit: React.FC = () => {
         const places = await searchNearbyRestaurants(
           userLocation,
           NEARBY_RADIUS_MILES,
-          MAX_NEARBY_RESULTS
+          MAX_NEARBY_RESULTS,
+          { allowBeverage: true }
         );
         setNearbyGooglePlaces(places);
       } catch (error) {
@@ -325,6 +362,12 @@ const StepVisit: React.FC = () => {
       setPlacePredictions([]);
     }
   }, [userLocation, showLocationBanner, requestingLocation, mapsLoaded, requestLocationPermission]);
+
+  const handleClearRestaurantQuery = () => {
+    setRestaurantQuery('');
+    setPlacePredictions([]);
+    setRestaurantError(null);
+  };
 
   const nearbyRestaurants = useMemo(() => {
     // If user is searching, filter and return search results
@@ -411,6 +454,33 @@ const StepVisit: React.FC = () => {
     // Combine: Firebase first (sorted by quality), then Google Places
     return [...firebaseNearby, ...googlePlacesAsOptions].slice(0, MAX_NEARBY_RESULTS);
   }, [restaurantQuery, restaurants, nearbyGooglePlaces, userLocation]);
+
+  const normalizedRestaurantQuery = restaurantQuery.trim().toLowerCase();
+  const hasExactMatch = Boolean(
+    normalizedRestaurantQuery &&
+      (nearbyRestaurants.some((restaurant) =>
+        restaurant.name?.toLowerCase() === normalizedRestaurantQuery
+      ) ||
+        restaurants.some((restaurant) =>
+          restaurant.name?.toLowerCase() === normalizedRestaurantQuery
+        ) ||
+        placePredictions.some((prediction) => {
+          const mainText = prediction.structured_formatting?.main_text?.toLowerCase() || '';
+          const description = prediction.description?.toLowerCase() || '';
+          return mainText === normalizedRestaurantQuery || description === normalizedRestaurantQuery;
+        }))
+  );
+  const showCreateRestaurantOption = normalizedRestaurantQuery.length >= 2 && !hasExactMatch;
+
+  useEffect(() => {
+    if (!restaurantQuery.trim()) return;
+    const target = restaurantResultsRef.current;
+    if (!target) return;
+    const raf = window.requestAnimationFrame(() => {
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+    return () => window.cancelAnimationFrame(raf);
+  }, [restaurantQuery, placePredictions.length, nearbyRestaurants.length]);
 
   const handleFileInput = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
@@ -740,12 +810,13 @@ const StepVisit: React.FC = () => {
                   value={restaurantQuery}
                   onChange={handleRestaurantQueryChange}
                   placeholder="Search for a restaurant..."
-                  className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-base text-slate-700 focus:border-red-400 focus:outline-none focus:ring-2 focus:ring-red-100"
+                  className="w-full rounded-2xl border border-slate-200 px-4 pr-12 py-3 text-base text-slate-700 focus:border-red-400 focus:outline-none focus:ring-2 focus:ring-red-100"
                   inputRef={restaurantSearchRef}
+                  onClear={handleClearRestaurantQuery}
                 />
               </div>
               {restaurantError ? <p className="text-sm text-red-500">{restaurantError}</p> : null}
-              <div className="mt-4">
+              <div className="mt-4" ref={restaurantResultsRef}>
             {loadingRestaurants || fetchingPlaceDetails ? (
               <div className="flex items-center gap-2 text-slate-500 text-sm">
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -875,7 +946,7 @@ const StepVisit: React.FC = () => {
                   </p>
                 )}
 
-                {restaurantQuery.trim() && placePredictions.length === 0 && !nearbyRestaurants.length && (
+                {showCreateRestaurantOption && (
                   <button
                     type="button"
                     onClick={() => setShowCreateRestaurant(true)}
@@ -883,7 +954,9 @@ const StepVisit: React.FC = () => {
                   >
                     <div className="flex items-center gap-2">
                       <Plus className="h-4 w-4 text-red-500" />
-                      <span className="text-sm font-medium text-slate-700">Add "{restaurantQuery}" as a new restaurant</span>
+                      <span className="text-sm font-medium text-slate-700">
+                        Add "{restaurantQuery.trim()}" as a new vendor
+                      </span>
                     </div>
                   </button>
                 )}

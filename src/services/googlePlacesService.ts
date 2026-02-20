@@ -12,7 +12,12 @@ type LatLngLiteral = { lat: number; lng: number };
  * Blacklist-only approach: Only removes clearly non-restaurant types
  * Keeps cafes, sushi restaurants, food establishments, etc.
  */
-export const filterRestaurantNoise = (places: GoogleFallbackPlace[]): GoogleFallbackPlace[] => {
+export const filterRestaurantNoise = (
+  places: GoogleFallbackPlace[],
+  options?: { allowBeverage?: boolean }
+): GoogleFallbackPlace[] => {
+  const allowBeverage = options?.allowBeverage === true;
+  const beverageTypes = allowBeverage ? ['brewery', 'winery', 'distillery', 'night_club'] : [];
   // Strict blacklist - ONLY exclude these specific non-food types
   const excludedTypes = new Set([
     'locality',           // City centers (e.g., "Sarasota")
@@ -35,6 +40,7 @@ export const filterRestaurantNoise = (places: GoogleFallbackPlace[]): GoogleFall
       type.includes('food') ||
       type.includes('cafe') ||
       type.includes('bar') ||
+      beverageTypes.some((allowed) => type.includes(allowed)) ||
       type === 'meal_takeaway' ||
       type === 'meal_delivery'
     );
@@ -421,7 +427,8 @@ export const searchNearbyForDish = async (
 export const searchNearbyRestaurants = async (
   location: LatLngLiteral,
   radiusMiles: number = 5,
-  maxResults: number = 10
+  maxResults: number = 10,
+  options?: { allowBeverage?: boolean }
 ): Promise<GoogleFallbackPlace[]> => {
   if (!location) {
     return [];
@@ -431,37 +438,56 @@ export const searchNearbyRestaurants = async (
 
   const radiusMeters = radiusMiles * 1609.34; // Convert miles to meters
 
-  return new Promise<GoogleFallbackPlace[]>((resolve) => {
-    const service = createPlacesService();
-    const request: google.maps.places.PlaceSearchRequest = {
-      location: new google.maps.LatLng(location.lat, location.lng),
-      radius: radiusMeters,
-      type: 'restaurant',
-    };
+  const allowBeverage = options?.allowBeverage === true;
+  const placeTypes = allowBeverage
+    ? ['restaurant', 'bar', 'brewery', 'winery', 'distillery', 'night_club', 'cafe']
+    : ['restaurant'];
 
-    service.nearbySearch(request, (results, status) => {
-      if (status === google.maps.places.PlacesServiceStatus.OK && results) {
-        const mapped = results.slice(0, maxResults).map((result) => ({
-          place_id: result.place_id || `google_${Math.random()}`,
-          name: result.name || 'Unknown',
-          vicinity: result.vicinity || '',
-          rating: result.rating,
-          user_ratings_total: result.user_ratings_total,
-          price_level: result.price_level,
-          photos: result.photos,
-          geometry: result.geometry,
-          types: result.types
-        }));
-        // Filter out non-restaurant noise
-        resolve(filterRestaurantNoise(mapped));
-      } else if (status === google.maps.places.PlacesServiceStatus.ZERO_RESULTS) {
+  const runNearbySearch = (type: string) =>
+    new Promise<GoogleFallbackPlace[]>((resolve) => {
+      const service = createPlacesService();
+      const request: google.maps.places.PlaceSearchRequest = {
+        location: new google.maps.LatLng(location.lat, location.lng),
+        radius: radiusMeters,
+        type
+      };
+
+      service.nearbySearch(request, (results, status) => {
+        if (status === google.maps.places.PlacesServiceStatus.OK && results) {
+          const mapped = results.map((result) => ({
+            place_id: result.place_id || `google_${Math.random()}`,
+            name: result.name || 'Unknown',
+            vicinity: result.vicinity || '',
+            rating: result.rating,
+            user_ratings_total: result.user_ratings_total,
+            price_level: result.price_level,
+            photos: result.photos,
+            geometry: result.geometry,
+            types: result.types
+          }));
+          resolve(mapped);
+          return;
+        }
+        if (status !== google.maps.places.PlacesServiceStatus.ZERO_RESULTS) {
+          console.warn(`Nearby search failed for type "${type}": ${status}`);
+        }
         resolve([]);
-      } else {
-        console.warn(`Nearby restaurant search failed: ${status}`);
-        resolve([]);
-      }
+      });
     });
-  });
+
+  const resultsByType = await Promise.all(placeTypes.map(runNearbySearch));
+  const merged = new Map<string, GoogleFallbackPlace>();
+
+  for (const list of resultsByType) {
+    for (const place of list) {
+      if (!merged.has(place.place_id)) {
+        merged.set(place.place_id, place);
+      }
+    }
+  }
+
+  const combined = Array.from(merged.values());
+  return filterRestaurantNoise(combined, { allowBeverage }).slice(0, maxResults);
 };
 
 export const searchByText = async (

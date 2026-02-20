@@ -28,8 +28,8 @@ const FloatingUserStatsBox: React.FC<FloatingUserStatsBoxProps> = ({
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [avatarError, setAvatarError] = useState(false);
   const placeholderRef = useRef<HTMLDivElement>(null);
-  const displayName = 'you';
-  const displayTierName = 'you';
+  const displayName = username?.trim() || 'You';
+  const displayTierName = tierName?.trim();
 
   useEffect(() => {
     const COLLAPSE_AT = 220;
@@ -96,7 +96,9 @@ const FloatingUserStatsBox: React.FC<FloatingUserStatsBoxProps> = ({
                       <h3 className="font-semibold text-gray-900 text-base max-w-[120px] truncate">{displayName}</h3>
                       <AvatarBadge tierIndex={tierIndex} size="feed" className="flex-shrink-0" />
                     </div>
-                    <p className="text-sm text-gray-500 truncate">{displayTierName}</p>
+                    {displayTierName ? (
+                      <p className="text-sm text-gray-500 truncate">{displayTierName}</p>
+                    ) : null}
                   </div>
                 </div>
 
