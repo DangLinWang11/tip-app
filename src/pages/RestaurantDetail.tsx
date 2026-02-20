@@ -3,13 +3,14 @@ import { useParams, Link } from 'react-router-dom';
 import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeftIcon, StarIcon, MapPinIcon, PhoneIcon, ClockIcon, BookmarkIcon, ShareIcon, ChevronRightIcon, ChevronLeftIcon, Utensils, Soup, Salad, Coffee, Cake, Fish, Pizza, Sandwich, ChefHat, ChevronDown, Globe, DollarSign, X } from 'lucide-react';
+import { ArrowLeftIcon, StarIcon, MapPinIcon, PhoneIcon, ClockIcon, BookmarkIcon, ShareIcon, ChevronRightIcon, ChevronLeftIcon, Utensils, Soup, Salad, Coffee, Cake, Fish, Pizza, Sandwich, ChefHat, ChevronDown, Globe, DollarSign, X, Trophy } from 'lucide-react';
 import BottomNavigation from '../components/BottomNavigation';
 import SaveToListModal from '../components/SaveToListModal';
 import { calculateRestaurantQualityScore } from '../services/reviewService';
 import RatingBadge from '../components/RatingBadge';
 import { getAvatarUrl } from '../utils/avatarUtils';
 import { useUserStore } from '../stores/userStore';
+import { getTopDishes } from '../utils/topDishes';
 
 interface Restaurant {
   id: string;
@@ -83,6 +84,7 @@ const RestaurantDetail: React.FC = () => {
   const isProgrammaticModalScroll = useRef(false);
   const [isHeroModalOpen, setIsHeroModalOpen] = useState(false);
   const [failedHeroImages, setFailedHeroImages] = useState<Set<string>>(new Set());
+  const [showAllTopDishes, setShowAllTopDishes] = useState(false);
 
   // Helper to collect visit photos from all reviews (both legacy and new structures)
   const getVisitPhotosFromReviews = (reviewsList: Review[] | undefined | null): string[] => {
@@ -243,6 +245,11 @@ const getCurrentDayHours = (hours: Record<string, string>) => {
   const reviewImages = getAllReviewImages(reviews);
   const groupedMenu = groupMenuByCategory(menuItems);
   const avgDishRating = reviews.length > 0 ? (reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length) : null;
+  const topDishesAll = useMemo(() => {
+    if (!reviews.length) return [];
+    return getTopDishes(reviews as any, Math.max(reviews.length, 3));
+  }, [reviews]);
+  const topDishesVisible = showAllTopDishes ? topDishesAll : topDishesAll.slice(0, 3);
   
   // Initialize first section as open when menu items are loaded
   useEffect(() => {
@@ -735,18 +742,16 @@ const getCurrentDayHours = (hours: Record<string, string>) => {
             {restaurant.name}
             {hasReviews && qualityScore !== null && (
               <span
-                className="ml-2 text-base font-semibold"
-                style={{ color: getQualityColor(qualityScore) }}
+                className="ml-2 inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold text-white align-middle"
+                style={{ backgroundColor: getQualityColor(qualityScore) }}
               >
                 {qualityScore}%
               </span>
             )}
           </h1>
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-semibold text-gray-700" style={{ fontFamily: 'Montserrat, sans-serif' }}>
-              Average Dish Rating
-            </span>
-            <span className="text-sm font-bold text-primary" style={{ fontFamily: 'Montserrat, sans-serif' }}>
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-semibold text-gray-700">Average Dish Rating</span>
+            <span className="text-sm font-bold text-primary">
               {avgDishRating !== null ? avgDishRating.toFixed(1) : 'N/A'}
             </span>
           </div>
@@ -890,6 +895,57 @@ const getCurrentDayHours = (hours: Record<string, string>) => {
       </div>
       <div className="mt-6 px-4">
         <h2 className="font-semibold text-2xl mb-4 text-gray-900">Menu</h2>
+        <div className="mb-4 rounded-3xl bg-white/92 backdrop-blur-xl shadow-[0_20px_40px_rgba(15,23,42,0.12)] border border-white/70 p-5">
+          <div className="flex items-center justify-between px-1">
+            <div className="flex items-center gap-2">
+              <span className="w-5 flex items-center justify-center text-primary" aria-hidden="true">
+                <Trophy size={16} />
+              </span>
+              <h3 className="text-sm font-semibold text-gray-800">Top Dishes</h3>
+            </div>
+            {topDishesAll.length > 3 && (
+              <button
+                type="button"
+                onClick={() => setShowAllTopDishes((prev) => !prev)}
+                className="text-xs font-medium text-secondary hover:underline"
+              >
+                {showAllTopDishes ? 'Show top 3' : 'See all items'}
+              </button>
+            )}
+          </div>
+          {topDishesAll.length === 0 ? (
+            <div className="mt-3 rounded-2xl bg-white/80 border border-white/70 px-4 py-2.5 text-sm text-gray-600">
+              Rate a dish to see the Top 3.
+            </div>
+          ) : (
+            <div className="mt-3 space-y-2">
+              {topDishesVisible.map((dish, index) => (
+                <button
+                  key={`${dish.dishId || dish.representativeReviewId}-${index}`}
+                  type="button"
+                  onClick={() => {
+                    if (dish.dishId) {
+                      navigate(`/dish/${dish.dishId}`, { state: { originReviewId: dish.representativeReviewId } });
+                      return;
+                    }
+                    navigate(`/post/${dish.representativeReviewId}`);
+                  }}
+                  className="w-full flex items-center gap-3 rounded-2xl px-1 py-1.5 hover:bg-white/80 transition-colors text-left"
+                >
+                  <span className="w-5 text-center text-sm font-semibold text-primary">{index + 1}</span>
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-sm font-medium text-gray-900 leading-tight">
+                      {dish.dishName}
+                    </div>
+                  </div>
+                  <span className="rounded-full bg-accent text-white px-2 py-0.5 text-xs font-semibold">
+                    {dish.averageRating.toFixed(1)}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
         {menuItems.length > 0 ? (
           <div className="space-y-3">
             {Object.entries(groupedMenu).map(([category, items]) => {
