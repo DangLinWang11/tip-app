@@ -208,8 +208,57 @@ const RestaurantDetail: React.FC = () => {
     return { tasteChips, audienceTags };
   };
 
-  // Helper function to get category icon
-  const getCategoryIcon = (category: string) => {
+  const MENU_ICON_COLOR = '#ff3131';
+  const MENU_ICON_PATH = '/icons/menu%20icon.svg';
+  const CATEGORY_ICON_PATHS: Record<string, string> = {
+    appetizer: '/icons/appetizer.svg',
+    entree: '/icons/Entree.svg',
+    dessert: '/icons/dessert.svg',
+    drink: '/icons/drink.svg',
+    handheld: '/icons/handheld.svg',
+    side: '/icons/side.svg'
+  };
+
+  const getCategoryIconPath = (category: string): string | null => {
+    const normalized = (category || '').toLowerCase().trim();
+    if (!normalized) return null;
+    return CATEGORY_ICON_PATHS[normalized] || null;
+  };
+
+  const renderMaskedIcon = (path: string, size: number, className?: string) => (
+    <span
+      aria-hidden="true"
+      className={className}
+      style={{
+        width: size,
+        height: size,
+        display: 'inline-block',
+        backgroundColor: MENU_ICON_COLOR,
+        WebkitMaskImage: `url(${path})`,
+        maskImage: `url(${path})`,
+        WebkitMaskRepeat: 'no-repeat',
+        maskRepeat: 'no-repeat',
+        WebkitMaskPosition: 'center',
+        maskPosition: 'center',
+        WebkitMaskSize: 'contain',
+        maskSize: 'contain'
+      }}
+    />
+  );
+
+  const CategoryIcon: React.FC<{ category: string; size?: number; className?: string }> = ({
+    category,
+    size = 24,
+    className
+  }) => {
+    const path = getCategoryIconPath(category);
+    if (path) return renderMaskedIcon(path, size, className);
+    const FallbackIcon = getCategoryIconFallback(category);
+    return <FallbackIcon size={size} className={className} style={{ color: MENU_ICON_COLOR }} />;
+  };
+
+  // Helper function to get category icon fallback
+  const getCategoryIconFallback = (category: string) => {
     const categoryLower = category.toLowerCase();
     if (categoryLower.includes('soup') || categoryLower.includes('bowl')) return Soup;
     if (categoryLower.includes('salad') || categoryLower.includes('green') || categoryLower.includes('vegetable')) return Salad;
@@ -971,7 +1020,10 @@ const getCurrentDayHours = (hours: Record<string, string>) => {
         </div>
       </div>
       <div className="mt-4 px-4">
-        <h2 className="font-semibold text-2xl mb-4 text-gray-900">Menu</h2>
+        <div className="flex items-center gap-2 mb-4">
+          {renderMaskedIcon(MENU_ICON_PATH, 22)}
+          <h2 className="font-semibold text-2xl text-gray-900">Menu</h2>
+        </div>
         <div className="mb-4 rounded-3xl bg-white/92 backdrop-blur-xl shadow-[0_20px_40px_rgba(15,23,42,0.12)] border border-white/70 p-5">
           <div className="flex items-center justify-between px-1">
             <div className="flex items-center gap-3">
@@ -1015,7 +1067,7 @@ const getCurrentDayHours = (hours: Record<string, string>) => {
                       {dish.dishName}
                     </div>
                   </div>
-                  <span className="rounded-full bg-accent text-white px-3 py-0.5 text-base font-semibold">
+                  <span className="rounded-full bg-accent text-white px-2.5 py-0.5 text-sm font-semibold">
                     {dish.averageRating.toFixed(1)}
                   </span>
                 </button>
@@ -1027,7 +1079,6 @@ const getCurrentDayHours = (hours: Record<string, string>) => {
           <div className="space-y-3">
             {Object.entries(groupedMenu).map(([category, items]) => {
               const isOpen = openSections.has(category);
-              const IconComponent = getCategoryIcon(category);
               return (
                 <div key={category} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                   <button
@@ -1036,7 +1087,7 @@ const getCurrentDayHours = (hours: Record<string, string>) => {
                   >
                     <div className="flex items-center">
                       <div className="w-12 h-12 flex items-center justify-center mr-3">
-                        <IconComponent size={32} className="text-red-500" style={{ color: '#ff3131' }} />
+                        <CategoryIcon category={category} size={32} />
                       </div>
                       <h3 className="font-semibold text-base text-gray-900">{category || 'Custom'}</h3>
                     </div>
@@ -1048,7 +1099,6 @@ const getCurrentDayHours = (hours: Record<string, string>) => {
                   {isOpen && (
                     <div className="px-5 pb-4 space-y-2">
                       {items.map(item => {
-                        const ItemIcon = getCategoryIcon(item.category || category);
                         return (
                         <div
                           key={item.id}
@@ -1063,7 +1113,7 @@ const getCurrentDayHours = (hours: Record<string, string>) => {
                             />
                           ) : (
                             <div className="w-14 h-14 rounded-xl bg-gray-100 flex items-center justify-center flex-shrink-0">
-                              <ItemIcon size={20} className="text-gray-400" />
+                              <CategoryIcon category={item.category || category} size={20} className="opacity-70" />
                             </div>
                           )}
                           <div className="ml-3 flex-1 min-w-0">
