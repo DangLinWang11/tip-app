@@ -85,6 +85,11 @@ const RestaurantDetail: React.FC = () => {
   const [isHeroModalOpen, setIsHeroModalOpen] = useState(false);
   const [failedHeroImages, setFailedHeroImages] = useState<Set<string>>(new Set());
   const [showAllTopDishes, setShowAllTopDishes] = useState(false);
+  const [isPhotosModalOpen, setIsPhotosModalOpen] = useState(false);
+  const [photosModalIndex, setPhotosModalIndex] = useState(0);
+  const photosModalScrollRef = useRef<HTMLDivElement>(null);
+  const isProgrammaticPhotosScroll = useRef(false);
+  const [isPhotoLabelExpanded, setIsPhotoLabelExpanded] = useState(false);
 
   // Helper to collect visit photos from all reviews (both legacy and new structures)
   const getVisitPhotosFromReviews = (reviewsList: Review[] | undefined | null): string[] => {
@@ -122,14 +127,17 @@ const RestaurantDetail: React.FC = () => {
   };
 
 
-  // Helper function to get all images from reviews
-  const getAllReviewImages = (reviewsArray: Review[]) => {
-    const out: string[] = [];
+  // Helper function to get all review images with dish metadata
+  const getAllReviewPhotoItems = (reviewsArray: Review[]) => {
+    const out: { url: string; dishName?: string }[] = [];
     for (const r of reviewsArray) {
+      const dishName = (r as any)?.dishName || r.dish || 'Restaurant photo';
       const mediaPhotos = Array.isArray(r?.media?.photos) ? r.media.photos : [];
       const legacyImages = Array.isArray(r?.images) ? r.images : [];
-      if (mediaPhotos.length) out.push(...mediaPhotos);
-      else if (legacyImages.length) out.push(...legacyImages);
+      const photos = mediaPhotos.length ? mediaPhotos : legacyImages;
+      photos.forEach((url) => {
+        if (url) out.push({ url, dishName });
+      });
     }
     return out;
   };
@@ -242,7 +250,7 @@ const getCurrentDayHours = (hours: Record<string, string>) => {
 };
 
   const qualityScore = calculateRestaurantQualityScore(reviews.map(review => ({ ...review, category: 'custom' })));
-  const reviewImages = getAllReviewImages(reviews);
+  const reviewPhotos = useMemo(() => getAllReviewPhotoItems(reviews), [reviews]);
   const groupedMenu = groupMenuByCategory(menuItems);
   const avgDishRating = reviews.length > 0 ? (reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length) : null;
   const topDishesAll = useMemo(() => {
@@ -402,6 +410,43 @@ const getCurrentDayHours = (hours: Record<string, string>) => {
     };
   }, [isHeroModalOpen]);
 
+  useEffect(() => {
+    if (!isPhotosModalOpen) return;
+    const originalBodyOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = originalBodyOverflow;
+    };
+  }, [isPhotosModalOpen]);
+
+  useEffect(() => {
+    if (!isPhotosModalOpen) return;
+    setIsPhotoLabelExpanded(false);
+  }, [photosModalIndex, isPhotosModalOpen]);
+
+  useEffect(() => {
+    if (!isPhotosModalOpen) return;
+    const container = photosModalScrollRef.current;
+    if (!container) return;
+    const itemWidth = container.offsetWidth;
+    isProgrammaticPhotosScroll.current = true;
+    container.scrollTo({
+      left: photosModalIndex * itemWidth,
+      behavior: 'smooth'
+    });
+    const timer = setTimeout(() => {
+      isProgrammaticPhotosScroll.current = false;
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [isPhotosModalOpen, photosModalIndex]);
+
+  useEffect(() => {
+    if (!reviewPhotos.length) return;
+    if (photosModalIndex >= reviewPhotos.length) {
+      setPhotosModalIndex(Math.max(0, reviewPhotos.length - 1));
+    }
+  }, [reviewPhotos.length, photosModalIndex]);
+
   // Handle scroll-based navigation for hero images
   const handleHeroScroll = (e: React.UIEvent<HTMLDivElement>) => {
     if (isProgrammaticScroll.current) {
@@ -510,6 +555,38 @@ const getCurrentDayHours = (hours: Record<string, string>) => {
         isProgrammaticModalScroll.current = false;
       }, 350);
     }
+  };
+
+  const handlePhotosModalScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    if (isProgrammaticPhotosScroll.current) return;
+    const container = e.currentTarget;
+    const itemWidth = container.offsetWidth;
+    const newIndex = Math.round(container.scrollLeft / itemWidth);
+    if (newIndex !== photosModalIndex && newIndex >= 0 && newIndex < reviewPhotos.length) {
+      setPhotosModalIndex(newIndex);
+    }
+  };
+
+  const openPhotosModal = (index: number) => {
+    if (!reviewPhotos.length) return;
+    setPhotosModalIndex(index);
+    setIsPhotosModalOpen(true);
+  };
+
+  const closePhotosModal = () => {
+    setIsPhotosModalOpen(false);
+  };
+
+  const goPrevPhoto = () => {
+    if (!reviewPhotos.length) return;
+    const newIndex = photosModalIndex === 0 ? reviewPhotos.length - 1 : photosModalIndex - 1;
+    setPhotosModalIndex(newIndex);
+  };
+
+  const goNextPhoto = () => {
+    if (!reviewPhotos.length) return;
+    const newIndex = photosModalIndex === reviewPhotos.length - 1 ? 0 : photosModalIndex + 1;
+    setPhotosModalIndex(newIndex);
   };
 
   const openHeroModal = (index: number) => {
@@ -750,8 +827,8 @@ const getCurrentDayHours = (hours: Record<string, string>) => {
             )}
           </h1>
           <div className="flex items-center gap-2">
-            <span className="text-sm font-semibold text-gray-700">Average Dish Rating</span>
-            <span className="text-sm font-bold text-primary">
+            <span className="text-base font-normal text-gray-700">Average Dish Rating</span>
+            <span className="text-base font-normal text-primary">
               {avgDishRating !== null ? avgDishRating.toFixed(1) : 'N/A'}
             </span>
           </div>
@@ -786,7 +863,7 @@ const getCurrentDayHours = (hours: Record<string, string>) => {
           </button>
         </div>
       </div>
-      <div className="bg-white mt-2 p-4 shadow-sm">
+      <div className="bg-white/95 mt-2 mx-4 p-4 rounded-3xl shadow-[0_18px_36px_rgba(15,23,42,0.12)] border border-white/70">
         <div className="flex justify-between items-center">
           <h2 className="font-semibold text-lg">Info</h2>
         </div>
@@ -893,7 +970,7 @@ const getCurrentDayHours = (hours: Record<string, string>) => {
           </div>
         </div>
       </div>
-      <div className="mt-6 px-4">
+      <div className="mt-4 px-4">
         <h2 className="font-semibold text-2xl mb-4 text-gray-900">Menu</h2>
         <div className="mb-4 rounded-3xl bg-white/92 backdrop-blur-xl shadow-[0_20px_40px_rgba(15,23,42,0.12)] border border-white/70 p-5">
           <div className="flex items-center justify-between px-1">
@@ -958,8 +1035,8 @@ const getCurrentDayHours = (hours: Record<string, string>) => {
                     className="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-50 transition-colors"
                   >
                     <div className="flex items-center">
-                      <div className="w-9 h-9 bg-gray-50 rounded-full flex items-center justify-center mr-3">
-                        <IconComponent size={18} className="text-red-500" style={{ color: '#ff3131' }} />
+                      <div className="w-12 h-12 flex items-center justify-center mr-3">
+                        <IconComponent size={32} className="text-red-500" style={{ color: '#ff3131' }} />
                       </div>
                       <h3 className="font-semibold text-base text-gray-900">{category || 'Custom'}</h3>
                     </div>
@@ -993,9 +1070,13 @@ const getCurrentDayHours = (hours: Record<string, string>) => {
                             <div className="flex justify-between items-start">
                               <h4 className="font-semibold text-gray-900 flex-1 mr-2 group-hover:text-red-500 transition-colors" style={{ color: isOpen ? undefined : '#ff3131' }}>{item.name}</h4>
                               <div className="text-right">
-                                <div className="text-sm text-gray-500 mb-1">
-                                  {menuItemRatings[item.id] ? `${menuItemRatings[item.id].rating.toFixed(1)}/10` : 'No reviews yet'}
-                                </div>
+                                {menuItemRatings[item.id] ? (
+                                  <div className="text-sm font-semibold text-primary mb-1">
+                                    {menuItemRatings[item.id].rating.toFixed(1)}
+                                  </div>
+                                ) : (
+                                  <div className="text-sm text-gray-500 mb-1">No reviews yet</div>
+                                )}
                                 {item.price && (
                                   <span className="font-semibold text-gray-900">${item.price}</span>
                                 )}
@@ -1058,16 +1139,22 @@ const getCurrentDayHours = (hours: Record<string, string>) => {
       </div>
       <div className="bg-white mt-2 p-4 shadow-sm">
         <h2 className="font-semibold text-lg mb-4">Popular Photos</h2>
-        {reviewImages.length > 0 ? (
+        {reviewPhotos.length > 0 ? (
           <div className="grid grid-cols-3 gap-1">
-            {reviewImages.slice(0, 6).map((image, index) => (
-              <div key={index} className="aspect-square bg-medium-gray rounded-md overflow-hidden">
+            {reviewPhotos.slice(0, 6).map((photo, index) => (
+              <button
+                key={index}
+                type="button"
+                onClick={() => openPhotosModal(index)}
+                className="aspect-square bg-medium-gray rounded-md overflow-hidden"
+                aria-label="View photo"
+              >
                 <img
-                  src={image}
+                  src={photo.url}
                   alt="Food"
                   className="w-full h-full object-cover"
                 />
-              </div>
+              </button>
             ))}
           </div>
         ) : (
@@ -1075,13 +1162,79 @@ const getCurrentDayHours = (hours: Record<string, string>) => {
             <p className="text-dark-gray">No photos yet. Add photos now to see them here!</p>
           </div>
         )}
-        {reviewImages.length > 0 && (
-          <button className="w-full mt-3 py-2 border border-medium-gray rounded-full text-center font-medium">
-            View All Photos ({reviewImages.length})
+        {reviewPhotos.length > 6 && (
+          <button
+            onClick={() => openPhotosModal(0)}
+            className="w-full mt-3 py-2 border border-medium-gray rounded-full text-center font-medium"
+          >
+            View All Photos ({reviewPhotos.length})
           </button>
         )}
       </div>
-      <div className="bg-white mt-2 p-4 shadow-sm mb-8">
+      {isPhotosModalOpen && reviewPhotos.length > 0 && (
+        <div
+          className="fixed inset-0 z-[85] bg-black/90 flex items-center justify-center"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) closePhotosModal();
+          }}
+        >
+          <button
+            onClick={closePhotosModal}
+            className="absolute top-4 left-4 z-[90] bg-white/90 hover:bg-white rounded-full p-2"
+            aria-label="Close photo viewer"
+          >
+            <X size={18} className="text-gray-900" />
+          </button>
+          {reviewPhotos.length > 1 && (
+            <button
+              onClick={(e) => { e.stopPropagation(); goPrevPhoto(); }}
+              className="absolute left-3 top-1/2 -translate-y-1/2 z-[90] bg-white/70 hover:bg-white rounded-full p-2"
+              aria-label="Previous photo"
+            >
+              <ChevronLeftIcon size={18} className="text-gray-900" />
+            </button>
+          )}
+          {reviewPhotos.length > 1 && (
+            <button
+              onClick={(e) => { e.stopPropagation(); goNextPhoto(); }}
+              className="absolute right-3 top-1/2 -translate-y-1/2 z-[90] bg-white/70 hover:bg-white rounded-full p-2"
+              aria-label="Next photo"
+            >
+              <ChevronRightIcon size={18} className="text-gray-900" />
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => setIsPhotoLabelExpanded((prev) => !prev)}
+            className={`absolute top-4 right-4 z-[90] bg-black bg-opacity-50 text-white px-3 py-1 rounded-full text-sm transition-all ${
+              isPhotoLabelExpanded ? 'max-w-none' : 'max-w-[160px] truncate'
+            }`}
+          >
+            {reviewPhotos[photosModalIndex]?.dishName?.trim() || 'Restaurant photo'}
+          </button>
+          <div
+            ref={photosModalScrollRef}
+            className="flex overflow-x-scroll snap-x snap-mandatory w-full h-full"
+            onScroll={handlePhotosModalScroll}
+            style={{
+              scrollSnapType: 'x mandatory',
+              scrollBehavior: 'smooth',
+              WebkitOverflowScrolling: 'touch'
+            }}
+          >
+            {reviewPhotos.map((photo, index) => (
+              <div key={index} className="w-full h-full flex-shrink-0 snap-center flex items-center justify-center">
+                <img
+                  src={photo.url}
+                  alt={photo.dishName || 'Restaurant photo'}
+                  className="w-full h-full object-contain"
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      <div className="bg-white mt-2 mx-4 p-4 rounded-3xl shadow-[0_18px_36px_rgba(15,23,42,0.12)] border border-white/70 mb-8">
         <h2 className="font-semibold text-lg mb-4">Reviews</h2>
         <div className="space-y-4">
           {reviews.length > 0 ? reviews.slice(0, 5).map((review) => {
@@ -1117,16 +1270,19 @@ const getCurrentDayHours = (hours: Record<string, string>) => {
                   <div className="flex-1 min-w-0">
                     <div className="flex justify-between items-start mb-1">
                       <div className="min-w-0">
-                        <p className="text-sm font-semibold uppercase tracking-wide text-red-500 truncate">
-                          {review.dish || 'Dish'}{' '}
-                          <span className="text-red-500">RATED BY</span>{' '}
+                        <div className="flex items-center flex-wrap gap-1 min-w-0">
+                          <span className="text-sm font-semibold text-red-500 truncate max-w-[55%]">
+                            {review.dish || 'Dish'}
+                          </span>
+                          <span className="h-3 w-px bg-gray-300 mx-1" aria-hidden="true" />
+                          <span className="text-sm text-gray-900">Rated by</span>
                           <span
-                            className="text-red-500 hover:underline cursor-pointer"
+                            className="text-sm font-semibold text-gray-900 hover:underline cursor-pointer"
                             onClick={() => author?.username && navigate('/user/' + author.username)}
                           >
                             {authorLabel}
                           </span>
-                        </p>
+                        </div>
                         <p className="text-xs text-gray-500">{createdAtText}</p>
                       </div>
                       <RatingBadge rating={review.rating} size="md" />
