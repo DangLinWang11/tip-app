@@ -974,17 +974,17 @@ const getCurrentDayHours = (hours: Record<string, string>) => {
         <h2 className="font-semibold text-2xl mb-4 text-gray-900">Menu</h2>
         <div className="mb-4 rounded-3xl bg-white/92 backdrop-blur-xl shadow-[0_20px_40px_rgba(15,23,42,0.12)] border border-white/70 p-5">
           <div className="flex items-center justify-between px-1">
-            <div className="flex items-center gap-2">
-              <span className="w-5 flex items-center justify-center text-primary" aria-hidden="true">
-                <Trophy size={16} />
+            <div className="flex items-center gap-3">
+              <span className="w-12 h-12 flex items-center justify-center text-primary" aria-hidden="true">
+                <Trophy size={32} />
               </span>
-              <h3 className="text-sm font-semibold text-gray-800">Top Dishes</h3>
+              <h3 className="text-base font-semibold text-gray-800">Top Dishes</h3>
             </div>
             {topDishesAll.length > 3 && (
               <button
                 type="button"
                 onClick={() => setShowAllTopDishes((prev) => !prev)}
-                className="text-xs font-medium text-secondary hover:underline"
+                className="text-sm font-medium text-secondary hover:underline"
               >
                 {showAllTopDishes ? 'Show top 3' : 'See all items'}
               </button>
@@ -1009,13 +1009,13 @@ const getCurrentDayHours = (hours: Record<string, string>) => {
                   }}
                   className="w-full flex items-center gap-3 rounded-2xl px-1 py-1.5 hover:bg-white/80 transition-colors text-left"
                 >
-                  <span className="w-5 text-center text-sm font-semibold text-primary">{index + 1}</span>
+                  <span className="w-6 text-center text-base font-semibold text-primary">{index + 1}</span>
                   <div className="min-w-0 flex-1">
-                    <div className="truncate text-sm font-medium text-gray-900 leading-tight">
+                    <div className="truncate text-base font-medium text-gray-900 leading-tight">
                       {dish.dishName}
                     </div>
                   </div>
-                  <span className="rounded-full bg-accent text-white px-2 py-0.5 text-xs font-semibold">
+                  <span className="rounded-full bg-accent text-white px-3 py-0.5 text-base font-semibold">
                     {dish.averageRating.toFixed(1)}
                   </span>
                 </button>
@@ -1178,13 +1178,6 @@ const getCurrentDayHours = (hours: Record<string, string>) => {
             if (e.target === e.currentTarget) closePhotosModal();
           }}
         >
-          <button
-            onClick={closePhotosModal}
-            className="absolute top-4 left-4 z-[90] bg-white/90 hover:bg-white rounded-full p-2"
-            aria-label="Close photo viewer"
-          >
-            <X size={18} className="text-gray-900" />
-          </button>
           {reviewPhotos.length > 1 && (
             <button
               onClick={(e) => { e.stopPropagation(); goPrevPhoto(); }}
@@ -1203,15 +1196,6 @@ const getCurrentDayHours = (hours: Record<string, string>) => {
               <ChevronRightIcon size={18} className="text-gray-900" />
             </button>
           )}
-          <button
-            type="button"
-            onClick={() => setIsPhotoLabelExpanded((prev) => !prev)}
-            className={`absolute top-4 right-4 z-[90] bg-black bg-opacity-50 text-white px-3 py-1 rounded-full text-sm transition-all ${
-              isPhotoLabelExpanded ? 'max-w-none' : 'max-w-[160px] truncate'
-            }`}
-          >
-            {reviewPhotos[photosModalIndex]?.dishName?.trim() || 'Restaurant photo'}
-          </button>
           <div
             ref={photosModalScrollRef}
             className="flex overflow-x-scroll snap-x snap-mandatory w-full h-full"
@@ -1223,12 +1207,36 @@ const getCurrentDayHours = (hours: Record<string, string>) => {
             }}
           >
             {reviewPhotos.map((photo, index) => (
-              <div key={index} className="w-full h-full flex-shrink-0 snap-center flex items-center justify-center">
-                <img
-                  src={photo.url}
-                  alt={photo.dishName || 'Restaurant photo'}
-                  className="w-full h-full object-contain"
-                />
+              <div
+                key={index}
+                className="w-full h-full flex-shrink-0 snap-center flex items-center justify-center"
+                onClick={(e) => {
+                  if (e.target === e.currentTarget) closePhotosModal();
+                }}
+              >
+                <div className="relative max-w-[92vw] max-h-[85vh]">
+                  <img
+                    src={photo.url}
+                    alt={photo.dishName || 'Restaurant photo'}
+                    className="block max-w-[92vw] max-h-[85vh] object-contain"
+                  />
+                  <button
+                    onClick={(e) => { e.stopPropagation(); closePhotosModal(); }}
+                    className="absolute top-3 left-3 z-[90] bg-white/90 hover:bg-white rounded-full p-2"
+                    aria-label="Close photo viewer"
+                  >
+                    <X size={18} className="text-gray-900" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); setIsPhotoLabelExpanded((prev) => !prev); }}
+                    className={`absolute top-3 right-3 z-[90] bg-black bg-opacity-50 text-white px-3 py-1 rounded-full text-sm transition-all ${
+                      isPhotoLabelExpanded ? 'max-w-none' : 'max-w-[160px] truncate'
+                    }`}
+                  >
+                    {photo.dishName?.trim() || 'Restaurant photo'}
+                  </button>
+                </div>
               </div>
             ))}
           </div>
@@ -1270,11 +1278,13 @@ const getCurrentDayHours = (hours: Record<string, string>) => {
                   <div className="flex-1 min-w-0">
                     <div className="flex justify-between items-start mb-1">
                       <div className="min-w-0">
-                        <div className="flex items-center flex-wrap gap-1 min-w-0">
+                        <div className="flex items-center flex-wrap gap-2 min-w-0">
                           <span className="text-sm font-semibold text-red-500 truncate max-w-[55%]">
                             {review.dish || 'Dish'}
                           </span>
-                          <span className="h-3 w-px bg-gray-300 mx-1" aria-hidden="true" />
+                          <span className="text-xs text-gray-500">{createdAtText}</span>
+                        </div>
+                        <div className="flex items-center gap-1">
                           <span className="text-sm text-gray-900">Rated by</span>
                           <span
                             className="text-sm font-semibold text-gray-900 hover:underline cursor-pointer"
@@ -1283,7 +1293,6 @@ const getCurrentDayHours = (hours: Record<string, string>) => {
                             {authorLabel}
                           </span>
                         </div>
-                        <p className="text-xs text-gray-500">{createdAtText}</p>
                       </div>
                       <RatingBadge rating={review.rating} size="md" />
                     </div>
