@@ -555,7 +555,6 @@ const getCurrentDayHours = (hours: Record<string, string>) => {
   }
 
   const hasReviews = reviews.length > 0;
-  const isGoogleOnlyListing = !hasReviews && restaurant.source === 'google_places';
   const hoursRecord = restaurant.hours || {};
   const hoursAvailable = Object.keys(hoursRecord).length > 0;
   const hoursOrder = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
@@ -653,7 +652,7 @@ const getCurrentDayHours = (hours: Record<string, string>) => {
           </div>
         )}
 
-        {/* Back button and quality badge */}
+        {/* Back button */}
         <div className="absolute top-0 left-0 right-0 p-4 z-10">
           <button
             onClick={() => navigate(-1)}
@@ -661,22 +660,6 @@ const getCurrentDayHours = (hours: Record<string, string>) => {
           >
             <ArrowLeftIcon size={20} />
           </button>
-        </div>
-        <div className="absolute bottom-0 left-0 right-0 p-4 z-10">
-          <div className="bg-white/95 px-3 py-1 rounded-full inline-flex items-center gap-2">
-            {hasReviews ? (
-              <>
-                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: qualityScore ? getQualityColor(qualityScore) : '#6b7280' }}></div>
-                <span className="font-medium text-sm">
-                  {qualityScore}% Quality
-                </span>
-              </>
-            ) : isGoogleOnlyListing ? (
-              <span className="text-sm font-semibold text-gray-800">New</span>
-            ) : (
-              <span className="text-sm text-gray-600">No reviews yet</span>
-            )}
-          </div>
         </div>
       </div>
       {isHeroModalOpen && hasHeroImages && (
@@ -747,18 +730,25 @@ const getCurrentDayHours = (hours: Record<string, string>) => {
         </div>
       )}
       <div className="bg-white p-4 shadow-sm">
-        <div className="flex justify-between items-start">
-          <div>
-            <h1 className="text-2xl font-semibold">{restaurant.name}</h1>
-            <div className="flex items-center text-dark-gray mt-1">
-              <span>{restaurant.cuisine}</span>
-            </div>
-          </div>
-          <div className="flex items-center">
-            <div className="mr-2 inline-flex items-center gap-2 bg-light-gray px-3 py-1.5 rounded-full">
-              <span className="text-sm text-dark-gray">Average Dish Rating</span>
-              <span className="text-base font-bold text-primary">{avgDishRating !== null ? avgDishRating.toFixed(1) : 'N/A'}</span>
-            </div>
+        <div className="flex flex-col gap-2">
+          <h1 className="text-2xl font-semibold leading-snug text-gray-900">
+            {restaurant.name}
+            {hasReviews && qualityScore !== null && (
+              <span
+                className="ml-2 text-base font-semibold"
+                style={{ color: getQualityColor(qualityScore) }}
+              >
+                {qualityScore}%
+              </span>
+            )}
+          </h1>
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-semibold text-gray-700" style={{ fontFamily: 'Montserrat, sans-serif' }}>
+              Average Dish Rating
+            </span>
+            <span className="text-sm font-bold text-primary" style={{ fontFamily: 'Montserrat, sans-serif' }}>
+              {avgDishRating !== null ? avgDishRating.toFixed(1) : 'N/A'}
+            </span>
           </div>
         </div>
         <div className="flex mt-4 space-x-3">
