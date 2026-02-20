@@ -477,7 +477,7 @@ const StepVisit: React.FC = () => {
     const target = restaurantResultsRef.current;
     if (!target) return;
     const raf = window.requestAnimationFrame(() => {
-      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      target.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     });
     return () => window.cancelAnimationFrame(raf);
   }, [restaurantQuery, placePredictions.length, nearbyRestaurants.length]);
