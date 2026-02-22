@@ -66,6 +66,7 @@ const Home: React.FC = () => {
 
   // Pull-to-refresh state
   const [refreshing, setRefreshing] = useState(false);
+  const [pullRefreshing, setPullRefreshing] = useState(false);
   const [pullY, setPullY] = useState(0);
   const pullStartY = useRef<number | null>(null);
   const canPull = useRef(false);
@@ -463,6 +464,7 @@ const Home: React.FC = () => {
       if (!silent) {
         setLoading(false);
         setRefreshing(false);
+        setPullRefreshing(false);
       }
     }
   };
@@ -873,6 +875,7 @@ const Home: React.FC = () => {
       onTouchEnd={() => {
         if (pullY >= PULL_TRIGGER && !refreshing) {
           setRefreshing(true);
+          setPullRefreshing(true);
           setPullY(0);
           // Clear Zustand cache so fresh data is fetched
           clearCache();
@@ -887,7 +890,7 @@ const Home: React.FC = () => {
       }}
     >
       {/* Pull-to-refresh indicator with progressive ring */}
-      {(pullY > 0 || refreshing) && (
+      {(pullY > 0 || pullRefreshing) && (
         <div className="fixed top-3 inset-x-0 flex items-center justify-center z-50 pointer-events-none">
           <svg
             className={`${refreshing ? 'animate-spin' : ''}`}
@@ -954,7 +957,7 @@ const Home: React.FC = () => {
 
       <div className="px-4 py-6">
         {/* Inline refresh indicator when updating but showing cached content */}
-        {refreshing && hasAnyContent && (
+        {refreshing && hasAnyContent && !pullRefreshing && (
           <div className="flex justify-center mb-3">
             <div className="bg-white rounded-full shadow-sm px-4 py-2 flex items-center gap-2">
               <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
