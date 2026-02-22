@@ -11,6 +11,7 @@ import {
   SavedList 
 } from '../services/savedListsService';
 import EditListNameModal from '../components/EditListNameModal';
+import { useI18n } from '../lib/i18n/useI18n';
 
 // Interfaces for restaurant and dish data
 interface Restaurant {
@@ -48,6 +49,7 @@ const ListDetail: React.FC = () => {
   
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { t } = useI18n();
   
   // State management
   const [list, setList] = useState<SavedList | null>(null);
@@ -87,7 +89,7 @@ const ListDetail: React.FC = () => {
       
       if (!listResult.success || !listResult.list) {
         console.error('❌ [ListDetail] Failed to fetch list:', listResult.error);
-        setError(listResult.error || 'Failed to load list');
+        setError(listResult.error || t('lists.detail.errors.load'));
         return;
       }
 
@@ -150,10 +152,10 @@ const ListDetail: React.FC = () => {
             
             return {
               id: reviewDoc.id,
-              name: reviewData.dish || 'Unknown Dish',
+              name: reviewData.dish || t('lists.detail.unknownDish'),
               restaurantId: reviewData.restaurantId || '',
-              restaurantName: reviewData.restaurant || 'Unknown Restaurant',
-              category: reviewData.category || 'Main Course',
+              restaurantName: reviewData.restaurant || t('lists.detail.unknownRestaurant'),
+              category: reviewData.category || t('lists.detail.mainCourse'),
               rating: reviewData.rating || 0,
               averageRating: reviewData.rating || 0,
               source: 'reviews'
@@ -169,7 +171,7 @@ const ListDetail: React.FC = () => {
             console.log(`✅ [ListDetail] Found dish ${dishId} in menuItems collection:`, menuItemData);
             
             // Fetch restaurant data if restaurantId is available
-            let restaurantName = menuItemData.restaurantName || menuItemData.restaurant || 'Unknown Restaurant';
+            let restaurantName = menuItemData.restaurantName || menuItemData.restaurant || t('lists.detail.unknownRestaurant');
             
             if (menuItemData.restaurantId) {
               try {
@@ -192,10 +194,10 @@ const ListDetail: React.FC = () => {
             
             return {
               id: menuItemDoc.id,
-              name: menuItemData.name || menuItemData.dish || 'Unknown Dish',
+              name: menuItemData.name || menuItemData.dish || t('lists.detail.unknownDish'),
               restaurantId: menuItemData.restaurantId || '',
               restaurantName: restaurantName,
-              category: menuItemData.category || 'Main Course',
+              category: menuItemData.category || t('lists.detail.mainCourse'),
               rating: menuItemData.rating || 0,
               averageRating: menuItemData.rating || menuItemData.averageRating || 0,
               source: 'menuItems'
@@ -252,7 +254,7 @@ const ListDetail: React.FC = () => {
         message: err instanceof Error ? err.message : 'Unknown error',
         stack: err instanceof Error ? err.stack : undefined
       });
-      setError('Failed to load list data');
+      setError(t('lists.detail.errors.loadData'));
     } finally {
       console.log('✅ [ListDetail] Loading complete, setting loading to false');
       setLoading(false);
@@ -269,11 +271,11 @@ const ListDetail: React.FC = () => {
         // Refresh data
         await loadListData();
       } else {
-        setError(result.error || 'Failed to remove restaurant');
+        setError(result.error || t('lists.detail.errors.removeRestaurant'));
       }
     } catch (err) {
       console.error('Error removing restaurant:', err);
-      setError('Failed to remove restaurant');
+      setError(t('lists.detail.errors.removeRestaurant'));
     } finally {
       setRemoving(null);
     }
@@ -289,11 +291,11 @@ const ListDetail: React.FC = () => {
         // Refresh data
         await loadListData();
       } else {
-        setError(result.error || 'Failed to remove dish');
+        setError(result.error || t('lists.detail.errors.removeDish'));
       }
     } catch (err) {
       console.error('Error removing dish:', err);
-      setError('Failed to remove dish');
+      setError(t('lists.detail.errors.removeDish'));
     } finally {
       setRemoving(null);
     }
@@ -305,8 +307,8 @@ const ListDetail: React.FC = () => {
     try {
       const shareUrl = `${window.location.origin}/list/${id}`;
       const shareData = {
-        title: `Check out my ${list.name} list!`,
-        text: `Check out my ${list.name} food list on Tip!`,
+        title: t('lists.detail.share.title', { name: list.name }),
+        text: t('lists.detail.share.text', { name: list.name }),
         url: shareUrl
       };
 
@@ -315,16 +317,16 @@ const ListDetail: React.FC = () => {
       } else {
         // Fallback: copy to clipboard
         await navigator.clipboard.writeText(shareUrl);
-        alert('List link copied to clipboard!');
+        alert(t('lists.detail.share.copied'));
       }
     } catch (err) {
       console.error('Failed to share list:', err);
       try {
         const shareUrl = `${window.location.origin}/list/${id}`;
         await navigator.clipboard.writeText(shareUrl);
-        alert('List link copied to clipboard!');
+        alert(t('lists.detail.share.copied'));
       } catch {
-        alert('Unable to share list. Please try again.');
+        alert(t('lists.detail.share.failed'));
       }
     }
   };
@@ -334,7 +336,7 @@ const ListDetail: React.FC = () => {
     if (result.success) {
       await loadListData(); // Refresh the list data
     } else {
-      throw new Error(result.error || 'Failed to update list name');
+      throw new Error(result.error || t('lists.detail.errors.updateName'));
     }
   };
 
@@ -351,7 +353,7 @@ const ListDetail: React.FC = () => {
             >
               <ArrowLeftIcon size={20} className="text-gray-600" />
             </button>
-            <h1 className="text-xl font-bold text-black">Loading...</h1>
+            <h1 className="text-xl font-bold text-black">{t('lists.detail.loading.title')}</h1>
           </div>
         </div>
 
@@ -359,7 +361,7 @@ const ListDetail: React.FC = () => {
         <div className="flex items-center justify-center py-12">
           <div className="text-center">
             <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading list...</p>
+            <p className="text-gray-600">{t('lists.detail.loading.message')}</p>
           </div>
         </div>
       </div>
@@ -379,19 +381,19 @@ const ListDetail: React.FC = () => {
             >
               <ArrowLeftIcon size={20} className="text-gray-600" />
             </button>
-            <h1 className="text-xl font-bold text-black">Error</h1>
+            <h1 className="text-xl font-bold text-black">{t('lists.detail.errors.title')}</h1>
           </div>
         </div>
 
         {/* Error State */}
         <div className="text-center py-12">
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">Unable to Load List</h3>
-          <p className="text-gray-600 mb-4">{error || 'This list may not exist or you may not have access to it.'}</p>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">{t('lists.detail.errors.unable')}</h3>
+          <p className="text-gray-600 mb-4">{error || t('lists.detail.errors.notFound')}</p>
           <button
             onClick={() => navigate(-1)}
             className="bg-primary text-white py-2 px-6 rounded-full font-medium hover:bg-red-600 transition-colors"
           >
-            Go Back
+            {t('common.actions.goBack')}
           </button>
         </div>
       </div>
@@ -418,7 +420,7 @@ const ListDetail: React.FC = () => {
             <button
               onClick={() => setEditModalOpen(true)}
               className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-              title="Edit list name"
+              title={t('lists.detail.actions.editName')}
             >
               <EditIcon size={18} className="text-gray-600" />
             </button>
@@ -426,7 +428,7 @@ const ListDetail: React.FC = () => {
             <button
               onClick={handleShareList}
               className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-              title="Share list"
+              title={t('lists.detail.actions.share')}
             >
               <Share size={18} className="text-gray-600" />
             </button>
@@ -440,9 +442,9 @@ const ListDetail: React.FC = () => {
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center">
               <Store size={20} className="text-blue-600 mr-2" />
-              <h2 className="text-lg font-semibold text-black">Restaurants</h2>
+              <h2 className="text-lg font-semibold text-black">{t('lists.detail.sections.restaurants')}</h2>
             </div>
-            <span className="text-sm text-gray-500">{restaurants.length} saved</span>
+            <span className="text-sm text-gray-500">{t('lists.detail.savedCount', { count: restaurants.length })}</span>
           </div>
 
           {restaurants.length === 0 ? (
@@ -450,8 +452,8 @@ const ListDetail: React.FC = () => {
               <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
                 <Store size={24} className="text-gray-400" />
               </div>
-              <p className="text-gray-600 text-sm">No restaurants saved</p>
-              <p className="text-gray-500 text-xs mt-1">Add restaurants from the discover page</p>
+              <p className="text-gray-600 text-sm">{t('lists.detail.empty.restaurants.title')}</p>
+              <p className="text-gray-500 text-xs mt-1">{t('lists.detail.empty.restaurants.subtitle')}</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -487,7 +489,7 @@ const ListDetail: React.FC = () => {
                     }}
                     disabled={removing === restaurant.id}
                     className="p-2 hover:bg-red-50 rounded-full transition-colors ml-2"
-                    title="Remove from list"
+                    title={t('lists.detail.actions.remove')}
                   >
                     {removing === restaurant.id ? (
                       <div className="w-4 h-4 border-2 border-red-500 border-t-transparent rounded-full animate-spin" />
@@ -506,9 +508,9 @@ const ListDetail: React.FC = () => {
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center">
               <UtensilsCrossed size={20} className="text-orange-600 mr-2" />
-              <h2 className="text-lg font-semibold text-black">Dishes</h2>
+              <h2 className="text-lg font-semibold text-black">{t('lists.detail.sections.dishes')}</h2>
             </div>
-            <span className="text-sm text-gray-500">{dishes.length} saved</span>
+            <span className="text-sm text-gray-500">{t('lists.detail.savedCount', { count: dishes.length })}</span>
           </div>
 
           {dishes.length === 0 ? (
@@ -516,8 +518,8 @@ const ListDetail: React.FC = () => {
               <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
                 <UtensilsCrossed size={24} className="text-gray-400" />
               </div>
-              <p className="text-gray-600 text-sm">No dishes saved</p>
-              <p className="text-gray-500 text-xs mt-1">Add dishes from restaurant reviews</p>
+              <p className="text-gray-600 text-sm">{t('lists.detail.empty.dishes.title')}</p>
+              <p className="text-gray-500 text-xs mt-1">{t('lists.detail.empty.dishes.subtitle')}</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -530,7 +532,7 @@ const ListDetail: React.FC = () => {
                   <div className="flex-1 min-w-0">
                     <h3 className="font-medium text-gray-900 truncate max-w-xs">{dish.name}</h3>
                     <div className="flex items-center space-x-3 text-xs text-gray-600 mt-1 min-w-0">
-                      <span className="truncate flex-1 min-w-0">from {dish.restaurantName}</span>
+                      <span className="truncate flex-1 min-w-0">{t('lists.detail.fromRestaurant', { restaurant: dish.restaurantName })}</span>
                       {dish.averageRating && dish.averageRating > 0 && (
                         <div className="flex items-center flex-shrink-0">
                           <Star size={10} className="text-yellow-500 mr-1" />
@@ -542,7 +544,7 @@ const ListDetail: React.FC = () => {
                       )}
                       {dish.source && (
                         <span className="flex-shrink-0 text-xs px-1 rounded bg-gray-100 text-gray-500">
-                          {dish.source}
+                          {t(`lists.detail.sources.${dish.source}`)}
                         </span>
                       )}
                     </div>
@@ -555,7 +557,7 @@ const ListDetail: React.FC = () => {
                     }}
                     disabled={removing === dish.id}
                     className="p-2 hover:bg-red-50 rounded-full transition-colors ml-2"
-                    title="Remove from list"
+                    title={t('lists.detail.actions.remove')}
                   >
                     {removing === dish.id ? (
                       <div className="w-4 h-4 border-2 border-red-500 border-t-transparent rounded-full animate-spin" />
@@ -577,7 +579,7 @@ const ListDetail: React.FC = () => {
               onClick={() => setError(null)}
               className="text-red-600 text-xs underline mt-2 hover:no-underline"
             >
-              Dismiss
+              {t('common.actions.dismiss')}
             </button>
           </div>
         )}

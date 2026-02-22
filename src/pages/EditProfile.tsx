@@ -5,6 +5,7 @@ import { getUserProfile, updateUserProfile, getCurrentUser } from '../lib/fireba
 import { uploadPhoto } from '../services/reviewService';
 import { getInitials } from '../utils/avatarUtils';
 import { COUNTRIES, CountryData, getCountryByCode } from '../data/countries';
+import { useI18n } from '../lib/i18n/useI18n';
 
 interface EditProfileForm {
   username: string;
@@ -24,6 +25,7 @@ const PREVIEW_SIZE = 400;
 
 const EditProfile: React.FC = () => {
   const navigate = useNavigate();
+  const { t } = useI18n();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -64,7 +66,7 @@ const EditProfile: React.FC = () => {
         const currentUser = getCurrentUser();
         
         if (!currentUser) {
-          setError('No authenticated user found');
+          setError(t('profile.errors.noAuth'));
           return;
         }
 
@@ -84,11 +86,11 @@ const EditProfile: React.FC = () => {
             if (country) setSelectedCountry(country);
           }
         } else {
-          setError(result.error || 'Failed to load profile');
+          setError(result.error || t('profile.errors.loadProfile'));
         }
       } catch (err) {
         console.error('Failed to load profile:', err);
-        setError('Failed to load profile');
+        setError(t('profile.errors.loadProfile'));
       } finally {
         setLoading(false);
       }
@@ -109,12 +111,12 @@ const EditProfile: React.FC = () => {
     const file = event.target.files?.[0];
     if (file) {
       if (file.size > 5 * 1024 * 1024) { // 5MB limit
-        setError('Image must be smaller than 5MB');
+        setError(t('profile.edit.errors.imageTooLarge'));
         return;
       }
       
       if (!file.type.startsWith('image/')) {
-        setError('Please select a valid image file');
+        setError(t('profile.edit.errors.invalidImage'));
         return;
       }
 
@@ -232,7 +234,7 @@ const EditProfile: React.FC = () => {
       setCropPosition({ x: 0, y: 0, scale: 1 });
     } catch (error) {
       console.error('Error cropping image:', error);
-      setError('Failed to crop image');
+      setError(t('profile.edit.errors.cropFailed'));
     }
   };
 
@@ -248,19 +250,19 @@ const EditProfile: React.FC = () => {
   // Form validation
   const validateForm = (): string | null => {
     if (!formData.username.trim()) {
-      return 'Username is required';
+      return t('validation.profile.usernameRequired');
     }
     
     if (formData.username.length < 3) {
-      return 'Username must be at least 3 characters';
+      return t('validation.profile.usernameMin');
     }
     
     if (!/^[a-zA-Z0-9_]+$/.test(formData.username)) {
-      return 'Username can only contain letters, numbers, and underscores';
+      return t('validation.profile.usernameFormat');
     }
     
     if (formData.bio.length > 160) {
-      return 'Bio must be 160 characters or less';
+      return t('validation.profile.bioMax');
     }
     
     return null;
@@ -286,7 +288,7 @@ const EditProfile: React.FC = () => {
           avatarUrl = await uploadPhoto(selectedImage);
         } catch (uploadError) {
           console.error('Failed to upload profile picture:', uploadError);
-          setError('Failed to upload profile picture. Saving other changes...');
+          setError(t('profile.edit.errors.uploadFailed'));
           avatarUrl = formData.avatar; // Keep original avatar on upload failure
         }
       }
@@ -307,18 +309,18 @@ const EditProfile: React.FC = () => {
       const result = await updateUserProfile(updateData);
       
       if (result.success) {
-        setSuccessMessage('Profile updated successfully!');
+        setSuccessMessage(t('profile.edit.success.updated'));
         
         // Navigate back to profile after a short delay
         setTimeout(() => {
           navigate('/profile');
         }, 1500);
       } else {
-        setError(result.error || 'Failed to update profile');
+        setError(result.error || t('profile.edit.errors.updateFailed'));
       }
     } catch (error) {
       console.error('Error saving profile:', error);
-      setError('Failed to save changes');
+      setError(t('profile.edit.errors.saveFailed'));
     } finally {
       setSaving(false);
     }
@@ -348,7 +350,7 @@ const EditProfile: React.FC = () => {
       return (
         <img 
           src={avatarToShow}
-          alt="Profile"
+          alt={t('profile.edit.photo.alt')}
           className={`${size} rounded-full object-cover border-4 border-gray-200`}
           onError={() => setImageError(true)}
         />
@@ -369,7 +371,7 @@ const EditProfile: React.FC = () => {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading profile...</p>
+          <p className="text-gray-600">{t('profile.edit.loading')}</p>
         </div>
       </div>
     );
@@ -387,7 +389,7 @@ const EditProfile: React.FC = () => {
             >
               <ArrowLeft size={24} className="text-gray-600" />
             </button>
-            <h1 className="text-xl font-semibold">Edit Profile</h1>
+            <h1 className="text-xl font-semibold">{t('profile.edit.title')}</h1>
           </div>
           <button
             onClick={handleSave}
@@ -399,7 +401,7 @@ const EditProfile: React.FC = () => {
             }`}
           >
             <Save size={16} className="mr-1" />
-            {saving ? 'Saving...' : 'Save'}
+            {saving ? t('common.actions.saving') : t('common.actions.save')}
           </button>
         </div>
       </header>
@@ -422,7 +424,7 @@ const EditProfile: React.FC = () => {
 
         {/* Profile Picture Section */}
         <div className="bg-white rounded-xl p-6 mb-4 shadow-sm">
-          <h2 className="text-lg font-semibold mb-4">Profile Picture</h2>
+          <h2 className="text-lg font-semibold mb-4">{t('profile.edit.sections.photo')}</h2>
           <div className="flex items-center space-x-4">
             <UserAvatar />
             <div className="flex-1">
@@ -431,10 +433,10 @@ const EditProfile: React.FC = () => {
                 className="flex items-center px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium transition-colors"
               >
                 <Camera size={16} className="mr-2" />
-                Change Photo
+                {t('profile.edit.photo.change')}
               </button>
               <p className="text-xs text-gray-500 mt-1">
-                JPG, PNG up to 5MB. Square images work best.
+                {t('profile.edit.photo.hint')}
               </p>
             </div>
           </div>
@@ -449,80 +451,80 @@ const EditProfile: React.FC = () => {
 
         {/* Profile Information */}
         <div className="bg-white rounded-xl p-6 mb-4 shadow-sm">
-          <h2 className="text-lg font-semibold mb-4">Profile Information</h2>
+          <h2 className="text-lg font-semibold mb-4">{t('profile.edit.sections.info')}</h2>
           
           {/* Username */}
           <div className="mb-4">
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Username *
+              {t('profile.edit.fields.username.label')}
             </label>
             <input
               type="text"
               value={formData.username}
               onChange={(e) => handleInputChange('username', e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-              placeholder="Enter username"
+              placeholder={t('profile.edit.fields.username.placeholder')}
             />
             <p className="text-xs text-gray-500 mt-1">
-              Letters, numbers, and underscores only. Minimum 3 characters.
+              {t('profile.edit.fields.username.help')}
             </p>
           </div>
 
           {/* Your Name */}
           <div className="mb-4">
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Your Name
+              {t('profile.edit.fields.name.label')}
             </label>
             <input
               type="text"
               value={formData.actualName}
               onChange={(e) => handleInputChange('actualName', e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-              placeholder="Enter your full name"
+              placeholder={t('profile.edit.fields.name.placeholder')}
             />
             <p className="text-xs text-gray-500 mt-1">
-              This is how others will see you on your profile
+              {t('profile.edit.fields.name.help')}
             </p>
           </div>
 
           {/* Display Name */}
           <div className="mb-4">
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Display Name
+              {t('profile.edit.fields.displayName.label')}
             </label>
             <input
               type="text"
               value={formData.displayName}
               onChange={(e) => handleInputChange('displayName', e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-              placeholder="Enter display name"
+              placeholder={t('profile.edit.fields.displayName.placeholder')}
             />
           </div>
 
           {/* Bio */}
           <div className="mb-4">
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Bio
+              {t('profile.edit.fields.bio.label')}
             </label>
             <textarea
               value={formData.bio}
               onChange={(e) => handleInputChange('bio', e.target.value)}
               rows={3}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent resize-none"
-              placeholder="Tell us about yourself..."
+              placeholder={t('profile.edit.fields.bio.placeholder')}
               maxLength={160}
             />
             <p className="text-xs text-gray-500 mt-1">
-              {formData.bio.length}/160 characters
+              {t('profile.edit.fields.bio.counter', { count: formData.bio.length })}
             </p>
           </div>
         </div>
 
         {/* Home Country */}
         <div className="bg-white rounded-xl p-6 mb-4 shadow-sm">
-          <h2 className="text-lg font-semibold mb-4">Home Country</h2>
+          <h2 className="text-lg font-semibold mb-4">{t('profile.edit.sections.homeCountry')}</h2>
           <p className="text-xs text-gray-500 mb-3">
-            Your food map starts here. Change anytime.
+            {t('profile.edit.homeCountry.description')}
           </p>
           <button
             type="button"
@@ -536,7 +538,7 @@ const EditProfile: React.FC = () => {
                 <span className="text-sm font-medium">{selectedCountry.name}</span>
               </>
             ) : (
-              <span className="text-sm text-gray-400">Select your home country</span>
+              <span className="text-sm text-gray-400">{t('profile.edit.homeCountry.select')}</span>
             )}
           </button>
           {showCountryPicker && (
@@ -545,7 +547,7 @@ const EditProfile: React.FC = () => {
                 type="text"
                 value={countryQuery}
                 onChange={(e) => setCountryQuery(e.target.value)}
-                placeholder="Search countries..."
+                placeholder={t('profile.edit.homeCountry.searchPlaceholder')}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm mb-2 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
               />
               <div className="max-h-48 overflow-y-auto border border-gray-200 rounded-lg divide-y divide-gray-100">
@@ -576,7 +578,7 @@ const EditProfile: React.FC = () => {
 
         {/* Account Settings */}
         <div className="bg-white rounded-xl p-6 shadow-sm">
-          <h2 className="text-lg font-semibold mb-4">Account Settings</h2>
+          <h2 className="text-lg font-semibold mb-4">{t('profile.edit.sections.account')}</h2>
           
           <button
             onClick={() => navigate('/profile/change-password')}
@@ -584,7 +586,7 @@ const EditProfile: React.FC = () => {
           >
             <div className="flex items-center">
               <Lock size={20} className="text-gray-600 mr-3" />
-              <span className="font-medium">Change Password</span>
+              <span className="font-medium">{t('profile.edit.account.changePassword')}</span>
             </div>
             <ArrowLeft size={16} className="text-gray-400 rotate-180" />
           </button>
@@ -596,7 +598,7 @@ const EditProfile: React.FC = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl p-6 max-w-md w-full">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold">Crop Profile Picture</h3>
+              <h3 className="text-lg font-semibold">{t('profile.edit.modal.cropTitle')}</h3>
               <button
                 onClick={handleCancelCrop}
                 className="p-1 hover:bg-gray-100 rounded-full transition-colors"
@@ -617,7 +619,7 @@ const EditProfile: React.FC = () => {
               >
                 <img
                   src={imagePreview}
-                  alt="Crop preview"
+                  alt={t('profile.edit.modal.cropPreviewAlt')}
                   className="absolute"
                   style={{
                     width: `${100 * cropPosition.scale}%`,
@@ -632,7 +634,7 @@ const EditProfile: React.FC = () => {
 
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Zoom
+                {t('profile.edit.modal.zoom')}
               </label>
               <input
                 type="range"
@@ -650,13 +652,13 @@ const EditProfile: React.FC = () => {
                 onClick={handleCancelCrop}
                 className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
               >
-                Cancel
+                {t('common.actions.cancel')}
               </button>
               <button
                 onClick={applyCroppedImage}
                 className="flex-1 px-4 py-2 bg-primary text-white rounded-lg hover:bg-red-600 transition-colors"
               >
-                Apply
+                {t('common.actions.apply')}
               </button>
             </div>
           </div>

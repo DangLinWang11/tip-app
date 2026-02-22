@@ -5,9 +5,11 @@ import { fetchUserReviews, convertUserReviewsToFeedPosts, FirebaseReview, Person
 import { getUserProfile, getCurrentUser, getUserByUsername } from '../lib/firebase';
 import LocationPinIcon from '../components/icons/LocationPinIcon';
 import DishIcon from '../components/icons/DishIcon';
+import { useI18n } from '../lib/i18n/useI18n';
 
 const FoodMap: React.FC = () => {
   const navigate = useNavigate();
+  const { t } = useI18n();
   const [searchParams] = useSearchParams();
   const [userReviews, setUserReviews] = useState<any[]>([]);
   const [userProfile, setUserProfile] = useState<any>(null);
@@ -179,7 +181,7 @@ const FoodMap: React.FC = () => {
       <div className="relative">
         <input
           type="text"
-          placeholder="Search places or items..."
+          placeholder={t('map.search.placeholder')}
           readOnly
           className="w-full bg-gray-100 rounded-full py-3 px-4 pl-10 text-gray-700"
         />
@@ -205,8 +207,8 @@ const FoodMap: React.FC = () => {
               </p>
             </div>
             <div className="flex items-center gap-2">
-              <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded-full text-xs">Tried 2x</span>
-              <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded-full text-xs">Visited 3x</span>
+              <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded-full text-xs">{t('map.visits.tried', { count: 2 })}</span>
+              <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded-full text-xs">{t('map.visits.visited', { count: 3 })}</span>
               <span className="text-xs text-gray-400 flex items-center">
                 <span className="mx-1">&bull;</span>3d
               </span>
@@ -217,9 +219,9 @@ const FoodMap: React.FC = () => {
           </div>
         </div>
         <div className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Personal note</p>
-          <p className="text-sm text-gray-600 italic">&ldquo;Ask for extra truffle next time.&rdquo;</p>
-          <p className="text-xs text-gray-400 mt-1">Jan 2, 2026</p>
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">{t('map.notes.personalNote')}</p>
+          <p className="text-sm text-gray-600 italic">&ldquo;{t('map.demo.note1')}&rdquo;</p>
+          <p className="text-xs text-gray-400 mt-1">{t('map.demo.date1')}</p>
         </div>
       </div>
 
@@ -235,8 +237,8 @@ const FoodMap: React.FC = () => {
               </p>
             </div>
             <div className="flex items-center gap-2">
-              <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded-full text-xs">Tried 1x</span>
-              <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded-full text-xs">Visited 1x</span>
+              <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded-full text-xs">{t('map.visits.tried', { count: 1 })}</span>
+              <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded-full text-xs">{t('map.visits.visited', { count: 1 })}</span>
               <span className="text-xs text-gray-400 flex items-center">
                 <span className="mx-1">&bull;</span>1w
               </span>
@@ -247,9 +249,9 @@ const FoodMap: React.FC = () => {
           </div>
         </div>
         <div className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Personal note</p>
-          <p className="text-sm text-gray-600 italic">&ldquo;Best sushi spot so far. Sit at the bar.&rdquo;</p>
-          <p className="text-xs text-gray-400 mt-1">Dec 28, 2025</p>
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">{t('map.notes.personalNote')}</p>
+          <p className="text-sm text-gray-600 italic">&ldquo;{t('map.demo.note2')}&rdquo;</p>
+          <p className="text-xs text-gray-400 mt-1">{t('map.demo.date2')}</p>
         </div>
       </div>
     </div>
@@ -261,7 +263,7 @@ const FoodMap: React.FC = () => {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading your food journey...</p>
+          <p className="text-gray-600">{t('map.loading')}</p>
         </div>
       </div>
     );
@@ -273,13 +275,13 @@ const FoodMap: React.FC = () => {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center p-4">
-          <h2 className="text-xl font-bold text-gray-900 mb-2">Authentication Required</h2>
-          <p className="text-gray-600 mb-4">Please sign in to view your recent visits</p>
+          <h2 className="text-xl font-bold text-gray-900 mb-2">{t('map.auth.title')}</h2>
+          <p className="text-gray-600 mb-4">{t('map.auth.subtitle')}</p>
           <button 
             onClick={() => navigate('/')} 
             className="bg-primary text-white px-6 py-2 rounded-lg hover:bg-red-600 transition-colors"
           >
-            Go Home
+            {t('common.actions.goHome')}
           </button>
         </div>
       </div>
@@ -301,7 +303,9 @@ const FoodMap: React.FC = () => {
             <MapPinIcon size={28} className="text-secondary mr-3" />
             <div>
               <h1 className="text-2xl font-bold text-black">
-                {isOwnProfile ? 'Recent Visits' : `${userProfile?.displayName || userProfile?.username || 'User'}'s Recent Visits`}
+                {isOwnProfile
+                  ? t('map.title')
+                  : t('map.titleUser', { username: userProfile?.displayName || userProfile?.username || t('profile.labels.user') })}
               </h1>
             </div>
           </div>
@@ -344,7 +348,7 @@ const FoodMap: React.FC = () => {
                 <div className="relative">
                   <input
                     type="text"
-                    placeholder="Search places or items..."
+                    placeholder={t('map.search.placeholder')}
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="w-full bg-gray-100 rounded-full py-3 px-4 pl-10 text-gray-700"
@@ -362,13 +366,13 @@ const FoodMap: React.FC = () => {
                     <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                       <MapPinIcon size={24} className="text-gray-400" />
                     </div>
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">No matching visits</h3>
-                    <p className="text-gray-600 mb-6">Try searching for different places or dishes</p>
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">{t('map.empty.noMatchTitle')}</h3>
+                    <p className="text-gray-600 mb-6">{t('map.empty.noMatchSubtitle')}</p>
                     <button 
                       onClick={() => setSearchTerm('')}
                       className="bg-primary text-white px-6 py-2 rounded-full font-medium hover:bg-red-600 transition-colors"
                     >
-                      Clear Search
+                      {t('common.actions.clearSearch')}
                     </button>
                   </div>
                 ) : (
@@ -383,21 +387,21 @@ const FoodMap: React.FC = () => {
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex-1 min-w-0 pr-3">
                         <div className="mb-2">
-                          <h3 className="font-bold text-black truncate ml-6">{visit.dish?.name || 'Unknown Dish'}</h3>
+                          <h3 className="font-bold text-black truncate ml-6">{visit.dish?.name || t('map.labels.unknownDish')}</h3>
                           <p className="text-sm text-gray-600 flex items-center ml-6 truncate">
                             <LocationPinIcon className="text-red-500 mr-1 flex-shrink-0" size={18} />
-                            <span className="truncate">{visit.restaurant?.name || 'Unknown Restaurant'}</span>
+                            <span className="truncate">{visit.restaurant?.name || t('map.labels.unknownRestaurant')}</span>
                           </p>
                         </div>
                         <div className="flex items-center gap-2 ml-6">
                           <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded-full text-xs">
-                            Tried 1x
+                            {t('map.visits.tried', { count: 1 })}
                           </span>
                           <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded-full text-xs">
-                            Visited 1x
+                            {t('map.visits.visited', { count: 1 })}
                           </span>
                           <span className="text-xs text-gray-400 flex items-center">
-                            <span className="mx-1">•</span>
+                            <span className="mx-1">&bull;</span>
                             {formatRelativeTime(
                               (visit.review as any)?.createdAt ??
                               (visit.review as any)?.createdAtMs ??
@@ -432,7 +436,7 @@ const FoodMap: React.FC = () => {
                               <div className="flex items-center min-w-0 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
                                 <input
                                   type="text"
-                                  placeholder={isLimitReached ? 'Limit reached (3 max)' : 'Add personal note...'}
+                                  placeholder={isLimitReached ? t('map.notes.limitReached') : t('map.notes.addPlaceholder')}
                                   className="flex-1 min-w-0 bg-transparent text-gray-600 placeholder-gray-400 border-none outline-none"
                                   style={{ fontSize: '16px' }}
                                   value={noteDrafts[carouselItem.id] || ''}
@@ -450,7 +454,7 @@ const FoodMap: React.FC = () => {
                                   onClick={() => submitNote(carouselItem.id, notesCount)}
                                   disabled={isLimitReached}
                                   className={`ml-2 flex items-center justify-center ${isLimitReached ? 'text-gray-300' : 'text-gray-500 hover:text-gray-700'}`}
-                                  aria-label="Add note"
+                                  aria-label={t('map.notes.addAria')}
                                 >
                                   <PlusIcon size={16} />
                                 </button>
@@ -523,7 +527,7 @@ const FoodMap: React.FC = () => {
                       ) : (
                         // Non-carousel posts: single notes section
                         <div className="space-y-2">
-                          <p className="text-xs text-gray-500">Personal Notes:</p>
+                          <p className="text-xs text-gray-500">{t('map.notes.personalNotesLabel')}</p>
 
                           {/* Add New Note */}
                           {(() => {
@@ -533,7 +537,7 @@ const FoodMap: React.FC = () => {
                               <div className="flex items-center min-w-0 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
                                 <input
                                   type="text"
-                                  placeholder={isLimitReached ? 'Limit reached (3 max)' : 'Add personal note...'}
+                                  placeholder={isLimitReached ? t('map.notes.limitReached') : t('map.notes.addPlaceholder')}
                                   className="flex-1 min-w-0 bg-transparent text-gray-600 placeholder-gray-400 border-none outline-none"
                                   style={{ fontSize: '16px' }}
                                   value={noteDrafts[visit.id] || ''}
@@ -551,7 +555,7 @@ const FoodMap: React.FC = () => {
                                   onClick={() => submitNote(visit.id, notesCount)}
                                   disabled={isLimitReached}
                                   className={`ml-2 flex items-center justify-center ${isLimitReached ? 'text-gray-300' : 'text-gray-500 hover:text-gray-700'}`}
-                                  aria-label="Add note"
+                                  aria-label={t('map.notes.addAria')}
                                 >
                                   <PlusIcon size={16} />
                                 </button>

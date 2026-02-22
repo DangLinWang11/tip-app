@@ -1,6 +1,6 @@
-﻿{
+{
   "createWizard": {
-    "title": "Crear reseÃ±a de plato",
+    "title": "Crear reseña de plato",
     "subtitle": "Contemos la historia completa de este plato.",
     "draftSaved": "Borrador guardado",
     "draftRestored": "Borrador recuperado",
@@ -18,31 +18,31 @@
         "description": "Cierra todo antes de enviar."
       },
       "basic": {
-        "title": "BÃ¡sicos",
-        "description": "Agrega lo esencial: fotos, lugar, plato, calificaciÃ³n."
+        "title": "Básicos",
+        "description": "Agrega lo esencial: fotos, lugar, plato, calificación."
       },
       "taste": {
         "title": "Sabor",
-        "description": "Cuenta cÃ³mo se sintiÃ³ cada bocado."
+        "description": "Cuenta cómo se sintió cada bocado."
       },
       "compare": {
         "title": "Comparar",
-        "description": "CompÃ¡ralo con algo mÃ¡s (opcional)."
+        "description": "Compáralo con algo más (opcional)."
       },
       "outcome": {
         "title": "Resultado",
-        "description": "Â¿VolverÃ­as por Ã©l?"
+        "description": "¿Volverías por él?"
       },
       "caption": {
         "title": "Leyenda",
-        "description": "AÃ±ade una nota rÃ¡pida antes de terminar."
+        "description": "Añade una nota rápida antes de terminar."
       }
     },
     "actions": {
       "next": "Siguiente",
-      "back": "AtrÃ¡s",
+      "back": "Atrás",
       "save": "Guardar borrador",
-      "submit": "Enviar reseÃ±a",
+      "submit": "Enviar reseña",
       "clone": "Agregar otro plato",
       "cloneFromRestaurant": "Agregar otro plato de este restaurante",
       "home": "Inicio",
@@ -54,7 +54,7 @@
     "status": {
       "autosaving": "Guardando...",
       "saved": "Guardado",
-      "error": "Algo fallÃ³",
+      "error": "Algo falló",
       "restored": "Borrador recuperado"
     }
   },
@@ -64,23 +64,23 @@
     "addMedia": "Agrega fotos o videos",
     "dragDrop": "Arrastra y suelta o",
     "browse": "explora",
-    "imageLimit": "ImÃ¡genes hasta 1600px y 8 MB",
+    "imageLimit": "Imágenes hasta 1600px y 8 MB",
     "videoLimit": "MP4 o WebM hasta 20s y 50 MB",
     "processing": "Procesando medios...",
     "remove": "Quitar",
     "errors": {
       "type": "Tipo de archivo no soportado",
       "size": "El archivo es muy grande",
-      "duration": "El video dura mÃ¡s de 20 segundos",
+      "duration": "El video dura más de 20 segundos",
       "unknown": "No pudimos procesar el archivo"
     }
   },
   "basic": {
     "restaurant": "Restaurante",
-    "addRestaurant": "Â¿No aparece? Agrega el lugar",
+    "addRestaurant": "¿No aparece? Agrega el lugar",
     "dish": "Plato",
     "addDish": "Agregar plato",
-    "rating": "CalificaciÃ³n general",
+    "rating": "Calificación general",
     "ratingHelp": "Desliza de 0.1 a 10.0",
     "media": "Medios del plato",
     "dishTag": "Estilo del plato",
@@ -94,22 +94,22 @@
     "createDishHint": "Agrega un plato para mantener tu historial limpio",
     "labels": {
       "name": "Nombre",
-      "address": "DirecciÃ³n",
+      "address": "Dirección",
       "cuisine": "Cocina",
-      "phone": "TelÃ©fono",
-      "location": "UbicaciÃ³n",
-      "category": "CategorÃ­a",
+      "phone": "Teléfono",
+      "location": "Ubicación",
+      "category": "Categoría",
       "price": "Precio",
-      "description": "DescripciÃ³n"
+      "description": "Descripción"
     },
     "actions": {
       "setOnMap": "Ubicar en mapa",
-      "updateLocation": "Actualizar ubicaciÃ³n",
+      "updateLocation": "Actualizar ubicación",
       "createRestaurant": "Crear",
       "cancel": "Cancelar"
     },
     "helpers": {
-      "locationOptional": "Opcional pero Ãºtil"
+      "locationOptional": "Opcional pero útil"
     },
     "loadingRestaurants": "Cargando restaurantes...",
     "loadingDishes": "Cargando platos...",
@@ -117,14 +117,14 @@
   },
   "taste": {
     "coreTitle": "Detalles clave",
-    "coreSubtitle": "CuÃ©ntanos sobre porciÃ³n, valor, presentaciÃ³n y frescura.",
-    "optionalTitle": "MÃ¡s detalles",
+    "coreSubtitle": "Cuéntanos sobre porción, valor, presentación y frescura.",
+    "optionalTitle": "Más detalles",
     "optionalSubtitle": "Sal, temperatura, textura y picante cuando aplica.",
     "levels": {
       "low": "Bajo",
       "balanced": "Equilibrado",
       "high": "Alto",
-      "small": "PequeÃ±o",
+      "small": "Pequeño",
       "right": "Justa",
       "big": "Generosa",
       "overpriced": "Caro",
@@ -145,18 +145,18 @@
       "mushy": "Blandito/aguado",
       "great_bite": "Buena mordida",
       "tough": "Duro/chicloso",
-      "lacked_kick": "Le faltÃ³ picante",
+      "lacked_kick": "Le faltó picante",
       "nice_warmth": "Pica agradable",
       "too_spicy": "Demasiado picante"
     },
     "attributes": {
-      "portion": "TamaÃ±o de porciÃ³n",
+      "portion": "Tamaño de porción",
       "value": "Valor",
-      "presentation": "PresentaciÃ³n",
+      "presentation": "Presentación",
       "freshness": "Frescura",
       "saltiness": "Salinidad",
       "temperature": "Temperatura",
-      "texture": "Textura y cocciÃ³n",
+      "texture": "Textura y cocción",
       "spiciness": "Picante",
       "notePlaceholder": "Agrega una nota (opcional)"
     }
@@ -167,13 +167,13 @@
     "sameRestaurant": "De este restaurante",
     "history": "De tu historial",
     "archetype": "Arquetipos",
-    "freeText": "DescrÃ­belo a tu manera",
-    "freeTextPlaceholder": "Comparte una comparaciÃ³n rÃ¡pida...",
+    "freeText": "Descríbelo a tu manera",
+    "freeTextPlaceholder": "Comparte una comparación rápida...",
     "reasonsPrompt": "Elige dos razones",
     "selectDish": "Selecciona plato",
     "selectArchetype": "Selecciona arquetipo",
     "recentlyTried": "Probado recientemente",
-    "confirm": "Confirmar comparaciÃ³n",
+    "confirm": "Confirmar comparación",
     "chips": {
       "stale": "Rancio / raro",
       "cleanFlavors": "Sabores limpios",
@@ -187,24 +187,24 @@
       "mushy": "Chicloso / blando",
       "greatBite": "Gran mordida",
       "tough": "Duro / chicloso",
-      "lackedKick": "FaltÃ³ picor",
+      "lackedKick": "Faltó picor",
       "niceWarmth": "Picor agradable",
       "overwhelms": "Picante extremo"
     }
   },
   "outcome": {
-    "title": "Â¿VolverÃ­as?",
+    "title": "¿Volverías?",
     "subtitle": "Cierra con tus conclusiones.",
-    "orderAgain": "Â¿Lo pedirÃ­as de nuevo?",
-    "recommend": "Â¿Lo recomendarÃ­as?",
+    "orderAgain": "¿Lo pedirías de nuevo?",
+    "recommend": "¿Lo recomendarías?",
     "audience": "Ideal para",
     "audiencePlaceholder": "Elige los que aplican",
-    "returnIntent": "Plan para la prÃ³xima",
+    "returnIntent": "Plan para la próxima",
     "audienceOptions": {
       "spicy_lovers": "Fans del picante",
       "date_night": "Cita",
       "family": "Familia",
-      "quick_bite": "Bocado rÃ¡pido",
+      "quick_bite": "Bocado rápido",
       "solo": "Solo",
       "group": "Grupo"
     },
@@ -213,12 +213,12 @@
       "for_others": "Traigo a alguien",
       "no": "Tal vez no"
     },
-    "notesPlaceholder": "Â¿Algo mÃ¡s que deberÃ­an saber?"
+    "notesPlaceholder": "¿Algo más que deberían saber?"
   },
   "reward": {
     "tasteBonus": "+3 Explorador de sabor",
     "compareBonus": "+5 Pro de comparaciones",
-    "submitBonus": "+10 ReseÃ±a completa",
+    "submitBonus": "+10 Reseña completa",
     "mediaBonus": "+2 Bonus de medios"
   },
   "validation": {
@@ -227,40 +227,594 @@
     "dishRequired": "Elige o agrega un plato",
     "ratingRequired": "Califica el plato",
     "tasteRequired": "Configura los atributos clave",
-    "mediaTooLarge": "Algunos archivos superan el lÃ­mite",
+    "mediaTooLarge": "Algunos archivos superan el límite",
     "comparisonReasons": "Elige dos razones",
-    "profanity": "MantengÃ¡moslo amable"
+    "profanity": "Mantengámoslo amable",
+    "profile": {
+      "usernameRequired": "El nombre de usuario es obligatorio.",
+      "usernameMin": "El nombre de usuario debe tener al menos 3 caracteres.",
+      "usernameFormat": "El nombre de usuario solo puede contener letras, números y guiones bajos.",
+      "bioMax": "La biografía debe tener 160 caracteres o menos."
+    },
+    "password": {
+      "currentRequired": "La contraseña actual es obligatoria.",
+      "newRequired": "La nueva contraseña es obligatoria.",
+      "minLength": "La contraseña debe tener al menos {{min}} caracteres.",
+      "mustDiffer": "La nueva contraseña debe ser diferente de la actual.",
+      "confirmRequired": "Confirma tu nueva contraseña.",
+      "noMatch": "Las contraseñas no coinciden.",
+      "fixErrors": "Corrige los errores de validación.",
+      "currentIncorrect": "La contraseña actual es incorrecta.",
+      "tooWeak": "La contraseña es demasiado débil."
+    }
   },
   "profanity": {
-    "warning": "MantengÃ¡moslo amable"
+    "warning": "Mantengámoslo amable"
   },
   "common": {
     "optional": "Opcional",
-    "yes": "SÃ­",
-    "no": "No"
+    "yes": "Sí",
+    "no": "No",
+    "actions": {
+      "addFirstReview": "Agrega tu primera reseña",
+      "apply": "Aplicar",
+      "cancel": "Cancelar",
+      "clearSearch": "Limpiar búsqueda",
+      "discoverRestaurants": "Descubrir restaurantes",
+      "dismiss": "Descartar",
+      "edit": "Editar",
+      "goBack": "Volver",
+      "goHome": "Ir al inicio",
+      "retry": "Reintentar",
+      "save": "Guardar",
+      "saving": "Guardando...",
+      "share": "Compartir",
+      "tryAgain": "Intentar de nuevo"
+    }
   },
   "review": {
-    "addMedia": "AÃ±adir fotos o videos",
-    "addRestaurant": "Â¿No lo encuentras? AÃ±ade el lugar",
-    "dishCategory": "Selecciona una categorÃ­a",
-    "overallRating": "ValoraciÃ³n general",
-    "addDetails": "AÃ±adir mÃ¡s detalles",
-    "addCaption": "AÃ±ade una nota o comparaciÃ³n rÃ¡pida (opcional)",
-    "orderAgain": "Â¿Lo pedirÃ­as otra vez?",
-    "recommend": "Â¿Lo recomendarÃ­as?",
-    "submit": "Enviar reseÃ±a"
+    "addMedia": "Añadir fotos o videos",
+    "addRestaurant": "¿No lo encuentras? Añade el lugar",
+    "dishCategory": "Selecciona una categoría",
+    "overallRating": "Valoración general",
+    "addDetails": "Añadir más detalles",
+    "addCaption": "Añade una nota o comparación rápida (opcional)",
+    "orderAgain": "¿Lo pedirías otra vez?",
+    "recommend": "¿Lo recomendarías?",
+    "submit": "Enviar reseña"
   },
   "audience": {
     "spicy": "Amantes del picante",
-    "date": "Cita romÃ¡ntica",
+    "date": "Cita romántica",
     "family": "Comida familiar",
-    "quick": "Bocado rÃ¡pido",
+    "quick": "Bocado rápido",
     "solo": "Capricho personal",
-    "group": "ReuniÃ³n con amigos"
+    "group": "Reunión con amigos"
   },
   "nextVisit": {
-    "comeBack": "VolverÃ­a por esto",
-    "bring": "TraerÃ­a a alguien mÃ¡s",
+    "comeBack": "Volvería por esto",
+    "bring": "Traería a alguien más",
     "no": "Probablemente no"
+  },
+  "nav": {
+    "home": "Inicio",
+    "foodMap": "Mapa",
+    "create": "Crear",
+    "profile": "Perfil"
+  },
+  "home": {
+    "loadingFeed": "Cargando tu feed...",
+    "updatingFeed": "Actualizando feed...",
+    "communityFeed": "Feed de la comunidad",
+    "empty": {
+      "title": "Tu feed comienza aquí",
+      "subtitle": "Sigue a amigos y agrega reseñas para ver actividad de la comunidad.",
+      "ctaAddFirstReview": "Agrega tu primera reseña",
+      "ctaDiscover": "Descubrir restaurantes"
+    },
+    "noReviews": {
+      "title": "Aún no hay reseñas",
+      "subtitle": "Sé el primero en compartir un plato que te encantó.",
+      "cta": "Crear una reseña"
+    },
+    "errors": {
+      "authTimeout": "La autenticación tardó demasiado. Inténtalo de nuevo.",
+      "loadData": "No pudimos cargar tu feed. Inténtalo de nuevo.",
+      "loadReviews": "No se pudieron cargar las reseñas. Inténtalo de nuevo.",
+      "loadingTimeout": "La carga está tardando demasiado. Inténtalo de nuevo.",
+      "feedTitle": "Feed no disponible",
+      "feedUpdates": "No se pudo actualizar el feed. Inténtalo de nuevo."
+    }
+  },
+  "discover": {
+    "title": "Descubrir",
+    "search": {
+      "restaurants": "Buscar restaurantes...",
+      "dishes": "Buscar platos...",
+      "aria": "Buscar"
+    },
+    "categories": {
+      "all": "Todas",
+      "nearMe": "Cerca de mí"
+    },
+    "dishCategories": {
+      "appetizer": "Entrante",
+      "entree": "Plato fuerte",
+      "handheld": "Bocadillos",
+      "side": "Guarnición",
+      "dessert": "Postre",
+      "drink": "Bebida"
+    },
+    "cuisines": {
+      "italian": "Italiana",
+      "japanese": "Japonesa",
+      "chinese": "China",
+      "mexican": "Mexicana",
+      "thai": "Tailandesa",
+      "american": "Estadounidense",
+      "french": "Francesa",
+      "indian": "India",
+      "mediterranean": "Mediterránea",
+      "latin_american": "Latinoamericana",
+      "spanish": "Española",
+      "greek": "Griega",
+      "korean": "Coreana",
+      "vietnamese": "Vietnamita",
+      "middle_eastern": "Medio oriental",
+      "caribbean": "Caribeña",
+      "bbqgrill": "BBQ / parrilla",
+      "seafood": "Mariscos",
+      "breakfast_brunch": "Desayuno / brunch",
+      "sandwiches_deli": "Sándwiches / deli",
+      "pizza": "Pizza",
+      "european": "Europea",
+      "african": "Africana",
+      "peruvian": "Peruana",
+      "argentine": "Argentina",
+      "brazilian": "Brasileña",
+      "filipino": "Filipina",
+      "hawaiian": "Hawaiana",
+      "turkish": "Turca",
+      "lebanese": "Libanesa"
+    },
+    "tags": {
+      "greatStaff": "Personal excelente",
+      "wonderfulAtmosphere": "Ambiente increíble",
+      "quickService": "Servicio rápido",
+      "hiddenGem": "Joya escondida",
+      "worthTheWait": "Vale la espera",
+      "highlyPhotogenic": "Muy fotogénico",
+      "kidFriendly": "Apto para niños"
+    },
+    "labels": {
+      "restaurants": "restaurantes",
+      "dishes": "platos"
+    },
+    "loading": "Cargando {{type}}...",
+    "errors": {
+      "loading": "Error al cargar {{type}}",
+      "loadRestaurants": "No se pudieron cargar los restaurantes. Inténtalo de nuevo.",
+      "loadDishes": "No se pudieron cargar los platos. Inténtalo de nuevo."
+    },
+    "actions": {
+      "clearFilters": "Limpiar filtros"
+    },
+    "empty": {
+      "noTagResults": "No hay restaurantes con {{tag}}",
+      "noRestaurants": {
+        "title": "No se encontraron restaurantes",
+        "subtitle": "Prueba otra categoría o ajusta los filtros"
+      },
+      "noDishes": {
+        "title": "No se encontraron platos",
+        "subtitle": "Prueba otra categoría"
+      }
+    },
+    "googleAttribution": "Algunos resultados de Google Places",
+    "dishes": {
+      "noReviews": "Sin reseñas"
+    },
+    "distance": {
+      "unknown": "-"
+    }
+  },
+  "lists": {
+    "title": "Listas guardadas",
+    "count": "{{count}} listas",
+    "loading": "Cargando listas...",
+    "empty": {
+      "title": "Aún no hay listas",
+      "subtitle": "Guarda tus lugares y platos favoritos para tenerlos a mano."
+    },
+    "actions": {
+      "createNew": "Crear lista nueva",
+      "create": "Crear"
+    },
+    "status": {
+      "creating": "Creando..."
+    },
+    "placeholders": {
+      "name": "Nombre de la lista"
+    },
+    "errors": {
+      "load": "No se pudieron cargar las listas. Inténtalo de nuevo.",
+      "create": "No se pudo crear la lista. Inténtalo de nuevo.",
+      "delete": "No se pudo eliminar la lista. Inténtalo de nuevo.",
+      "share": "No se pudo compartir la lista. Inténtalo de nuevo.",
+      "nameRequired": "El nombre de la lista es obligatorio.",
+      "updateName": "No se pudo actualizar el nombre de la lista."
+    },
+    "confirmDelete": "¿Eliminar \"{{name}}\"?",
+    "share": {
+      "title": "Compartir lista",
+      "copied": "Enlace de la lista copiado."
+    },
+    "detail": {
+      "loading": {
+        "title": "Cargando...",
+        "message": "Cargando lista..."
+      },
+      "errors": {
+        "title": "Error",
+        "unable": "No se pudo cargar la lista",
+        "notFound": "Esta lista puede no existir o no tienes acceso.",
+        "load": "No se pudo cargar la lista.",
+        "loadData": "No se pudieron cargar los datos de la lista.",
+        "removeRestaurant": "No se pudo quitar el restaurante.",
+        "removeDish": "No se pudo quitar el plato.",
+        "updateName": "No se pudo actualizar el nombre de la lista."
+      },
+      "sections": {
+        "restaurants": "Restaurantes",
+        "dishes": "Platos"
+      },
+      "savedCount": "{{count}} guardados",
+      "empty": {
+        "restaurants": {
+          "title": "No hay restaurantes guardados",
+          "subtitle": "Agrega restaurantes desde Descubrir"
+        },
+        "dishes": {
+          "title": "No hay platos guardados",
+          "subtitle": "Agrega platos desde reseñas de restaurantes"
+        }
+      },
+      "actions": {
+        "editName": "Editar nombre de la lista",
+        "share": "Compartir lista",
+        "remove": "Quitar de la lista"
+      },
+      "fromRestaurant": "de {{restaurant}}",
+      "unknownDish": "Plato desconocido",
+      "unknownRestaurant": "Restaurante desconocido",
+      "mainCourse": "Plato fuerte",
+      "share": {
+        "title": "¡Mira mi lista {{name}}!",
+        "text": "¡Mira mi lista de comida {{name}} en Tip!",
+        "copied": "Enlace de la lista copiado.",
+        "failed": "No se pudo compartir la lista. Inténtalo de nuevo."
+      },
+      "sources": {
+        "reviews": "reseñas",
+        "menuItems": "elementos del menú"
+      }
+    }
+  },
+  "map": {
+    "loading": "Cargando mapa...",
+    "auth": {
+      "title": "Inicia sesión",
+      "subtitle": "Inicia sesión para ver tu Mapa de Comida."
+    },
+    "title": "Tu Mapa de Comida",
+    "titleUser": "Mapa de Comida de {{username}}",
+    "search": {
+      "placeholder": "Buscar visitas recientes"
+    },
+    "empty": {
+      "noMatchTitle": "No se encontraron visitas",
+      "noMatchSubtitle": "Prueba otra búsqueda."
+    },
+    "labels": {
+      "unknownDish": "Plato desconocido",
+      "unknownRestaurant": "Restaurante desconocido"
+    },
+    "visits": {
+      "tried": "Probado: {{count}}",
+      "visited": "Visitado: {{count}}"
+    },
+    "notes": {
+      "personalNote": "Nota personal",
+      "personalNotesLabel": "Notas personales",
+      "addPlaceholder": "Agregar una nota...",
+      "limitReached": "Límite de notas alcanzado",
+      "addAria": "Agregar nota"
+    },
+    "demo": {
+      "note1": "Pide trufa extra la próxima vez.",
+      "note2": "El mejor sushi hasta ahora. Siéntate en la barra.",
+      "date1": "2 ene 2026",
+      "date2": "28 dic 2025"
+    }
+  },
+  "profile": {
+    "errors": {
+      "title": "Ups",
+      "unable": "No pudimos cargar tu perfil.",
+      "noAuth": "Inicia sesión para ver esta página.",
+      "loadProfile": "No se pudo cargar el perfil."
+    },
+    "labels": {
+      "verified": "Verificado",
+      "user": "Usuario"
+    },
+    "share": {
+      "title": "Compartir el perfil de {{username}}",
+      "text": "Mira a {{username}} en Tip.",
+      "copied": "Enlace del perfil copiado.",
+      "failed": "No se pudo compartir el perfil."
+    },
+    "actions": {
+      "viewBadges": "Ver insignias",
+      "yourRestaurant": "Tu restaurante",
+      "viewMap": "Ver mapa de comida",
+      "editProfile": "Editar perfil"
+    },
+    "newUser": {
+      "message": "¡Eres nuevo! Agrega tu primera reseña para empezar."
+    },
+    "tiers": {
+      "comingSoon": "Clasificaciones por niveles próximamente",
+      "subtitle": "Estamos trabajando en el sistema de clasificación."
+    },
+    "tabs": {
+      "reviews": "Reseñas",
+      "saved": "Guardados",
+      "savedLists": "Listas guardadas"
+    },
+    "search": {
+      "placeholder": "Buscar reseñas"
+    },
+    "loading": {
+      "reviews": "Cargando reseñas..."
+    },
+    "empty": {
+      "noMatchTitle": "Sin resultados",
+      "noMatchSubtitle": "Prueba otra búsqueda.",
+      "noReviewsTitle": "Aún no hay reseñas",
+      "noReviewsSubtitle": "Empieza a reseñar para crear tu perfil."
+    },
+    "rank": {
+      "title": "Escalera de insignias"
+    },
+    "edit": {
+      "title": "Editar perfil",
+      "loading": "Cargando perfil...",
+      "sections": {
+        "photo": "Foto de perfil",
+        "info": "Información del perfil",
+        "homeCountry": "País de origen",
+        "account": "Ajustes de la cuenta"
+      },
+      "photo": {
+        "change": "Cambiar foto",
+        "hint": "JPG, PNG hasta 5 MB. Las imágenes cuadradas funcionan mejor.",
+        "alt": "Foto de perfil"
+      },
+      "fields": {
+        "username": {
+          "label": "Nombre de usuario *",
+          "placeholder": "Ingresa un nombre de usuario",
+          "help": "Solo letras, números y guiones bajos. Mínimo 3 caracteres."
+        },
+        "name": {
+          "label": "Tu nombre",
+          "placeholder": "Ingresa tu nombre completo",
+          "help": "Así te verán los demás en tu perfil"
+        },
+        "displayName": {
+          "label": "Nombre para mostrar",
+          "placeholder": "Ingresa un nombre para mostrar"
+        },
+        "bio": {
+          "label": "Biografía",
+          "placeholder": "Cuéntanos sobre ti...",
+          "counter": "{{count}}/160 caracteres"
+        }
+      },
+      "homeCountry": {
+        "description": "Tu mapa de comida empieza aquí. Cámbialo cuando quieras.",
+        "select": "Selecciona tu país de origen",
+        "searchPlaceholder": "Buscar países..."
+      },
+      "account": {
+        "changePassword": "Cambiar contraseña"
+      },
+      "modal": {
+        "cropTitle": "Recortar foto de perfil",
+        "cropPreviewAlt": "Vista previa de recorte",
+        "zoom": "Zoom"
+      },
+      "success": {
+        "updated": "¡Perfil actualizado!"
+      },
+      "errors": {
+        "imageTooLarge": "La imagen debe ser menor de 5 MB.",
+        "invalidImage": "Selecciona un archivo de imagen válido.",
+        "cropFailed": "No se pudo recortar la imagen.",
+        "uploadFailed": "No se pudo subir la foto. Guardando otros cambios...",
+        "updateFailed": "No se pudo actualizar el perfil.",
+        "saveFailed": "No se pudieron guardar los cambios."
+      }
+    }
+  },
+  "publicProfile": {
+    "title": "Perfil",
+    "errors": {
+      "usernameRequired": "Se requiere nombre de usuario.",
+      "notFound": "Perfil no encontrado.",
+      "loadProfile": "No se pudo cargar el perfil.",
+      "notFoundTitle": "Usuario no encontrado",
+      "notFoundSubtitle": "Este perfil no existe."
+    },
+    "share": {
+      "title": "Compartir el perfil de {{username}}",
+      "text": "Mira a {{username}} en Tip.",
+      "copied": "Enlace del perfil copiado.",
+      "failed": "No se pudo compartir el perfil."
+    },
+    "actions": {
+      "follow": "Seguir",
+      "following": "Siguiendo",
+      "viewMap": "Ver mapa de comida"
+    },
+    "empty": {
+      "noMatchSubtitle": "Prueba otra búsqueda.",
+      "noReviewsSubtitle": "{{username}} aún no ha publicado reseñas."
+    },
+    "private": {
+      "title": "Listas guardadas privadas",
+      "subtitle": "Esta sección es privada."
+    },
+    "rank": {
+      "title": "Escalera de insignias",
+      "subtitle": "Progreso de insignias de {{username}}"
+    }
+  },
+  "settings": {
+    "title": "Ajustes",
+    "location": {
+      "title": "Ubicación",
+      "permissionStatus": "Estado del permiso",
+      "status": {
+        "granted": "Permitido",
+        "denied": "Denegado",
+        "notRequested": "No solicitado",
+        "notSupported": "No compatible"
+      },
+      "requestAccess": "Solicitar acceso",
+      "messages": {
+        "denied": "El acceso a la ubicación está bloqueado.",
+        "enabled": "El acceso a la ubicación está habilitado.",
+        "granted": "Acceso a la ubicación concedido.",
+        "notSupported": "La ubicación no es compatible en este dispositivo.",
+        "permissionDenied": "Permiso de ubicación denegado.",
+        "unable": "No se pudo obtener tu ubicación."
+      }
+    },
+    "privacy": {
+      "title": "Privacidad",
+      "publicProfile": "Perfil público"
+    },
+    "map": {
+      "title": "Mapa",
+      "theme": "Tema del mapa",
+      "themeDefault": "Predeterminado",
+      "themeMono": "Monocromo",
+      "applyInstant": "Se aplica al instante"
+    },
+    "language": {
+      "title": "Idioma",
+      "label": "Idioma de la app",
+      "applyInstant": "Se aplica al instante"
+    },
+    "account": {
+      "title": "Cuenta",
+      "changeEmail": "Cambiar correo",
+      "deleteAccount": "Eliminar cuenta"
+    },
+    "helpFeedback": "Ayuda y comentarios",
+    "help": {
+      "title": "Ayuda y soporte",
+      "form": {
+        "name": "Nombre",
+        "email": "Correo electrónico",
+        "subject": "Asunto",
+        "message": "Mensaje"
+      },
+      "placeholders": {
+        "name": "Tu nombre",
+        "email": "tu@correo.com",
+        "message": "¿En qué podemos ayudarte?"
+      },
+      "subject": {
+        "select": "Selecciona un asunto",
+        "options": {
+          "bug": "Reportar un error",
+          "feature": "Sugerir una función",
+          "account": "Cuenta",
+          "restaurant": "Restaurante",
+          "other": "Otro"
+        }
+      },
+      "submit": "Enviar mensaje",
+      "alertThanks": "¡Gracias por tu mensaje! Te responderemos pronto."
+    },
+    "menu": {
+      "open": "Abrir menú",
+      "owner": "Portal de propietario",
+      "ownerTitle": "Gestiona tu restaurante",
+      "claim": "Reclamar restaurante"
+    },
+    "logout": {
+      "confirm": "¿Cerrar sesión en Tip?",
+      "failed": "No se pudo cerrar sesión. Inténtalo de nuevo.",
+      "label": "Cerrar sesión"
+    },
+    "password": {
+      "title": "Cambiar contraseña",
+      "actions": {
+        "update": "Actualizar contraseña",
+        "updating": "Actualizando...",
+        "updatingLong": "Actualizando contraseña..."
+      },
+      "sectionTitle": "Actualiza tu contraseña",
+      "fields": {
+        "current": {
+          "label": "Contraseña actual *",
+          "placeholder": "Ingresa tu contraseña actual"
+        },
+        "new": {
+          "label": "Nueva contraseña *",
+          "placeholder": "Ingresa tu nueva contraseña",
+          "help": "Debe tener al menos {{min}} caracteres"
+        },
+        "confirm": {
+          "label": "Confirma la nueva contraseña *",
+          "placeholder": "Confirma tu nueva contraseña",
+          "match": "Las contraseñas coinciden"
+        }
+      },
+      "strength": {
+        "label": "Fortaleza de contraseña:",
+        "weak": "Débil",
+        "fair": "Regular",
+        "good": "Buena",
+        "strong": "Fuerte"
+      },
+      "securityTips": {
+        "title": "Buenas prácticas de seguridad",
+        "unique": "Usa una contraseña única que no uses en otros sitios",
+        "complex": "Incluye mayúsculas, minúsculas, números y símbolos",
+        "avoidPersonal": "Evita información personal como cumpleaños o nombres",
+        "manager": "Considera usar un gestor de contraseñas"
+      },
+      "afterChange": {
+        "title": "Después de cambiar tu contraseña:",
+        "staySignedIn": "Seguirás conectado en este dispositivo",
+        "signOutOthers": "Se cerrará sesión en otros dispositivos",
+        "updateManager": "Actualiza tu gestor de contraseñas si usas uno"
+      },
+      "errors": {
+        "tooManyAttempts": "Demasiados intentos fallidos. Inténtalo más tarde.",
+        "verifyFailed": "No se pudo verificar la contraseña actual. Inténtalo de nuevo.",
+        "tooWeak": "La contraseña es demasiado débil. Elige una más fuerte.",
+        "recentLogin": "Por seguridad, cierra sesión y vuelve a iniciar sesión antes de cambiar tu contraseña.",
+        "updateFailed": "No se pudo cambiar la contraseña. Inténtalo de nuevo."
+      },
+      "success": {
+        "updated": "¡Contraseña cambiada con éxito!"
+      }
+    }
   }
 }

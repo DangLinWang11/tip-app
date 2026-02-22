@@ -5,6 +5,7 @@ import { useLoadScript } from '@react-google-maps/api';
 import { db } from '../../lib/firebase';
 import RatingSlider from '../RatingSlider';
 import { useI18n } from '../../lib/i18n/useI18n';
+import { getTranslatedMenuItemText } from '../../utils/menuItemTranslations';
 import { RestaurantOption, DishOption } from './types';
 import { useReviewWizard } from './WizardContext';
 import CreateRestaurantModal from './CreateRestaurantModal';
@@ -41,7 +42,7 @@ const getQualityColor = (score: number | null | undefined): string => {
 };
 
 const Step1Basic: React.FC = () => {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const {
     draft,
     updateDraft,
@@ -712,24 +713,27 @@ const Step1Basic: React.FC = () => {
             </div>
           ) : (
             <div className="grid gap-2">
-              {filteredDishes.map((dish) => (
-                <button
-                  key={dish.id}
-                  type="button"
-                  onClick={() => onDishSelected(dish)}
-                  className={`flex items-center justify-between rounded-2xl border px-4 py-3 text-left transition ${selectedDish?.id === dish.id ? 'border-red-400 bg-red-50' : 'border-slate-200 hover:border-red-200 hover:bg-red-50/40'}`}
-                >
-                  <div>
-                    <p className="text-sm font-semibold text-slate-800">{dish.name}</p>
-                    {dish.description ? (
-                      <p className="text-xs text-slate-500">{dish.description}</p>
+              {filteredDishes.map((dish) => {
+                const dishText = getTranslatedMenuItemText(dish, language);
+                return (
+                  <button
+                    key={dish.id}
+                    type="button"
+                    onClick={() => onDishSelected(dish)}
+                    className={`flex items-center justify-between rounded-2xl border px-4 py-3 text-left transition ${selectedDish?.id === dish.id ? 'border-red-400 bg-red-50' : 'border-slate-200 hover:border-red-200 hover:bg-red-50/40'}`}
+                  >
+                    <div>
+                      <p className="text-sm font-semibold text-slate-800">{dishText.name}</p>
+                      {dishText.description ? (
+                        <p className="text-xs text-slate-500">{dishText.description}</p>
+                      ) : null}
+                    </div>
+                    {dish.price ? (
+                      <span className="text-xs text-slate-500">${dish.price}</span>
                     ) : null}
-                  </div>
-                  {dish.price ? (
-                    <span className="text-xs text-slate-500">${dish.price}</span>
-                  ) : null}
-                </button>
-              ))}
+                  </button>
+                );
+              })}
               {selectedRestaurant && draft.dishName.trim() && !dishes.some(d => d.name.toLowerCase() === draft.dishName.trim().toLowerCase()) && (
                 <button
                   type="button"

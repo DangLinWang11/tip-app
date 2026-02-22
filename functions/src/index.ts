@@ -11,3 +11,4 @@ export { backfillThumbnails, getThumbnailStats } from './backfillThumbnails';
 export { onReviewWrite } from './onReviewWrite';
 export { onReviewPendingProof } from './verifyReceipt';
 export { onReviewUpdate } from './onReviewUpdate';
+export { translateMenuItemToEs } from './translateMenuItemToEs';

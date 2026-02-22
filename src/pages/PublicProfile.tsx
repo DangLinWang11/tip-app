@@ -13,6 +13,7 @@ import { getInitials } from '../utils/avatarUtils';
 import AvatarBadge from '../components/badges/AvatarBadge';
 import BadgeLadderModal from '../components/badges/BadgeLadderModal';
 import { getTierFromPoints } from '../badges/badgeTiers';
+import { useI18n } from '../lib/i18n/useI18n';
 
 // Cache for visited public profiles (username-keyed with LRU eviction)
 interface CachedPublicProfile {
@@ -127,6 +128,7 @@ const PublicProfileSkeleton: React.FC<{ username?: string }> = ({ username }) =>
 const PublicProfile: React.FC = () => {
   const navigate = useNavigate();
   const { username } = useParams<{ username: string }>();
+  const { t } = useI18n();
   const [userProfile, setUserProfile] = useState<any>(null);
   const [userReviews, setUserReviews] = useState<FirebaseReview[]>([]);
   const [feedPosts, setFeedPosts] = useState<any[]>([]);
@@ -160,7 +162,7 @@ const PublicProfile: React.FC = () => {
   const loadUserProfile = async () => {
     try {
       if (!username) {
-        setError('Username is required');
+        setError(t('publicProfile.errors.usernameRequired'));
         return;
       }
 
@@ -223,11 +225,11 @@ const PublicProfile: React.FC = () => {
           timestamp: Date.now()
         });
       } else {
-        setError(profileResult.error || 'User not found');
+        setError(profileResult.error || t('publicProfile.errors.notFound'));
       }
     } catch (err) {
       console.error('Failed to load user profile:', err);
-      setError('Failed to load user profile');
+      setError(t('publicProfile.errors.loadProfile'));
     } finally {
       setLoading(false);
     }
@@ -284,8 +286,8 @@ const PublicProfile: React.FC = () => {
     try {
       const shareUrl = `${window.location.origin}/profile/${username}`;
       const shareData = {
-        title: `Check out @${username} on Tip!`,
-        text: `Check out @${username}'s food reviews and recommendations on Tip!`,
+        title: t('publicProfile.share.title', { username }),
+        text: t('publicProfile.share.text', { username }),
         url: shareUrl
       };
 
@@ -294,7 +296,7 @@ const PublicProfile: React.FC = () => {
       } else {
         // Fallback: copy to clipboard
         await navigator.clipboard.writeText(shareUrl);
-        alert('Profile link copied to clipboard!');
+        alert(t('publicProfile.share.copied'));
       }
     } catch (err) {
       console.error('Failed to share profile:', err);
@@ -302,9 +304,9 @@ const PublicProfile: React.FC = () => {
       try {
         const shareUrl = `${window.location.origin}/profile/${username}`;
         await navigator.clipboard.writeText(shareUrl);
-        alert('Profile link copied to clipboard!');
+        alert(t('publicProfile.share.copied'));
       } catch {
-        alert('Unable to share profile. Please try again.');
+        alert(t('publicProfile.share.failed'));
       }
     }
   };
@@ -353,14 +355,14 @@ const PublicProfile: React.FC = () => {
             >
               <ArrowLeftIcon size={20} className="text-gray-600" />
             </button>
-            <h1 className="text-xl font-bold text-black">Profile</h1>
+            <h1 className="text-xl font-bold text-black">{t('publicProfile.title')}</h1>
           </div>
         </div>
 
         {/* Error State */}
         <div className="text-center py-12">
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">User Not Found</h3>
-          <p className="text-gray-600 mb-4">This user doesn't exist or their profile is private.</p>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">{t('publicProfile.errors.notFoundTitle')}</h3>
+          <p className="text-gray-600 mb-4">{t('publicProfile.errors.notFoundSubtitle')}</p>
           <button
             onClick={() => {
               startTransition(() => {
@@ -369,7 +371,7 @@ const PublicProfile: React.FC = () => {
             }}
             className="bg-primary text-white py-2 px-6 rounded-full font-medium hover:bg-red-600 transition-colors"
           >
-            Go Back
+            {t('common.actions.goBack')}
           </button>
         </div>
       </div>
@@ -465,7 +467,7 @@ const PublicProfile: React.FC = () => {
                   ) : (
                     <PlusIcon size={14} />
                   )}
-                  {isFollowingUser ? 'Following' : 'Follow'}
+                  {isFollowingUser ? t('publicProfile.actions.following') : t('publicProfile.actions.follow')}
                 </button>
               )}
             </div>
@@ -479,17 +481,17 @@ const PublicProfile: React.FC = () => {
                   type="button"
                   onClick={() => setShowBadgeModal(true)}
                   className="inline-flex items-center badge-heartbeat ml-1.5"
-                  aria-label="View badges"
+                  aria-label={t('profile.actions.viewBadges')}
                 >
                   <AvatarBadge tierIndex={tierProgress.tierIndex} size="inline" />
                 </button>
                 {userProfile?.isVerified && (
-                  <span className="ml-1 text-blue-500" title="Verified user">✓</span>
+                  <span className="ml-1 text-blue-500" title={t('profile.labels.verified')}>✓</span>
                 )}
                 <button
                   onClick={handleShareProfile}
                   className="ml-auto p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-colors"
-                  aria-label="Share profile"
+                  aria-label={t('common.actions.share')}
                 >
                   <Share size={18} />
                 </button>
@@ -524,7 +526,7 @@ const PublicProfile: React.FC = () => {
                 className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium flex items-center hover:bg-gray-50 transition-colors"
               >
                 <EditIcon size={14} className="mr-1.5" />
-                Edit Profile
+                {t('profile.actions.editProfile')}
               </button>
             </div>
           )}
@@ -545,7 +547,7 @@ const PublicProfile: React.FC = () => {
               className="w-full bg-gradient-to-r from-primary to-red-500 text-white py-3 px-6 rounded-xl font-medium shadow-sm hover:shadow-md transition-all duration-200 flex items-center justify-center"
             >
               <MapIcon size={18} className="mr-2" />
-              View their Food Map
+              {t('publicProfile.actions.viewMap')}
             </button>
           </div>
         )}
@@ -560,7 +562,7 @@ const PublicProfile: React.FC = () => {
                 : 'text-gray-600'
             }`}
           >
-            Reviews ({userReviews.length})
+            {t('profile.tabs.reviews')} ({userReviews.length})
             {activeTab === 'reviews' && (
               <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
             )}
@@ -573,7 +575,7 @@ const PublicProfile: React.FC = () => {
                 : 'text-gray-600'
             }`}
           >
-            Saved Lists
+            {t('profile.tabs.savedLists')}
             {activeTab === 'saved' && (
               <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
             )}
@@ -590,7 +592,7 @@ const PublicProfile: React.FC = () => {
               <SearchIcon size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
               <input
                 type="text"
-                placeholder="Search reviews..."
+                placeholder={t('profile.search.placeholder')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
@@ -611,12 +613,12 @@ const PublicProfile: React.FC = () => {
                 <MapPinIcon size={24} className="text-gray-400" />
               </div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                {searchQuery ? 'No matching reviews' : 'No reviews yet'}
+                {searchQuery ? t('profile.empty.noMatchTitle') : t('profile.empty.noReviewsTitle')}
               </h3>
               <p className="text-gray-600">
                 {searchQuery
-                  ? 'Try adjusting your search terms'
-                  : `${username} hasn't shared any reviews yet.`
+                  ? t('publicProfile.empty.noMatchSubtitle')
+                  : t('publicProfile.empty.noReviewsSubtitle', { username: username || t('profile.labels.user') })
                 }
               </p>
             </div>
@@ -630,8 +632,8 @@ const PublicProfile: React.FC = () => {
             <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <MapPinIcon size={24} className="text-gray-400" />
             </div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Private Content</h3>
-            <p className="text-gray-600">Saved lists are private and not visible to other users.</p>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">{t('publicProfile.private.title')}</h3>
+            <p className="text-gray-600">{t('publicProfile.private.subtitle')}</p>
           </div>
         </div>
       )}
@@ -654,8 +656,8 @@ const PublicProfile: React.FC = () => {
           isOpen={showBadgeModal}
           onClose={() => setShowBadgeModal(false)}
           points={pointsEarned}
-          title={isOwnProfile ? 'Your Rank' : 'Rank'}
-          subtitle={isOwnProfile ? undefined : `${userProfile?.displayName || userProfile?.username || username || 'User'}'s badge ladder`}
+          title={isOwnProfile ? t('profile.rank.title') : t('publicProfile.rank.title')}
+          subtitle={isOwnProfile ? undefined : t('publicProfile.rank.subtitle', { username: userProfile?.displayName || userProfile?.username || username || t('profile.labels.user') })}
         />
       )}
     </div>

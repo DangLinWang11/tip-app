@@ -1,4 +1,4 @@
-﻿{
+{
   "createWizard": {
     "title": "Create Dish Review",
     "subtitle": "Let's capture the full story of this dish.",
@@ -229,7 +229,24 @@
     "tasteRequired": "Set all core taste attributes",
     "mediaTooLarge": "Some files exceed the size limit",
     "comparisonReasons": "Pick two reasons",
-    "profanity": "Please keep it friendly"
+    "profanity": "Please keep it friendly",
+    "profile": {
+      "usernameRequired": "Username is required.",
+      "usernameMin": "Username must be at least 3 characters.",
+      "usernameFormat": "Username can only contain letters, numbers, and underscores.",
+      "bioMax": "Bio must be 160 characters or less."
+    },
+    "password": {
+      "currentRequired": "Current password is required.",
+      "newRequired": "New password is required.",
+      "minLength": "Password must be at least {{min}} characters long.",
+      "mustDiffer": "New password must be different from current password.",
+      "confirmRequired": "Please confirm your new password.",
+      "noMatch": "Passwords do not match.",
+      "fixErrors": "Please fix the validation errors below.",
+      "currentIncorrect": "Current password is incorrect.",
+      "tooWeak": "Password is too weak."
+    }
   },
   "profanity": {
     "warning": "Please keep it friendly"
@@ -237,7 +254,23 @@
   "common": {
     "optional": "Optional",
     "yes": "Yes",
-    "no": "No"
+    "no": "No",
+    "actions": {
+      "addFirstReview": "Add Your First Review",
+      "apply": "Apply",
+      "cancel": "Cancel",
+      "clearSearch": "Clear search",
+      "discoverRestaurants": "Discover Restaurants",
+      "dismiss": "Dismiss",
+      "edit": "Edit",
+      "goBack": "Go Back",
+      "goHome": "Go Home",
+      "retry": "Retry",
+      "save": "Save",
+      "saving": "Saving...",
+      "share": "Share",
+      "tryAgain": "Try Again"
+    }
   },
   "review": {
     "addMedia": "Add photos or videos",
@@ -262,5 +295,526 @@
     "comeBack": "Come back for this",
     "bring": "Bring someone else",
     "no": "Probably not"
+  },
+  "nav": {
+    "home": "Home",
+    "foodMap": "Food Map",
+    "create": "Create",
+    "profile": "Profile"
+  },
+  "home": {
+    "loadingFeed": "Loading your feed...",
+    "updatingFeed": "Updating feed...",
+    "communityFeed": "Community Feed",
+    "empty": {
+      "title": "Your feed starts here",
+      "subtitle": "Follow friends and add reviews to see activity from the community.",
+      "ctaAddFirstReview": "Add Your First Review",
+      "ctaDiscover": "Discover Restaurants"
+    },
+    "noReviews": {
+      "title": "No reviews yet",
+      "subtitle": "Be the first to share a dish you loved.",
+      "cta": "Create a Review"
+    },
+    "errors": {
+      "authTimeout": "Authentication timed out. Please try again.",
+      "loadData": "Couldn't load your feed. Please try again.",
+      "loadReviews": "Failed to load reviews. Please try again.",
+      "loadingTimeout": "Loading is taking too long. Please try again.",
+      "feedTitle": "Feed Unavailable",
+      "feedUpdates": "Couldn't update the feed. Please try again."
+    }
+  },
+  "discover": {
+    "title": "Discover",
+    "search": {
+      "restaurants": "Search restaurants...",
+      "dishes": "Search dishes...",
+      "aria": "Search"
+    },
+    "categories": {
+      "all": "All",
+      "nearMe": "Near Me"
+    },
+    "dishCategories": {
+      "appetizer": "Appetizer",
+      "entree": "Entrée",
+      "handheld": "Handheld",
+      "side": "Side",
+      "dessert": "Dessert",
+      "drink": "Drink"
+    },
+    "cuisines": {
+      "italian": "Italian",
+      "japanese": "Japanese",
+      "chinese": "Chinese",
+      "mexican": "Mexican",
+      "thai": "Thai",
+      "american": "American",
+      "french": "French",
+      "indian": "Indian",
+      "mediterranean": "Mediterranean",
+      "latin_american": "Latin American",
+      "spanish": "Spanish",
+      "greek": "Greek",
+      "korean": "Korean",
+      "vietnamese": "Vietnamese",
+      "middle_eastern": "Middle Eastern",
+      "caribbean": "Caribbean",
+      "bbqgrill": "BBQ / Grill",
+      "seafood": "Seafood",
+      "breakfast_brunch": "Breakfast / Brunch",
+      "sandwiches_deli": "Sandwiches / Deli",
+      "pizza": "Pizza",
+      "european": "European",
+      "african": "African",
+      "peruvian": "Peruvian",
+      "argentine": "Argentine",
+      "brazilian": "Brazilian",
+      "filipino": "Filipino",
+      "hawaiian": "Hawaiian",
+      "turkish": "Turkish",
+      "lebanese": "Lebanese"
+    },
+    "tags": {
+      "greatStaff": "Great Staff",
+      "wonderfulAtmosphere": "Wonderful Atmosphere",
+      "quickService": "Quick Service",
+      "hiddenGem": "Hidden Gem",
+      "worthTheWait": "Worth the Wait",
+      "highlyPhotogenic": "Highly Photogenic",
+      "kidFriendly": "Kid Friendly"
+    },
+    "labels": {
+      "restaurants": "restaurants",
+      "dishes": "dishes"
+    },
+    "loading": "Loading {{type}}...",
+    "errors": {
+      "loading": "Error loading {{type}}",
+      "loadRestaurants": "Failed to load restaurants. Please try again.",
+      "loadDishes": "Failed to load dishes. Please try again."
+    },
+    "actions": {
+      "clearFilters": "Clear Filters"
+    },
+    "empty": {
+      "noTagResults": "No restaurants found with {{tag}}",
+      "noRestaurants": {
+        "title": "No restaurants found",
+        "subtitle": "Try selecting a different category or adjusting filters"
+      },
+      "noDishes": {
+        "title": "No dishes found",
+        "subtitle": "Try selecting a different category"
+      }
+    },
+    "googleAttribution": "Some results from Google Places",
+    "dishes": {
+      "noReviews": "No reviews"
+    },
+    "distance": {
+      "unknown": "-"
+    }
+  },
+  "lists": {
+    "title": "Saved Lists",
+    "count": "{{count}} lists",
+    "loading": "Loading lists...",
+    "empty": {
+      "title": "No lists yet",
+      "subtitle": "Save your favorite places and dishes to keep track of them."
+    },
+    "actions": {
+      "createNew": "Create New List",
+      "create": "Create"
+    },
+    "status": {
+      "creating": "Creating..."
+    },
+    "placeholders": {
+      "name": "List name"
+    },
+    "errors": {
+      "load": "Failed to load lists. Please try again.",
+      "create": "Couldn't create the list. Please try again.",
+      "delete": "Couldn't delete the list. Please try again.",
+      "share": "Couldn't share the list. Please try again.",
+      "nameRequired": "List name is required.",
+      "updateName": "Couldn't update the list name."
+    },
+    "confirmDelete": "Delete \"{{name}}\"?",
+    "share": {
+      "title": "Share list",
+      "copied": "List link copied to clipboard!"
+    },
+    "detail": {
+      "loading": {
+        "title": "Loading...",
+        "message": "Loading list..."
+      },
+      "errors": {
+        "title": "Error",
+        "unable": "Unable to Load List",
+        "notFound": "This list may not exist or you may not have access to it.",
+        "load": "Failed to load list.",
+        "loadData": "Failed to load list data.",
+        "removeRestaurant": "Failed to remove restaurant.",
+        "removeDish": "Failed to remove dish.",
+        "updateName": "Failed to update list name."
+      },
+      "sections": {
+        "restaurants": "Restaurants",
+        "dishes": "Dishes"
+      },
+      "savedCount": "{{count}} saved",
+      "empty": {
+        "restaurants": {
+          "title": "No restaurants saved",
+          "subtitle": "Add restaurants from the discover page"
+        },
+        "dishes": {
+          "title": "No dishes saved",
+          "subtitle": "Add dishes from restaurant reviews"
+        }
+      },
+      "actions": {
+        "editName": "Edit list name",
+        "share": "Share list",
+        "remove": "Remove from list"
+      },
+      "fromRestaurant": "from {{restaurant}}",
+      "unknownDish": "Unknown Dish",
+      "unknownRestaurant": "Unknown Restaurant",
+      "mainCourse": "Main Course",
+      "share": {
+        "title": "Check out my {{name}} list!",
+        "text": "Check out my {{name}} food list on Tip!",
+        "copied": "List link copied to clipboard!",
+        "failed": "Unable to share list. Please try again."
+      },
+      "sources": {
+        "reviews": "reviews",
+        "menuItems": "menu items"
+      }
+    }
+  },
+  "map": {
+    "loading": "Loading map...",
+    "auth": {
+      "title": "Sign in required",
+      "subtitle": "Please sign in to view your Food Map."
+    },
+    "title": "Your Food Map",
+    "titleUser": "{{username}}'s Food Map",
+    "search": {
+      "placeholder": "Search recent visits"
+    },
+    "empty": {
+      "noMatchTitle": "No visits found",
+      "noMatchSubtitle": "Try a different search."
+    },
+    "labels": {
+      "unknownDish": "Unknown dish",
+      "unknownRestaurant": "Unknown restaurant"
+    },
+    "visits": {
+      "tried": "Tried: {{count}}",
+      "visited": "Visited: {{count}}"
+    },
+    "notes": {
+      "personalNote": "Personal Note",
+      "personalNotesLabel": "Personal notes",
+      "addPlaceholder": "Add a note...",
+      "limitReached": "Note limit reached",
+      "addAria": "Add note"
+    },
+    "demo": {
+      "note1": "Ask for extra truffle next time.",
+      "note2": "Best sushi spot so far. Sit at the bar.",
+      "date1": "Jan 2, 2026",
+      "date2": "Dec 28, 2025"
+    }
+  },
+  "profile": {
+    "errors": {
+      "title": "Oops",
+      "unable": "We couldn't load your profile.",
+      "noAuth": "You need to be signed in to view this page.",
+      "loadProfile": "Failed to load profile."
+    },
+    "labels": {
+      "verified": "Verified",
+      "user": "User"
+    },
+    "share": {
+      "title": "Share {{username}}'s profile",
+      "text": "Check out {{username}} on Tip!",
+      "copied": "Profile link copied to clipboard!",
+      "failed": "Unable to share profile."
+    },
+    "actions": {
+      "viewBadges": "View badges",
+      "yourRestaurant": "Your Restaurant",
+      "viewMap": "View Food Map",
+      "editProfile": "Edit Profile"
+    },
+    "newUser": {
+      "message": "You're new here! Add your first review to get started."
+    },
+    "tiers": {
+      "comingSoon": "Tier rankings coming soon",
+      "subtitle": "We're working on the ranking system."
+    },
+    "tabs": {
+      "reviews": "Reviews",
+      "saved": "Saved",
+      "savedLists": "Saved Lists"
+    },
+    "search": {
+      "placeholder": "Search reviews"
+    },
+    "loading": {
+      "reviews": "Loading reviews..."
+    },
+    "empty": {
+      "noMatchTitle": "No matches",
+      "noMatchSubtitle": "Try a different search.",
+      "noReviewsTitle": "No reviews yet",
+      "noReviewsSubtitle": "Start reviewing to build your profile."
+    },
+    "rank": {
+      "title": "Badge Ladder"
+    },
+    "edit": {
+      "title": "Edit Profile",
+      "loading": "Loading profile...",
+      "sections": {
+        "photo": "Profile Picture",
+        "info": "Profile Information",
+        "homeCountry": "Home Country",
+        "account": "Account Settings"
+      },
+      "photo": {
+        "change": "Change Photo",
+        "hint": "JPG, PNG up to 5MB. Square images work best.",
+        "alt": "Profile photo"
+      },
+      "fields": {
+        "username": {
+          "label": "Username *",
+          "placeholder": "Enter username",
+          "help": "Letters, numbers, and underscores only. Minimum 3 characters."
+        },
+        "name": {
+          "label": "Your Name",
+          "placeholder": "Enter your full name",
+          "help": "This is how others will see you on your profile"
+        },
+        "displayName": {
+          "label": "Display Name",
+          "placeholder": "Enter display name"
+        },
+        "bio": {
+          "label": "Bio",
+          "placeholder": "Tell us about yourself...",
+          "counter": "{{count}}/160 characters"
+        }
+      },
+      "homeCountry": {
+        "description": "Your food map starts here. Change anytime.",
+        "select": "Select your home country",
+        "searchPlaceholder": "Search countries..."
+      },
+      "account": {
+        "changePassword": "Change Password"
+      },
+      "modal": {
+        "cropTitle": "Crop Profile Picture",
+        "cropPreviewAlt": "Crop preview",
+        "zoom": "Zoom"
+      },
+      "success": {
+        "updated": "Profile updated successfully!"
+      },
+      "errors": {
+        "imageTooLarge": "Image must be smaller than 5MB.",
+        "invalidImage": "Please select a valid image file.",
+        "cropFailed": "Failed to crop image.",
+        "uploadFailed": "Failed to upload profile picture. Saving other changes...",
+        "updateFailed": "Failed to update profile.",
+        "saveFailed": "Failed to save changes."
+      }
+    }
+  },
+  "publicProfile": {
+    "title": "Profile",
+    "errors": {
+      "usernameRequired": "Username is required.",
+      "notFound": "Profile not found.",
+      "loadProfile": "Failed to load profile.",
+      "notFoundTitle": "User not found",
+      "notFoundSubtitle": "This profile doesn't exist."
+    },
+    "share": {
+      "title": "Share {{username}}'s profile",
+      "text": "Check out {{username}} on Tip!",
+      "copied": "Profile link copied to clipboard!",
+      "failed": "Unable to share profile."
+    },
+    "actions": {
+      "follow": "Follow",
+      "following": "Following",
+      "viewMap": "View Food Map"
+    },
+    "empty": {
+      "noMatchSubtitle": "Try a different search.",
+      "noReviewsSubtitle": "{{username}} hasn't posted any reviews yet."
+    },
+    "private": {
+      "title": "Saved lists are private",
+      "subtitle": "This section is private."
+    },
+    "rank": {
+      "title": "Badge Ladder",
+      "subtitle": "Badge progress for {{username}}"
+    }
+  },
+  "settings": {
+    "title": "Settings",
+    "location": {
+      "title": "Location",
+      "permissionStatus": "Permission status",
+      "status": {
+        "granted": "Granted",
+        "denied": "Denied",
+        "notRequested": "Not requested",
+        "notSupported": "Not supported"
+      },
+      "requestAccess": "Request access",
+      "messages": {
+        "denied": "Location access is blocked.",
+        "enabled": "Location access is enabled.",
+        "granted": "Location access granted.",
+        "notSupported": "Location isn't supported on this device.",
+        "permissionDenied": "Location permission denied.",
+        "unable": "Couldn't get your location."
+      }
+    },
+    "privacy": {
+      "title": "Privacy",
+      "publicProfile": "Public profile"
+    },
+    "map": {
+      "title": "Map",
+      "theme": "Map theme",
+      "themeDefault": "Default",
+      "themeMono": "Monochrome",
+      "applyInstant": "Applies instantly"
+    },
+    "language": {
+      "title": "Language",
+      "label": "App language",
+      "applyInstant": "Applies instantly"
+    },
+    "account": {
+      "title": "Account",
+      "changeEmail": "Change email",
+      "deleteAccount": "Delete account"
+    },
+    "helpFeedback": "Help & Feedback",
+    "help": {
+      "title": "Help & Support",
+      "form": {
+        "name": "Name",
+        "email": "Email",
+        "subject": "Subject",
+        "message": "Message"
+      },
+      "placeholders": {
+        "name": "Your name",
+        "email": "you@email.com",
+        "message": "How can we help?"
+      },
+      "subject": {
+        "select": "Select a subject",
+        "options": {
+          "bug": "Report a bug",
+          "feature": "Request a feature",
+          "account": "Account",
+          "restaurant": "Restaurant",
+          "other": "Other"
+        }
+      },
+      "submit": "Send message",
+      "alertThanks": "Thanks for the feedback! We'll get back to you soon."
+    },
+    "menu": {
+      "open": "Open menu",
+      "owner": "Owner Portal",
+      "ownerTitle": "Manage your restaurant",
+      "claim": "Claim Restaurant"
+    },
+    "logout": {
+      "confirm": "Log out of Tip?",
+      "failed": "Unable to log out. Please try again.",
+      "label": "Log Out"
+    },
+    "password": {
+      "title": "Change Password",
+      "actions": {
+        "update": "Update Password",
+        "updating": "Updating...",
+        "updatingLong": "Updating Password..."
+      },
+      "sectionTitle": "Update Your Password",
+      "fields": {
+        "current": {
+          "label": "Current Password *",
+          "placeholder": "Enter your current password"
+        },
+        "new": {
+          "label": "New Password *",
+          "placeholder": "Enter your new password",
+          "help": "Must be at least {{min}} characters long"
+        },
+        "confirm": {
+          "label": "Confirm New Password *",
+          "placeholder": "Confirm your new password",
+          "match": "Passwords match"
+        }
+      },
+      "strength": {
+        "label": "Password strength:",
+        "weak": "Weak",
+        "fair": "Fair",
+        "good": "Good",
+        "strong": "Strong"
+      },
+      "securityTips": {
+        "title": "Security Best Practices",
+        "unique": "Use a unique password you don't use elsewhere",
+        "complex": "Include uppercase, lowercase, numbers, and symbols",
+        "avoidPersonal": "Avoid personal information like birthdays or names",
+        "manager": "Consider using a password manager"
+      },
+      "afterChange": {
+        "title": "After changing your password:",
+        "staySignedIn": "You'll remain signed in on this device",
+        "signOutOthers": "You'll be signed out of other devices",
+        "updateManager": "Update your password manager if you use one"
+      },
+      "errors": {
+        "tooManyAttempts": "Too many failed attempts. Please try again later.",
+        "verifyFailed": "Failed to verify current password. Please try again.",
+        "tooWeak": "Password is too weak. Please choose a stronger password.",
+        "recentLogin": "For security reasons, please sign out and sign back in before changing your password.",
+        "updateFailed": "Failed to change password. Please try again."
+      },
+      "success": {
+        "updated": "Password changed successfully!"
+      }
+    }
   }
 }

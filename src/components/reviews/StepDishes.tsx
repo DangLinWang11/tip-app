@@ -2,6 +2,7 @@ import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { collection, getDocs, query, where, addDoc, serverTimestamp } from 'firebase/firestore';
 import { Plus, ChevronDown, ChevronUp, Trash2, Camera, AlertCircle, Loader2, X } from 'lucide-react';
 import { useI18n } from '../../lib/i18n/useI18n';
+import { getTranslatedMenuItemText } from '../../utils/menuItemTranslations';
 import { DishDraft, DishCategory } from '../../dev/types/review';
 import { useReviewWizard } from './WizardContext';
 import RatingSlider from '../RatingSlider';
@@ -11,7 +12,7 @@ import { db } from '../../lib/firebase';
 import { DishRecord } from './AddDishInline';
 
 const StepDishes: React.FC = () => {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const {
     dishDrafts,
     setDishDrafts,
@@ -514,16 +515,19 @@ const StepDishes: React.FC = () => {
                           <Loader2 className="h-3 w-3 animate-spin" /> Loading menu...
                         </div>
                       )}
-                      {!loadingMenuItems && getMatchingMenuItems(dish.dishName).map((item) => (
-                        <button
-                          key={item.id}
-                          type="button"
-                          onClick={() => handleSelectMenuItem(dish.id, item)}
-                          className="w-full rounded-2xl border border-slate-200 px-3 py-2 text-left text-xs font-medium text-slate-700 transition hover:border-red-300 hover:bg-red-50"
-                        >
-                          {item.name}
-                        </button>
-                      ))}
+                      {!loadingMenuItems && getMatchingMenuItems(dish.dishName).map((item) => {
+                        const itemText = getTranslatedMenuItemText(item, language);
+                        return (
+                          <button
+                            key={item.id}
+                            type="button"
+                            onClick={() => handleSelectMenuItem(dish.id, item)}
+                            className="w-full rounded-2xl border border-slate-200 px-3 py-2 text-left text-xs font-medium text-slate-700 transition hover:border-red-300 hover:bg-red-50"
+                          >
+                            {itemText.name}
+                          </button>
+                        );
+                      })}
                       {!loadingMenuItems && !hasExactMenuMatch(dish.dishName) && (
                         <button
                           type="button"

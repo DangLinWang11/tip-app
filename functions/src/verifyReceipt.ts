@@ -34,8 +34,8 @@ export const onReviewPendingProof = functions.firestore
       return null;
     }
 
-    // Guard: if already final state, exit
-    if (nextState === 'verified' || nextState === 'rejected') return null;
+    // Guard: if previous state was already final, exit
+    if (prevState === 'verified' || prevState === 'rejected') return null;
 
     const db = admin.firestore();
     const restaurant = after.restaurantId

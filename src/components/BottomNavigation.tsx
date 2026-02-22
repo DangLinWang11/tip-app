@@ -1,8 +1,29 @@
-import React from 'react';
-import { NavLink } from 'react-router-dom';
-import { HomeIcon, MapIcon, PlusSquareIcon, UserIcon } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { NavLink, useLocation } from 'react-router-dom';
+import { HomeIcon, MapIcon, PlusSquareIcon, UserIcon, RefreshCw } from 'lucide-react';
+import { useI18n } from '../lib/i18n/useI18n';
 
 const BottomNavigation: React.FC = () => {
+  const location = useLocation();
+  const { t } = useI18n();
+  const [homeRefreshing, setHomeRefreshing] = useState(false);
+
+  useEffect(() => {
+    const handleComplete = () => setHomeRefreshing(false);
+    window.addEventListener('tip:home-refresh-complete', handleComplete);
+    return () => window.removeEventListener('tip:home-refresh-complete', handleComplete);
+  }, []);
+
+  const handleHomeClick = () => {
+    setHomeRefreshing(true);
+
+    if (location.pathname === '/') {
+      window.dispatchEvent(new CustomEvent('tip:home-refresh', { detail: { source: 'nav' } }));
+    } else {
+      sessionStorage.setItem('tip:home-refresh', '1');
+    }
+  };
+
   return (
     <nav className="fixed inset-x-0 bottom-0 bg-white border-t border-gray-200 shadow-[0_-1px_3px_rgba(0,0,0,0.1)] z-50 pb-[calc(env(safe-area-inset-bottom)+16px)]">
       <ul className="grid grid-cols-4">
@@ -11,14 +32,21 @@ const BottomNavigation: React.FC = () => {
             to="/"
             onClick={(e) => {
               e.stopPropagation();
-              window.scrollTo({ top: window.scrollY, behavior: 'instant' });
+              handleHomeClick();
             }}
             className={({ isActive }) =>
-              `flex flex-col items-center justify-center gap-1 py-2 text-center ${isActive ? 'text-[#FF385C] font-medium' : 'text-gray-500'}`
+              `flex flex-col items-center justify-center gap-1 py-1.5 px-2 text-center w-16 mx-auto ${isActive ? 'text-[#FF385C] font-medium' : 'text-gray-500'}`
             }
           >
-            <HomeIcon className="h-7 w-7" aria-hidden="true" />
-            <span className="text-[11px] font-medium leading-none">Home</span>
+            <span className="relative h-7 w-7 flex items-center justify-center">
+              <HomeIcon className="h-7 w-7" aria-hidden="true" />
+              {homeRefreshing && (
+                <span className="absolute inset-0 flex items-center justify-center">
+                  <RefreshCw className="h-5 w-5 animate-spin text-[#FF385C]" aria-hidden="true" />
+                </span>
+              )}
+            </span>
+            <span className="text-[11px] font-medium leading-none">{t('nav.home')}</span>
           </NavLink>
         </li>
 
@@ -34,7 +62,7 @@ const BottomNavigation: React.FC = () => {
             }
           >
             <MapIcon className="h-7 w-7" aria-hidden="true" />
-            <span className="text-[11px] font-medium leading-none">My Food Map</span>
+            <span className="text-[11px] font-medium leading-none">{t('nav.foodMap')}</span>
           </NavLink>
         </li>
 
@@ -50,7 +78,7 @@ const BottomNavigation: React.FC = () => {
             }
           >
             <PlusSquareIcon className="h-7 w-7" aria-hidden="true" />
-            <span className="text-[11px] font-medium leading-none">Create</span>
+            <span className="text-[11px] font-medium leading-none">{t('nav.create')}</span>
           </NavLink>
         </li>
 
@@ -66,7 +94,7 @@ const BottomNavigation: React.FC = () => {
             }
           >
             <UserIcon className="h-7 w-7" aria-hidden="true" />
-            <span className="text-[11px] font-medium leading-none">Profile</span>
+            <span className="text-[11px] font-medium leading-none">{t('nav.profile')}</span>
           </NavLink>
         </li>
       </ul>

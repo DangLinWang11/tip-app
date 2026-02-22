@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Eye, EyeOff, Lock, Save, Shield, AlertTriangle } from 'lucide-react';
 import { updatePassword, reauthenticateWithCredential, EmailAuthProvider } from 'firebase/auth';
 import { getCurrentUser } from '../lib/firebase';
+import { useI18n } from '../lib/i18n/useI18n';
 
 interface PasswordForm {
   currentPassword: string;
@@ -18,6 +19,7 @@ interface PasswordVisibility {
 
 const ChangePassword: React.FC = () => {
   const navigate = useNavigate();
+  const { t } = useI18n();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -55,8 +57,8 @@ const ChangePassword: React.FC = () => {
   };
 
   // Password strength indicator
-  const getPasswordStrength = (password: string): { strength: number; label: string; color: string } => {
-    if (password.length === 0) return { strength: 0, label: '', color: '' };
+  const getPasswordStrength = (password: string): { strength: number; labelKey: string; color: string } => {
+    if (password.length === 0) return { strength: 0, labelKey: '', color: '' };
     
     let strength = 0;
     const checks = [
@@ -69,10 +71,10 @@ const ChangePassword: React.FC = () => {
     
     strength = checks.filter(Boolean).length;
     
-    if (strength <= 2) return { strength, label: 'Weak', color: 'text-red-500' };
-    if (strength === 3) return { strength, label: 'Fair', color: 'text-yellow-500' };
-    if (strength === 4) return { strength, label: 'Good', color: 'text-blue-500' };
-    return { strength, label: 'Strong', color: 'text-green-500' };
+    if (strength <= 2) return { strength, labelKey: 'settings.password.strength.weak', color: 'text-red-500' };
+    if (strength === 3) return { strength, labelKey: 'settings.password.strength.fair', color: 'text-yellow-500' };
+    if (strength === 4) return { strength, labelKey: 'settings.password.strength.good', color: 'text-blue-500' };
+    return { strength, labelKey: 'settings.password.strength.strong', color: 'text-green-500' };
   };
 
   // Form validation
@@ -81,23 +83,23 @@ const ChangePassword: React.FC = () => {
     
     // Current password validation
     if (!formData.currentPassword) {
-      errors.currentPassword = 'Current password is required';
+      errors.currentPassword = t('validation.password.currentRequired');
     }
     
     // New password validation
     if (!formData.newPassword) {
-      errors.newPassword = 'New password is required';
+      errors.newPassword = t('validation.password.newRequired');
     } else if (formData.newPassword.length < 6) {
-      errors.newPassword = 'Password must be at least 6 characters long';
+      errors.newPassword = t('validation.password.minLength', { min: 6 });
     } else if (formData.newPassword === formData.currentPassword) {
-      errors.newPassword = 'New password must be different from current password';
+      errors.newPassword = t('validation.password.mustDiffer');
     }
     
     // Confirm password validation
     if (!formData.confirmPassword) {
-      errors.confirmPassword = 'Please confirm your new password';
+      errors.confirmPassword = t('validation.password.confirmRequired');
     } else if (formData.confirmPassword !== formData.newPassword) {
-      errors.confirmPassword = 'Passwords do not match';
+      errors.confirmPassword = t('validation.password.noMatch');
     }
     
     setValidationErrors(errors);
@@ -107,7 +109,7 @@ const ChangePassword: React.FC = () => {
   // Handle password change
   const handleChangePassword = async () => {
     if (!validateForm()) {
-      setError('Please fix the validation errors below');
+      setError(t('validation.password.fixErrors'));
       return;
     }
 
@@ -117,7 +119,7 @@ const ChangePassword: React.FC = () => {
 
       const currentUser = getCurrentUser();
       if (!currentUser || !currentUser.email) {
-        setError('No authenticated user found');
+        setError(t('profile.errors.noAuth'));
         return;
       }
 
@@ -128,12 +130,12 @@ const ChangePassword: React.FC = () => {
         await reauthenticateWithCredential(currentUser, credential);
       } catch (reauthError: any) {
         if (reauthError.code === 'auth/wrong-password') {
-          setValidationErrors(prev => ({ ...prev, currentPassword: 'Current password is incorrect' }));
-          setError('Current password is incorrect');
+          setValidationErrors(prev => ({ ...prev, currentPassword: t('validation.password.currentIncorrect') }));
+          setError(t('validation.password.currentIncorrect'));
         } else if (reauthError.code === 'auth/too-many-requests') {
-          setError('Too many failed attempts. Please try again later.');
+          setError(t('settings.password.errors.tooManyAttempts'));
         } else {
-          setError('Failed to verify current password. Please try again.');
+          setError(t('settings.password.errors.verifyFailed'));
         }
         return;
       }
@@ -141,7 +143,7 @@ const ChangePassword: React.FC = () => {
       // Update password
       await updatePassword(currentUser, formData.newPassword);
       
-      setSuccessMessage('Password changed successfully!');
+      setSuccessMessage(t('settings.password.success.updated'));
       
       // Clear form
       setFormData({
@@ -159,12 +161,12 @@ const ChangePassword: React.FC = () => {
       console.error('Error changing password:', error);
       
       if (error.code === 'auth/weak-password') {
-        setValidationErrors(prev => ({ ...prev, newPassword: 'Password is too weak' }));
-        setError('Password is too weak. Please choose a stronger password.');
+        setValidationErrors(prev => ({ ...prev, newPassword: t('validation.password.tooWeak') }));
+        setError(t('settings.password.errors.tooWeak'));
       } else if (error.code === 'auth/requires-recent-login') {
-        setError('For security reasons, please sign out and sign back in before changing your password.');
+        setError(t('settings.password.errors.recentLogin'));
       } else {
-        setError('Failed to change password. Please try again.');
+        setError(t('settings.password.errors.updateFailed'));
       }
     } finally {
       setLoading(false);
@@ -197,7 +199,7 @@ const ChangePassword: React.FC = () => {
             >
               <ArrowLeft size={24} className="text-gray-600" />
             </button>
-            <h1 className="text-xl font-semibold">Change Password</h1>
+            <h1 className="text-xl font-semibold">{t('settings.password.title')}</h1>
           </div>
           <button
             onClick={handleChangePassword}
@@ -209,7 +211,7 @@ const ChangePassword: React.FC = () => {
             }`}
           >
             <Save size={16} className="mr-1" />
-            {loading ? 'Updating...' : 'Update Password'}
+            {loading ? t('settings.password.actions.updating') : t('settings.password.actions.update')}
           </button>
         </div>
       </header>
@@ -237,12 +239,12 @@ const ChangePassword: React.FC = () => {
           <div className="flex items-start">
             <Shield size={20} className="text-blue-600 mr-3 flex-shrink-0 mt-0.5" />
             <div>
-              <h3 className="font-medium text-blue-900 mb-1">Security Best Practices</h3>
+              <h3 className="font-medium text-blue-900 mb-1">{t('settings.password.securityTips.title')}</h3>
               <ul className="text-sm text-blue-800 space-y-1">
-                <li>• Use a unique password you don't use elsewhere</li>
-                <li>• Include uppercase, lowercase, numbers, and symbols</li>
-                <li>• Avoid personal information like birthdays or names</li>
-                <li>• Consider using a password manager</li>
+                <li>&bull; {t('settings.password.securityTips.unique')}</li>
+                <li>&bull; {t('settings.password.securityTips.complex')}</li>
+                <li>&bull; {t('settings.password.securityTips.avoidPersonal')}</li>
+                <li>&bull; {t('settings.password.securityTips.manager')}</li>
               </ul>
             </div>
           </div>
@@ -252,13 +254,13 @@ const ChangePassword: React.FC = () => {
         <div className="bg-white rounded-xl p-6 shadow-sm">
           <div className="flex items-center mb-4">
             <Lock size={20} className="text-gray-600 mr-2" />
-            <h2 className="text-lg font-semibold">Update Your Password</h2>
+            <h2 className="text-lg font-semibold">{t('settings.password.sectionTitle')}</h2>
           </div>
 
           {/* Current Password */}
           <div className="mb-4">
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Current Password *
+              {t('settings.password.fields.current.label')}
             </label>
             <div className="relative">
               <input
@@ -268,7 +270,7 @@ const ChangePassword: React.FC = () => {
                 className={`w-full px-3 py-2 pr-10 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent ${
                   validationErrors.currentPassword ? 'border-red-300' : 'border-gray-300'
                 }`}
-                placeholder="Enter your current password"
+                placeholder={t('settings.password.fields.current.placeholder')}
               />
               <button
                 type="button"
@@ -286,7 +288,7 @@ const ChangePassword: React.FC = () => {
           {/* New Password */}
           <div className="mb-4">
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              New Password *
+              {t('settings.password.fields.new.label')}
             </label>
             <div className="relative">
               <input
@@ -296,7 +298,7 @@ const ChangePassword: React.FC = () => {
                 className={`w-full px-3 py-2 pr-10 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent ${
                   validationErrors.newPassword ? 'border-red-300' : 'border-gray-300'
                 }`}
-                placeholder="Enter your new password"
+                placeholder={t('settings.password.fields.new.placeholder')}
               />
               <button
                 type="button"
@@ -311,8 +313,10 @@ const ChangePassword: React.FC = () => {
             {formData.newPassword && (
               <div className="mt-2">
                 <div className="flex items-center justify-between text-xs mb-1">
-                  <span className="text-gray-600">Password strength:</span>
-                  <span className={passwordStrength.color}>{passwordStrength.label}</span>
+                  <span className="text-gray-600">{t('settings.password.strength.label')}</span>
+                  <span className={passwordStrength.color}>
+                    {passwordStrength.labelKey ? t(passwordStrength.labelKey) : ''}
+                  </span>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-1.5">
                   <div 
@@ -331,14 +335,14 @@ const ChangePassword: React.FC = () => {
               <p className="text-red-500 text-xs mt-1">{validationErrors.newPassword}</p>
             )}
             <p className="text-xs text-gray-500 mt-1">
-              Must be at least 6 characters long
+              {t('settings.password.fields.new.help', { min: 6 })}
             </p>
           </div>
 
           {/* Confirm Password */}
           <div className="mb-6">
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Confirm New Password *
+              {t('settings.password.fields.confirm.label')}
             </label>
             <div className="relative">
               <input
@@ -348,7 +352,7 @@ const ChangePassword: React.FC = () => {
                 className={`w-full px-3 py-2 pr-10 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent ${
                   validationErrors.confirmPassword ? 'border-red-300' : 'border-gray-300'
                 }`}
-                placeholder="Confirm your new password"
+                placeholder={t('settings.password.fields.confirm.placeholder')}
               />
               <button
                 type="button"
@@ -364,7 +368,7 @@ const ChangePassword: React.FC = () => {
             {formData.confirmPassword && formData.newPassword && formData.confirmPassword === formData.newPassword && (
               <p className="text-green-500 text-xs mt-1 flex items-center">
                 <Shield size={12} className="mr-1" />
-                Passwords match
+                {t('settings.password.fields.confirm.match')}
               </p>
             )}
           </div>
@@ -382,21 +386,21 @@ const ChangePassword: React.FC = () => {
             {loading ? (
               <div className="flex items-center justify-center">
                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-                Updating Password...
+                {t('settings.password.actions.updatingLong')}
               </div>
             ) : (
-              'Update Password'
+              t('settings.password.actions.update')
             )}
           </button>
         </div>
 
         {/* Additional Security Info */}
         <div className="mt-6 bg-white rounded-xl p-4 shadow-sm">
-          <h3 className="font-medium text-gray-900 mb-2">After changing your password:</h3>
+          <h3 className="font-medium text-gray-900 mb-2">{t('settings.password.afterChange.title')}</h3>
           <ul className="text-sm text-gray-600 space-y-1">
-            <li>• You'll remain signed in on this device</li>
-            <li>• You'll be signed out of other devices</li>
-            <li>• Update your password manager if you use one</li>
+            <li>&bull; {t('settings.password.afterChange.staySignedIn')}</li>
+            <li>&bull; {t('settings.password.afterChange.signOutOthers')}</li>
+            <li>&bull; {t('settings.password.afterChange.updateManager')}</li>
           </ul>
         </div>
       </div>

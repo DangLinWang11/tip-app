@@ -29,6 +29,7 @@ import BadgeLadderModal from '../components/badges/BadgeLadderModal';
 import { getTierFromPoints } from '../badges/badgeTiers';
 import HighlightsSection from '../components/profile/HighlightsSection';
 import { getTopDishes } from '../utils/topDishes';
+import { useI18n } from '../lib/i18n/useI18n';
 
 // Simple cache for profile data to enable instant "back" navigation
 let cachedProfileData: {
@@ -43,6 +44,7 @@ const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
 // Skeleton UI Component for loading state
 const ProfileSkeleton: React.FC = () => {
+  const { t } = useI18n();
   return (
     <div className="min-h-screen bg-light-gray pb-16 animate-pulse">
       <header className="bg-white p-4 sticky top-0 z-10 shadow-sm">
@@ -132,6 +134,7 @@ const ProfileSkeleton: React.FC = () => {
 
 const SavedListsTab: React.FC<{ isNewUser?: boolean }> = ({ isNewUser = false }) => {
   const navigate = useNavigate();
+  const { t } = useI18n();
   const [lists, setLists] = useState<SavedList[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -158,17 +161,17 @@ const SavedListsTab: React.FC<{ isNewUser?: boolean }> = ({ isNewUser = false })
       if (result.success && result.lists) {
         setLists(result.lists);
       } else {
-        setError(result.error || 'Failed to load lists');
+        setError(result.error || t('lists.errors.load'));
       }
     } catch (err: any) {
-      setError(err.message || 'Failed to load lists');
+      setError(err.message || t('lists.errors.load'));
     } finally {
       setLoading(false);
     }
   };
 
   const handleDeleteList = async (listId: string, listName: string) => {
-    if (!confirm(`Delete "${listName}"? This action cannot be undone.`)) {
+    if (!confirm(t('lists.confirmDelete', { name: listName }))) {
       return;
     }
 
@@ -177,10 +180,10 @@ const SavedListsTab: React.FC<{ isNewUser?: boolean }> = ({ isNewUser = false })
       if (result.success) {
         await loadLists(); // Refresh the list
       } else {
-        setError(result.error || 'Failed to delete list');
+        setError(result.error || t('lists.errors.delete'));
       }
     } catch (err: any) {
-      setError(err.message || 'Failed to delete list');
+      setError(err.message || t('lists.errors.delete'));
     }
   };
 
@@ -192,25 +195,25 @@ const SavedListsTab: React.FC<{ isNewUser?: boolean }> = ({ isNewUser = false })
         
         if (navigator.share) {
           await navigator.share({
-            title: 'Check out my food list!',
+            title: t('lists.share.title'),
             url: shareUrl
           });
         } else {
           // Fallback: copy to clipboard
           await navigator.clipboard.writeText(shareUrl);
-          alert('Share link copied to clipboard!');
+          alert(t('lists.share.copied'));
         }
       } else {
-        setError(result.error || 'Failed to share list');
+        setError(result.error || t('lists.errors.share'));
       }
     } catch (err: any) {
-      setError(err.message || 'Failed to share list');
+      setError(err.message || t('lists.errors.share'));
     }
   };
 
   const handleCreateList = async () => {
     if (!newListName.trim()) {
-      setError('List name is required');
+      setError(t('lists.errors.nameRequired'));
       return;
     }
 
@@ -225,10 +228,10 @@ const SavedListsTab: React.FC<{ isNewUser?: boolean }> = ({ isNewUser = false })
         setShowCreateForm(false);
         setNewListName('');
       } else {
-        setError(result.error || 'Failed to create list');
+        setError(result.error || t('lists.errors.create'));
       }
     } catch (err: any) {
-      setError(err.message || 'Failed to create list');
+      setError(err.message || t('lists.errors.create'));
     } finally {
       setCreating(false);
     }
@@ -244,7 +247,7 @@ const SavedListsTab: React.FC<{ isNewUser?: boolean }> = ({ isNewUser = false })
     if (result.success) {
       await loadLists(); // Refresh the lists
     } else {
-      throw new Error(result.error || 'Failed to update list name');
+      throw new Error(result.error || t('lists.errors.updateName'));
     }
   };
 
@@ -253,7 +256,7 @@ const SavedListsTab: React.FC<{ isNewUser?: boolean }> = ({ isNewUser = false })
       <div className="p-4">
         <div className="text-center py-8">
           <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading your lists...</p>
+          <p className="text-gray-600">{t('lists.loading')}</p>
         </div>
       </div>
     );
@@ -268,7 +271,7 @@ const SavedListsTab: React.FC<{ isNewUser?: boolean }> = ({ isNewUser = false })
             onClick={loadLists}
             className="bg-primary text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-colors"
           >
-            Try Again
+            {t('common.actions.tryAgain')}
           </button>
         </div>
       </div>
@@ -279,8 +282,8 @@ const SavedListsTab: React.FC<{ isNewUser?: boolean }> = ({ isNewUser = false })
     <div className="p-4">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
-        <h3 className="font-semibold">Saved Lists</h3>
-        <span className="text-sm text-gray-500">{lists.length} lists</span>
+        <h3 className="font-semibold">{t('lists.title')}</h3>
+        <span className="text-sm text-gray-500">{t('lists.count', { count: lists.length })}</span>
       </div>
 
       {lists.length === 0 ? (
@@ -289,9 +292,9 @@ const SavedListsTab: React.FC<{ isNewUser?: boolean }> = ({ isNewUser = false })
           <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <PlusIcon size={24} className="text-gray-400" />
           </div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No lists yet</h3>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">{t('lists.empty.title')}</h3>
           <p className="text-gray-600 mb-6">
-            Start saving restaurants and dishes to create your first list
+            {t('lists.empty.subtitle')}
           </p>
           <button
             onClick={() => {
@@ -301,7 +304,7 @@ const SavedListsTab: React.FC<{ isNewUser?: boolean }> = ({ isNewUser = false })
             }}
             className="bg-primary text-white px-6 py-3 rounded-full font-medium hover:bg-red-600 transition-colors"
           >
-            {isNewUser ? 'Add Your First Review' : 'Discover Restaurants'}
+            {isNewUser ? t('common.actions.addFirstReview') : t('common.actions.discoverRestaurants')}
           </button>
         </div>
       ) : (
@@ -325,13 +328,13 @@ const SavedListsTab: React.FC<{ isNewUser?: boolean }> = ({ isNewUser = false })
               className="w-full p-4 border-2 border-dashed border-gray-300 rounded-xl hover:border-primary hover:bg-red-50 transition-colors flex items-center justify-center text-gray-600 hover:text-primary"
             >
               <PlusIcon size={20} className="mr-2" />
-              Create New List
+              {t('lists.actions.createNew')}
             </button>
           ) : (
             <div className="border border-gray-200 rounded-xl p-4">
               <input
                 type="text"
-                placeholder="Enter list name..."
+                placeholder={t('lists.placeholders.name')}
                 value={newListName}
                 onChange={(e) => setNewListName(e.target.value)}
                 onKeyDown={(e) => {
@@ -351,7 +354,7 @@ const SavedListsTab: React.FC<{ isNewUser?: boolean }> = ({ isNewUser = false })
                   disabled={creating || !newListName.trim()}
                   className="flex-1 bg-primary text-white py-2 px-4 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-red-600 transition-colors"
                 >
-                  {creating ? 'Creating...' : 'Create List'}
+                  {creating ? t('lists.status.creating') : t('lists.actions.create')}
                 </button>
                 <button
                   onClick={() => {
@@ -360,7 +363,7 @@ const SavedListsTab: React.FC<{ isNewUser?: boolean }> = ({ isNewUser = false })
                   }}
                   className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
                 >
-                  Cancel
+                  {t('common.actions.cancel')}
                 </button>
               </div>
             </div>
@@ -388,6 +391,7 @@ const SavedListsTab: React.FC<{ isNewUser?: boolean }> = ({ isNewUser = false })
 const Profile: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { t } = useI18n();
   const [activeTab, setActiveTab] = useState<'activity' | 'saved'>('activity');
   const [searchTerm, setSearchTerm] = useState('');
   const [firebaseReviews, setFirebaseReviews] = useState<FirebaseReview[]>([]);
@@ -426,7 +430,7 @@ const Profile: React.FC = () => {
         const currentUser = getCurrentUser();
 
         if (!currentUser) {
-          setError('No authenticated user found');
+          setError(t('profile.errors.noAuth'));
           setProfileLoading(false);
           return;
         }
@@ -467,11 +471,11 @@ const Profile: React.FC = () => {
             timestamp: Date.now()
           };
         } else {
-          setError(result.error || 'Failed to load user profile');
+          setError(result.error || t('profile.errors.loadProfile'));
         }
       } catch (err) {
         console.error('Failed to load user profile:', err);
-        setError('Failed to load user profile');
+        setError(t('profile.errors.loadProfile'));
       } finally {
         setProfileLoading(false);
       }
@@ -531,8 +535,8 @@ const Profile: React.FC = () => {
     try {
       const shareUrl = `${window.location.origin}/profile/${userProfile.username}`;
       const shareData = {
-        title: `Check out @${userProfile.username} on Tip!`,
-        text: `Check out @${userProfile.username}'s food reviews and recommendations on Tip!`,
+        title: t('profile.share.title', { username: userProfile.username }),
+        text: t('profile.share.text', { username: userProfile.username }),
         url: shareUrl
       };
 
@@ -541,7 +545,7 @@ const Profile: React.FC = () => {
       } else {
         // Fallback: copy to clipboard
         await navigator.clipboard.writeText(shareUrl);
-        alert('Profile link copied to clipboard!');
+        alert(t('profile.share.copied'));
       }
     } catch (err) {
       console.error('Failed to share profile:', err);
@@ -549,9 +553,9 @@ const Profile: React.FC = () => {
       try {
         const shareUrl = `${window.location.origin}/profile/${userProfile.username}`;
         await navigator.clipboard.writeText(shareUrl);
-        alert('Profile link copied to clipboard!');
+        alert(t('profile.share.copied'));
       } catch {
-        alert('Unable to share profile. Please try again.');
+        alert(t('profile.share.failed'));
       }
     }
   };
@@ -657,13 +661,13 @@ const Profile: React.FC = () => {
     return (
       <div className="min-h-screen bg-light-gray flex items-center justify-center">
         <div className="text-center p-4">
-          <h2 className="text-xl font-bold text-gray-900 mb-2">Profile Error</h2>
-          <p className="text-gray-600 mb-4">{error || 'Unable to load profile'}</p>
+          <h2 className="text-xl font-bold text-gray-900 mb-2">{t('profile.errors.title')}</h2>
+          <p className="text-gray-600 mb-4">{error || t('profile.errors.unable')}</p>
           <button 
             onClick={() => window.location.reload()} 
             className="bg-primary text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-colors"
           >
-            Retry
+            {t('common.actions.retry')}
           </button>
         </div>
       </div>
@@ -719,7 +723,7 @@ const Profile: React.FC = () => {
                 className="mt-2 inline-flex items-center justify-center gap-1.5 rounded-full border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors"
               >
                 <EditIcon size={12} className="text-gray-600" />
-                Edit
+                {t('common.actions.edit')}
               </button>
             </div>
 
@@ -733,19 +737,19 @@ const Profile: React.FC = () => {
                     type="button"
                     onClick={() => setShowBadgeModal(true)}
                     className="inline-flex items-center badge-heartbeat ml-1.5"
-                    aria-label="View badges"
+                    aria-label={t('profile.actions.viewBadges')}
                     data-tour="profile-rank-badge"
                   >
                     <AvatarBadge tierIndex={tierProgress.tierIndex} size="inline" />
                   </button>
                 )}
                 {userProfile.isVerified && (
-                  <span className="ml-1 text-blue-500" title="Verified user">✓</span>
+                  <span className="ml-1 text-blue-500" title={t('profile.labels.verified')}>✓</span>
                 )}
                 <button
                   onClick={handleShareProfile}
                   className="ml-auto p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-colors"
-                  aria-label="Share profile"
+                  aria-label={t('common.actions.share')}
                 >
                   <Share size={18} />
                 </button>
@@ -780,13 +784,13 @@ const Profile: React.FC = () => {
           {isNewUser && (
             <div className="mt-4 rounded-xl border border-gray-200 bg-white px-4 py-3">
               <p className="text-sm font-semibold text-gray-900">
-                Your profile, stats, and rank build as you review places.
+                {t('profile.newUser.message')}
               </p>
               <Link
                 to="/create"
                 className="mt-3 inline-flex items-center bg-primary text-white px-4 py-2 rounded-full text-sm font-medium hover:bg-red-600 transition-colors"
               >
-                Add Your First Review
+                {t('common.actions.addFirstReview')}
               </Link>
             </div>
           )}
@@ -801,10 +805,10 @@ const Profile: React.FC = () => {
                   });
                 }}
                 className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium flex items-center hover:bg-gray-50 transition-colors"
-                aria-label="Your Restaurant"
+                aria-label={t('profile.actions.yourRestaurant')}
               >
                 <StoreIcon size={14} className="mr-1.5" />
-                Your Restaurant
+                {t('profile.actions.yourRestaurant')}
               </button>
             </div>
           )}
@@ -827,7 +831,7 @@ const Profile: React.FC = () => {
               className="w-full bg-gradient-to-r from-primary to-red-500 text-white py-3 px-6 rounded-xl font-medium shadow-sm hover:shadow-md transition-all duration-200 flex items-center justify-center"
             >
               <MapIcon size={18} className="mr-2" />
-              View My Map
+              {t('profile.actions.viewMap')}
             </button>
           </div>
 
@@ -836,8 +840,8 @@ const Profile: React.FC = () => {
           <div className="px-4 py-3 border-t border-light-gray">
             <div className="text-center py-4">
               <div className="text-2xl mb-2">🏆</div>
-              <p className="text-sm text-gray-600">Tier Rankings Coming Soon!</p>
-              <p className="text-xs text-gray-500">See your top dishes and restaurants</p>
+              <p className="text-sm text-gray-600">{t('profile.tiers.comingSoon')}</p>
+              <p className="text-xs text-gray-500">{t('profile.tiers.subtitle')}</p>
             </div>
           </div>
         )}
@@ -852,7 +856,7 @@ const Profile: React.FC = () => {
             onClick={() => setActiveTab('activity')}
           >
             <GridIcon size={18} className="mr-1" />
-            <span>My Reviews</span>
+            <span>{t('profile.tabs.reviews')}</span>
           </button>
           <button
             className={`flex-1 py-3 flex justify-center items-center ${
@@ -863,7 +867,7 @@ const Profile: React.FC = () => {
             onClick={() => setActiveTab('saved')}
           >
             <BookmarkIcon size={18} className="mr-1" />
-            <span>Saved</span>
+            <span>{t('profile.tabs.saved')}</span>
           </button>
         </div>
       </div>
@@ -875,7 +879,7 @@ const Profile: React.FC = () => {
             <SearchIcon size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-dark-gray" />
             <input
               type="text"
-              placeholder="Search your reviews"
+              placeholder={t('profile.search.placeholder')}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-4 py-2 border border-medium-gray rounded-full text-sm focus:outline-none focus:border-primary"
@@ -886,7 +890,7 @@ const Profile: React.FC = () => {
           {loading ? (
             <div className="text-center py-8">
               <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-              <p className="text-gray-600">Loading reviews...</p>
+              <p className="text-gray-600">{t('profile.loading.reviews')}</p>
             </div>
           ) : filteredPosts.length === 0 ? (
             <div className="text-center py-12">
@@ -894,14 +898,14 @@ const Profile: React.FC = () => {
                 <GridIcon size={24} className="text-gray-400" />
               </div>
               <h3 className="text-lg font-medium text-gray-900 mb-2">
-                {searchTerm ? 'No matching reviews' : 'No reviews yet'}
+                {searchTerm ? t('profile.empty.noMatchTitle') : t('profile.empty.noReviewsTitle')}
               </h3>
               <p className="text-gray-600 mb-6">
                 {searchTerm 
-                  ? 'Try searching for different dishes or restaurants' 
+                  ? t('profile.empty.noMatchSubtitle')
                   : (isNewUser
-                    ? 'Your profile, stats, and rank build as you review places.'
-                    : 'Start reviewing your favorite dishes to build your food journey')
+                    ? t('profile.newUser.message')
+                    : t('profile.empty.noReviewsSubtitle'))
                 }
               </p>
               {!searchTerm && (
@@ -910,7 +914,7 @@ const Profile: React.FC = () => {
                   className="inline-flex items-center bg-primary text-white px-6 py-3 rounded-full font-medium hover:bg-red-600 transition-colors"
                 >
                   <PlusIcon size={18} className="mr-2" />
-                  Add Your First Review
+                  {t('common.actions.addFirstReview')}
                 </Link>
               )}
             </div>
@@ -945,7 +949,7 @@ const Profile: React.FC = () => {
           isOpen={showBadgeModal}
           onClose={() => setShowBadgeModal(false)}
           points={personalStats.pointsEarned}
-          title="Your Rank"
+          title={t('profile.rank.title')}
         />
       )}
     </div>

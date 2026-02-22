@@ -7,12 +7,14 @@ import { useOwnedRestaurants } from '../hooks/useOwnedRestaurants';
 import ReactDOM from 'react-dom';
 import FeedbackModal from './FeedbackModal';
 import { useMapTheme, type MapTheme } from '../map/mapStyleConfig';
+import { useI18n, AVAILABLE_LANGUAGES } from '../lib/i18n/useI18n';
 
 // Simple Settings Modal Component
 const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void; onOpenFeedback: () => void }> = ({ isOpen, onClose, onOpenFeedback }) => {
   const [locationPermissionState, setLocationPermissionState] = useState<PermissionState | 'unsupported'>('prompt');
   const [locationMessage, setLocationMessage] = useState<string | null>(null);
   const [mapTheme, setMapTheme] = useMapTheme();
+  const { t, language, setLanguage } = useI18n();
 
   useEffect(() => {
     if (!isOpen || typeof navigator === 'undefined' || !navigator.permissions?.query) {
@@ -27,9 +29,9 @@ const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void; onOpenFeed
       setLocationPermissionState(state);
 
       if (state === 'denied') {
-        setLocationMessage('Location denied. To fix: Settings -> Safari -> Clear Website Data, then re-add PWA.');
+        setLocationMessage(t('settings.location.messages.denied'));
       } else if (state === 'granted') {
-        setLocationMessage('Location access enabled');
+        setLocationMessage(t('settings.location.messages.enabled'));
       } else {
         setLocationMessage(null);
       }
@@ -59,20 +61,20 @@ const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void; onOpenFeed
 
   const handleRequestLocation = () => {
     if (typeof navigator === 'undefined' || !navigator.geolocation) {
-      setLocationMessage('Geolocation not supported');
+      setLocationMessage(t('settings.location.messages.notSupported'));
       return;
     }
 
     navigator.geolocation.getCurrentPosition(
       () => {
         setLocationPermissionState('granted');
-        setLocationMessage('Location access granted!');
+        setLocationMessage(t('settings.location.messages.granted'));
       },
       (error) => {
         if (error.code === error.PERMISSION_DENIED) {
-          setLocationMessage('Permission denied. iOS Settings -> Safari -> Clear Website Data -> Re-add PWA.');
+          setLocationMessage(t('settings.location.messages.permissionDenied'));
         } else {
-          setLocationMessage('Unable to get location. Try again.');
+          setLocationMessage(t('settings.location.messages.unable'));
         }
       }
     );
@@ -87,7 +89,7 @@ const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void; onOpenFeed
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <h2 className="text-xl font-semibold text-gray-900">Settings</h2>
+          <h2 className="text-xl font-semibold text-gray-900">{t('settings.title')}</h2>
           <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
             <X size={20} className="text-gray-700" />
           </button>
@@ -96,10 +98,10 @@ const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void; onOpenFeed
         <div className="p-6 space-y-6">
           {/* Location Section */}
           <div>
-            <h3 className="text-lg font-medium text-gray-900 mb-3">Location</h3>
+            <h3 className="text-lg font-medium text-gray-900 mb-3">{t('settings.location.title')}</h3>
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-gray-700">Permission Status</span>
+                <span className="text-gray-700">{t('settings.location.permissionStatus')}</span>
                 <span
                   className={`text-sm font-medium ${
                     locationPermissionState === 'granted'
@@ -110,12 +112,12 @@ const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void; onOpenFeed
                   }`}
                 >
                   {locationPermissionState === 'granted'
-                    ? 'Granted'
+                    ? t('settings.location.status.granted')
                     : locationPermissionState === 'denied'
-                      ? 'Denied'
+                      ? t('settings.location.status.denied')
                       : locationPermissionState === 'unsupported'
-                        ? 'Not Supported'
-                        : 'Not Requested'}
+                        ? t('settings.location.status.notSupported')
+                        : t('settings.location.status.notRequested')}
                 </span>
               </div>
 
@@ -124,7 +126,7 @@ const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void; onOpenFeed
                   onClick={handleRequestLocation}
                   className="w-full py-2 px-4 bg-primary text-white rounded-lg hover:bg-red-600 transition-colors"
                 >
-                  Request Location Access
+                  {t('settings.location.requestAccess')}
                 </button>
               )}
 
@@ -138,10 +140,10 @@ const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void; onOpenFeed
 
           {/* Privacy */}
           <div>
-            <h3 className="text-lg font-medium text-gray-900 mb-3">Privacy</h3>
+            <h3 className="text-lg font-medium text-gray-900 mb-3">{t('settings.privacy.title')}</h3>
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-gray-700">Public Profile</span>
+                <span className="text-gray-700">{t('settings.privacy.publicProfile')}</span>
                 <input type="checkbox" className="toggle" defaultChecked />
               </div>
             </div>
@@ -149,32 +151,54 @@ const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void; onOpenFeed
 
           {/* Map Theme */}
           <div>
-            <h3 className="text-lg font-medium text-gray-900 mb-3">Map</h3>
+            <h3 className="text-lg font-medium text-gray-900 mb-3">{t('settings.map.title')}</h3>
             <div className="space-y-2">
               <div className="flex items-center justify-between gap-3">
-                <span className="text-gray-700">Map Theme</span>
+                <span className="text-gray-700">{t('settings.map.theme')}</span>
                 <select
                   value={mapTheme}
                   onChange={(e) => setMapTheme(e.target.value as MapTheme)}
                   className="border border-gray-300 rounded-md px-2 py-1 text-sm focus:outline-none focus:border-primary"
                 >
-                  <option value="pastel">Default (Pastel)</option>
-                  <option value="mono">Monochrome</option>
+                  <option value="pastel">{t('settings.map.themeDefault')}</option>
+                  <option value="mono">{t('settings.map.themeMono')}</option>
                 </select>
               </div>
-              <p className="text-xs text-gray-500">Applies instantly to all maps.</p>
+              <p className="text-xs text-gray-500">{t('settings.map.applyInstant')}</p>
+            </div>
+          </div>
+
+          {/* Language */}
+          <div>
+            <h3 className="text-lg font-medium text-gray-900 mb-3">{t('settings.language.title')}</h3>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-gray-700">{t('settings.language.label')}</span>
+                <select
+                  value={language}
+                  onChange={(e) => setLanguage(e.target.value as any)}
+                  className="border border-gray-300 rounded-md px-2 py-1 text-sm focus:outline-none focus:border-primary"
+                >
+                  {AVAILABLE_LANGUAGES.map((opt) => (
+                    <option key={opt.code} value={opt.code}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <p className="text-xs text-gray-500">{t('settings.language.applyInstant')}</p>
             </div>
           </div>
 
           {/* Account */}
           <div>
-            <h3 className="text-lg font-medium text-gray-900 mb-3">Account</h3>
+            <h3 className="text-lg font-medium text-gray-900 mb-3">{t('settings.account.title')}</h3>
             <div className="space-y-3">
               <button className="w-full text-left py-2 text-gray-700 hover:text-primary">
-                Change Email Address
+                {t('settings.account.changeEmail')}
               </button>
               <button className="w-full text-left py-2 text-red-600 hover:text-red-700">
-                Delete Account
+                {t('settings.account.deleteAccount')}
               </button>
             </div>
           </div>
@@ -188,7 +212,7 @@ const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void; onOpenFeed
                 onOpenFeedback();
               }}
             >
-              <label className="text-lg font-medium text-gray-900 cursor-pointer">Help & Feedback</label>
+              <label className="text-lg font-medium text-gray-900 cursor-pointer">{t('settings.helpFeedback')}</label>
               <ChevronRight className="w-5 h-5 text-gray-400" />
             </div>
           </div>
@@ -203,6 +227,7 @@ const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void; onOpenFeed
 
 // Simple Help & Support Modal Component
 const HelpModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen, onClose }) => {
+  const { t } = useI18n();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -215,7 +240,7 @@ const HelpModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen,
     e.preventDefault();
     // Handle form submission here
     console.log('Form submitted:', formData);
-    alert('Thank you for your message! We\'ll get back to you soon.');
+    alert(t('settings.help.alertThanks'));
     setFormData({ name: '', email: '', subject: '', message: '' });
     onClose();
   };
@@ -230,7 +255,7 @@ const HelpModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen,
       >
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <h2 className="text-xl font-semibold text-gray-900">Help & Support</h2>
+          <h2 className="text-xl font-semibold text-gray-900">{t('settings.help.title')}</h2>
           <button
             onClick={onClose}
             className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
@@ -242,55 +267,55 @@ const HelpModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen,
         {/* Contact Form */}
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('settings.help.form.name')}</label>
             <input
               type="text"
               required
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-primary"
-              placeholder="Your name"
+              placeholder={t('settings.help.placeholders.name')}
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('settings.help.form.email')}</label>
             <input
               type="email"
               required
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-primary"
-              placeholder="your@email.com"
+              placeholder={t('settings.help.placeholders.email')}
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Subject</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('settings.help.form.subject')}</label>
             <select
               required
               value={formData.subject}
               onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-primary"
             >
-              <option value="">Select a topic</option>
-              <option value="bug">Report a Bug</option>
-              <option value="feature">Feature Request</option>
-              <option value="account">Account Issue</option>
-              <option value="restaurant">Restaurant Partnership</option>
-              <option value="other">Other</option>
+              <option value="">{t('settings.help.subject.select')}</option>
+              <option value="bug">{t('settings.help.subject.options.bug')}</option>
+              <option value="feature">{t('settings.help.subject.options.feature')}</option>
+              <option value="account">{t('settings.help.subject.options.account')}</option>
+              <option value="restaurant">{t('settings.help.subject.options.restaurant')}</option>
+              <option value="other">{t('settings.help.subject.options.other')}</option>
             </select>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Message</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('settings.help.form.message')}</label>
             <textarea
               required
               rows={4}
               value={formData.message}
               onChange={(e) => setFormData({ ...formData, message: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-primary resize-none"
-              placeholder="Tell us how we can help..."
+              placeholder={t('settings.help.placeholders.message')}
             />
           </div>
 
@@ -298,7 +323,7 @@ const HelpModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen,
             type="submit"
             className="w-full bg-primary text-white py-3 rounded-lg font-medium hover:bg-red-600 transition-colors"
           >
-            Send Message
+            {t('settings.help.submit')}
           </button>
         </form>
       </div>
@@ -311,6 +336,7 @@ const HelpModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen,
 
 const HamburgerMenu: React.FC = () => {
   const navigate = useNavigate();
+  const { t } = useI18n();
   const [isOpen, setIsOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
@@ -337,18 +363,18 @@ const HamburgerMenu: React.FC = () => {
 
   const handleLogout = async () => {
     closeMenu();
-    const ok = window.confirm('Are you sure you want to log out?');
+    const ok = window.confirm(t('settings.logout.confirm'));
     if (!ok) return;
     try {
       const res = await signOutUser();
       if (!res.success) {
-        alert(res.error || 'Failed to log out');
+        alert(res.error || t('settings.logout.failed'));
         return;
       }
       navigate('/');
     } catch (e) {
       console.error('Logout failed', e);
-      alert('Failed to log out');
+      alert(t('settings.logout.failed'));
     }
   };
 
@@ -358,7 +384,7 @@ const HamburgerMenu: React.FC = () => {
       <button
         onClick={toggleMenu}
         className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-        aria-label="Open menu"
+        aria-label={t('settings.menu.open')}
       >
         <Menu size={24} className="text-gray-700" />
       </button>
@@ -383,21 +409,21 @@ const HamburgerMenu: React.FC = () => {
             <button
               onClick={() => { try { if (analytics) logEvent(analytics as any, 'owner_entry', { source: 'hamburger', variant: 'owner' }); } catch {}; closeMenu(); navigate('/owner'); }}
               className="flex items-center px-4 py-3 text-gray-700 hover:bg-gray-100 transition-colors w-full text-left whitespace-nowrap"
-              aria-label="Your Restaurant"
-              title="Analytics & deals for your restaurant."
+              aria-label={t('settings.menu.owner')}
+              title={t('settings.menu.ownerTitle')}
             >
               <StoreIcon size={18} className="mr-3" />
-              <span>Your Restaurant</span>
+              <span>{t('settings.menu.owner')}</span>
             </button>
           ) : (
             <button
               onClick={() => { try { if (analytics) logEvent(analytics as any, 'owner_entry', { source: 'hamburger', variant: 'claim' }); } catch {}; closeMenu(); navigate('/owner?start=claim'); }}
               className="flex items-center px-4 py-3 text-gray-700 hover:bg-gray-100 transition-colors w-full text-left whitespace-nowrap"
-              aria-label="Claim my restaurant"
-              title="Analytics & deals for your restaurant."
+              aria-label={t('settings.menu.claim')}
+              title={t('settings.menu.ownerTitle')}
             >
               <StoreIcon size={18} className="mr-3" />
-              <span>Claim my restaurant</span>
+              <span>{t('settings.menu.claim')}</span>
             </button>
           )}
 
@@ -407,7 +433,7 @@ const HamburgerMenu: React.FC = () => {
             className="flex items-center px-4 py-3 text-gray-700 hover:bg-gray-100 transition-colors w-full text-left"
           >
             <Settings size={18} className="mr-3" />
-            <span>Settings</span>
+            <span>{t('settings.title')}</span>
           </button>
 
           {/* Help & Support */}
@@ -416,7 +442,7 @@ const HamburgerMenu: React.FC = () => {
             className="flex items-center px-4 py-3 text-gray-700 hover:bg-gray-100 transition-colors w-full text-left"
           >
             <HelpCircle size={18} className="mr-3" />
-            <span>Help & Support</span>
+            <span>{t('settings.help.title')}</span>
           </button>
 
           {/* Logout */}
@@ -425,7 +451,7 @@ const HamburgerMenu: React.FC = () => {
             className="flex items-center px-4 py-3 text-red-600 hover:bg-red-50 transition-colors w-full text-left border-t border-gray-100"
           >
             <LogOut size={18} className="mr-3" />
-            <span>Log Out</span>
+            <span>{t('settings.logout.label')}</span>
           </button>
         </div>
       </div>

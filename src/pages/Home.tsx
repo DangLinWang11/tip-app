@@ -12,6 +12,7 @@ import { useReviewStore } from '../stores/reviewStore';
 import { useFollowStore } from '../stores/followStore';
 import { getTierFromPoints } from '../badges/badgeTiers';
 import FloatingUserStatsBox from '../components/FloatingUserStatsBox';
+import { useI18n } from '../lib/i18n/useI18n';
 
 const Home: React.FC = () => {
   const mountStart = performance.now?.() ?? Date.now();
@@ -25,6 +26,7 @@ const Home: React.FC = () => {
 
   const navigate = useNavigate();
   const location = useLocation();
+  const { t } = useI18n();
 
   // STABILITY: Use specific Zustand selectors to prevent unnecessary re-renders
   const firebaseReviews = useReviewStore(state => state.reviews);
@@ -69,6 +71,7 @@ const Home: React.FC = () => {
   const canPull = useRef(false);
   const virtualScrollRef = useRef<HTMLDivElement>(null);
   const isFirstLoad = useRef(true);
+  const navRefreshInFlight = useRef(false);
   const PULL_TRIGGER = 140; // pixels required to trigger refresh (harder to trigger)
 
   // Pagination state
@@ -308,7 +311,7 @@ const Home: React.FC = () => {
         const timeoutId = setTimeout(() => {
           console.error('[Home][init] Auth timeout - user still null after 3s');
           setLoading(false);
-          setError('Authentication timeout. Please refresh the page.');
+          setError(t('home.errors.authTimeout'));
         }, 3000);
 
         return () => clearTimeout(timeoutId);
@@ -400,7 +403,7 @@ const Home: React.FC = () => {
         setLoading(false);
       } catch (err) {
         console.error('[Home][init] Failed to initialize home data:', err);
-        setError('Failed to load data');
+        setError(t('home.errors.loadData'));
         setLoading(false);
         setProfileLoading(false);
       }
@@ -455,7 +458,7 @@ const Home: React.FC = () => {
       setError(null);
     } catch (err) {
       console.error('Failed to load reviews:', err);
-      setError('Failed to load reviews');
+      setError(t('home.errors.loadReviews'));
     } finally {
       if (!silent) {
         setLoading(false);
@@ -463,6 +466,38 @@ const Home: React.FC = () => {
       }
     }
   };
+
+  const refreshFromHomeTap = useCallback(async () => {
+    if (navRefreshInFlight.current) return;
+    navRefreshInFlight.current = true;
+    setRefreshing(true);
+    clearCache();
+
+    try {
+      await loadReviews();
+    } finally {
+      navRefreshInFlight.current = false;
+      window.dispatchEvent(new CustomEvent('tip:home-refresh-complete'));
+    }
+  }, [clearCache, loadReviews]);
+
+  useEffect(() => {
+    const handleNavRefresh = () => {
+      refreshFromHomeTap();
+    };
+
+    window.addEventListener('tip:home-refresh', handleNavRefresh);
+    return () => window.removeEventListener('tip:home-refresh', handleNavRefresh);
+  }, [refreshFromHomeTap]);
+
+  useEffect(() => {
+    if (location.pathname !== '/') return;
+    const pendingRefresh = sessionStorage.getItem('tip:home-refresh');
+    if (pendingRefresh) {
+      sessionStorage.removeItem('tip:home-refresh');
+      refreshFromHomeTap();
+    }
+  }, [location.pathname, refreshFromHomeTap]);
 
   // Real-time home feed listener (public, not deleted). Keeps feed fresh and ordered.
   useEffect(() => {
@@ -499,7 +534,7 @@ const Home: React.FC = () => {
           });
         } catch (e) {
           console.error('[Home][listener] Failed converting live feed posts', e);
-          setError('Failed to load feed updates');
+          setError(t('home.errors.feedUpdates'));
           setLoading(false);
           setRefreshing(false);
         }
@@ -615,15 +650,15 @@ const Home: React.FC = () => {
     if (!loading) return;
 
     const timeoutId = setTimeout(() => {
-      if (loading) {
-        console.error('[Home] Loading timeout - still loading after 10s');
-        setLoading(false);
-        setError('Loading took too long. Please try refreshing.');
-      }
-    }, 10000);
+        if (loading) {
+          console.error('[Home] Loading timeout - still loading after 10s');
+          setLoading(false);
+          setError(t('home.errors.loadingTimeout'));
+        }
+      }, 10000);
 
     return () => clearTimeout(timeoutId);
-  }, [loading]);
+  }, [loading, t]);
 
   // Navigation detection: refresh stale cache when navigating to Home
   const hasNavigatedToHome = useRef(false);
@@ -753,9 +788,9 @@ const Home: React.FC = () => {
         <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
           <PlusIcon size={32} className="text-gray-400" />
         </div>
-        <h3 className="text-xl font-semibold text-gray-900 mb-2">Start Your Food Journey!</h3>
+        <h3 className="text-xl font-semibold text-gray-900 mb-2">{t('home.empty.title')}</h3>
         <p className="text-gray-600 mb-6 max-w-sm mx-auto">
-          Create your first review to start tracking your favorite dishes and restaurants.
+          {t('home.empty.subtitle')}
         </p>
       </div>
       
@@ -764,7 +799,7 @@ const Home: React.FC = () => {
           to="/create" 
           className="block w-full bg-primary text-white py-3 px-6 rounded-full font-medium hover:bg-red-600 transition-colors"
         >
-          Add Your First Review
+          {t('home.empty.ctaAddFirstReview')}
         </Link>
         {!isNewUser && (
           <Link 
@@ -772,7 +807,7 @@ const Home: React.FC = () => {
             className="block w-full border border-gray-300 text-gray-700 py-3 px-6 rounded-full font-medium hover:bg-gray-50 transition-colors flex items-center justify-center"
           >
             <MapIcon size={18} className="mr-2" />
-            Discover Restaurants
+            {t('home.empty.ctaDiscover')}
           </Link>
         )}
       </div>
@@ -801,7 +836,7 @@ const Home: React.FC = () => {
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
           <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading your feed...</p>
+          <p className="text-gray-600">{t('home.loadingFeed')}</p>
         </div>
       </div>
     );
@@ -923,7 +958,7 @@ const Home: React.FC = () => {
           <div className="flex justify-center mb-3">
             <div className="bg-white rounded-full shadow-sm px-4 py-2 flex items-center gap-2">
               <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
-              <span className="text-xs text-gray-600">Updating feed...</span>
+              <span className="text-xs text-gray-600">{t('home.updatingFeed')}</span>
             </div>
           </div>
         )}
@@ -931,7 +966,7 @@ const Home: React.FC = () => {
         {/* User Stats Box with Dynamic Island */}
         <FloatingUserStatsBox
           avatar={userProfile?.avatar || userProfile?.photoURL || authUser?.photoURL}
-          username={userProfile?.username || userProfile?.displayName || authUser?.displayName || 'User'}
+          username={userProfile?.username || userProfile?.displayName || authUser?.displayName || t('profile.labels.user')}
           tierIndex={getTierFromPoints(userStats.pointsEarned).tierIndex}
           tierName={getTierFromPoints(userStats.pointsEarned).tierName}
           reviewsCount={userStats.totalReviews}
@@ -941,7 +976,7 @@ const Home: React.FC = () => {
         {/* Community Feed Section */}
         <div className="space-y-4">
           {/* Section Header */}
-          <h2 className="text-lg font-bold text-black">Community Feed</h2>
+          <h2 className="text-lg font-bold text-black">{t('home.communityFeed')}</h2>
 
           {/* Onboarding dialogs removed: replaced by coach-mark tour */}
           
@@ -954,7 +989,7 @@ const Home: React.FC = () => {
                 </svg>
               </div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                Couldn't Load Your Feed
+                {t('home.errors.feedTitle')}
               </h3>
               <p className="text-gray-600 mb-6 text-sm">{error}</p>
               <button
@@ -968,7 +1003,7 @@ const Home: React.FC = () => {
                 }}
                 className="bg-primary text-white py-3 px-6 rounded-full font-medium hover:bg-red-600 transition-colors"
               >
-                Try Again
+                {t('common.actions.tryAgain')}
               </button>
             </div>
           )}
@@ -1003,13 +1038,13 @@ const Home: React.FC = () => {
               <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <PlusIcon size={24} className="text-gray-400" />
               </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">No Reviews Yet</h3>
-              <p className="text-gray-600 mb-6">Be the first to share a review!</p>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">{t('home.noReviews.title')}</h3>
+              <p className="text-gray-600 mb-6">{t('home.noReviews.subtitle')}</p>
               <Link 
                 to="/create" 
                 className="inline-block bg-primary text-white py-2 px-6 rounded-full font-medium hover:bg-red-600 transition-colors"
               >
-                Create First Review
+                {t('home.noReviews.cta')}
               </Link>
             </div>
           )}

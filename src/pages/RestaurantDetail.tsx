@@ -11,6 +11,8 @@ import RatingBadge from '../components/RatingBadge';
 import { getAvatarUrl } from '../utils/avatarUtils';
 import { useUserStore } from '../stores/userStore';
 import { getTopDishes } from '../utils/topDishes';
+import { useI18n } from '../lib/i18n/useI18n';
+import { getTranslatedMenuItemText } from '../utils/menuItemTranslations';
 
 interface Restaurant {
   id: string;
@@ -35,6 +37,15 @@ interface MenuItem {
   price?: number;
   description?: string;
   coverImage?: string | null;
+  translations?: {
+    es?: {
+      name?: string;
+      description?: string;
+      sourceHash?: string;
+      translatedAt?: any;
+      provider?: string;
+    };
+  };
 }
 
 interface Review {
@@ -64,6 +75,7 @@ const RestaurantDetail: React.FC = () => {
     id: string;
   }>();
   const navigate = useNavigate();
+  const { language } = useI18n();
   const getProfileCached = useUserStore(state => state.getProfileCached);
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
@@ -222,6 +234,9 @@ const RestaurantDetail: React.FC = () => {
   const getCategoryIconPath = (category: string): string | null => {
     const normalized = (category || '').toLowerCase().trim();
     if (!normalized) return null;
+    if (normalized.includes('appetizer') || normalized.includes('starter') || normalized.includes('small plate')) {
+      return CATEGORY_ICON_PATHS.appetizer;
+    }
     return CATEGORY_ICON_PATHS[normalized] || null;
   };
 
@@ -254,7 +269,7 @@ const RestaurantDetail: React.FC = () => {
     const path = getCategoryIconPath(category);
     if (path) return renderMaskedIcon(path, size, className);
     const FallbackIcon = getCategoryIconFallback(category);
-    return <FallbackIcon size={size} className={className} style={{ color: MENU_ICON_COLOR }} />;
+    return <FallbackIcon size={size} strokeWidth={2.5} className={className} style={{ color: MENU_ICON_COLOR }} />;
   };
 
   // Helper function to get category icon fallback
@@ -1087,7 +1102,7 @@ const getCurrentDayHours = (hours: Record<string, string>) => {
                   >
                     <div className="flex items-center">
                       <div className="w-12 h-12 flex items-center justify-center mr-3">
-                        <CategoryIcon category={category} size={32} />
+                        <CategoryIcon category={category} size={36} />
                       </div>
                       <h3 className="font-semibold text-base text-gray-900">{category || 'Custom'}</h3>
                     </div>
@@ -1099,6 +1114,7 @@ const getCurrentDayHours = (hours: Record<string, string>) => {
                   {isOpen && (
                     <div className="px-5 pb-4 space-y-2">
                       {items.map(item => {
+                        const itemText = getTranslatedMenuItemText(item, language);
                         return (
                         <div
                           key={item.id}
@@ -1108,17 +1124,17 @@ const getCurrentDayHours = (hours: Record<string, string>) => {
                           {item.coverImage ? (
                             <img
                               src={item.coverImage}
-                              alt={item.name}
+                              alt={itemText.name}
                               className="w-14 h-14 rounded-xl object-cover flex-shrink-0"
                             />
                           ) : (
                             <div className="w-14 h-14 rounded-xl bg-gray-100 flex items-center justify-center flex-shrink-0">
-                              <CategoryIcon category={item.category || category} size={20} className="opacity-70" />
+                              <CategoryIcon category={item.category || category} size={26} className="opacity-70" />
                             </div>
                           )}
                           <div className="ml-3 flex-1 min-w-0">
                             <div className="flex justify-between items-start">
-                              <h4 className="font-semibold text-gray-900 flex-1 mr-2 group-hover:text-red-500 transition-colors" style={{ color: isOpen ? undefined : '#ff3131' }}>{item.name}</h4>
+                              <h4 className="font-semibold text-gray-900 flex-1 mr-2 group-hover:text-red-500 transition-colors" style={{ color: isOpen ? undefined : '#ff3131' }}>{itemText.name}</h4>
                               <div className="text-right">
                                 {menuItemRatings[item.id] ? (
                                   <div className="text-sm font-semibold text-primary mb-1">
@@ -1133,7 +1149,7 @@ const getCurrentDayHours = (hours: Record<string, string>) => {
                               </div>
                             </div>
                             <p className="text-gray-600 text-sm line-clamp-2 mt-0.5">
-                              {item.description || 'Delicious dish'}
+                              {itemText.description || 'Delicious dish'}
                             </p>
                             {/* Users often say chips (aggregated top tags) */}
                             {(() => {

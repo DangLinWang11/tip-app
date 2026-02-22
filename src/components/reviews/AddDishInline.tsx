@@ -1,7 +1,8 @@
-﻿import React, { useMemo, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { Loader2, Utensils } from 'lucide-react';
 import { db } from '../../lib/firebase';
+import { getFunctions, httpsCallable } from 'firebase/functions';
 import { useI18n } from '../../lib/i18n/useI18n';
 
 export interface DishRecord {
@@ -30,13 +31,18 @@ const AddDishInline: React.FC<AddDishInlineProps> = ({
   const [price, setPrice] = useState('');
   const [description, setDescription] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isTranslating, setIsTranslating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const submitActionRef = useRef<'add' | 'translate'>('add');
 
   const canSubmit = useMemo(() => name.trim().length > 1, [name]);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!canSubmit || isSubmitting) return;
+    if (!canSubmit || isSubmitting || isTranslating) return;
+
+    const shouldTranslate = submitActionRef.current === 'translate';
+    submitActionRef.current = 'add';
 
     try {
       setIsSubmitting(true);
@@ -52,6 +58,19 @@ const AddDishInline: React.FC<AddDishInlineProps> = ({
       };
 
       const docRef = await addDoc(collection(db, 'menuItems'), payload);
+
+      if (shouldTranslate) {
+        try {
+          setIsTranslating(true);
+          const functions = getFunctions();
+          const translate = httpsCallable(functions, 'translateMenuItemToEs');
+          await translate({ menuItemId: docRef.id });
+        } catch (translateError) {
+          console.error('Failed to translate dish', translateError);
+        } finally {
+          setIsTranslating(false);
+        }
+      }
       onAdded({
         id: docRef.id,
         name: payload.name,
@@ -137,6 +156,15 @@ const AddDishInline: React.FC<AddDishInlineProps> = ({
         >
           {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
           {t('createWizard.actions.add')}
+        </button>
+        <button
+          type="submit"
+          disabled={!canSubmit || isSubmitting || isTranslating}
+          onClick={() => { submitActionRef.current = 'translate'; }}
+          className="inline-flex items-center gap-2 rounded-2xl border border-red-200 bg-white px-4 py-3 text-xs font-semibold text-red-600 shadow-sm transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {isTranslating ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+          Translate to Spanish
         </button>
       </div>
     </form>

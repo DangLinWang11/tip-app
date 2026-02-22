@@ -2,11 +2,13 @@ import React, { useState, useEffect, useMemo, useLayoutEffect } from 'react';
 import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { db, getUserProfile } from '../lib/firebase';
+import { useI18n } from '../lib/i18n/useI18n';
 import { ArrowLeftIcon, MapPinIcon, BookmarkIcon, ShareIcon, ChefHatIcon } from 'lucide-react';
 import BottomNavigation from '../components/BottomNavigation';
 import SaveToListModal from '../components/SaveToListModal';
 import RatingBadge from '../components/RatingBadge';
 import { getAvatarUrl } from '../utils/avatarUtils';
+import { getTranslatedMenuItemText } from '../utils/menuItemTranslations';
 
 interface MenuItem {
   id: string;
@@ -16,6 +18,15 @@ interface MenuItem {
   description?: string;
   restaurantId: string;
   coverImage?: string | null;
+  translations?: {
+    es?: {
+      name?: string;
+      description?: string;
+      sourceHash?: string;
+      translatedAt?: any;
+      provider?: string;
+    };
+  };
 }
 
 interface Restaurant {
@@ -67,6 +78,7 @@ const MenuDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const location = useLocation();
+  const { language } = useI18n();
   const originReviewId = (location.state as any)?.originReviewId;
   const [menuItem, setMenuItem] = useState<MenuItem | null>(null);
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
@@ -125,6 +137,7 @@ const MenuDetail: React.FC = () => {
 
   const averageRating = calculateAverageRating(reviews);
   const reviewImages = getAllReviewImages(reviews);
+  const menuItemText = useMemo(() => getTranslatedMenuItemText(menuItem, language), [menuItem, language]);
 
   // Aggregate top tags from reviews
   const { topPositiveTags, topNegativeTags, topBestForTags } = useMemo(() => {
@@ -487,7 +500,7 @@ const MenuDetail: React.FC = () => {
               <ArrowLeftIcon size={24} />
             </button>
             <div className="min-w-0 flex-1">
-              <h1 className="text-xl font-semibold truncate">{menuItem.name}</h1>
+              <h1 className="text-xl font-semibold truncate">{menuItemText.name}</h1>
               {restaurant && (
                 <div className="flex items-center mt-0.5 text-sm text-dark-gray">
                   <MapPinIcon size={14} className="text-primary mr-1 flex-shrink-0" />
@@ -509,8 +522,8 @@ const MenuDetail: React.FC = () => {
       <div className="bg-white shadow-sm">
         <div className="relative h-64">
           <img
-            src={menuItem.coverImage || (reviewImages.length > 0 ? reviewImages[0] : ('https://source.unsplash.com/800x400/?' + encodeURIComponent(menuItem.name) + ',food'))}
-            alt={menuItem.name}
+            src={menuItem.coverImage || (reviewImages.length > 0 ? reviewImages[0] : ('https://source.unsplash.com/800x400/?' + encodeURIComponent(menuItemText.name) + ',food'))}
+            alt={menuItemText.name}
             className="w-full h-full object-cover"
           />
           {reviewImages.length > 1 && (
@@ -523,7 +536,7 @@ const MenuDetail: React.FC = () => {
         <div className="p-4">
           <div className="flex justify-between items-start mb-3">
             <div>
-              <h2 className="text-2xl font-semibold">{menuItem.name}</h2>
+              <h2 className="text-2xl font-semibold">{menuItemText.name}</h2>
               {restaurant && (
                 <div className="flex items-center mt-1 text-dark-gray">
                   <MapPinIcon size={16} className="text-primary mr-1" />
@@ -533,8 +546,8 @@ const MenuDetail: React.FC = () => {
                 </div>
               )}
               <p className="text-dark-gray mt-1">{menuItem.category}</p>
-              {menuItem.description && (
-                <p className="text-dark-gray text-sm mt-2">{menuItem.description}</p>
+              {menuItemText.description && (
+                <p className="text-dark-gray text-sm mt-2">{menuItemText.description}</p>
               )}
             </div>
             <div className="text-right">
@@ -556,7 +569,7 @@ const MenuDetail: React.FC = () => {
               onClick={() => navigate('/create', {
                 state: {
                   selectedRestaurant: restaurant,
-                  selectedDish: menuItem.name
+                  selectedDish: menuItemText.name
                 }
               })}
               className="flex-1 bg-primary text-white py-3 rounded-full font-medium"
@@ -572,7 +585,7 @@ const MenuDetail: React.FC = () => {
             </button>
             <button
               onClick={() => {
-                const title = menuItem.name + (restaurant ? ' at ' + restaurant.name : '');
+                const title = menuItemText.name + (restaurant ? ' at ' + restaurant.name : '');
                 const shareData = {
                   title,
                   text: title,
@@ -812,7 +825,7 @@ const MenuDetail: React.FC = () => {
                 onClick={() => navigate('/create', {
                   state: {
                     selectedRestaurant: restaurant,
-                    selectedDish: menuItem.name
+                    selectedDish: menuItemText.name
                   }
                 })}
                 className="bg-primary text-white px-6 py-2 rounded-full font-medium hover:bg-primary/90 transition-colors"
@@ -842,22 +855,25 @@ const MenuDetail: React.FC = () => {
             </Link>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            {otherDishes.map(dish => (
-              <Link
-                key={dish.id}
-                to={'/dish/' + dish.id}
-                className="bg-light-gray rounded-lg p-3 hover:bg-gray-100 transition-colors"
-              >
-                <div className="flex items-center mb-2">
-                  <ChefHatIcon size={16} className="text-dark-gray mr-2" />
-                  <span className="text-xs text-dark-gray">{dish.category}</span>
-                </div>
-                <h4 className="font-medium text-sm mb-1">{dish.name}</h4>
-                {dish.price && (
-                  <p className="text-primary font-medium text-sm">$ {dish.price}</p>
-                )}
-              </Link>
-            ))}
+            {otherDishes.map(dish => {
+              const dishText = getTranslatedMenuItemText(dish, language);
+              return (
+                <Link
+                  key={dish.id}
+                  to={'/dish/' + dish.id}
+                  className="bg-light-gray rounded-lg p-3 hover:bg-gray-100 transition-colors"
+                >
+                  <div className="flex items-center mb-2">
+                    <ChefHatIcon size={16} className="text-dark-gray mr-2" />
+                    <span className="text-xs text-dark-gray">{dish.category}</span>
+                  </div>
+                  <h4 className="font-medium text-sm mb-1">{dishText.name}</h4>
+                  {dish.price && (
+                    <p className="text-primary font-medium text-sm">$ {dish.price}</p>
+                  )}
+                </Link>
+              );
+            })}
           </div>
         </div>
       )}
@@ -884,7 +900,7 @@ const MenuDetail: React.FC = () => {
           restaurantId={restaurant?.id}
           restaurantName={restaurant?.name}
           dishId={menuItem.id}
-          dishName={menuItem.name}
+          dishName={menuItemText.name}
           onSaved={({ listName }) => {
             setSaved(true);
             const msg = listName ? 'Saved to list ✅ — “' + listName + '”' : 'Saved to list ✅';

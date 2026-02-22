@@ -10,6 +10,7 @@ import { CUISINES, normalizeToken, inferFacetsFromText } from '../utils/taxonomy
 import { searchByText, searchByCuisine, filterRestaurantNoise, GoogleFallbackPlace, getPlaceDetails, saveGooglePlaceToFirestore } from '../services/googlePlacesService';
 import RestaurantListCard from '../components/discover/RestaurantListCard';
 import { tipRestaurantToCardModel, googlePlaceToCardModel } from '../utils/restaurantCardAdapters';
+import { useI18n } from '../lib/i18n/useI18n';
 
 interface FirebaseRestaurant {
   id: string;
@@ -74,27 +75,42 @@ const getQualityColor = (percentage: number): string => {
   return '#C92A2A';                          // Hard Red / Avoid
 };
 
-const capitalizeWords = (value: string) =>
-  value.split(' ').map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+const cuisineKeyFromSlug = (value: string) => normalizeToken(value).replace(/\s+/g, '_');
 
-const DISH_CATEGORIES = ['All', 'Near Me', 'Appetizer', 'Entrée', 'Handheld', 'Side', 'Dessert', 'Drink'];
+const DISH_CATEGORY_VALUES = ['all', 'nearme', 'appetizer', 'entree', 'handheld', 'side', 'dessert', 'drink'];
 const MIN_REVIEWS_FOR_TRUST = 5;
 
-const getCategories = (mode: 'restaurant' | 'dish') => {
+const getDishCategoryLabel = (value: string, t: (key: string) => string) => {
+  if (value === 'all') return t('discover.categories.all');
+  if (value === 'nearme') return t('discover.categories.nearMe');
+  return t(`discover.dishCategories.${value}`);
+};
+
+const getCategories = (mode: 'restaurant' | 'dish', t: (key: string) => string) => {
   if (mode === 'restaurant') {
-    return ['All', 'Near Me', ...CUISINES.map((cuisine) => capitalizeWords(cuisine))];
+    return [
+      { value: 'all', label: t('discover.categories.all') },
+      { value: 'nearme', label: t('discover.categories.nearMe') },
+      ...CUISINES.map((cuisine) => ({
+        value: normalizeToken(cuisine),
+        label: t(`discover.cuisines.${cuisineKeyFromSlug(cuisine)}`)
+      }))
+    ];
   }
-  return DISH_CATEGORIES;
+  return DISH_CATEGORY_VALUES.map((value) => ({
+    value,
+    label: getDishCategoryLabel(value, t)
+  }));
 };
 
 const TAG_FILTERS = [
-  { value: 'Great Staff', label: 'Great Staff', emoji: '👥' },
-  { value: 'Wonderful Atmosphere', label: 'Wonderful Atmosphere', emoji: '✨' },
-  { value: 'Quick Service', label: 'Quick Service', emoji: '⚡' },
-  { value: 'Hidden Gem', label: 'Hidden Gem', emoji: '💎' },
-  { value: 'Worth the Wait', label: 'Worth the Wait', emoji: '⏱️' },
-  { value: 'Highly Photogenic', label: 'Highly Photogenic', emoji: '📸' },
-  { value: 'Kid Friendly', label: 'Kid Friendly', emoji: '👨‍👩‍👧‍👦' },
+  { value: 'Great Staff', labelKey: 'discover.tags.greatStaff', emoji: '\u{1F465}' },
+  { value: 'Wonderful Atmosphere', labelKey: 'discover.tags.wonderfulAtmosphere', emoji: '\u2728' },
+  { value: 'Quick Service', labelKey: 'discover.tags.quickService', emoji: '\u26A1' },
+  { value: 'Hidden Gem', labelKey: 'discover.tags.hiddenGem', emoji: '\u{1F48E}' },
+  { value: 'Worth the Wait', labelKey: 'discover.tags.worthTheWait', emoji: '\u23F1\uFE0F' },
+  { value: 'Highly Photogenic', labelKey: 'discover.tags.highlyPhotogenic', emoji: '\u{1F4F8}' },
+  { value: 'Kid Friendly', labelKey: 'discover.tags.kidFriendly', emoji: '\u{1F468}\u200D\u{1F469}\u200D\u{1F467}\u200D\u{1F466}' },
 ];
 
 const toRad = (n: number) => (n * Math.PI) / 180;
@@ -118,21 +134,9 @@ const formatDistanceLabel = (miles: number | null | undefined) => {
   return `${miles.toFixed(1)} mi`;
 };
 
-const normalizeCategoryValue = (label: string) => {
-  if (label === 'All') return 'all';
-  if (label === 'Near Me') return 'nearme';
-  // For dish categories, normalize to match Create flow categories
-  if (label === 'Appetizer') return 'appetizer';
-  if (label === 'Entrée') return 'entree';
-  if (label === 'Handheld') return 'handheld';
-  if (label === 'Side') return 'side';
-  if (label === 'Dessert') return 'dessert';
-  if (label === 'Drink') return 'drink';
-  return normalizeToken(label);
-};
-
 const DiscoverList: React.FC = () => {
   const navigate = useNavigate();
+  const { t } = useI18n();
   const { currentLocation, requestLocationPermission } = useLocationContext();
 
   // Stabilize coords reference with useMemo to prevent infinite loops
@@ -158,9 +162,14 @@ const DiscoverList: React.FC = () => {
 
   const debounceTimerRef = useRef<number | null>(null);
 
-  const categories = useMemo(() => getCategories(viewMode), [viewMode]);
+  const categories = useMemo(() => getCategories(viewMode, t), [viewMode, t]);
   const parsed = useMemo(() => inferFacetsFromText(searchQuery), [searchQuery]);
   const queryTokens = useMemo(() => normalizeToken(searchQuery).split(' ').filter(Boolean), [searchQuery]);
+  const selectedTagLabel = useMemo(() => {
+    if (!selectedTagFilter) return '';
+    const match = TAG_FILTERS.find((filter) => filter.value === selectedTagFilter);
+    return match ? t(match.labelKey) : selectedTagFilter;
+  }, [selectedTagFilter, t]);
 
   const handleCategorySelect = async (value: string) => {
     console.log('🚀 Triggering category selection:', value);
@@ -475,7 +484,7 @@ const DiscoverList: React.FC = () => {
       } catch (err) {
         console.error('Error fetching restaurants:', err);
         if (!isCancelled) {
-          setError('Failed to load restaurants. Please try again.');
+          setError(t('discover.errors.loadRestaurants'));
         }
       } finally {
         if (!isCancelled) {
@@ -574,7 +583,7 @@ const DiscoverList: React.FC = () => {
       } catch (err) {
         console.error('Error fetching dishes:', err);
         if (!isCancelled) {
-          setError('Failed to load dishes. Please try again.');
+          setError(t('discover.errors.loadDishes'));
         }
       } finally {
         if (!isCancelled) {
@@ -751,6 +760,7 @@ const DiscoverList: React.FC = () => {
   }, [filteredDishes, selectedCategory]);
 
   const isLoading = viewMode === 'restaurant' ? loadingRestaurants : loadingRestaurants || loadingDishes;
+  const viewModeLabel = viewMode === 'restaurant' ? t('discover.labels.restaurants') : t('discover.labels.dishes');
 
   // Google text search effect with debouncing
   // Note: This only handles text-based searches. Category-based searches are handled in handleCategorySelect
@@ -970,7 +980,7 @@ const DiscoverList: React.FC = () => {
             </button>
           </div>
 
-          <h1 className="text-xl font-semibold text-gray-900">Discover</h1>
+          <h1 className="text-xl font-semibold text-gray-900">{t('discover.title')}</h1>
 
           <div className="absolute right-0">
             <div className="relative">
@@ -1003,11 +1013,11 @@ const DiscoverList: React.FC = () => {
           <Search size={20} className="text-gray-500 mr-3" />
           <input
             type="text"
-            placeholder={viewMode === 'restaurant' ? 'Search restaurants...' : 'Search dishes...'}
+            placeholder={viewMode === 'restaurant' ? t('discover.search.restaurants') : t('discover.search.dishes')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="flex-1 bg-transparent focus:outline-none text-base text-gray-900 placeholder-gray-500"
-            aria-label="Search"
+            aria-label={t('discover.search.aria')}
           />
         </div>
       </div>
@@ -1015,16 +1025,15 @@ const DiscoverList: React.FC = () => {
       <div className="bg-white px-4 py-2 border-b">
         <div className="flex overflow-x-auto no-scrollbar space-x-2">
           {categories.map((category) => {
-            const value = normalizeCategoryValue(category);
-            const isActive = selectedCategory === value;
+            const isActive = selectedCategory === category.value;
             return (
               <button
-                key={value}
-                onClick={() => handleCategorySelect(value)}
+                key={category.value}
+                onClick={() => handleCategorySelect(category.value)}
                 className={`flex-shrink-0 px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${isActive ? 'bg-primary text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
               >
-                {category}
+                {category.label}
               </button>
             );
           })}
@@ -1046,7 +1055,7 @@ const DiscoverList: React.FC = () => {
                       }`}
                   >
                     <span>{filter.emoji}</span>
-                    <span>{filter.label}</span>
+                    <span>{t(filter.labelKey)}</span>
                   </button>
                 );
               })}
@@ -1078,32 +1087,32 @@ const DiscoverList: React.FC = () => {
       <div className="px-4 py-4">
         {error ? (
           <div className="text-center py-8">
-            <p className="text-red-600 font-medium">{`Error loading ${viewMode === 'restaurant' ? 'restaurants' : 'dishes'}`}</p>
+            <p className="text-red-600 font-medium">{t('discover.errors.loading', { type: viewModeLabel })}</p>
             <p className="text-red-500 text-sm">{error}</p>
             <button
               onClick={() => window.location.reload()}
               className="mt-2 px-4 py-2 bg-primary text-white rounded-lg text-sm"
             >
-              Retry
+              {t('common.actions.retry')}
             </button>
           </div>
         ) : isLoading ? (
           <div className="flex items-center justify-center py-8">
             <div className="text-center">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
-              <p className="text-gray-600">Loading {viewMode === 'restaurant' ? 'restaurants' : 'dishes'}...</p>
+              <p className="text-gray-600">{t('discover.loading', { type: viewModeLabel })}</p>
             </div>
           </div>
         ) : viewMode === 'restaurant' ? (
           noTagFilterResults ? (
             <div className="text-center py-8 text-gray-500 space-y-3">
-              <p>No restaurants found with {selectedTagFilter}</p>
+              <p>{t('discover.empty.noTagResults', { tag: selectedTagLabel })}</p>
               <button
                 type="button"
                 onClick={handleClearFilters}
                 className="inline-flex items-center px-4 py-2 rounded-full border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-100"
               >
-                Clear Filters
+                {t('discover.actions.clearFilters')}
               </button>
             </div>
           ) :
@@ -1145,21 +1154,21 @@ const DiscoverList: React.FC = () => {
                 {/* Show Google attribution footer if we have Google results */}
                 {restaurantsForRender.some(item => item.source === 'google') && (
                   <p className="text-xs text-gray-500 mt-3 italic text-center pb-2">
-                    Some results from Google Places
+                    {t('discover.googleAttribution')}
                   </p>
                 )}
               </>
             ) : (
               <div className="text-center py-8 text-gray-500">
-                <p>No restaurants found</p>
-                <p className="text-sm">Try selecting a different category or adjusting filters</p>
+                <p>{t('discover.empty.noRestaurants.title')}</p>
+                <p className="text-sm">{t('discover.empty.noRestaurants.subtitle')}</p>
                 {selectedTagFilter && (
                   <button
                     type="button"
                     onClick={handleClearFilters}
                     className="mt-3 inline-flex items-center px-4 py-2 rounded-full border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-100"
                   >
-                    Clear Filters
+                    {t('discover.actions.clearFilters')}
                   </button>
                 )}
               </div>
@@ -1188,11 +1197,11 @@ const DiscoverList: React.FC = () => {
                   </div>
                   <div className="flex flex-col items-end flex-shrink-0">
                     <span className={`text-sm font-semibold whitespace-nowrap ${dish.rating === 0 ? 'text-red-500' : 'text-gray-900'}`}>
-                      {dish.rating === 0 ? 'No reviews' : dish.rating.toFixed(1)}
+                      {dish.rating === 0 ? t('discover.dishes.noReviews') : dish.rating.toFixed(1)}
                     </span>
                     <div className="flex items-center mt-1 text-xs text-dark-gray whitespace-nowrap">
                       <MapPin size={12} className="text-dark-gray mr-1" />
-                      <span>{dish.distanceLabel ?? '-'}</span>
+                      <span>{dish.distanceLabel ?? t('discover.distance.unknown')}</span>
                     </div>
                   </div>
                 </div>
@@ -1201,8 +1210,8 @@ const DiscoverList: React.FC = () => {
           ))
         ) : (
           <div className="text-center py-8 text-gray-500">
-            <p>No dishes found</p>
-            <p className="text-sm">Try selecting a different category</p>
+            <p>{t('discover.empty.noDishes.title')}</p>
+            <p className="text-sm">{t('discover.empty.noDishes.subtitle')}</p>
           </div>
         )}
       </div>

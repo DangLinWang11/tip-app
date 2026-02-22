@@ -1,5 +1,6 @@
 import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
+import type { Bucket } from '@google-cloud/storage';
 
 /**
  * Backfill Cloud Function to trigger thumbnail generation for existing images
@@ -43,7 +44,7 @@ interface BackfillResult {
 /**
  * Helper to check if a file exists in Storage
  */
-async function fileExists(bucket: admin.storage.Bucket, filePath: string): Promise<boolean> {
+async function fileExists(bucket: Bucket, filePath: string): Promise<boolean> {
   try {
     const [exists] = await bucket.file(filePath).exists();
     return exists;
@@ -90,7 +91,7 @@ function getThumbnailPath(originalPath: string, size: '200x200' | '800x800'): st
  * This tricks the Resize Images extension into processing it as a new upload
  */
 async function triggerThumbnailGeneration(
-  bucket: admin.storage.Bucket,
+  bucket: Bucket,
   filePath: string
 ): Promise<boolean> {
   try {
