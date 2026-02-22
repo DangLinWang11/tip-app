@@ -15,9 +15,8 @@ const BottomNavigation: React.FC = () => {
   }, []);
 
   const handleHomeClick = () => {
-    setHomeRefreshing(true);
-
     if (location.pathname === '/') {
+      setHomeRefreshing(true);
       window.dispatchEvent(new CustomEvent('tip:home-refresh', { detail: { source: 'nav' } }));
     } else {
       sessionStorage.setItem('tip:home-refresh', '1');
@@ -39,11 +38,10 @@ const BottomNavigation: React.FC = () => {
             }
           >
             <span className="relative h-7 w-7 flex items-center justify-center">
-              <HomeIcon className="h-7 w-7" aria-hidden="true" />
-              {homeRefreshing && (
-                <span className="absolute inset-0 flex items-center justify-center">
-                  <RefreshCw className="h-5 w-5 animate-spin text-[#FF385C]" aria-hidden="true" />
-                </span>
+              {homeRefreshing && location.pathname === '/' ? (
+                <RefreshCw className="h-6 w-6 animate-spin text-[#FF385C]" aria-hidden="true" />
+              ) : (
+                <HomeIcon className="h-7 w-7" aria-hidden="true" />
               )}
             </span>
             <span className="text-[11px] font-medium leading-none">{t('nav.home')}</span>
