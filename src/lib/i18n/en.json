@@ -306,6 +306,7 @@
     "loadingFeed": "Loading your feed...",
     "updatingFeed": "Updating feed...",
     "communityFeed": "Community Feed",
+    "recentVisits": "Recent Visits",
     "empty": {
       "title": "Your feed starts here",
       "subtitle": "Follow friends and add reviews to see activity from the community.",
@@ -508,6 +509,16 @@
     },
     "title": "Your Food Map",
     "titleUser": "{{username}}'s Food Map",
+    "journey": {
+      "title": "Food Journey",
+      "shortLabel": "Journey",
+      "setHomeCountry": "Set home country",
+      "noHomeCountry": "No home country set",
+      "homeCountryPrefix": "Home country:",
+      "stats": "Journey Stats",
+      "reviews": "reviews",
+      "countries": "countries"
+    },
     "search": {
       "placeholder": "Search recent visits"
     },

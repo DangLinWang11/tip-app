@@ -4,6 +4,7 @@ import { MapPinIcon } from 'lucide-react';
 import { motion } from 'framer-motion';
 import AvatarBadge from './badges/AvatarBadge';
 import UserStatsPills from './UserStatsPills';
+import { useI18n } from '../lib/i18n/useI18n';
 
 interface FloatingUserStatsBoxProps {
   avatar?: string | null;
@@ -25,6 +26,7 @@ const FloatingUserStatsBox: React.FC<FloatingUserStatsBoxProps> = ({
   dishesCount
 }) => {
   const navigate = useNavigate();
+  const { t } = useI18n();
   const [avatarError, setAvatarError] = useState(false);
   const displayName = username?.trim() || 'You';
   const displayTierName = tierName?.trim();
@@ -89,7 +91,7 @@ const FloatingUserStatsBox: React.FC<FloatingUserStatsBoxProps> = ({
             className="flex items-center gap-1.5 bg-white rounded-full border border-gray-200 px-4 py-2 shadow-sm hover:shadow-md transition-all duration-200"
           >
             <MapPinIcon size={16} className="text-secondary" />
-            <span className="text-sm font-medium text-gray-900">Recent Visits</span>
+            <span className="text-sm font-medium text-gray-900">{t('home.recentVisits')}</span>
           </button>
         </div>
       </motion.div>

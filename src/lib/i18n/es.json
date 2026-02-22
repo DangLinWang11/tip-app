@@ -6,15 +6,15 @@
     "draftRestored": "Borrador recuperado",
     "steps": {
       "visit": {
-        "title": "Detalles de la visita",
+        "title": "Visit Details",
         "description": "Comparte lo esencial de tu visita."
       },
       "dishes": {
-        "title": "Califica tus platos",
+        "title": "Rate Your Dishes",
         "description": "Agrega cada plato y describe su sabor."
       },
       "wrapup": {
-        "title": "Revision final",
+        "title": "Final Review",
         "description": "Cierra todo antes de enviar."
       },
       "basic": {
@@ -306,6 +306,7 @@
     "loadingFeed": "Cargando tu feed...",
     "updatingFeed": "Actualizando feed...",
     "communityFeed": "Feed de la comunidad",
+    "recentVisits": "Visitas recientes",
     "empty": {
       "title": "Tu feed comienza aquí",
       "subtitle": "Sigue a amigos y agrega reseñas para ver actividad de la comunidad.",
@@ -508,6 +509,16 @@
     },
     "title": "Tu Mapa de Comida",
     "titleUser": "Mapa de Comida de {{username}}",
+    "journey": {
+      "title": "Viaje de comida",
+      "shortLabel": "Viaje",
+      "setHomeCountry": "Configurar pais de origen",
+      "noHomeCountry": "Sin pais de origen",
+      "homeCountryPrefix": "Pais de origen:",
+      "stats": "Estadisticas del viaje",
+      "reviews": "resenas",
+      "countries": "paises"
+    },
     "search": {
       "placeholder": "Buscar visitas recientes"
     },

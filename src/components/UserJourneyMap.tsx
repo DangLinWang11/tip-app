@@ -10,6 +10,7 @@ import { getCurrentUser, getUserProfile } from '../lib/firebase';
 import { getTierFromPoints } from '../badges/badgeTiers';
 import CountrySelector from './CountrySelector';
 import AvatarBadge from './badges/AvatarBadge';
+import { useI18n } from '../lib/i18n/useI18n';
 
 interface FocusRestaurant {
   lat: number;
@@ -53,6 +54,7 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({
   focusRestaurant,
   fullBleed = false
 }) => {
+  const { t } = useI18n();
   const isOwnMap = !userId;
 
   // Self-load current user's profile for own map to fill in missing avatar/tier
@@ -278,7 +280,9 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({
   }, [initialZoom]);
 
   const isCollapsedHeader = mapZoom >= 6;
-  const selectedCountryLabel = homeCountryData ? `${homeCountryData.flag} ${homeCountryData.name}` : (allowHomeCountryOverride ? 'Set home country' : 'No home country set');
+  const selectedCountryLabel = homeCountryData
+    ? `${homeCountryData.flag} ${homeCountryData.name}`
+    : (allowHomeCountryOverride ? t('map.journey.setHomeCountry') : t('map.journey.noHomeCountry'));
   const mapRestriction = useMemo<google.maps.MapRestriction>(() => ({
     latLngBounds: { north: 85, south: -85, west: -180, east: 180 },
     strictBounds: false
@@ -469,9 +473,9 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({
                   </svg>
                 </div>
                 <div className="flex flex-col items-start text-left leading-tight">
-                  <span className="text-[11px] uppercase tracking-[0.16em] text-gray-400">Journey Stats</span>
+                  <span className="text-[11px] uppercase tracking-[0.16em] text-gray-400">{t('map.journey.stats')}</span>
                   <span className="text-[13px] font-semibold text-gray-800">
-                    🍽 {stats.reviews} reviews · 🌍 {stats.countries} countries
+                    🍽 {stats.reviews} {t('map.journey.reviews')} · 🌍 {stats.countries} {t('map.journey.countries')}
                   </span>
                   {stats.since && <span className="text-[11px] font-normal text-gray-500">since {stats.since}</span>}
                 </div>
@@ -535,7 +539,7 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
-                        <p className="text-[10px] uppercase tracking-[0.22em] text-gray-400">Food Journey</p>
+                        <p className="text-[10px] uppercase tracking-[0.22em] text-gray-400">{t('map.journey.title')}</p>
                         {typeof effectiveTierIndex === 'number' && (
                           <span className="text-[9px] uppercase tracking-[0.14em] text-rose-500 bg-rose-50 border border-rose-100 px-1.5 py-px rounded-full whitespace-nowrap">
                             Tier {effectiveTierIndex}
@@ -557,8 +561,8 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({
                       ) : (
                         <span className="inline-flex items-center text-xs text-gray-600">
                           {homeCountryData
-                            ? `Home country: ${homeCountryData.flag} ${homeCountryData.name}`
-                            : 'No home country set'}
+                            ? `${t('map.journey.homeCountryPrefix')} ${homeCountryData.flag} ${homeCountryData.name}`
+                            : t('map.journey.noHomeCountry')}
                         </span>
                       )}
                     </div>
@@ -600,8 +604,8 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({
                     )}
                   </div>
                   <div className="flex flex-col leading-tight text-left">
-                    <span className="text-xs text-gray-400 uppercase tracking-[0.18em]">Journey</span>
-                    <span className="text-sm font-semibold text-gray-800">{homeCountryData?.name || 'Food map'}</span>
+                    <span className="text-xs text-gray-400 uppercase tracking-[0.18em]">{t('map.journey.shortLabel')}</span>
+                    <span className="text-sm font-semibold text-gray-800">{homeCountryData?.name || t('nav.foodMap')}</span>
                   </div>
                   <span className="ml-1 text-sm text-gray-600">
                     {homeCountryData?.flag || '🌍'}

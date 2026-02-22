@@ -4,8 +4,10 @@ import { getCurrentUser, getUserProfile } from '../lib/firebase';
 import { getUserVisitedRestaurants } from '../services/reviewService';
 import { getTierFromPoints } from '../badges/badgeTiers';
 import BottomNavigation from '../components/BottomNavigation';
+import { useI18n } from '../lib/i18n/useI18n';
 
 const MyFoodMap: React.FC = () => {
+  const { t } = useI18n();
   const [userProfile, setUserProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [journeyStats, setJourneyStats] = useState<{ reviews: number; countries: number }>({ reviews: 0, countries: 0 });
@@ -122,9 +124,9 @@ const MyFoodMap: React.FC = () => {
             </svg>
           </div>
           <div className="flex flex-col items-start text-left leading-tight">
-            <span className="text-[11px] uppercase tracking-[0.16em] text-gray-400">Journey Stats</span>
+            <span className="text-[11px] uppercase tracking-[0.16em] text-gray-400">{t('map.journey.stats')}</span>
             <span className="text-[13px] font-semibold text-gray-800">
-              🍽 {journeyReviews} reviews · 🌍 {journeyCountries} countries
+              🍽 {journeyReviews} {t('map.journey.reviews')} · 🌍 {journeyCountries} {t('map.journey.countries')}
             </span>
           </div>
         </div>

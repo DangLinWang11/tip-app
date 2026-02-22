@@ -35,7 +35,7 @@ const BottomNavigation: React.FC = () => {
               handleHomeClick();
             }}
             className={({ isActive }) =>
-              `flex flex-col items-center justify-center gap-1 py-1.5 px-2 text-center w-16 mx-auto ${isActive ? 'text-[#FF385C] font-medium' : 'text-gray-500'}`
+              `flex flex-col items-center justify-center gap-1 py-2 text-center ${isActive ? 'text-[#FF385C] font-medium' : 'text-gray-500'}`
             }
           >
             <span className="relative h-7 w-7 flex items-center justify-center">
