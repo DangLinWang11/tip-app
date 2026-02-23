@@ -1,4 +1,4 @@
-import React, { useMemo, useRef } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import en from '../../lib/i18n/en.json';
 import es from '../../lib/i18n/es.json';
 import { useI18n } from '../../lib/i18n/useI18n';
@@ -22,7 +22,7 @@ const LOGO_BY_VARIANT: Record<LoaderVariant, string> = {
 };
 
 const BACKGROUND_BY_VARIANT: Record<LoaderVariant, string> = {
-  auth: '#e02a2a',
+  auth: '#ff3131',
   default: '#ffffff',
   map: '#ffffff',
   list: '#ffffff',
@@ -67,6 +67,20 @@ const BrandedLoader: React.FC<BrandedLoaderProps> = ({
 }) => {
   const { language, t } = useI18n();
   const messageIndexRef = useRef<number | null>(null);
+  const isAuth = variant === 'auth';
+  const logoWidth = isAuth ? 168 : 130;
+  const ringSize = Math.round(logoWidth * 1.35);
+  const [showMessage, setShowMessage] = useState(variant !== 'auth');
+
+  useEffect(() => {
+    if (variant !== 'auth') {
+      setShowMessage(true);
+      return;
+    }
+    setShowMessage(false);
+    const id = window.setTimeout(() => setShowMessage(true), 600);
+    return () => window.clearTimeout(id);
+  }, [variant]);
 
   const messagePool = useMemo(() => getMessagePool(language, variant), [language, variant]);
 
@@ -82,7 +96,7 @@ const BrandedLoader: React.FC<BrandedLoaderProps> = ({
   return (
     <div
       className={[
-        fullScreen ? 'min-h-screen w-full' : '',
+        fullScreen ? (isAuth ? 'fixed inset-0 w-full h-[100dvh]' : 'min-h-screen w-full') : '',
         'flex items-center justify-center',
         className
       ].join(' ').trim()}
@@ -90,26 +104,47 @@ const BrandedLoader: React.FC<BrandedLoaderProps> = ({
       role="status"
       aria-live="polite"
     >
-      <div className="flex flex-col items-center justify-center text-center px-6">
+      <div
+        className="flex flex-col items-center justify-center text-center px-6"
+        style={
+          isAuth
+            ? {
+                paddingTop: 'env(safe-area-inset-top)',
+                paddingBottom: 'env(safe-area-inset-bottom)',
+              }
+            : undefined
+        }
+      >
         <div className="relative flex items-center justify-center">
-          <div
-            className="absolute -inset-8 rounded-full tip-loader-glow"
-            style={{ background: GLOW_BY_VARIANT[variant] }}
-            aria-hidden="true"
-          />
+          {!isAuth && (
+            <div
+              className="absolute -inset-8 rounded-full tip-loader-glow"
+              style={{ background: GLOW_BY_VARIANT[variant] }}
+              aria-hidden="true"
+            />
+          )}
+          {isAuth && (
+            <div
+              className="auth-ring"
+              style={{ width: ringSize, height: ringSize }}
+              aria-hidden="true"
+            />
+          )}
           <img
             src={LOGO_BY_VARIANT[variant]}
             alt="Tip"
-            className="relative tip-loader-pulse"
-            style={{ width: 130, height: 'auto' }}
+            className={['relative', !isAuth ? 'tip-loader-pulse' : ''].join(' ').trim()}
+            style={{ width: logoWidth, height: 'auto' }}
           />
         </div>
-        <p
-          className="mt-4 text-sm font-semibold"
-          style={{ color: TEXT_COLOR_BY_VARIANT[variant] }}
-        >
-          {message}
-        </p>
+        {showMessage && (
+          <p
+            className="mt-4 text-sm font-semibold"
+            style={{ color: TEXT_COLOR_BY_VARIANT[variant] }}
+          >
+            {message}
+          </p>
+        )}
       </div>
     </div>
   );

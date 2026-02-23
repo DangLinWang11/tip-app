@@ -81,6 +81,10 @@ body,
   100% { opacity: 0.45; }
 }
 
+@keyframes ringSpin {
+  to { transform: rotate(360deg); }
+}
+
 .tip-loader-pulse {
   animation: tipPulse 1.6s ease-in-out infinite;
   transform-origin: center;
@@ -90,9 +94,22 @@ body,
   animation: tipGlow 1.6s ease-in-out infinite;
 }
 
+.auth-ring {
+  position: absolute;
+  width: 230px;
+  height: 230px;
+  border-radius: 9999px;
+  border: 2.5px solid rgba(255, 255, 255, 0.35);
+  border-top-color: rgba(255, 255, 255, 0.9);
+  box-sizing: border-box;
+  animation: ringSpin 1.2s linear infinite;
+  transform-origin: center;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .tip-loader-pulse,
-  .tip-loader-glow {
+  .tip-loader-glow,
+  .auth-ring {
     animation: none;
   }
 }
