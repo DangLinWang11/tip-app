@@ -34,6 +34,7 @@ interface UserJourneyMapProps {
   homeCountry?: string; // ISO country code from user profile
   focusRestaurant?: FocusRestaurant; // restaurant to focus on after review creation
   fullBleed?: boolean; // Remove rounded corners for edge-to-edge map
+  suppressLoading?: boolean;
 }
 
 const HOME_COUNTRY_STORAGE_KEY = 'tip.homeCountry';
@@ -52,7 +53,8 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({
   onBack,
   homeCountry,
   focusRestaurant,
-  fullBleed = false
+  fullBleed = false,
+  suppressLoading = false
 }) => {
   const { t } = useI18n();
   const isOwnMap = !userId;
@@ -357,6 +359,9 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({
 
   // Loading state
   if (loading) {
+    if (suppressLoading) {
+      return null;
+    }
     return (
       <div className={`${className} flex items-center justify-center bg-gray-100 rounded-lg`}>
         <div className="text-center p-8">

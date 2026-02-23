@@ -4,7 +4,7 @@ import { Loader2 } from 'lucide-react';
 import { useI18n } from '../../lib/i18n/useI18n';
 import { useReviewWizard } from './WizardContext';
 import ConfettiEffect from './ConfettiEffect';
-import { ToGoFeedback, DineInFeedback } from '../../dev/types/review';
+import { ToGoFeedback, DineInFeedback, MealTimeTag } from '../../dev/types/review';
 
 const BUSINESS_TAGS = [
   'Great Staff',
@@ -35,6 +35,23 @@ const formatTagLabel = (tag: string): string => {
   return tag.replace(/_/g, ' ').replace(/-/g, ' ');
 };
 
+const VISIT_TAG_LABELS: Partial<Record<MealTimeTag, { label: string; emoji: string }>> = {
+  breakfast: { label: 'Breakfast', emoji: '\u{1F373}' },
+  brunch: { label: 'Brunch', emoji: '\u{1F942}' },
+  lunch: { label: 'Lunch', emoji: '\u{1F96A}' },
+  dinner: { label: 'Dinner', emoji: '\u{1F37D}\uFE0F' },
+  late_night: { label: 'Late Night', emoji: '\u{1F319}' },
+  dessert: { label: 'Dessert', emoji: '\u{1F370}' },
+  date_night: { label: 'Date', emoji: '\u2764\uFE0F' },
+  birthday: { label: 'Birthday', emoji: '\u{1F382}' },
+  celebration: { label: 'Celebration', emoji: '\u{1F389}' },
+  snack: { label: 'Snack', emoji: '\u{1F35F}' }
+};
+
+const getVisitTagMeta = (tag: MealTimeTag): { label: string; emoji: string } => {
+  return VISIT_TAG_LABELS[tag] || { label: formatTagLabel(tag), emoji: '' };
+};
+
 const StepWrapUp: React.FC = () => {
   const { t } = useI18n();
   const navigate = useNavigate();
@@ -58,6 +75,15 @@ const StepWrapUp: React.FC = () => {
   const [selectedBusinessTags, setSelectedBusinessTags] = useState<string[]>(visitDraft.businessTags || []);
   const [selectedBusinessLowlights, setSelectedBusinessLowlights] = useState<string[]>(visitDraft.businessLowlights || []);
   const [countdown, setCountdown] = useState(5);
+  const selectedVisitTags = useMemo(() => {
+    if (Array.isArray(visitDraft.mealTimes) && visitDraft.mealTimes.length > 0) {
+      return visitDraft.mealTimes;
+    }
+    if (visitDraft.mealTime && visitDraft.mealTime !== 'unspecified') {
+      return [visitDraft.mealTime as MealTimeTag];
+    }
+    return [];
+  }, [visitDraft.mealTimes, visitDraft.mealTime]);
 
 
   // Structured feedback state
@@ -246,11 +272,18 @@ const StepWrapUp: React.FC = () => {
               {visitDraft.isToGo ? '🍱 To-Go' : '🍽️ Dine-In'}
             </span>
           )}
-          {visitDraft.mealTime && visitDraft.mealTime !== 'unspecified' && (
-            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-700 capitalize">
-              {visitDraft.mealTime.replace('_', ' ')}
-            </span>
-          )}
+          {selectedVisitTags.map((tag) => {
+            const meta = getVisitTagMeta(tag);
+            return (
+              <span
+                key={tag}
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-700"
+              >
+                {meta.emoji ? <span>{meta.emoji}</span> : null}
+                <span className="capitalize">{meta.label}</span>
+              </span>
+            );
+          })}
           {visitDraft.restaurantPriceLevel && (
             <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-700">
               {visitDraft.restaurantPriceLevel}
@@ -650,14 +683,27 @@ const StepWrapUp: React.FC = () => {
       )}
 
       {/* Visit Details */}
-      {visitDraft.mealTime && visitDraft.mealTime !== 'unspecified' && (
+      {selectedVisitTags.length > 0 && (
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
           <h2 className="text-lg font-semibold text-slate-900 mb-4">Visit details</h2>
           <div>
             <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">
               Meal Time
             </p>
-            <p className="text-sm text-slate-900 capitalize">{visitDraft.mealTime}</p>
+            <div className="flex flex-wrap gap-2">
+              {selectedVisitTags.map((tag) => {
+                const meta = getVisitTagMeta(tag);
+                return (
+                  <span
+                    key={tag}
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-700"
+                  >
+                    {meta.emoji ? <span>{meta.emoji}</span> : null}
+                    <span className="capitalize">{meta.label}</span>
+                  </span>
+                );
+              })}
+            </div>
           </div>
         </div>
       )}

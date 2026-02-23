@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import UserJourneyMap from '../components/UserJourneyMap';
 import { getUserByUsername } from '../lib/firebase';
 import { getTierFromPoints } from '../badges/badgeTiers';
+import BrandedLoader from '../components/common/BrandedLoader';
 
 const UserFoodMapPage: React.FC = () => {
   const { username } = useParams<{ username: string }>();
@@ -38,14 +39,7 @@ const UserFoodMapPage: React.FC = () => {
   }, [username]);
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading map...</p>
-        </div>
-      </div>
-    );
+    return <BrandedLoader variant="map" />;
   }
 
   if (error || !userProfile) {

@@ -1603,6 +1603,7 @@ interface RestaurantMapProps {
   cityClusters?: CityRestaurantGroup[];
   searchActive?: boolean;
   searchPoints?: google.maps.LatLngLiteral[];
+  suppressLoading?: boolean;
 }
 
 // Fetch top dish from each restaurant from Firebase menuItems collection
@@ -1738,6 +1739,7 @@ const RestaurantMap: React.FC<RestaurantMapProps> = ({
   cityClusters,
   searchActive,
   searchPoints,
+  suppressLoading = false,
 }) => {
   const [topDishes, setTopDishes] = useState<Dish[]>([]);
   const [initialCenter, setInitialCenter] = useState(initialCenterProp || NYC_FALLBACK);
@@ -1759,7 +1761,7 @@ const RestaurantMap: React.FC<RestaurantMapProps> = ({
   const render = (status: Status) => {
     switch (status) {
       case Status.LOADING:
-        return <LoadingComponent />;
+        return suppressLoading ? null : <LoadingComponent />;
       case Status.FAILURE:
         return <ErrorComponent status={status} />;
       case Status.SUCCESS:

@@ -106,7 +106,7 @@ const normalizeServiceSpeed = (input?: any): any => {
 };
 
 const buildInitialVisitDraft = (): VisitDraft => ({
-  mealTime: undefined,
+  mealTimes: [],
   overallText: undefined,
   serviceSpeed: null,
   restaurantPriceLevel: null,
@@ -324,7 +324,7 @@ const Wizard: React.FC = () => {
         restaurantName: restaurant.name,
         restaurantAddress: (restaurant as any).address,
         restaurantPriceLevel: null,
-        mealTime: undefined,
+        mealTimes: [],
         overallText: undefined,
         serviceSpeed: null,
       });
@@ -617,7 +617,7 @@ const Wizard: React.FC = () => {
       restaurantName: selectedRestaurant.name,
       restaurantAddress: (selectedRestaurant as any).address,
       restaurantPriceLevel: prev.restaurantPriceLevel ?? null,
-      mealTime: undefined,
+      mealTimes: [],
       overallText: undefined,
       serviceSpeed: null,
     } : buildInitialVisitDraft());
@@ -674,9 +674,11 @@ const Wizard: React.FC = () => {
         const media = buildMediaBundleForDish(dish, mediaItems);
 
         // Build tags
-        const mealTimesToUse = visitDraft.mealTime && visitDraft.mealTime !== 'unspecified'
-          ? [visitDraft.mealTime as MealTimeTag]
-          : undefined;
+        const mealTimesToUse = Array.isArray(visitDraft.mealTimes) && visitDraft.mealTimes.length > 0
+          ? visitDraft.mealTimes
+          : visitDraft.mealTime && visitDraft.mealTime !== 'unspecified'
+            ? [visitDraft.mealTime as MealTimeTag]
+            : undefined;
         const explicitTags = buildExplicitTags(dish.explicit);
         const derivedTags = buildDerivedTags(dish.sentiment);
         const mealTimeTags = buildMealTimeTags(mealTimesToUse);

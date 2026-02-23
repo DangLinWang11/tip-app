@@ -4,6 +4,7 @@ import { ArrowLeftIcon, Gift, Star, Camera, MessageCircle, MapPin, Trophy, Clock
 import BottomNavigation from '../components/BottomNavigation';
 import { fetchUserReviews, FirebaseReview } from '../services/reviewService';
 import { getUserProfile, getCurrentUser, updateUserStats } from '../lib/firebase';
+import BrandedLoader from '../components/common/BrandedLoader';
 
 interface PointsActivity {
  id: string;
@@ -158,14 +159,7 @@ const Rewards: React.FC = () => {
 
  // Loading state
  if (loading) {
-   return (
-     <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-       <div className="text-center">
-         <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-         <p className="text-gray-600">Loading your rewards...</p>
-       </div>
-     </div>
-   );
+   return <BrandedLoader variant="default" />;
  }
 
  // Error state

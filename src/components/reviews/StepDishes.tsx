@@ -498,6 +498,46 @@ const StepDishes: React.FC = () => {
             {/* Expanded Content */}
             {isExpanded && (
               <div className="border-t border-slate-200 p-4 space-y-4">
+                {/* Media Attachment */}
+                {mediaItems.length > 0 && (
+                  <div className="mt-1" data-tour={index === 0 ? 'create-media-attach' : undefined}>
+                    <label className="block text-xs font-medium text-slate-600 mb-2">
+                      Choose a photo for this dish
+                    </label>
+                    <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+                      {mediaItems.map((media) => {
+                        const src = media.downloadURL || media.previewUrl || media.thumbnailURL;
+                        if (!src && media.kind !== 'video') {
+                          return null;
+                        }
+                        const isAttached = dish.mediaIds.includes(media.id);
+                        return (
+                          <button
+                            key={media.id}
+                            type="button"
+                            onClick={() => toggleMediaForDish(dish.id, media.id)}
+                            className={`flex-shrink-0 w-24 h-24 rounded-xl overflow-hidden border-2 transition ${
+                              isAttached ? 'border-emerald-500' : 'border-slate-200 hover:border-slate-300'
+                            }`}
+                          >
+                            {media.kind === 'photo' && src ? (
+                              <img
+                                src={src}
+                                alt="Dish media"
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-[11px] text-slate-600 bg-slate-100">
+                                Video
+                              </div>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
                 {/* Dish Name */}
                 <div>
                   <label className="block text-xs font-medium text-slate-600 mb-1">Dish Name *</label>
@@ -655,46 +695,6 @@ const StepDishes: React.FC = () => {
                     className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-red-400 focus:outline-none focus:ring-1 focus:ring-red-100"
                   />
                 </div>
-
-                {/* Media Attachment */}
-                {mediaItems.length > 0 && (
-                  <div className="mt-4" data-tour={index === 0 ? 'create-media-attach' : undefined}>
-                    <label className="block text-xs font-medium text-slate-600 mb-2">
-                      Choose a photo for this dish
-                    </label>
-                    <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
-                      {mediaItems.map((media) => {
-                        const src = media.downloadURL || media.previewUrl || media.thumbnailURL;
-                        if (!src && media.kind !== 'video') {
-                          return null;
-                        }
-                        const isAttached = dish.mediaIds.includes(media.id);
-                        return (
-                          <button
-                            key={media.id}
-                            type="button"
-                            onClick={() => toggleMediaForDish(dish.id, media.id)}
-                            className={`flex-shrink-0 w-24 h-24 rounded-xl overflow-hidden border-2 transition ${
-                              isAttached ? 'border-emerald-500' : 'border-slate-200 hover:border-slate-300'
-                            }`}
-                          >
-                            {media.kind === 'photo' && src ? (
-                              <img
-                                src={src}
-                                alt="Dish media"
-                                className="w-full h-full object-cover"
-                              />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center text-[11px] text-slate-600 bg-slate-100">
-                                Video
-                              </div>
-                            )}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
 
                 {/* Taste Attributes */}
                 <div className="space-y-3 border-t border-slate-100 pt-4">

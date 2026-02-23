@@ -29,7 +29,7 @@ import FollowersFollowing from './pages/FollowersFollowing';
 import UserRestaurants from './pages/UserRestaurants';
 import { LocationProvider } from './contexts/LocationContext';
 import { useFeature } from './utils/features';
-import { getRandomLoadingMessage } from './utils/loadingMessages';
+import BrandedLoader from './components/common/BrandedLoader';
 import { useReviewStore } from './stores/reviewStore';
 import { runBackfillSoftDelete } from './dev/backfillSoftDelete';
 import { runBackfillCuisines } from './dev/backfillCuisines';
@@ -57,23 +57,6 @@ const ComingSoon: React.FC<{ feature: string }> = ({ feature }) => (
     </div>
   </div>
 );
-
-// Loading screen component
-const LoadingScreen: React.FC<{ label?: string }> = ({ label = 'Loading...' }) => {
-  const ts = new Date().toISOString();
-  console.log('[NAV][LoadingScreen][render]', { ts, label });
-  if (performance && performance.mark) {
-    performance.mark(`LoadingScreen-render-${label}-${ts}`);
-  }
-  return (
-    <div className="min-h-screen bg-white flex items-center justify-center">
-      <div className="text-center">
-        <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-        <p className="text-gray-600">{label}</p>
-      </div>
-    </div>
-  );
-};
 
 // Top-level route shell that never unmounts and provides a stable background.
 const RouteShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -120,6 +103,18 @@ const RouteLogger: React.FC = () => {
     }
   }, [location.pathname, location.search]);
   return null;
+};
+
+const DelayedSuspenseFallback: React.FC<{ delayMs?: number }> = ({ delayMs = 200 }) => {
+  const [show, setShow] = useState(false);
+
+  useEffect(() => {
+    const id = window.setTimeout(() => setShow(true), delayMs);
+    return () => window.clearTimeout(id);
+  }, [delayMs]);
+
+  if (!show) return null;
+  return <BrandedLoader variant="default" />;
 };
 
 export function App() {
@@ -196,7 +191,13 @@ export function App() {
   
   // Show loading screen while checking auth state
   if (authState.isLoading) {
-    return <LoadingScreen label={getRandomLoadingMessage()} />;
+    return (
+      <I18nProvider>
+        <LocationProvider>
+          <BrandedLoader variant="auth" />
+        </LocationProvider>
+      </I18nProvider>
+    );
   }
   
   // Show onboarding if not authenticated or needs username
@@ -229,19 +230,15 @@ export function App() {
         <RedirectAfterLogin />
         <RouteLogger />
         <RouteShell>
-          {/* Suspense with minimal loading indicator */}
-          <React.Suspense fallback={
-            <div className="min-h-screen bg-white flex items-center justify-center">
-              <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-            </div>
-          }>
+          {/* Suspense with delayed branded fallback to prevent flicker */}
+          <React.Suspense fallback={<DelayedSuspenseFallback />}>
             <Routes>
               <Route path="/" element={<Layout />}>
                 {/* STRICT AUTH GUARD: Only mount Home when fully authenticated */}
                 <Route index element={
                   !authState.isLoading && authState.isAuthenticated ?
                     <Home /> :
-                    <LoadingScreen label="Loading feed..." />
+                    <BrandedLoader variant="default" />
                 } />
                 <Route path="discover" element={<MyFoodMap />} />
                 <Route path="discover/list" element={<Navigate to="/discover" replace />} />

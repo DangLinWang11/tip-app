@@ -13,6 +13,7 @@ import { useFollowStore } from '../stores/followStore';
 import { getTierFromPoints } from '../badges/badgeTiers';
 import FloatingUserStatsBox from '../components/FloatingUserStatsBox';
 import { useI18n } from '../lib/i18n/useI18n';
+import BrandedLoader from '../components/common/BrandedLoader';
 
 const Home: React.FC = () => {
   const mountStart = performance.now?.() ?? Date.now();
@@ -834,14 +835,7 @@ const Home: React.FC = () => {
       feedPostsLength: feedPosts.length,
       isFirstLoad: isFirstLoad.current
     });
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">{t('home.loadingFeed')}</p>
-        </div>
-      </div>
-    );
+    return <BrandedLoader variant="default" />;
   }
 
   // If we reach here, ALWAYS render the full UI (even if loading)

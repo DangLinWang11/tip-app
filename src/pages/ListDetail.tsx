@@ -12,6 +12,7 @@ import {
 } from '../services/savedListsService';
 import EditListNameModal from '../components/EditListNameModal';
 import { useI18n } from '../lib/i18n/useI18n';
+import BrandedLoader from '../components/common/BrandedLoader';
 
 // Interfaces for restaurant and dish data
 interface Restaurant {
@@ -342,30 +343,7 @@ const ListDetail: React.FC = () => {
 
   // Loading state
   if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        {/* Header */}
-        <div className="bg-white px-4 py-6 shadow-sm">
-          <div className="flex items-center">
-            <button 
-              onClick={() => navigate(-1)}
-              className="mr-4 p-2 hover:bg-gray-100 rounded-full transition-colors"
-            >
-              <ArrowLeftIcon size={20} className="text-gray-600" />
-            </button>
-            <h1 className="text-xl font-bold text-black">{t('lists.detail.loading.title')}</h1>
-          </div>
-        </div>
-
-        {/* Loading State */}
-        <div className="flex items-center justify-center py-12">
-          <div className="text-center">
-            <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-            <p className="text-gray-600">{t('lists.detail.loading.message')}</p>
-          </div>
-        </div>
-      </div>
-    );
+    return <BrandedLoader variant="list" />;
   }
 
   // Error state

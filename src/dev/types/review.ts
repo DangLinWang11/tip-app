@@ -1,6 +1,6 @@
 export type DishCategory = 'appetizer' | 'entree' | 'handheld' | 'side' | 'dessert' | 'drink';
 
-export type MealTimeTag = 'breakfast' | 'brunch' | 'lunch' | 'dinner' | 'late_night' | 'dessert' | 'date_night' | 'snack';
+export type MealTimeTag = 'breakfast' | 'brunch' | 'lunch' | 'dinner' | 'late_night' | 'dessert' | 'date_night' | 'snack' | 'birthday' | 'celebration';
 
 export type ServiceSpeed = 'fast' | 'normal' | 'slow';
 
@@ -112,6 +112,7 @@ export interface VisitDraft {
   restaurantAddress?: string;
   restaurantPriceLevel?: '$' | '$$' | '$$$' | '$$$$' | null;
   mealTime?: MealTimeTag | 'unspecified';
+  mealTimes?: MealTimeTag[];
   overallText?: string; // Visit-level caption that applies to every dish review
   serviceSpeed?: ServiceSpeed | null;
   visitId?: string;

@@ -6,6 +6,7 @@ import { uploadPhoto } from '../services/reviewService';
 import { getInitials } from '../utils/avatarUtils';
 import { COUNTRIES, CountryData, getCountryByCode } from '../data/countries';
 import { useI18n } from '../lib/i18n/useI18n';
+import BrandedLoader from '../components/common/BrandedLoader';
 
 interface EditProfileForm {
   username: string;
@@ -367,14 +368,7 @@ const EditProfile: React.FC = () => {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">{t('profile.edit.loading')}</p>
-        </div>
-      </div>
-    );
+    return <BrandedLoader variant="default" />;
   }
 
   return (

@@ -6,6 +6,7 @@ import { getUserProfile, getCurrentUser, getUserByUsername } from '../lib/fireba
 import LocationPinIcon from '../components/icons/LocationPinIcon';
 import DishIcon from '../components/icons/DishIcon';
 import { useI18n } from '../lib/i18n/useI18n';
+import BrandedLoader from '../components/common/BrandedLoader';
 
 const FoodMap: React.FC = () => {
   const navigate = useNavigate();
@@ -259,14 +260,7 @@ const FoodMap: React.FC = () => {
 
   // Show loading state
   if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">{t('map.loading')}</p>
-        </div>
-      </div>
-    );
+    return <BrandedLoader variant="map" />;
   }
 
   // Check if user is authenticated

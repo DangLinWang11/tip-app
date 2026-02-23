@@ -14,17 +14,20 @@ import { saveGooglePlaceToFirestore, searchNearbyRestaurants, GoogleFallbackPlac
 import { MealTimeTag } from '../../dev/types/review';
 import { getQualityColor } from '../../utils/qualityScore';
 
-const MEAL_TIME_OPTIONS: Array<{ value: MealTimeTag; labelKey: string; emoji: string; fallback: string }> = [
+const MEAL_TIME_OPTIONS: Array<{ value: MealTimeTag; labelKey: string; emoji: string; fallback: string; label?: string }> = [
   { value: 'breakfast', labelKey: 'mealTime.breakfast', emoji: '\u{1F373}', fallback: 'Breakfast' },
   { value: 'brunch', labelKey: 'mealTime.brunch', emoji: '\u{1F942}', fallback: 'Brunch' },
   { value: 'lunch', labelKey: 'mealTime.lunch', emoji: '\u{1F96A}', fallback: 'Lunch' },
   { value: 'dinner', labelKey: 'mealTime.dinner', emoji: '\u{1F37D}\uFE0F', fallback: 'Dinner' },
   { value: 'late_night', labelKey: 'mealTime.lateNight', emoji: '\u{1F319}', fallback: 'Late Night' },
   { value: 'dessert', labelKey: 'mealTime.dessert', emoji: '\u{1F370}', fallback: 'Dessert' },
-  { value: 'date_night', labelKey: 'mealTime.dateNight', emoji: '\u2764\uFE0F', fallback: 'Date Night' }
+  { value: 'date_night', labelKey: 'mealTime.dateNight', emoji: '\u2764\uFE0F', fallback: 'Date Night', label: 'Date' },
+  { value: 'birthday', labelKey: 'mealTime.birthday', emoji: '\u{1F382}', fallback: 'Birthday' },
+  { value: 'celebration', labelKey: 'mealTime.celebration', emoji: '\u{1F389}', fallback: 'Celebration' },
 ];
 
 const PRICE_LEVELS: Array<'$' | '$$' | '$$$' | '$$$$'> = ['$', '$$', '$$$', '$$$$'];
+const MAX_MEAL_TIME_SELECTIONS = 3;
 
 const NEARBY_RADIUS_MILES = 5;
 const MAX_NEARBY_RESULTS = 10;
@@ -653,11 +656,34 @@ const StepVisit: React.FC = () => {
     goNext();
   };
 
+  const selectedMealTimes = useMemo(() => {
+    if (Array.isArray(visitDraft.mealTimes) && visitDraft.mealTimes.length > 0) {
+      return visitDraft.mealTimes;
+    }
+    if (visitDraft.mealTime && visitDraft.mealTime !== 'unspecified') {
+      return [visitDraft.mealTime as MealTimeTag];
+    }
+    return [];
+  }, [visitDraft.mealTimes, visitDraft.mealTime]);
+
   const toggleMealTime = (time: MealTimeTag) => {
-    setVisitDraft(prev => ({
-      ...prev,
-      mealTime: prev.mealTime === time ? undefined : time,
-    }));
+    setVisitDraft(prev => {
+      const current = Array.isArray(prev.mealTimes) && prev.mealTimes.length > 0
+        ? prev.mealTimes
+        : prev.mealTime && prev.mealTime !== 'unspecified'
+          ? [prev.mealTime as MealTimeTag]
+          : [];
+      const exists = current.includes(time);
+      if (!exists && current.length >= MAX_MEAL_TIME_SELECTIONS) {
+        return prev;
+      }
+      const next = exists ? current.filter(item => item !== time) : [...current, time];
+      return {
+        ...prev,
+        mealTimes: next,
+        mealTime: undefined
+      };
+    });
   };
 
   return (
@@ -1034,21 +1060,24 @@ const StepVisit: React.FC = () => {
 
       {/* Meal Time Selection */}
       {selectedRestaurant && (
-        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-md shadow-slate-200/60">
-          <div className="mb-4">
-            <h2 className="text-lg font-semibold text-slate-900">Why did you dine?</h2>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {MEAL_TIME_OPTIONS.map((option) => {
-              const active = visitDraft.mealTime === option.value;
+      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-md shadow-slate-200/60">
+        <div className="mb-4">
+          <h2 className="text-lg font-semibold text-slate-900">Why did you dine?</h2>
+          <p className="text-sm text-slate-500">Select up to {MAX_MEAL_TIME_SELECTIONS}</p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {MEAL_TIME_OPTIONS.map((option) => {
+              const active = selectedMealTimes.includes(option.value);
               const label = t(option.labelKey);
-              const displayLabel = label && label !== option.labelKey ? label : option.fallback;
+              const displayLabel = option.label ?? (label && label !== option.labelKey ? label : option.fallback);
+              const isMaxed = selectedMealTimes.length >= MAX_MEAL_TIME_SELECTIONS && !active;
               return (
                 <button
                   key={option.value}
                   type="button"
                   onClick={() => toggleMealTime(option.value)}
-                  className={`flex items-center gap-1 rounded-2xl px-3 py-2 text-xs font-semibold transition ${
+                  disabled={isMaxed}
+                  className={`flex items-center gap-1 rounded-2xl px-3 py-2 text-xs font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed ${
                     active
                       ? 'bg-emerald-500 text-white shadow-md shadow-emerald-200/60'
                       : 'bg-slate-100 text-slate-600 hover:bg-emerald-50 hover:text-emerald-600'

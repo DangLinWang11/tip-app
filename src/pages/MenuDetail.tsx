@@ -9,6 +9,7 @@ import SaveToListModal from '../components/SaveToListModal';
 import RatingBadge from '../components/RatingBadge';
 import { getAvatarUrl } from '../utils/avatarUtils';
 import { getTranslatedMenuItemText } from '../utils/menuItemTranslations';
+import BrandedLoader from '../components/common/BrandedLoader';
 
 interface MenuItem {
   id: string;
@@ -467,15 +468,7 @@ const MenuDetail: React.FC = () => {
   }, []);
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-light-gray flex items-center justify-center pb-16">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-dark-gray">Loading dish details...</p>
-        </div>
-        <BottomNavigation />
-      </div>
-    );
+    return <BrandedLoader variant="dish" />;
   }
 
   if (!menuItem) {

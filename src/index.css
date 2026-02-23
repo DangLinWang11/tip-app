@@ -4,7 +4,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&family=Poppins:wght@300;400;500;600;700&display=swap');
 
 :root {
-  --primary-color: #EF2D2E;
+  --primary-color: #ff3131;
   --secondary-color: #029094;
   --accent-color: #FFC529;
   --background-color: #FFFFFF;
@@ -67,6 +67,34 @@ body,
 }
 .no-scrollbar::-webkit-scrollbar {
   display: none;            /* Chrome/Safari/Opera */
+}
+
+@keyframes tipPulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.03); }
+  100% { transform: scale(1); }
+}
+
+@keyframes tipGlow {
+  0% { opacity: 0.45; }
+  50% { opacity: 0.8; }
+  100% { opacity: 0.45; }
+}
+
+.tip-loader-pulse {
+  animation: tipPulse 1.6s ease-in-out infinite;
+  transform-origin: center;
+}
+
+.tip-loader-glow {
+  animation: tipGlow 1.6s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tip-loader-pulse,
+  .tip-loader-glow {
+    animation: none;
+  }
 }
 
 /* Prevent iOS Safari from zooming inputs inside the create wizard by ensuring 16px text on small screens */

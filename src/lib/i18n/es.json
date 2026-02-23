@@ -272,6 +272,34 @@
       "tryAgain": "Intentar de nuevo"
     }
   },
+  "loading": {
+    "default": [
+      "Preparando tu feed...",
+      "Cargando tu viaje...",
+      "Dejando todo listo..."
+    ],
+    "auth": [
+      "Preparando Tip...",
+      "Iniciando sesion...",
+      "Comenzando tu experiencia..."
+    ],
+    "map": [
+      "Trazando tu viaje...",
+      "Mapeando tus visitas..."
+    ],
+    "list": [
+      "Cargando tus listas...",
+      "Buscando favoritos..."
+    ],
+    "restaurant": [
+      "Cargando menu...",
+      "Buscando detalles del plato..."
+    ],
+    "dish": [
+      "Cargando plato...",
+      "Buscando detalles..."
+    ]
+  },
   "review": {
     "addMedia": "Añadir fotos o videos",
     "addRestaurant": "¿No lo encuentras? Añade el lugar",

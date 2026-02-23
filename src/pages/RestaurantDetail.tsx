@@ -13,6 +13,7 @@ import { useUserStore } from '../stores/userStore';
 import { getTopDishes } from '../utils/topDishes';
 import { useI18n } from '../lib/i18n/useI18n';
 import { getTranslatedMenuItemText } from '../utils/menuItemTranslations';
+import BrandedLoader from '../components/common/BrandedLoader';
 
 interface Restaurant {
   id: string;
@@ -681,14 +682,7 @@ const getCurrentDayHours = (hours: Record<string, string>) => {
   const closeHeroModal = () => setIsHeroModalOpen(false);
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-light-gray flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-dark-gray">Loading restaurant...</p>
-        </div>
-      </div>
-    );
+    return <BrandedLoader variant="restaurant" />;
   }
 
   if (!restaurant) {

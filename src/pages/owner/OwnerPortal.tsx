@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState, Suspense } from 'react';
 import { useLocation } from 'react-router-dom';
 import { getCurrentUser } from '../../lib/firebase';
+import BrandedLoader from '../../components/common/BrandedLoader';
 import { getOwnedRestaurants, fetchRestaurantKpis, submitOwnerClaim, getOrUpdateStatsCache } from '../../services/ownerPortalService';
 import RestaurantSwitcher from '../../components/owner/RestaurantSwitcher';
 import { KpiCards } from '../../components/owner/cards/KpiCards';
@@ -174,7 +175,7 @@ export default function OwnerPortal() {
   }
 
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+    return <BrandedLoader variant="default" />;
   }
 
   // Decide which surface to show

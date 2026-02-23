@@ -9,7 +9,6 @@ import { useI18n } from '../lib/i18n/useI18n';
 const MyFoodMap: React.FC = () => {
   const { t } = useI18n();
   const [userProfile, setUserProfile] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
   const [journeyStats, setJourneyStats] = useState<{ reviews: number; countries: number }>({ reviews: 0, countries: 0 });
 
   useEffect(() => {
@@ -43,8 +42,6 @@ const MyFoodMap: React.FC = () => {
         setJourneyStats({ reviews, countries });
       } catch (error) {
         console.error('Failed to load profile:', error);
-      } finally {
-        setLoading(false);
       }
     };
     loadProfile();
@@ -54,17 +51,6 @@ const MyFoodMap: React.FC = () => {
   const tierInfo = getTierFromPoints(userProfile?.stats?.pointsEarned ?? 0);
   const journeyReviews = journeyStats.reviews;
   const journeyCountries = journeyStats.countries;
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading your food map...</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="fixed inset-0 bg-white">

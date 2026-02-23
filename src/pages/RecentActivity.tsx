@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ArrowLeftIcon, UserIcon, ClockIcon } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { getFollowingActivity } from '../services/followService';
+import BrandedLoader from '../components/common/BrandedLoader';
 
 interface ActivityItem {
   id: string;
@@ -114,30 +115,7 @@ const RecentActivity: React.FC = () => {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        {/* Header */}
-        <div className="bg-white px-4 py-6 shadow-sm">
-          <div className="flex items-center">
-            <button 
-              onClick={() => navigate(-1)}
-              className="mr-4 p-2 hover:bg-gray-100 rounded-full transition-colors"
-            >
-              <ArrowLeftIcon size={20} className="text-gray-600" />
-            </button>
-            <h1 className="text-xl font-bold text-black">Recent Activity</h1>
-          </div>
-        </div>
-
-        {/* Loading State */}
-        <div className="flex items-center justify-center py-12">
-          <div className="text-center">
-            <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading recent activity...</p>
-          </div>
-        </div>
-      </div>
-    );
+    return <BrandedLoader variant="list" />;
   }
 
   return (

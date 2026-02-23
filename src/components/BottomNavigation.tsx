@@ -34,12 +34,12 @@ const BottomNavigation: React.FC = () => {
               handleHomeClick();
             }}
             className={({ isActive }) =>
-              `flex flex-col items-center justify-center gap-1 py-2 text-center ${isActive ? 'text-[#FF385C] font-medium' : 'text-gray-500'}`
+              `flex flex-col items-center justify-center gap-1 py-2 text-center ${isActive ? 'text-[#ff3131] font-medium' : 'text-gray-500'}`
             }
           >
             <span className="relative h-7 w-7 flex items-center justify-center">
               {homeRefreshing && location.pathname === '/' ? (
-                <RefreshCw className="h-6 w-6 animate-spin text-[#FF385C]" aria-hidden="true" />
+                <RefreshCw className="h-6 w-6 animate-spin text-[#ff3131]" aria-hidden="true" />
               ) : (
                 <HomeIcon className="h-7 w-7" aria-hidden="true" />
               )}
@@ -56,7 +56,7 @@ const BottomNavigation: React.FC = () => {
               window.scrollTo({ top: window.scrollY, behavior: 'instant' });
             }}
             className={({ isActive }) =>
-              `flex flex-col items-center justify-center gap-1 py-2 text-center ${isActive ? 'text-[#FF385C] font-medium' : 'text-gray-500'}`
+              `flex flex-col items-center justify-center gap-1 py-2 text-center ${isActive ? 'text-[#ff3131] font-medium' : 'text-gray-500'}`
             }
           >
             <MapIcon className="h-7 w-7" aria-hidden="true" />
@@ -72,7 +72,7 @@ const BottomNavigation: React.FC = () => {
               window.scrollTo({ top: window.scrollY, behavior: 'instant' });
             }}
             className={({ isActive }) =>
-              `flex flex-col items-center justify-center gap-1 py-2 text-center ${isActive ? 'text-[#FF385C] font-medium' : 'text-gray-500'}`
+              `flex flex-col items-center justify-center gap-1 py-2 text-center ${isActive ? 'text-[#ff3131] font-medium' : 'text-gray-500'}`
             }
           >
             <PlusSquareIcon className="h-7 w-7" aria-hidden="true" />
@@ -88,7 +88,7 @@ const BottomNavigation: React.FC = () => {
               window.scrollTo({ top: window.scrollY, behavior: 'instant' });
             }}
             className={({ isActive }) =>
-              `flex flex-col items-center justify-center gap-1 py-2 text-center ${isActive ? 'text-[#FF385C] font-medium' : 'text-gray-500'}`
+              `flex flex-col items-center justify-center gap-1 py-2 text-center ${isActive ? 'text-[#ff3131] font-medium' : 'text-gray-500'}`
             }
           >
             <UserIcon className="h-7 w-7" aria-hidden="true" />
