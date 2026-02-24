@@ -69,7 +69,7 @@ const BrandedLoader: React.FC<BrandedLoaderProps> = ({
   const messageIndexRef = useRef<number | null>(null);
   const isAuth = variant === 'auth';
   const logoWidth = isAuth ? 168 : 130;
-  const ringSize = Math.round(logoWidth * 1.35);
+  const ringSize = Math.round(logoWidth * 1.25);
   const [showMessage, setShowMessage] = useState(variant !== 'auth');
 
   useEffect(() => {
@@ -139,7 +139,7 @@ const BrandedLoader: React.FC<BrandedLoaderProps> = ({
         </div>
         {showMessage && (
           <p
-            className="mt-4 text-sm font-semibold"
+            className={[isAuth ? 'mt-6' : 'mt-4', 'text-sm font-semibold'].join(' ')}
             style={{ color: TEXT_COLOR_BY_VARIANT[variant] }}
           >
             {message}
