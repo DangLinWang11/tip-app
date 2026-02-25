@@ -106,10 +106,23 @@ body,
   transform-origin: center;
 }
 
+.map-loader-ring {
+  position: absolute;
+  width: 86px;
+  height: 86px;
+  border-radius: 9999px;
+  border: 2.5px solid rgba(255, 49, 49, 0.35);
+  border-top-color: rgba(255, 49, 49, 0.9);
+  box-sizing: border-box;
+  animation: ringSpin 1.2s linear infinite;
+  transform-origin: center;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .tip-loader-pulse,
   .tip-loader-glow,
-  .auth-ring {
+  .auth-ring,
+  .map-loader-ring {
     animation: none;
   }
 }

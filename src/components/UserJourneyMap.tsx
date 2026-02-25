@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Globe2, X, ChevronDown } from 'lucide-react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { Globe2, X, ChevronDown, Map } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import RestaurantMap from './RestaurantMap';
 import UserRestaurantModal from './UserRestaurantModal';
@@ -56,7 +56,7 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({
   fullBleed = false,
   suppressLoading = false
 }) => {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const isOwnMap = !userId;
 
   // Self-load current user's profile for own map to fill in missing avatar/tier
@@ -96,6 +96,29 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({
   const prevMapZoomRef = React.useRef<number>(2);
   const [resetTrigger, setResetTrigger] = useState(0);
   const [activeCountryCode, setActiveCountryCode] = useState<string | null>(null);
+  const messageIndexRef = useRef<number | null>(null);
+  const loadingMessages = useMemo(() => {
+    if (language === 'es') {
+      return [
+        'Cargando tu mapa de comida...',
+        'Tu viaje te espera...',
+        'Trazando tus visitas...'
+      ];
+    }
+    return [
+      'Loading your food map...',
+      'Your journey awaits...',
+      'Mapping your visits...'
+    ];
+  }, [language]);
+
+  const loadingMessage = useMemo(() => {
+    if (!loadingMessages.length) return 'Loading your food map...';
+    if (messageIndexRef.current === null || messageIndexRef.current >= loadingMessages.length) {
+      messageIndexRef.current = Math.floor(Math.random() * loadingMessages.length);
+    }
+    return loadingMessages[messageIndexRef.current];
+  }, [loadingMessages]);
 
   const handleResetView = () => {
     setActiveCountryCode(null);
@@ -363,11 +386,13 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({
       return null;
     }
     return (
-      <div className={`${className} flex items-center justify-center bg-gray-100 rounded-lg`}>
+      <div className={`${className} flex items-center justify-center bg-white ${fullBleed ? '' : 'rounded-lg'}`.trim()}>
         <div className="text-center p-8">
-          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600 font-medium">Loading your food journey...</p>
-          <p className="text-gray-500 text-sm">Mapping your restaurant visits</p>
+          <div className="relative flex items-center justify-center">
+            <div className="map-loader-ring" aria-hidden="true" />
+            <Map className="w-12 h-12 text-[#ff3131]" aria-hidden="true" />
+          </div>
+          <p className="mt-6 text-sm font-semibold text-gray-600">{loadingMessage}</p>
         </div>
       </div>
     );
