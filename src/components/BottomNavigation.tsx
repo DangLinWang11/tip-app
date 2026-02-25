@@ -31,7 +31,7 @@ const BottomNavigation: React.FC = () => {
         aria-hidden="true"
       />
       <ul className="grid grid-cols-4 relative pb-[8px]">
-        <li className="min-w-0">
+        <li className="min-w-0 w-full">
           <NavLink
             to="/"
             onClick={(e) => {
@@ -39,7 +39,7 @@ const BottomNavigation: React.FC = () => {
               handleHomeClick();
             }}
             className={({ isActive }) =>
-              `flex flex-col items-center justify-center gap-1 py-2 text-center ${isActive ? 'text-[#ff3131] font-medium' : 'text-gray-500'}`
+              `flex w-full flex-col items-center justify-center gap-1 py-2 text-center ${isActive ? 'text-[#ff3131] font-medium' : 'text-gray-500'}`
             }
           >
             <span className="relative h-7 w-7 flex items-center justify-center">
@@ -49,11 +49,11 @@ const BottomNavigation: React.FC = () => {
                 <HomeIcon className="h-7 w-7" aria-hidden="true" />
               )}
             </span>
-            <span className="text-[11px] font-medium leading-none">{t('nav.home')}</span>
+            <span className="text-[11px] font-medium leading-none whitespace-nowrap">{t('nav.home')}</span>
           </NavLink>
         </li>
 
-        <li className="min-w-0">
+        <li className="min-w-0 w-full">
           <NavLink
             to="/discover"
             onClick={(e) => {
@@ -61,15 +61,15 @@ const BottomNavigation: React.FC = () => {
               window.scrollTo({ top: window.scrollY, behavior: 'instant' });
             }}
             className={({ isActive }) =>
-              `flex flex-col items-center justify-center gap-1 py-2 text-center ${isActive ? 'text-[#ff3131] font-medium' : 'text-gray-500'}`
+              `flex w-full flex-col items-center justify-center gap-1 py-2 text-center ${isActive ? 'text-[#ff3131] font-medium' : 'text-gray-500'}`
             }
           >
             <MapIcon className="h-7 w-7" aria-hidden="true" />
-            <span className="text-[11px] font-medium leading-none">{t('nav.foodMap')}</span>
+            <span className="text-[11px] font-medium leading-none whitespace-nowrap">{t('nav.foodMap')}</span>
           </NavLink>
         </li>
 
-        <li className="min-w-0">
+        <li className="min-w-0 w-full">
           <NavLink
             to="/create"
             onClick={(e) => {
@@ -77,15 +77,15 @@ const BottomNavigation: React.FC = () => {
               window.scrollTo({ top: window.scrollY, behavior: 'instant' });
             }}
             className={({ isActive }) =>
-              `flex flex-col items-center justify-center gap-1 py-2 text-center ${isActive ? 'text-[#ff3131] font-medium' : 'text-gray-500'}`
+              `flex w-full flex-col items-center justify-center gap-1 py-2 text-center ${isActive ? 'text-[#ff3131] font-medium' : 'text-gray-500'}`
             }
           >
             <PlusSquareIcon className="h-7 w-7" aria-hidden="true" />
-            <span className="text-[11px] font-medium leading-none">{t('nav.create')}</span>
+            <span className="text-[11px] font-medium leading-none whitespace-nowrap">{t('nav.create')}</span>
           </NavLink>
         </li>
 
-        <li className="min-w-0">
+        <li className="min-w-0 w-full">
           <NavLink
             to="/profile"
             onClick={(e) => {
@@ -93,11 +93,11 @@ const BottomNavigation: React.FC = () => {
               window.scrollTo({ top: window.scrollY, behavior: 'instant' });
             }}
             className={({ isActive }) =>
-              `flex flex-col items-center justify-center gap-1 py-2 text-center ${isActive ? 'text-[#ff3131] font-medium' : 'text-gray-500'}`
+              `flex w-full flex-col items-center justify-center gap-1 py-2 text-center ${isActive ? 'text-[#ff3131] font-medium' : 'text-gray-500'}`
             }
           >
             <UserIcon className="h-7 w-7" aria-hidden="true" />
-            <span className="text-[11px] font-medium leading-none">{t('nav.profile')}</span>
+            <span className="text-[11px] font-medium leading-none whitespace-nowrap">{t('nav.profile')}</span>
           </NavLink>
         </li>
       </ul>
