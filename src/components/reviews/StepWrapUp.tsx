@@ -177,6 +177,17 @@ const StepWrapUp: React.FC = () => {
         }
       : undefined;
 
+    if (typeof sessionStorage !== 'undefined') {
+      const prefetchUrls = mediaItems
+        .map((item) => item.downloadURL || item.previewUrl || item.thumbnailURL)
+        .filter((url): url is string => typeof url === 'string' && url.trim().length > 0)
+        .slice(0, 6);
+      if (prefetchUrls.length > 0) {
+        sessionStorage.setItem('tip:home-prefetch-media', JSON.stringify(prefetchUrls));
+      }
+      sessionStorage.setItem('tip:home-refresh', '1');
+    }
+
     resetDraft(false); // Clear all draft data
     navigate('/', {
       replace: true,

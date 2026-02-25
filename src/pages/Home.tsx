@@ -502,6 +502,26 @@ const Home: React.FC = () => {
     }
   }, [location.pathname, refreshFromHomeTap]);
 
+  useEffect(() => {
+    const raw = sessionStorage.getItem('tip:home-prefetch-media');
+    if (!raw) return;
+    sessionStorage.removeItem('tip:home-prefetch-media');
+    try {
+      const urls = JSON.parse(raw);
+      if (Array.isArray(urls)) {
+        urls
+          .filter((url) => typeof url === 'string' && url.trim().length > 0)
+          .slice(0, 6)
+          .forEach((url) => {
+            const img = new Image();
+            img.src = url;
+          });
+      }
+    } catch (error) {
+      console.warn('[Home] Failed to prefetch media', error);
+    }
+  }, []);
+
   // Real-time home feed listener (public, not deleted). Keeps feed fresh and ordered.
   useEffect(() => {
     console.log('[Home] Setting up real-time feed listener');
