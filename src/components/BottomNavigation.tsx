@@ -24,7 +24,7 @@ const BottomNavigation: React.FC = () => {
   };
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 bg-white border-t border-gray-200 shadow-[0_-1px_3px_rgba(0,0,0,0.1)] z-50 pb-[max(env(safe-area-inset-bottom),16px)]">
+    <nav className="fixed inset-x-0 bottom-0 bg-white border-t border-gray-200 shadow-[0_-1px_3px_rgba(0,0,0,0.1)] z-50 pb-[max(calc(env(safe-area-inset-bottom)-48px),16px)]">
       <ul className="grid grid-cols-4">
         <li className="min-w-0">
           <NavLink
