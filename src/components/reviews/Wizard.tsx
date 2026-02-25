@@ -734,15 +734,6 @@ const Wizard: React.FC = () => {
       clearCache();
       console.log('✅ Cleared review cache - new reviews will be fetched on next page load');
 
-      // Reset ALL state (not just UI state)
-      setCurrentStep(0);
-      setActiveDishIndex(0);
-      setExpandedDishIds([]);
-      setVisitDraft(buildInitialVisitDraft());
-      setDishDrafts([buildInitialDishDraft()]);
-      setMediaItems([]);
-      setSelectedRestaurant(null);
-
       // Set flag to prevent draft restoration
       submissionCompleteRef.current = true;
 
@@ -822,6 +813,15 @@ const Wizard: React.FC = () => {
   })), [stepOrder, t, language]);
 
   const StepComponent = STEP_COMPONENTS[steps[currentStep].key];
+
+  useEffect(() => {
+    if (currentStep !== 2 || typeof window === 'undefined') {
+      return;
+    }
+    requestAnimationFrame(() => {
+      window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+    });
+  }, [currentStep]);
 
   if (!authChecked) {
     return (

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 import { useI18n } from '../../lib/i18n/useI18n';
@@ -74,7 +74,17 @@ const StepWrapUp: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [selectedBusinessTags, setSelectedBusinessTags] = useState<string[]>(visitDraft.businessTags || []);
   const [selectedBusinessLowlights, setSelectedBusinessLowlights] = useState<string[]>(visitDraft.businessLowlights || []);
-  const [countdown, setCountdown] = useState(5);
+  const dishNames = useMemo(
+    () => dishDrafts.map(dish => dish.dishName.trim()).filter(Boolean),
+    [dishDrafts]
+  );
+  const summaryNames = dishNames.slice(0, 3);
+  const extraDishCount = Math.max(dishNames.length - summaryNames.length, 0);
+  const summaryNote = useMemo(() => {
+    const note = (visitDraft.overallText || '').trim();
+    if (!note) return '';
+    return note.length > 140 ? `${note.slice(0, 140).trim()}...` : note;
+  }, [visitDraft.overallText]);
   const selectedVisitTags = useMemo(() => {
     if (Array.isArray(visitDraft.mealTimes) && visitDraft.mealTimes.length > 0) {
       return visitDraft.mealTimes;
@@ -156,11 +166,6 @@ const StepWrapUp: React.FC = () => {
     }
   };
 
-  const handlePostAnother = () => {
-    resetDraft(true); // Keep restaurant selected
-    navigate('/create');
-  };
-
   const handleGoHome = () => {
     // Pass restaurant location to Home for map focus + pin drop animation
     const focusRestaurant = selectedRestaurant?.coordinates
@@ -179,24 +184,6 @@ const StepWrapUp: React.FC = () => {
     });
   };
 
-  // Auto-redirect countdown effect
-  useEffect(() => {
-    if (!successIds) return;
-
-    const timer = setInterval(() => {
-      setCountdown(prev => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          handleGoHome();
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [successIds]);
-
   if (successIds) {
     return (
       <div className="space-y-6">
@@ -207,36 +194,29 @@ const StepWrapUp: React.FC = () => {
         <div className="rounded-3xl border border-emerald-200 bg-emerald-50 p-8 text-center shadow-md">
           <div className="text-4xl mb-4">✨</div>
           <h2 className="text-2xl font-semibold text-emerald-900 mb-2">
-            Visit posted!
+            Review posted!
           </h2>
           <p className="text-emerald-700 mb-1">
-            {successIds.length} dish review{successIds.length !== 1 ? 's' : ''} from your visit
+            {selectedRestaurant?.name || 'Your visit'} - {successIds.length} dish review{successIds.length !== 1 ? 's' : ''}
           </p>
-          <p className="text-sm text-emerald-600 mb-3">
-            +XP awarded. Reward points pending verification.
-          </p>
-          <p className="text-xs text-emerald-500 mt-4">
-            Redirecting to home in {countdown}s...
-          </p>
+          {summaryNames.length > 0 && (
+            <p className="text-sm text-emerald-700">
+              {summaryNames.join(', ')}{extraDishCount ? ` +${extraDishCount} more` : ''}
+            </p>
+          )}
+          {summaryNote && (
+            <p className="text-sm text-emerald-700 mt-3 italic">"{summaryNote}"</p>
+          )}
         </div>
 
         {/* Navigation */}
-        <div className="flex gap-3">
-          <button
-            type="button"
-            onClick={handlePostAnother}
-            className="flex-1 rounded-2xl border border-red-500 py-3 text-center text-sm font-semibold text-red-500 transition hover:bg-red-50"
-          >
-            Post another from {selectedRestaurant?.name || 'this restaurant'}
-          </button>
-          <button
-            type="button"
-            onClick={handleGoHome}
-            className="flex-1 rounded-2xl bg-red-500 py-3 text-center text-sm font-semibold text-white transition hover:bg-red-600"
-          >
-            Home
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={handleGoHome}
+          className="w-full rounded-2xl bg-red-500 py-3 text-center text-sm font-semibold text-white transition hover:bg-red-600"
+        >
+          Home
+        </button>
       </div>
     );
   }
@@ -396,7 +376,7 @@ const StepWrapUp: React.FC = () => {
           <div className="space-y-4">
             {/* Ready on time */}
             <div>
-              <p className="text-sm font-semibold text-slate-800 mb-2">Ready on time?</p>
+              <p className="text-sm font-semibold text-slate-800 mb-2">Ready on time-</p>
               <div className="flex gap-2">
                 {(['poor', 'ok', 'great'] as const).map((score) => (
                   <button
@@ -419,7 +399,7 @@ const StepWrapUp: React.FC = () => {
 
             {/* Order accurate */}
             <div>
-              <p className="text-sm font-semibold text-slate-800 mb-2">Order accurate?</p>
+              <p className="text-sm font-semibold text-slate-800 mb-2">Order accurate-</p>
               <div className="flex gap-2">
                 {(['poor', 'ok', 'great'] as const).map((score) => (
                   <button
@@ -442,7 +422,7 @@ const StepWrapUp: React.FC = () => {
 
             {/* Packaging quality */}
             <div>
-              <p className="text-sm font-semibold text-slate-800 mb-2">Packaging quality?</p>
+              <p className="text-sm font-semibold text-slate-800 mb-2">Packaging quality-</p>
               <div className="flex gap-2">
                 {(['poor', 'ok', 'great'] as const).map((score) => (
                   <button
@@ -465,7 +445,7 @@ const StepWrapUp: React.FC = () => {
 
             {/* Food temperature */}
             <div>
-              <p className="text-sm font-semibold text-slate-800 mb-2">Food temperature on arrival?</p>
+              <p className="text-sm font-semibold text-slate-800 mb-2">Food temperature on arrival-</p>
               <div className="flex gap-2">
                 {(['poor', 'ok', 'great'] as const).map((score) => (
                   <button
@@ -499,7 +479,7 @@ const StepWrapUp: React.FC = () => {
           <div className="space-y-3">
             {/* Wait time */}
             <div>
-              <p className="text-sm font-semibold text-slate-800 mb-2">How was the wait time?</p>
+              <p className="text-sm font-semibold text-slate-800 mb-2">How was the wait time-</p>
               <div className="flex gap-1.5">
                 {[
                   { value: 'too_long' as const, label: '🐌 Too Long' },
@@ -524,7 +504,7 @@ const StepWrapUp: React.FC = () => {
 
             {/* Staff friendliness */}
             <div>
-              <p className="text-sm font-semibold text-slate-800 mb-2">Staff friendliness?</p>
+              <p className="text-sm font-semibold text-slate-800 mb-2">Staff friendliness-</p>
               <div className="flex gap-1.5">
                 {[
                   { value: 'low' as const, label: '😕 Low' },
@@ -549,7 +529,7 @@ const StepWrapUp: React.FC = () => {
 
             {/* Noise level */}
             <div>
-              <p className="text-sm font-semibold text-slate-800 mb-2">Noise level?</p>
+              <p className="text-sm font-semibold text-slate-800 mb-2">Noise level-</p>
               <div className="flex gap-1.5">
                 {[
                   { value: 'too_loud' as const, label: '📢 Too Loud' },
@@ -577,9 +557,9 @@ const StepWrapUp: React.FC = () => {
 
       {/* Business Highlight Tags & Owner Message */}
       <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 space-y-6">
-        {/* What stood out? */}
+        {/* What stood out- */}
         <div>
-          <h2 className="text-lg font-semibold text-slate-900 mb-2">What stood out?</h2>
+          <h2 className="text-lg font-semibold text-slate-900 mb-2">What stood out-</h2>
           <p className="text-xs text-slate-500 mb-3">Select up to {MAX_BUSINESS_TAGS} highlights</p>
           <div className="flex flex-wrap gap-1.5">
             {BUSINESS_TAGS.map(tag => {
@@ -606,9 +586,9 @@ const StepWrapUp: React.FC = () => {
           </div>
         </div>
 
-        {/* What could be better? (Lowlights) */}
+        {/* What could be better- (Lowlights) */}
         <div>
-          <h2 className="text-lg font-semibold text-slate-900 mb-2">Any lowlights?</h2>
+          <h2 className="text-lg font-semibold text-slate-900 mb-2">Any lowlights-</h2>
           <p className="text-xs text-slate-500 mb-3">Select up to {MAX_BUSINESS_LOWLIGHTS} lowlights (optional)</p>
           <div className="flex flex-wrap gap-1.5">
             {BUSINESS_LOWLIGHTS.map(tag => {
