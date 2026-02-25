@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { Globe2, X, ChevronDown, Map } from 'lucide-react';
+import { Globe2, X, ChevronDown, Map as MapIcon } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import RestaurantMap from './RestaurantMap';
 import UserRestaurantModal from './UserRestaurantModal';
@@ -390,7 +390,7 @@ const UserJourneyMap: React.FC<UserJourneyMapProps> = ({
         <div className="text-center p-8">
           <div className="relative flex items-center justify-center">
             <div className="map-loader-ring" aria-hidden="true" />
-            <Map className="w-12 h-12 text-[#ff3131]" aria-hidden="true" />
+            <MapIcon className="w-12 h-12 text-[#ff3131]" aria-hidden="true" />
           </div>
           <p className="mt-6 text-sm font-semibold text-gray-600">{loadingMessage}</p>
         </div>

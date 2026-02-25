@@ -139,7 +139,7 @@ const BrandedLoader: React.FC<BrandedLoaderProps> = ({
         </div>
         {showMessage && (
           <p
-            className={[isAuth ? 'mt-6' : 'mt-4', 'text-sm font-semibold'].join(' ')}
+            className={[isAuth ? 'mt-8' : 'mt-4', 'text-sm font-semibold'].join(' ')}
             style={{ color: TEXT_COLOR_BY_VARIANT[variant] }}
           >
             {message}
