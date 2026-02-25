@@ -30,7 +30,7 @@ const BottomNavigation: React.FC = () => {
         style={{ height: 'env(safe-area-inset-bottom)' }}
         aria-hidden="true"
       />
-      <ul className="grid grid-cols-4 relative pb-[8px]">
+      <ul className="grid grid-cols-4 relative pb-[12px]">
         <li className="min-w-0 w-full">
           <NavLink
             to="/"
