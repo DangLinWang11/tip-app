@@ -52,8 +52,7 @@ const RestaurantSearchInput = React.memo(({
   placeholder,
   className,
   inputRef,
-  onClear,
-  onFocus
+  onClear
 }: {
   value: string;
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
@@ -61,7 +60,6 @@ const RestaurantSearchInput = React.memo(({
   className: string;
   inputRef?: React.Ref<HTMLInputElement>;
   onClear?: () => void;
-  onFocus?: (e: React.FocusEvent<HTMLInputElement>) => void;
 }) => {
   const showClear = value.trim().length > 0;
 
@@ -76,7 +74,6 @@ const RestaurantSearchInput = React.memo(({
         autoComplete="off"
         inputMode="search"
         enterKeyHint="search"
-        onFocus={onFocus}
         ref={inputRef}
       />
       {showClear ? (
@@ -165,7 +162,6 @@ const StepVisit: React.FC = () => {
   };
 
   const [restaurantQuery, setRestaurantQuery] = useState('');
-  const restaurantSearchContainerRef = useRef<HTMLDivElement>(null);
   const restaurantSearchRef = useRef<HTMLInputElement>(null);
   const [didFocusSearch, setDidFocusSearch] = useState(false);
   const [restaurants, setRestaurants] = useState<RestaurantOption[]>([]);
@@ -186,7 +182,6 @@ const StepVisit: React.FC = () => {
   const [requestingLocation, setRequestingLocation] = useState(false);
   const [nearbyGooglePlaces, setNearbyGooglePlaces] = useState<GoogleFallbackPlace[]>([]);
   const [loadingNearbyPlaces, setLoadingNearbyPlaces] = useState(false);
-  const lastRestaurantQueryRef = useRef('');
 
 
   useEffect(() => {
@@ -349,32 +344,9 @@ const StepVisit: React.FC = () => {
     }
   }, [selectedRestaurant]);
 
-  useEffect(() => {
-    lastRestaurantQueryRef.current = restaurantQuery;
-  }, [restaurantQuery]);
-
-  const scrollSearchIntoView = React.useCallback((behavior: ScrollBehavior = 'smooth') => {
-    const target = restaurantSearchContainerRef.current;
-    if (!target) return;
-    window.requestAnimationFrame(() => {
-      target.scrollIntoView({ behavior, block: 'start' });
-    });
-  }, []);
-
-  const handleSearchFocus = React.useCallback(() => {
-    scrollSearchIntoView('smooth');
-  }, [scrollSearchIntoView]);
-
   const handleRestaurantQueryChange = React.useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const value = event.target.value;
-    const wasEmpty = lastRestaurantQueryRef.current.trim().length === 0;
-    const isNowNonEmpty = value.trim().length > 0;
     setRestaurantQuery(value);
-    lastRestaurantQueryRef.current = value;
-
-    if (wasEmpty && isNowNonEmpty) {
-      scrollSearchIntoView('smooth');
-    }
 
     if (!userLocation && showLocationBanner && value.length > 0 && !requestingLocation) {
       requestLocationPermission();
@@ -385,7 +357,7 @@ const StepVisit: React.FC = () => {
     } else {
       setPlacePredictions([]);
     }
-  }, [userLocation, showLocationBanner, requestingLocation, mapsLoaded, requestLocationPermission, scrollSearchIntoView]);
+  }, [userLocation, showLocationBanner, requestingLocation, mapsLoaded, requestLocationPermission]);
 
   const handleClearRestaurantQuery = () => {
     setRestaurantQuery('');
@@ -843,17 +815,14 @@ const StepVisit: React.FC = () => {
           ) : (
             <>
               <div className="mt-4">
-                <div ref={restaurantSearchContainerRef} className="scroll-mt-4">
-                  <RestaurantSearchInput
-                    value={restaurantQuery}
-                    onChange={handleRestaurantQueryChange}
-                    placeholder="Search for a restaurant..."
-                    className="w-full rounded-2xl border border-slate-200 px-4 pr-12 py-3 text-base text-slate-700 focus:border-red-400 focus:outline-none focus:ring-2 focus:ring-red-100"
-                    inputRef={restaurantSearchRef}
-                    onClear={handleClearRestaurantQuery}
-                    onFocus={handleSearchFocus}
-                  />
-                </div>
+                <RestaurantSearchInput
+                  value={restaurantQuery}
+                  onChange={handleRestaurantQueryChange}
+                  placeholder="Search for a restaurant..."
+                  className="w-full rounded-2xl border border-slate-200 px-4 pr-12 py-3 text-base text-slate-700 focus:border-red-400 focus:outline-none focus:ring-2 focus:ring-red-100"
+                  inputRef={restaurantSearchRef}
+                  onClear={handleClearRestaurantQuery}
+                />
               </div>
               {restaurantError ? <p className="text-sm text-red-500">{restaurantError}</p> : null}
               <div className="mt-4">
