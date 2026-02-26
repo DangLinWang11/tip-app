@@ -52,7 +52,8 @@ const RestaurantSearchInput = React.memo(({
   placeholder,
   className,
   inputRef,
-  onClear
+  onClear,
+  onFocus
 }: {
   value: string;
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
@@ -60,12 +61,8 @@ const RestaurantSearchInput = React.memo(({
   className: string;
   inputRef?: React.Ref<HTMLInputElement>;
   onClear?: () => void;
+  onFocus?: (e: React.FocusEvent<HTMLInputElement>) => void;
 }) => {
-  const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
-    // Prevent page scroll when input focuses
-    e.target.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
-  };
-
   const showClear = value.trim().length > 0;
 
   return (
@@ -79,7 +76,7 @@ const RestaurantSearchInput = React.memo(({
         autoComplete="off"
         inputMode="search"
         enterKeyHint="search"
-        onFocus={handleFocus}
+        onFocus={onFocus}
         ref={inputRef}
       />
       {showClear ? (
@@ -168,8 +165,8 @@ const StepVisit: React.FC = () => {
   };
 
   const [restaurantQuery, setRestaurantQuery] = useState('');
+  const restaurantSearchContainerRef = useRef<HTMLDivElement>(null);
   const restaurantSearchRef = useRef<HTMLInputElement>(null);
-  const restaurantResultsRef = useRef<HTMLDivElement>(null);
   const [didFocusSearch, setDidFocusSearch] = useState(false);
   const [restaurants, setRestaurants] = useState<RestaurantOption[]>([]);
   const [loadingRestaurants, setLoadingRestaurants] = useState(false);
@@ -189,6 +186,7 @@ const StepVisit: React.FC = () => {
   const [requestingLocation, setRequestingLocation] = useState(false);
   const [nearbyGooglePlaces, setNearbyGooglePlaces] = useState<GoogleFallbackPlace[]>([]);
   const [loadingNearbyPlaces, setLoadingNearbyPlaces] = useState(false);
+  const lastRestaurantQueryRef = useRef('');
 
 
   useEffect(() => {
@@ -351,9 +349,32 @@ const StepVisit: React.FC = () => {
     }
   }, [selectedRestaurant]);
 
+  useEffect(() => {
+    lastRestaurantQueryRef.current = restaurantQuery;
+  }, [restaurantQuery]);
+
+  const scrollSearchIntoView = React.useCallback((behavior: ScrollBehavior = 'smooth') => {
+    const target = restaurantSearchContainerRef.current;
+    if (!target) return;
+    window.requestAnimationFrame(() => {
+      target.scrollIntoView({ behavior, block: 'start' });
+    });
+  }, []);
+
+  const handleSearchFocus = React.useCallback(() => {
+    scrollSearchIntoView('smooth');
+  }, [scrollSearchIntoView]);
+
   const handleRestaurantQueryChange = React.useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const value = event.target.value;
+    const wasEmpty = lastRestaurantQueryRef.current.trim().length === 0;
+    const isNowNonEmpty = value.trim().length > 0;
     setRestaurantQuery(value);
+    lastRestaurantQueryRef.current = value;
+
+    if (wasEmpty && isNowNonEmpty) {
+      scrollSearchIntoView('smooth');
+    }
 
     if (!userLocation && showLocationBanner && value.length > 0 && !requestingLocation) {
       requestLocationPermission();
@@ -364,7 +385,7 @@ const StepVisit: React.FC = () => {
     } else {
       setPlacePredictions([]);
     }
-  }, [userLocation, showLocationBanner, requestingLocation, mapsLoaded, requestLocationPermission]);
+  }, [userLocation, showLocationBanner, requestingLocation, mapsLoaded, requestLocationPermission, scrollSearchIntoView]);
 
   const handleClearRestaurantQuery = () => {
     setRestaurantQuery('');
@@ -474,16 +495,6 @@ const StepVisit: React.FC = () => {
         }))
   );
   const showCreateRestaurantOption = normalizedRestaurantQuery.length >= 2 && !hasExactMatch;
-
-  useEffect(() => {
-    if (!restaurantQuery.trim()) return;
-    const target = restaurantResultsRef.current;
-    if (!target) return;
-    const raf = window.requestAnimationFrame(() => {
-      target.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    });
-    return () => window.cancelAnimationFrame(raf);
-  }, [restaurantQuery, placePredictions.length, nearbyRestaurants.length]);
 
   const handleFileInput = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
@@ -832,17 +843,20 @@ const StepVisit: React.FC = () => {
           ) : (
             <>
               <div className="mt-4">
-                <RestaurantSearchInput
-                  value={restaurantQuery}
-                  onChange={handleRestaurantQueryChange}
-                  placeholder="Search for a restaurant..."
-                  className="w-full rounded-2xl border border-slate-200 px-4 pr-12 py-3 text-base text-slate-700 focus:border-red-400 focus:outline-none focus:ring-2 focus:ring-red-100"
-                  inputRef={restaurantSearchRef}
-                  onClear={handleClearRestaurantQuery}
-                />
+                <div ref={restaurantSearchContainerRef} className="scroll-mt-4">
+                  <RestaurantSearchInput
+                    value={restaurantQuery}
+                    onChange={handleRestaurantQueryChange}
+                    placeholder="Search for a restaurant..."
+                    className="w-full rounded-2xl border border-slate-200 px-4 pr-12 py-3 text-base text-slate-700 focus:border-red-400 focus:outline-none focus:ring-2 focus:ring-red-100"
+                    inputRef={restaurantSearchRef}
+                    onClear={handleClearRestaurantQuery}
+                    onFocus={handleSearchFocus}
+                  />
+                </div>
               </div>
               {restaurantError ? <p className="text-sm text-red-500">{restaurantError}</p> : null}
-              <div className="mt-4" ref={restaurantResultsRef}>
+              <div className="mt-4">
             {loadingRestaurants || fetchingPlaceDetails ? (
               <div className="flex items-center gap-2 text-slate-500 text-sm">
                 <Loader2 className="h-4 w-4 animate-spin" />

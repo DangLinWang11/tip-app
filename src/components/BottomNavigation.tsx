@@ -7,11 +7,59 @@ const BottomNavigation: React.FC = () => {
   const location = useLocation();
   const { t } = useI18n();
   const [homeRefreshing, setHomeRefreshing] = useState(false);
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
 
   useEffect(() => {
     const handleComplete = () => setHomeRefreshing(false);
     window.addEventListener('tip:home-refresh-complete', handleComplete);
     return () => window.removeEventListener('tip:home-refresh-complete', handleComplete);
+  }, []);
+
+  useEffect(() => {
+    let blurTimeout: number | null = null;
+
+    const isTextInput = (element: Element | null) => {
+      if (!element) return false;
+      if (element instanceof HTMLInputElement) {
+        const type = element.type;
+        return !['checkbox', 'radio', 'button', 'submit', 'reset', 'range', 'color', 'file'].includes(type);
+      }
+      if (element instanceof HTMLTextAreaElement) return true;
+      if (element instanceof HTMLSelectElement) return true;
+      return (element as HTMLElement).isContentEditable === true;
+    };
+
+    const handleFocusIn = (event: FocusEvent) => {
+      if (blurTimeout) {
+        window.clearTimeout(blurTimeout);
+        blurTimeout = null;
+      }
+      if (isTextInput(event.target as Element)) {
+        setKeyboardOpen(true);
+      }
+    };
+
+    const handleFocusOut = () => {
+      if (blurTimeout) {
+        window.clearTimeout(blurTimeout);
+      }
+      blurTimeout = window.setTimeout(() => {
+        if (!isTextInput(document.activeElement)) {
+          setKeyboardOpen(false);
+        }
+      }, 100);
+    };
+
+    document.addEventListener('focusin', handleFocusIn);
+    document.addEventListener('focusout', handleFocusOut);
+
+    return () => {
+      document.removeEventListener('focusin', handleFocusIn);
+      document.removeEventListener('focusout', handleFocusOut);
+      if (blurTimeout) {
+        window.clearTimeout(blurTimeout);
+      }
+    };
   }, []);
 
   const handleHomeClick = () => {
@@ -24,7 +72,12 @@ const BottomNavigation: React.FC = () => {
   };
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 bg-white border-t border-gray-200 shadow-[0_-1px_3px_rgba(0,0,0,0.1)] z-50">
+    <nav
+      className={`fixed inset-x-0 bottom-0 bg-white border-t border-gray-200 shadow-[0_-1px_3px_rgba(0,0,0,0.1)] z-50 transition-transform duration-200 ${
+        keyboardOpen ? 'translate-y-full pointer-events-none' : 'translate-y-0'
+      }`}
+      aria-hidden={keyboardOpen}
+    >
       <div
         className="absolute inset-x-0 bottom-0 bg-white"
         style={{ height: 'env(safe-area-inset-bottom)' }}
