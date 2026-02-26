@@ -51,7 +51,9 @@ const RestaurantSearchInput = React.memo(({
   placeholder,
   className,
   inputRef,
-  onClear
+  onClear,
+  onFocus,
+  onBlur
 }: {
   value: string;
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
@@ -59,6 +61,8 @@ const RestaurantSearchInput = React.memo(({
   className: string;
   inputRef?: React.Ref<HTMLInputElement>;
   onClear?: () => void;
+  onFocus?: (e: React.FocusEvent<HTMLInputElement>) => void;
+  onBlur?: (e: React.FocusEvent<HTMLInputElement>) => void;
 }) => {
   const showClear = value.trim().length > 0;
 
@@ -73,6 +77,8 @@ const RestaurantSearchInput = React.memo(({
         autoComplete="off"
         inputMode="search"
         enterKeyHint="search"
+        onFocus={onFocus}
+        onBlur={onBlur}
         ref={inputRef}
       />
       {showClear ? (
@@ -161,6 +167,7 @@ const StepVisit: React.FC = () => {
 
   const [restaurantQuery, setRestaurantQuery] = useState('');
   const restaurantSearchRef = useRef<HTMLInputElement>(null);
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [restaurants, setRestaurants] = useState<RestaurantOption[]>([]);
   const [loadingRestaurants, setLoadingRestaurants] = useState(false);
   const [restaurantError, setRestaurantError] = useState<string | null>(null);
@@ -342,6 +349,14 @@ const StepVisit: React.FC = () => {
       setPlacePredictions([]);
     }
   }, [mapsLoaded]);
+
+  const handleSearchFocus = React.useCallback(() => {
+    setIsSearchFocused(true);
+  }, []);
+
+  const handleSearchBlur = React.useCallback(() => {
+    setIsSearchFocused(false);
+  }, []);
 
   const handleClearRestaurantQuery = () => {
     setRestaurantQuery('');
@@ -806,10 +821,15 @@ const StepVisit: React.FC = () => {
                   className="w-full rounded-2xl border border-slate-200 px-4 pr-12 py-3 text-base text-slate-700 focus:border-red-400 focus:outline-none focus:ring-2 focus:ring-red-100"
                   inputRef={restaurantSearchRef}
                   onClear={handleClearRestaurantQuery}
+                  onFocus={handleSearchFocus}
+                  onBlur={handleSearchBlur}
                 />
               </div>
               {restaurantError ? <p className="text-sm text-red-500">{restaurantError}</p> : null}
-              <div className="mt-4">
+              <div
+                className={`mt-4 ${isSearchFocused || restaurantQuery.trim() ? 'h-[40vh] overflow-y-auto overscroll-contain pr-1' : ''}`}
+                style={isSearchFocused || restaurantQuery.trim() ? { WebkitOverflowScrolling: 'touch' } : undefined}
+              >
             {loadingRestaurants || fetchingPlaceDetails ? (
               <div className="flex items-center gap-2 text-slate-500 text-sm">
                 <Loader2 className="h-4 w-4 animate-spin" />

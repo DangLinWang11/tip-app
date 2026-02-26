@@ -51,6 +51,10 @@ body,
   background-color: var(--background-color);
 }
 
+.create-wizard {
+  overflow-anchor: none;
+}
+
 .bottom-nav {
   position: fixed;
   bottom: env(safe-area-inset-bottom);  left: 0;
