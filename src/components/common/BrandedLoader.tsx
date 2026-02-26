@@ -39,15 +39,6 @@ const TEXT_COLOR_BY_VARIANT: Record<LoaderVariant, string> = {
   dish: '#1f2937',
 };
 
-const GLOW_BY_VARIANT: Record<LoaderVariant, string> = {
-  auth: 'radial-gradient(circle, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0) 70%)',
-  default: 'radial-gradient(circle, rgba(255,49,49,0.18) 0%, rgba(255,49,49,0) 70%)',
-  map: 'radial-gradient(circle, rgba(255,49,49,0.18) 0%, rgba(255,49,49,0) 70%)',
-  list: 'radial-gradient(circle, rgba(255,49,49,0.18) 0%, rgba(255,49,49,0) 70%)',
-  restaurant: 'radial-gradient(circle, rgba(255,49,49,0.18) 0%, rgba(255,49,49,0) 70%)',
-  dish: 'radial-gradient(circle, rgba(255,49,49,0.18) 0%, rgba(255,49,49,0) 70%)',
-};
-
 const getDictionary = (language: string) => (language === 'es' ? es : en);
 
 const getMessagePool = (language: string, variant: LoaderVariant) => {
@@ -116,13 +107,6 @@ const BrandedLoader: React.FC<BrandedLoaderProps> = ({
         }
       >
         <div className="relative flex items-center justify-center">
-          {!isAuth && (
-            <div
-              className="absolute -inset-8 rounded-full tip-loader-glow"
-              style={{ background: GLOW_BY_VARIANT[variant] }}
-              aria-hidden="true"
-            />
-          )}
           {isAuth && (
             <div
               className="auth-ring"
@@ -130,10 +114,17 @@ const BrandedLoader: React.FC<BrandedLoaderProps> = ({
               aria-hidden="true"
             />
           )}
+          {!isAuth && (
+            <div
+              className="map-loader-ring"
+              style={{ width: ringSize, height: ringSize }}
+              aria-hidden="true"
+            />
+          )}
           <img
             src={LOGO_BY_VARIANT[variant]}
             alt="Tip"
-            className={['relative', !isAuth ? 'tip-loader-pulse' : ''].join(' ').trim()}
+            className="relative"
             style={{ width: logoWidth, height: 'auto' }}
           />
         </div>
