@@ -1,5 +1,4 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { useLocation } from 'react-router-dom';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { Camera, Loader2, MapPin, Plus, Trash2, Video, X, AlertCircle, Bookmark } from 'lucide-react';
 import { useLoadScript } from '@react-google-maps/api';
@@ -140,7 +139,6 @@ LocationBanner.displayName = 'LocationBanner';
 
 const StepVisit: React.FC = () => {
   const { t } = useI18n();
-  const location = useLocation();
   const {
     visitDraft,
     setVisitDraft,
@@ -163,7 +161,6 @@ const StepVisit: React.FC = () => {
 
   const [restaurantQuery, setRestaurantQuery] = useState('');
   const restaurantSearchRef = useRef<HTMLInputElement>(null);
-  const [didFocusSearch, setDidFocusSearch] = useState(false);
   const [restaurants, setRestaurants] = useState<RestaurantOption[]>([]);
   const [loadingRestaurants, setLoadingRestaurants] = useState(false);
   const [restaurantError, setRestaurantError] = useState<string | null>(null);
@@ -183,15 +180,6 @@ const StepVisit: React.FC = () => {
   const [nearbyGooglePlaces, setNearbyGooglePlaces] = useState<GoogleFallbackPlace[]>([]);
   const [loadingNearbyPlaces, setLoadingNearbyPlaces] = useState(false);
 
-
-  useEffect(() => {
-    const shouldFocus = Boolean((location.state as any)?.focusRestaurantSearch);
-    if (!shouldFocus || didFocusSearch) return;
-    setDidFocusSearch(true);
-    window.setTimeout(() => {
-      restaurantSearchRef.current?.focus();
-    }, 100);
-  }, [location.state, didFocusSearch]);
 
   const requestLocationPermission = React.useCallback(async () => {
     if (typeof navigator === 'undefined' || !navigator.geolocation) {
@@ -348,16 +336,12 @@ const StepVisit: React.FC = () => {
     const value = event.target.value;
     setRestaurantQuery(value);
 
-    if (!userLocation && showLocationBanner && value.length > 0 && !requestingLocation) {
-      requestLocationPermission();
-    }
-
     if (mapsLoaded && value.length >= 2) {
       fetchGooglePlaces(value);
     } else {
       setPlacePredictions([]);
     }
-  }, [userLocation, showLocationBanner, requestingLocation, mapsLoaded, requestLocationPermission]);
+  }, [mapsLoaded]);
 
   const handleClearRestaurantQuery = () => {
     setRestaurantQuery('');
