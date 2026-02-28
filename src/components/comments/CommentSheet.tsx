@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Trash2, Send } from 'lucide-react';
 import { addComment, getComments, deleteComment, type Comment } from '../../services/reviewService';
-import { getCurrentUser } from '../../lib/firebase';
+import { getCurrentUser, getUserProfile } from '../../lib/firebase';
+import { getAvatarUrl } from '../../utils/avatarUtils';
 
 interface CommentSheetProps {
   isOpen: boolean;
@@ -26,6 +27,9 @@ const CommentSheet: React.FC<CommentSheetProps> = ({
   const [writePermissionDenied, setWritePermissionDenied] = useState(false);
   const [keyboardInset, setKeyboardInset] = useState(0);
   const [composerHeight, setComposerHeight] = useState(72);
+  const [composerAvatarUrl, setComposerAvatarUrl] = useState<string>(() =>
+    getAvatarUrl({ username: 'me', displayName: 'Me', avatar: '' })
+  );
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const composerRef = useRef<HTMLDivElement>(null);
   const scrollLockRef = useRef<number>(0);
@@ -48,6 +52,45 @@ const CommentSheet: React.FC<CommentSheetProps> = ({
       setWritePermissionDenied(false);
     }
   }, [isOpen]);
+
+  // Resolve composer avatar (current user)
+  useEffect(() => {
+    if (!isOpen) return;
+    if (!currentUser) {
+      setComposerAvatarUrl(getAvatarUrl({ username: 'me', displayName: 'Me', avatar: '' }));
+      return;
+    }
+
+    if (currentUser.photoURL) {
+      setComposerAvatarUrl(currentUser.photoURL);
+      return;
+    }
+
+    let cancelled = false;
+    const loadProfileAvatar = async () => {
+      try {
+        const result = await getUserProfile(currentUser.uid);
+        if (cancelled) return;
+        if (result.success && result.profile) {
+          const profile = result.profile;
+          const avatar = getAvatarUrl({
+            avatar: profile.avatar || profile.photoURL || '',
+            username: profile.username,
+            displayName: profile.displayName || profile.actualName || profile.username
+          });
+          setComposerAvatarUrl(avatar);
+        }
+      } catch {
+        if (!cancelled) {
+          setComposerAvatarUrl(getAvatarUrl({ username: 'me', displayName: 'Me', avatar: '' }));
+        }
+      }
+    };
+    loadProfileAvatar();
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, currentUser]);
 
   // Lock background scroll on open
   useEffect(() => {
@@ -301,7 +344,7 @@ const CommentSheet: React.FC<CommentSheetProps> = ({
           <div className="flex items-end gap-2">
             {/* User Avatar */}
             <img
-              src={currentUser?.photoURL || 'https://via.placeholder.com/40'}
+              src={composerAvatarUrl}
               alt="You"
               className="w-8 h-8 rounded-full object-cover flex-shrink-0"
             />
