@@ -68,6 +68,32 @@ service cloud.firestore {
       // Hard deletes blocked (use soft-delete via isDeleted)
       allow delete: if false;
 
+      // Comments subcollection (public read, authed write)
+      match /comments/{commentId} {
+        allow read: if true;
+        allow create: if authed()
+          && request.resource.data.userId == request.auth.uid
+          && request.resource.data.text is string
+          && request.resource.data.text.size() > 0
+          && request.resource.data.createdAt is timestamp
+          && request.resource.data.isDeleted is bool;
+
+        allow update: if authed() && (
+          isAdminUser() || (request.auth.uid == resource.data.userId && commentUpdateIsSafe())
+        );
+
+        allow delete: if false;
+
+        function commentUpdateIsSafe() {
+          return
+            request.resource.data.userId == resource.data.userId &&
+            request.resource.data.text == resource.data.text &&
+            request.resource.data.createdAt == resource.data.createdAt &&
+            request.resource.data.isDeleted is bool &&
+            (!('updatedAt' in request.resource.data) || request.resource.data.updatedAt is timestamp);
+        }
+      }
+
       // Helper: constrain author updates
       function authorUpdateIsSafe() {
         return

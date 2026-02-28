@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Trash2, Send } from 'lucide-react';
 import { addComment, getComments, deleteComment, type Comment } from '../../services/reviewService';
 import { getCurrentUser } from '../../lib/firebase';
@@ -21,8 +22,15 @@ const CommentSheet: React.FC<CommentSheetProps> = ({
   const [commentText, setCommentText] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [readPermissionDenied, setReadPermissionDenied] = useState(false);
+  const [writePermissionDenied, setWritePermissionDenied] = useState(false);
+  const [keyboardInset, setKeyboardInset] = useState(0);
+  const [composerHeight, setComposerHeight] = useState(72);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const composerRef = useRef<HTMLDivElement>(null);
+  const scrollLockRef = useRef<number>(0);
   const currentUser = getCurrentUser();
+  const composerDisabled = !currentUser || writePermissionDenied;
 
   // Load comments when modal opens
   useEffect(() => {
@@ -36,24 +44,90 @@ const CommentSheet: React.FC<CommentSheetProps> = ({
     if (!isOpen) {
       setCommentText('');
       setError(null);
+      setReadPermissionDenied(false);
+      setWritePermissionDenied(false);
     }
   }, [isOpen]);
 
-  // Auto-focus textarea when modal opens
+  // Lock background scroll on open
   useEffect(() => {
-    if (isOpen && textareaRef.current) {
-      setTimeout(() => textareaRef.current?.focus(), 100);
-    }
+    if (!isOpen || typeof document === 'undefined') return;
+    const { body } = document;
+    scrollLockRef.current = window.scrollY || window.pageYOffset || 0;
+    const previous = {
+      position: body.style.position,
+      top: body.style.top,
+      width: body.style.width,
+      overflowY: body.style.overflowY,
+    };
+    body.style.position = 'fixed';
+    body.style.top = `-${scrollLockRef.current}px`;
+    body.style.width = '100%';
+    body.style.overflowY = 'scroll';
+
+    return () => {
+      body.style.position = previous.position;
+      body.style.top = previous.top;
+      body.style.width = previous.width;
+      body.style.overflowY = previous.overflowY;
+      window.scrollTo(0, scrollLockRef.current);
+    };
   }, [isOpen]);
+
+  // Track keyboard inset using visualViewport (iOS PWA)
+  useEffect(() => {
+    if (!isOpen || typeof window === 'undefined' || !window.visualViewport) return;
+    const viewport = window.visualViewport;
+    const updateInset = () => {
+      const inset = Math.max(0, window.innerHeight - viewport.height - viewport.offsetTop);
+      setKeyboardInset(inset);
+    };
+    updateInset();
+    viewport.addEventListener('resize', updateInset);
+    viewport.addEventListener('scroll', updateInset);
+    return () => {
+      viewport.removeEventListener('resize', updateInset);
+      viewport.removeEventListener('scroll', updateInset);
+    };
+  }, [isOpen]);
+
+  // Measure composer height to pad list area correctly
+  useEffect(() => {
+    if (!isOpen || !composerRef.current) return;
+    const el = composerRef.current;
+    const measure = () => {
+      const rect = el.getBoundingClientRect();
+      if (rect.height > 0) {
+        setComposerHeight(rect.height);
+      }
+    };
+    measure();
+    if (typeof ResizeObserver !== 'undefined') {
+      const observer = new ResizeObserver(measure);
+      observer.observe(el);
+      return () => observer.disconnect();
+    }
+    return undefined;
+  }, [isOpen]);
+
+  const isPermissionError = (err: any) => {
+    const message = String(err?.message || '').toLowerCase();
+    return err?.code === 'permission-denied' || message.includes('permission');
+  };
 
   const loadComments = async () => {
     setLoading(true);
     setError(null);
+    setReadPermissionDenied(false);
     try {
       const fetchedComments = await getComments(reviewId);
       setComments(fetchedComments);
     } catch (err: any) {
-      setError(err.message || 'Failed to load comments');
+      if (isPermissionError(err)) {
+        setReadPermissionDenied(true);
+      } else {
+        setError(err.message || 'Failed to load comments');
+      }
       console.error('Error loading comments:', err);
     } finally {
       setLoading(false);
@@ -61,6 +135,7 @@ const CommentSheet: React.FC<CommentSheetProps> = ({
   };
 
   const handleSubmitComment = async () => {
+    if (composerDisabled) return;
     const trimmed = commentText.trim();
     if (!trimmed) return;
 
@@ -72,7 +147,11 @@ const CommentSheet: React.FC<CommentSheetProps> = ({
       // Reload comments to show the new one
       await loadComments();
     } catch (err: any) {
-      setError(err.message || 'Failed to post comment');
+      if (isPermissionError(err)) {
+        setWritePermissionDenied(true);
+      } else {
+        setError(err.message || 'Failed to post comment');
+      }
       console.error('Error posting comment:', err);
     } finally {
       setSubmitting(false);
@@ -103,15 +182,24 @@ const CommentSheet: React.FC<CommentSheetProps> = ({
 
   if (!isOpen) return null;
 
-  return (
+  const sheet = (
     <div
       className="fixed inset-0 z-[70] flex items-end justify-center bg-black/40"
       onClick={onClose}
     >
       {/* Sheet Container */}
       <div
-        className="w-full max-w-md h-[85vh] rounded-t-2xl bg-white shadow-lg flex flex-col animate-[slideUp_200ms_ease-out] mx-auto"
+        className="w-full max-w-md rounded-t-2xl bg-white shadow-lg flex flex-col overflow-hidden animate-[slideUp_200ms_ease-out] mx-auto"
+        style={{
+          height: 'min(85dvh, 720px)',
+          maxHeight: 'min(85dvh, 720px)',
+          paddingBottom: 'env(safe-area-inset-bottom)',
+          ['--kb' as any]: `${keyboardInset}px`,
+        }}
         onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Comments"
       >
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
@@ -131,10 +219,21 @@ const CommentSheet: React.FC<CommentSheetProps> = ({
         </div>
 
         {/* Comments List - scrollable */}
-        <div className="flex-1 overflow-y-auto px-4 py-3">
+        <div
+          className="flex-1 overflow-y-auto px-4 py-3"
+          style={{
+            overscrollBehavior: 'contain',
+            WebkitOverflowScrolling: 'touch',
+            paddingBottom: `calc(${composerHeight}px + var(--kb, 0px) + env(safe-area-inset-bottom))`,
+          }}
+        >
           {loading ? (
             <div className="flex items-center justify-center py-8">
               <div className="text-sm text-gray-500">Loading comments...</div>
+            </div>
+          ) : readPermissionDenied ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="text-sm text-gray-600">You don’t have permission to view comments.</div>
             </div>
           ) : error ? (
             <div className="flex items-center justify-center py-8">
@@ -142,7 +241,7 @@ const CommentSheet: React.FC<CommentSheetProps> = ({
             </div>
           ) : comments.length === 0 ? (
             <div className="flex items-center justify-center py-8">
-              <div className="text-sm text-gray-500">No comments yet. Be the first!</div>
+              <div className="text-sm text-gray-500">Be the first to comment</div>
             </div>
           ) : (
             <div className="space-y-4">
@@ -189,8 +288,14 @@ const CommentSheet: React.FC<CommentSheetProps> = ({
         </div>
 
         {/* Input Area - fixed at bottom */}
-        <div className="border-t border-gray-200 p-4 bg-white">
-          {error && (
+        <div
+          ref={composerRef}
+          className="border-t border-gray-200 p-4 bg-white"
+          style={{
+            transform: 'translateY(calc(-1 * var(--kb, 0px)))',
+          }}
+        >
+          {error && !readPermissionDenied && (
             <div className="mb-2 text-xs text-red-600">{error}</div>
           )}
           <div className="flex items-end gap-2">
@@ -208,20 +313,20 @@ const CommentSheet: React.FC<CommentSheetProps> = ({
                 value={commentText}
                 onChange={(e) => setCommentText(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="Add a comment..."
+                placeholder={composerDisabled ? 'Sign in to comment' : 'Add a comment...'}
                 className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-2xl resize-none focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-sm"
                 rows={1}
                 style={{ maxHeight: '100px' }}
-                disabled={submitting}
+                disabled={submitting || composerDisabled}
               />
             </div>
 
             {/* Send Button */}
             <button
               onClick={handleSubmitComment}
-              disabled={!commentText.trim() || submitting}
+              disabled={!commentText.trim() || submitting || composerDisabled}
               className={`p-2 rounded-full transition-colors ${
-                commentText.trim() && !submitting
+                commentText.trim() && !submitting && !composerDisabled
                   ? 'bg-primary text-white hover:bg-primary/90'
                   : 'bg-gray-200 text-gray-400 cursor-not-allowed'
               }`}
@@ -230,10 +335,21 @@ const CommentSheet: React.FC<CommentSheetProps> = ({
               <Send size={18} />
             </button>
           </div>
+          {composerDisabled ? (
+            <div className="mt-2 text-xs text-gray-500">
+              {currentUser ? 'You don’t have permission to comment.' : 'Sign in to comment.'}
+            </div>
+          ) : null}
         </div>
       </div>
     </div>
   );
+
+  if (typeof document === 'undefined') {
+    return sheet;
+  }
+
+  return createPortal(sheet, document.body);
 };
 
 // Helper function to format timestamps
