@@ -4,7 +4,7 @@ import { Loader2 } from 'lucide-react';
 import { useI18n } from '../../lib/i18n/useI18n';
 import { useReviewWizard } from './WizardContext';
 import ConfettiEffect from './ConfettiEffect';
-import { ToGoFeedback, DineInFeedback, MealTimeTag } from '../../dev/types/review';
+import { ToGoFeedback, MealTimeTag } from '../../dev/types/review';
 
 const BUSINESS_TAGS = [
   'Great Staff',
@@ -33,6 +33,31 @@ const MAX_BUSINESS_LOWLIGHTS = 3;
 const formatTagLabel = (tag: string): string => {
   // Replace underscores and hyphens with spaces
   return tag.replace(/_/g, ' ').replace(/-/g, ' ');
+};
+
+const VIBE_TAGS = [
+  { id: 'family_friendly', label: 'Family Friendly', emoji: '\u{1F468}\u200D\u{1F469}\u200D\u{1F467}\u200D\u{1F466}' },
+  { id: 'pet_friendly', label: 'Pet Friendly', emoji: '\u{1F436}' },
+  { id: 'romantic', label: 'Romantic', emoji: '\u{1F495}' },
+  { id: 'live_music', label: 'Live Music', emoji: '\u{1F3B6}' },
+  { id: 'cozy', label: 'Cozy', emoji: '\u{1F56F}\uFE0F' },
+  { id: 'girls_night', label: 'Girls Night', emoji: '\u{1F483}' },
+  { id: 'good_view', label: 'Good View', emoji: '\u{1F305}' },
+  { id: 'sports_spot', label: 'Sports Spot', emoji: '\u{1F3C8}' }
+];
+
+const VIBE_TAG_LOOKUP = VIBE_TAGS.reduce<Record<string, { label: string; emoji: string }>>((acc, tag) => {
+  acc[tag.id] = { label: tag.label, emoji: tag.emoji };
+  return acc;
+}, {});
+
+const describeVibe = (value: number | null | undefined, left: string, right: string): string | null => {
+  if (typeof value !== 'number') return null;
+  if (value <= 2.5) return `Very ${left}`;
+  if (value <= 4.5) return left;
+  if (value <= 6.5) return 'Balanced';
+  if (value <= 8.5) return right;
+  return `Very ${right}`;
 };
 
 const VISIT_TAG_LABELS: Partial<Record<MealTimeTag, { label: string; emoji: string }>> = {
@@ -95,10 +120,25 @@ const StepWrapUp: React.FC = () => {
     return [];
   }, [visitDraft.mealTimes, visitDraft.mealTime]);
 
+  const vibeSummary = useMemo(() => {
+    const vibes = visitDraft.vibes;
+    if (!vibes) return null;
+    const tags = Array.isArray(vibes.tags) ? vibes.tags : [];
+    const hasSliders = [vibes.loudQuiet, vibes.casualFancy, vibes.intimateSocial].some(v => typeof v === 'number');
+    const hasTags = tags.length > 0;
+    if (!hasSliders && !hasTags) return null;
+    return {
+      loudQuiet: vibes.loudQuiet,
+      casualFancy: vibes.casualFancy,
+      intimateSocial: vibes.intimateSocial,
+      tags
+    };
+  }, [visitDraft.vibes]);
+
 
   // Structured feedback state
   const [toGoFeedback, setToGoFeedback] = useState<ToGoFeedback>({});
-  const [dineInFeedback, setDineInFeedback] = useState<DineInFeedback>({});
+  // Dine-in feedback archived for now
 
   const visitOnlyMediaItems = useMemo(() => {
     return mediaItems.filter((media) => {
@@ -148,12 +188,9 @@ const StepWrapUp: React.FC = () => {
 
       // Update visitDraft with feedback before submission
       const hasToGoFeedback = Object.keys(toGoFeedback).length > 0;
-      const hasDineInFeedback = Object.keys(dineInFeedback).length > 0;
-
       setVisitDraft(draft => ({
         ...draft,
-        ...(visitDraft.isToGo && hasToGoFeedback ? { toGoFeedback } : {}),
-        ...(!visitDraft.isToGo && hasDineInFeedback ? { dineInFeedback } : {})
+        ...(visitDraft.isToGo && hasToGoFeedback ? { toGoFeedback } : {})
       }));
 
       const ids = await submitReview();
@@ -332,10 +369,8 @@ const StepWrapUp: React.FC = () => {
 
                   {/* Right: Rating */}
                   <div className="flex-shrink-0">
-                    <div className="flex items-center justify-center bg-red-50 rounded-xl px-3 py-2 border-2 border-red-200">
-                      <div className="text-2xl font-bold text-red-600">
-                        {dish.rating.toFixed(1)}
-                      </div>
+                    <div className="text-2xl font-bold text-red-600">
+                      {dish.rating.toFixed(1)}
                     </div>
                   </div>
                 </div>
@@ -478,17 +513,20 @@ const StepWrapUp: React.FC = () => {
             </div>
           </div>
         </div>
-      ) : visitDraft.isToGo === false ? (
+      ) : null}
+
+      {/* Archived: Dine-in service card (kept for later) */}
+      {/*
+      {visitDraft.isToGo === false ? (
         <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl p-4 border-2 border-purple-200 shadow-md">
           <h2 className="text-lg font-bold text-purple-900 mb-2 flex items-center gap-2">
-            🍽️ Service & Vibes
+            🍽️ Service
           </h2>
           <p className="text-sm text-purple-700 mb-4">
             Quick feedback on your dine-in experience
           </p>
 
           <div className="space-y-3">
-            {/* Wait time */}
             <div>
               <p className="text-sm font-semibold text-slate-800 mb-2">How was the wait time-</p>
               <div className="flex gap-1.5">
@@ -513,7 +551,6 @@ const StepWrapUp: React.FC = () => {
               </div>
             </div>
 
-            {/* Staff friendliness */}
             <div>
               <p className="text-sm font-semibold text-slate-800 mb-2">Staff friendliness-</p>
               <div className="flex gap-1.5">
@@ -538,31 +575,51 @@ const StepWrapUp: React.FC = () => {
               </div>
             </div>
 
-            {/* Noise level */}
-            <div>
-              <p className="text-sm font-semibold text-slate-800 mb-2">Noise level-</p>
-              <div className="flex gap-1.5">
-                {[
-                  { value: 'too_loud' as const, label: '📢 Too Loud' },
-                  { value: 'fine' as const, label: '👌 Fine' },
-                  { value: 'quiet' as const, label: '🤫 Quiet' }
-                ].map(({ value, label }) => (
-                  <button
-                    key={value}
-                    type="button"
-                    onClick={() => setDineInFeedback(prev => ({ ...prev, noiseLevel: value }))}
-                    className={`flex-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                      dineInFeedback.noiseLevel === value
-                        ? 'bg-purple-600 text-white shadow-md scale-105'
-                        : 'bg-white text-slate-700 hover:bg-purple-100 border border-purple-200'
-                    }`}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-            </div>
           </div>
+        </div>
+      ) : null}
+      */}
+
+      {/* Vibes Summary */}
+      {vibeSummary ? (
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+          <h2 className="text-lg font-semibold text-slate-900 mb-3">Vibes</h2>
+          <div className="space-y-2 text-sm text-slate-700">
+            {typeof vibeSummary.loudQuiet === 'number' && (
+              <div className="flex items-center justify-between">
+                <span className="text-slate-500">Loud — Quiet</span>
+                <span className="font-semibold">{describeVibe(vibeSummary.loudQuiet, 'Loud', 'Quiet')}</span>
+              </div>
+            )}
+            {typeof vibeSummary.casualFancy === 'number' && (
+              <div className="flex items-center justify-between">
+                <span className="text-slate-500">Casual — Fancy</span>
+                <span className="font-semibold">{describeVibe(vibeSummary.casualFancy, 'Casual', 'Fancy')}</span>
+              </div>
+            )}
+            {typeof vibeSummary.intimateSocial === 'number' && (
+              <div className="flex items-center justify-between">
+                <span className="text-slate-500">Intimate — Social</span>
+                <span className="font-semibold">{describeVibe(vibeSummary.intimateSocial, 'Intimate', 'Social')}</span>
+              </div>
+            )}
+          </div>
+          {vibeSummary.tags.length > 0 && (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {vibeSummary.tags.map((tagId) => {
+                const meta = VIBE_TAG_LOOKUP[tagId] || { label: formatTagLabel(tagId), emoji: '' };
+                return (
+                  <span
+                    key={tagId}
+                    className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700"
+                  >
+                    {meta.emoji ? <span>{meta.emoji}</span> : null}
+                    <span>{meta.label}</span>
+                  </span>
+                );
+              })}
+            </div>
+          )}
         </div>
       ) : null}
 

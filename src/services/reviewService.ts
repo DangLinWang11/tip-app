@@ -4,7 +4,7 @@ import { db, storage, getUserProfile, getCurrentUser, updateUserStats } from '..
 import { inferFacetsFromText, tokenizeForSearch, normalizeToken } from '../utils/taxonomy';
 import { getAvatarUrl } from '../utils/avatarUtils';
 import { validateCoordinates } from '../utils/validateCoordinates';
-import type { ExplicitSelection, SentimentSelection } from '../dev/types/review';
+import type { ExplicitSelection, SentimentSelection, VisitVibesDraft } from '../dev/types/review';
 
 /**
  * Enhanced media object with thumbnail URLs
@@ -189,6 +189,7 @@ export interface ReviewData {
   personalNote: string;
   visitCaption?: string;
   visitMedia?: string[]; // NEW: Unassigned/"vibes" photos from the visit
+  vibes?: VisitVibesDraft; // NEW: visit-level vibes (optional)
   negativeNote: string;
   serverRating?: 'bad' | 'okay' | 'good' | null;
   price?: string | null;
@@ -829,6 +830,7 @@ export interface FirebaseReview {
   personalNote: string;
   visitCaption?: string;
   visitMedia?: string[]; // NEW: Unassigned/"vibes" photos from the visit
+  vibes?: VisitVibesDraft; // NEW: visit-level vibes (optional)
   negativeNote: string;
   personalNotes?: PersonalNote[];
   serverRating?: 'bad' | 'okay' | 'good' | null;

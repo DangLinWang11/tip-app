@@ -105,11 +105,19 @@ export interface DineInFeedback {
   noiseLevel?: DineInNoiseLevel;
 }
 
+export interface VisitVibesDraft {
+  loudQuiet?: number | null;
+  casualFancy?: number | null;
+  intimateSocial?: number | null;
+  tags?: string[];
+}
+
 // Visit-level draft (multi-dish flow)
 export interface VisitDraft {
   restaurantId?: string;
   restaurantName?: string;
   restaurantAddress?: string;
+  spotCuisine?: string; // Optional cuisine selected during visit setup
   restaurantPriceLevel?: '$' | '$$' | '$$$' | '$$$$' | null;
   mealTime?: MealTimeTag | 'unspecified';
   mealTimes?: MealTimeTag[];
@@ -121,6 +129,7 @@ export interface VisitDraft {
   isToGo?: boolean; // Whether the order was to-go/takeout
   toGoFeedback?: ToGoFeedback; // Optional structured to-go feedback (only when isToGo === true)
   dineInFeedback?: DineInFeedback; // Optional structured dine-in feedback (only when isToGo === false)
+  vibes?: VisitVibesDraft; // Optional visit-level vibes captured in Step 2
 }
 
 // Per-dish draft (multi-dish flow)

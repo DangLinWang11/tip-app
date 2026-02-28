@@ -297,13 +297,16 @@ const DiscoverList: React.FC = () => {
 
     // Count occurrences of each tag across all reviews
     reviews.forEach(review => {
-      if (review.tags && Array.isArray(review.tags)) {
-        review.tags.forEach((tag: string) => {
+      const tagSources: string[][] = [];
+      if (Array.isArray(review.tags)) tagSources.push(review.tags);
+      if (Array.isArray(review.vibes?.tags)) tagSources.push(review.vibes.tags);
+      tagSources.forEach((tags) => {
+        tags.forEach((tag: string) => {
           if (tag) {
             tagCounts[tag] = (tagCounts[tag] || 0) + 1;
           }
         });
-      }
+      });
     });
 
     // Sort by count descending, take top 2

@@ -1,32 +1,17 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { collection, getDocs, query, where } from 'firebase/firestore';
-import { Camera, Loader2, MapPin, Plus, Trash2, Video, X, AlertCircle, Bookmark } from 'lucide-react';
+import { Camera, Loader2, MapPin, Plus, Trash2, Video, X, AlertCircle } from 'lucide-react';
 import { useLoadScript } from '@react-google-maps/api';
 import { db } from '../../lib/firebase';
 import { useI18n } from '../../lib/i18n/useI18n';
-import { RestaurantOption, DishOption } from './types';
+import { RestaurantOption } from './types';
 import { useReviewWizard } from './WizardContext';
 import CreateRestaurantModal from './CreateRestaurantModal';
-import AddDishInline from './AddDishInline';
-import { CUISINES, getCuisineLabel } from '../../utils/taxonomy';
 import { saveGooglePlaceToFirestore, searchNearbyRestaurants, GoogleFallbackPlace } from '../../services/googlePlacesService';
-import { MealTimeTag } from '../../dev/types/review';
 import { getQualityColor } from '../../utils/qualityScore';
+import { CUISINES, getCuisineLabel } from '../../utils/taxonomy';
 
-const MEAL_TIME_OPTIONS: Array<{ value: MealTimeTag; labelKey: string; emoji: string; fallback: string; label?: string }> = [
-  { value: 'breakfast', labelKey: 'mealTime.breakfast', emoji: '\u{1F373}', fallback: 'Breakfast' },
-  { value: 'brunch', labelKey: 'mealTime.brunch', emoji: '\u{1F942}', fallback: 'Brunch' },
-  { value: 'lunch', labelKey: 'mealTime.lunch', emoji: '\u{1F96A}', fallback: 'Lunch' },
-  { value: 'dinner', labelKey: 'mealTime.dinner', emoji: '\u{1F37D}\uFE0F', fallback: 'Dinner' },
-  { value: 'late_night', labelKey: 'mealTime.lateNight', emoji: '\u{1F319}', fallback: 'Late Night' },
-  { value: 'dessert', labelKey: 'mealTime.dessert', emoji: '\u{1F370}', fallback: 'Dessert' },
-  { value: 'date_night', labelKey: 'mealTime.dateNight', emoji: '\u2764\uFE0F', fallback: 'Date Night', label: 'Date' },
-  { value: 'birthday', labelKey: 'mealTime.birthday', emoji: '\u{1F382}', fallback: 'Birthday' },
-  { value: 'celebration', labelKey: 'mealTime.celebration', emoji: '\u{1F389}', fallback: 'Celebration' },
-];
-
-const PRICE_LEVELS: Array<'$' | '$$' | '$$$' | '$$$$'> = ['$', '$$', '$$$', '$$$$'];
-const MAX_MEAL_TIME_SELECTIONS = 3;
+// Archived: meal-time options and price levels (kept out of runtime for now)
 
 const NEARBY_RADIUS_MILES = 5;
 const MAX_NEARBY_RESULTS = 10;
@@ -156,14 +141,7 @@ const StepVisit: React.FC = () => {
     selectRestaurant,
     goNext,
     currentStep,
-    goBack,
-    dishDrafts,
   } = useReviewWizard();
-
-  // Helper function to count how many dishes use a specific media item
-  const getAttachedDishCount = (mediaId: string): number => {
-    return dishDrafts.filter(d => d.mediaIds.includes(mediaId)).length;
-  };
 
   const [restaurantQuery, setRestaurantQuery] = useState('');
   const restaurantSearchRef = useRef<HTMLInputElement>(null);
@@ -638,124 +616,17 @@ const StepVisit: React.FC = () => {
     goNext();
   };
 
-  const selectedMealTimes = useMemo(() => {
-    if (Array.isArray(visitDraft.mealTimes) && visitDraft.mealTimes.length > 0) {
-      return visitDraft.mealTimes;
-    }
-    if (visitDraft.mealTime && visitDraft.mealTime !== 'unspecified') {
-      return [visitDraft.mealTime as MealTimeTag];
-    }
-    return [];
-  }, [visitDraft.mealTimes, visitDraft.mealTime]);
-
-  const toggleMealTime = (time: MealTimeTag) => {
-    setVisitDraft(prev => {
-      const current = Array.isArray(prev.mealTimes) && prev.mealTimes.length > 0
-        ? prev.mealTimes
-        : prev.mealTime && prev.mealTime !== 'unspecified'
-          ? [prev.mealTime as MealTimeTag]
-          : [];
-      const exists = current.includes(time);
-      if (!exists && current.length >= MAX_MEAL_TIME_SELECTIONS) {
-        return prev;
-      }
-      const next = exists ? current.filter(item => item !== time) : [...current, time];
-      return {
-        ...prev,
-        mealTimes: next,
-        mealTime: undefined
-      };
-    });
-  };
+  // Archived: meal-time selection logic
 
   return (
     <div className="space-y-4">
-      {/* Media Upload */}
-      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-md shadow-slate-200/60">
-        <div>
-          <h2 className="text-lg font-semibold text-slate-900">{t('review.addMedia')}</h2>
-          <p className="text-sm text-slate-500">{t('media.imageLimit')} / {t('media.videoLimit')}</p>
-          {pendingUploadCount > 0 ? (
-            <div className="mt-2 inline-flex items-center gap-2 rounded-full bg-amber-50 px-3 py-1 text-xs font-medium text-amber-700">
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              Uploading {pendingUploadCount} file{pendingUploadCount !== 1 ? 's' : ''}...
-            </div>
-          ) : null}
-        </div>
-
-        <div className="mt-4 grid gap-4">
-          <label className="flex min-h-[160px] cursor-pointer flex-col items-center justify-center rounded-3xl border-2 border-dashed border-slate-200 bg-slate-50 text-center transition hover:border-red-200 hover:bg-red-50">
-            <input type="file" accept="image/*,video/mp4,video/webm" multiple className="hidden" onChange={handleFileInput} />
-            <div className="rounded-full bg-red-100 p-3 text-red-500">
-              <Camera className="h-6 w-6" />
-            </div>
-            <p className="mt-3 text-sm font-medium text-slate-700">{t('media.addMedia')}</p>
-            <p className="text-xs text-slate-400">{t('media.dragDrop')} <span className="text-red-500">{t('media.browse')}</span></p>
-          </label>
-          {mediaError ? <p className="text-sm text-red-500">{mediaError}</p> : null}
-          {mediaItems.length > 0 ? (
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3" style={{ contentVisibility: 'auto', contain: 'layout style paint' }}>
-              {mediaItems.map((item) => (
-                <div key={item.id} className="group relative overflow-hidden rounded-2xl border border-slate-200">
-                  {item.kind === 'photo' ? (
-                    <img
-                      src={item.downloadURL || item.previewUrl}
-                      alt="Visit media"
-                      className="h-36 w-full object-cover"
-                      decoding="async"
-                      loading="lazy"
-                    />
-                  ) : (
-                    <div className="relative h-36 w-full overflow-hidden bg-black/5">
-                      <video src={item.downloadURL || item.previewUrl} className="h-full w-full object-cover" muted />
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <Video className="h-8 w-8 text-white drop-shadow" />
-                      </div>
-                    </div>
-                  )}
-                  <div className="absolute inset-0 flex flex-col justify-between p-3">
-                    <div className="flex justify-between gap-2 text-xs">
-                      <span className={`rounded-full px-2 py-1 text-white ${item.status === 'uploaded' ? 'bg-emerald-500' : item.status === 'uploading' ? 'bg-amber-500' : item.status === 'error' ? 'bg-red-500' : 'bg-slate-400'}`}>
-                        {item.status === 'uploading' && t('createWizard.status.autosaving')}
-                        {item.status === 'uploaded' && t('createWizard.status.saved')}
-                        {item.status === 'error' && t('createWizard.status.error')}
-                        {item.status === 'idle' && ''}
-                      </span>
-                      {getAttachedDishCount(item.id) > 0 && (
-                        <span className="rounded-full bg-blue-500 px-2 py-1 text-white shadow-sm">
-                          Used in {getAttachedDishCount(item.id)} dish{getAttachedDishCount(item.id) > 1 ? 'es' : ''}
-                        </span>
-                      )}
-                    </div>
-                    <button type="button" onClick={() => removeMedia(item.id)} className="flex items-center gap-1 self-end rounded-full bg-white/90 px-2 py-1 text-xs font-medium text-red-500 opacity-0 transition group-hover:opacity-100">
-                      <Trash2 className="h-3 w-3" />
-                      {t('media.remove')}
-                    </button>
-                  </div>
-                  {item.status === 'uploading' ? (
-                    <div className="absolute inset-0 flex items-center justify-center bg-white/80">
-                      <Loader2 className="h-6 w-6 animate-spin text-red-500" />
-                    </div>
-                  ) : null}
-                  {item.error ? (
-                    <div className="absolute inset-x-0 bottom-0 bg-red-500/90 p-2 text-xs text-white">
-                      {item.error}
-                    </div>
-                  ) : null}
-                </div>
-              ))}
-            </div>
-          ) : null}
-        </div>
-      </section>
-
       {/* Restaurant Selection */}
       <section
         className="rounded-3xl border border-slate-200 bg-white p-6 shadow-md shadow-slate-200/60 space-y-6"
         data-tour="create-visit-intro"
       >
         <div>
-          <h2 className="text-lg font-semibold text-slate-900">{t('basic.restaurant')}</h2>
+          <h2 className="text-lg font-semibold text-slate-900">Add a spot</h2>
         </div>
 
         {showLocationBanner && !userLocation && (
@@ -817,7 +688,7 @@ const StepVisit: React.FC = () => {
                 <RestaurantSearchInput
                   value={restaurantQuery}
                   onChange={handleRestaurantQueryChange}
-                  placeholder="Search for a restaurant..."
+                  placeholder="Search for a spot..."
                   className="w-full rounded-2xl border border-slate-200 px-4 pr-12 py-3 text-base text-slate-700 focus:border-red-400 focus:outline-none focus:ring-2 focus:ring-red-100"
                   inputRef={restaurantSearchRef}
                   onClear={handleClearRestaurantQuery}
@@ -880,7 +751,7 @@ const StepVisit: React.FC = () => {
                                   </span>
                                 </div>
                               ) : existingRestaurant ? (
-                                <span className="text-xs text-gray-500">⭐ Be first</span>
+                                <span className="text-xs text-gray-500">Be first</span>
                               ) : null}
                             </div>
                           </div>
@@ -979,25 +850,46 @@ const StepVisit: React.FC = () => {
             </>
           )}
         </div>
+
+        {/* Cuisine Selector */}
+        <div className="space-y-2">
+          <label className="block text-xs font-medium text-slate-600">Cuisine</label>
+          <select
+            value={visitDraft.spotCuisine || ''}
+            onChange={(e) => setVisitDraft(prev => ({
+              ...prev,
+              spotCuisine: e.target.value || undefined
+            }))}
+            className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm focus:border-red-400 focus:outline-none focus:ring-2 focus:ring-red-100"
+          >
+            <option value="">Select cuisine...</option>
+            {CUISINES.map((cuisine) => (
+              <option key={cuisine} value={cuisine}>
+                {getCuisineLabel(cuisine)}
+              </option>
+            ))}
+          </select>
+        </div>
       </section>
 
-      {/* To-Go Order Selection */}
+      {/* To-Go or Dine-In */}
       {selectedRestaurant && (
         <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-md shadow-slate-200/60">
           <div className="mb-3">
-            <h3 className="text-sm font-semibold text-slate-900">Did you order to-go?</h3>
+            <h3 className="text-sm font-semibold text-slate-900">To-go or dine-in?</h3>
             <p className="text-sm text-slate-500">Select one</p>
           </div>
           <div className="flex gap-2">
-            {(['yes', 'no'] as const).map((option) => {
-              const active = visitDraft.isToGo === (option === 'yes');
+            {(['to_go', 'dine_in'] as const).map((option) => {
+              const isToGo = option === 'to_go';
+              const active = visitDraft.isToGo === isToGo;
               return (
                 <button
                   key={option}
                   type="button"
                   onClick={() => setVisitDraft((prev) => ({
                     ...prev,
-                    isToGo: option === 'yes'
+                    isToGo
                   }))}
                   className={`flex-1 px-4 py-2 rounded-full text-sm font-semibold transition ${
                     active
@@ -1005,7 +897,7 @@ const StepVisit: React.FC = () => {
                       : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                   }`}
                 >
-                  {option.charAt(0).toUpperCase() + option.slice(1)}
+                  {isToGo ? 'To-go' : 'Dine-in'}
                 </button>
               );
             })}
@@ -1013,7 +905,77 @@ const StepVisit: React.FC = () => {
         </section>
       )}
 
-      {/* Restaurant Price Level */}
+      {/* Media Upload */}
+      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-md shadow-slate-200/60">
+        <div>
+          <h2 className="text-lg font-semibold text-slate-900">{t('review.addMedia')}</h2>
+          {pendingUploadCount > 0 ? (
+            <div className="mt-2 inline-flex items-center gap-2 rounded-full bg-amber-50 px-3 py-1 text-xs font-medium text-amber-700">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              Uploading {pendingUploadCount} file{pendingUploadCount !== 1 ? 's' : ''}...
+            </div>
+          ) : null}
+        </div>
+
+        <div className="mt-4 grid gap-4">
+          <label className="flex min-h-[160px] cursor-pointer flex-col items-center justify-center rounded-3xl border-2 border-dashed border-slate-200 bg-slate-50 text-center transition hover:border-red-200 hover:bg-red-50">
+            <input type="file" accept="image/*,video/mp4,video/webm" multiple className="hidden" onChange={handleFileInput} />
+            <div className="rounded-full bg-red-100 p-3 text-red-500">
+              <Camera className="h-6 w-6" />
+            </div>
+            <p className="mt-3 text-sm font-medium text-slate-700">{t('media.addMedia')}</p>
+            <p className="text-xs text-slate-400"><span className="text-red-500">Browse</span></p>
+          </label>
+          {mediaError ? <p className="text-sm text-red-500">{mediaError}</p> : null}
+          {mediaItems.length > 0 ? (
+            <div className="overflow-x-auto overscroll-contain">
+              <div className="flex gap-3 pb-1" style={{ contentVisibility: 'auto', contain: 'layout style paint' }}>
+                {mediaItems.map((item) => (
+                  <div key={item.id} className="group relative h-24 w-24 flex-shrink-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
+                    {item.kind === 'photo' ? (
+                      <img
+                        src={item.downloadURL || item.previewUrl}
+                        alt="Visit media"
+                        className="h-full w-full object-cover"
+                        decoding="async"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <div className="relative h-full w-full overflow-hidden bg-black/5">
+                        <video src={item.downloadURL || item.previewUrl} className="h-full w-full object-cover" muted />
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <Video className="h-6 w-6 text-white drop-shadow" />
+                        </div>
+                      </div>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => removeMedia(item.id)}
+                      className="absolute left-2 top-2 rounded-full bg-white/90 p-1 text-slate-500 transition hover:text-slate-700"
+                      aria-label={t('media.remove')}
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                    {item.status === 'uploading' ? (
+                      <div className="absolute inset-0 flex items-center justify-center bg-white/70">
+                        <Loader2 className="h-5 w-5 animate-spin text-red-500" />
+                      </div>
+                    ) : null}
+                    {item.error ? (
+                      <div className="absolute inset-x-0 bottom-0 bg-red-500/90 p-1 text-[10px] text-white">
+                        {item.error}
+                      </div>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
+        </div>
+      </section>
+
+      {/* Restaurant Price Level (archived - keep for later) */}
+      {/*
       {selectedRestaurant && (
         <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-md shadow-slate-200/60">
           <div className="mb-3">
@@ -1044,16 +1006,18 @@ const StepVisit: React.FC = () => {
           </div>
         </section>
       )}
+      */}
 
-      {/* Meal Time Selection */}
+      {/* Meal Time Selection (archived - keep for later) */}
+      {/*
       {selectedRestaurant && (
-      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-md shadow-slate-200/60">
-        <div className="mb-4">
-          <h2 className="text-lg font-semibold text-slate-900">Why did you dine?</h2>
-          <p className="text-sm text-slate-500">Select up to {MAX_MEAL_TIME_SELECTIONS}</p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {MEAL_TIME_OPTIONS.map((option) => {
+        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-md shadow-slate-200/60">
+          <div className="mb-4">
+            <h2 className="text-lg font-semibold text-slate-900">Why did you dine?</h2>
+            <p className="text-sm text-slate-500">Select up to {MAX_MEAL_TIME_SELECTIONS}</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {MEAL_TIME_OPTIONS.map((option) => {
               const active = selectedMealTimes.includes(option.value);
               const label = t(option.labelKey);
               const displayLabel = option.label ?? (label && label !== option.labelKey ? label : option.fallback);
@@ -1078,22 +1042,15 @@ const StepVisit: React.FC = () => {
           </div>
         </section>
       )}
+      */}
 
       {/* Navigation */}
-      <div className="flex gap-3 pt-4">
-        <button
-          type="button"
-          onClick={goBack}
-          disabled={currentStep === 0}
-          className="flex-1 rounded-2xl border border-slate-200 py-3 text-center text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          Back
-        </button>
+      <div className="pt-4">
         <button
           type="button"
           onClick={handleNext}
           disabled={!canProceed}
-          className="flex-1 rounded-2xl bg-red-500 py-3 text-center text-sm font-semibold text-white transition hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full rounded-2xl bg-red-500 py-3 text-center text-sm font-semibold text-white transition hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           Next
         </button>

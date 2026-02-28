@@ -6,14 +6,27 @@ import { getTranslatedMenuItemText } from '../../utils/menuItemTranslations';
 import { DishDraft, DishCategory } from '../../dev/types/review';
 import { useReviewWizard } from './WizardContext';
 import RatingSlider from '../RatingSlider';
-import { CUISINES, getCuisineLabel } from '../../utils/taxonomy';
-import { POSITIVE_ATTRIBUTES, NEGATIVE_ATTRIBUTES } from '../../data/tagDefinitions';
 import { db } from '../../lib/firebase';
 import { DishRecord } from './AddDishInline';
+
+const VIBE_TAGS = [
+  { id: 'family_friendly', label: 'Family Friendly', emoji: '\u{1F468}\u200D\u{1F469}\u200D\u{1F467}\u200D\u{1F466}' },
+  { id: 'pet_friendly', label: 'Pet Friendly', emoji: '\u{1F436}' },
+  { id: 'romantic', label: 'Romantic', emoji: '\u{1F495}' },
+  { id: 'live_music', label: 'Live Music', emoji: '\u{1F3B6}' },
+  { id: 'cozy', label: 'Cozy', emoji: '\u{1F56F}\uFE0F' },
+  { id: 'girls_night', label: 'Girls Night', emoji: '\u{1F483}' },
+  { id: 'good_view', label: 'Good View', emoji: '\u{1F305}' },
+  { id: 'sports_spot', label: 'Sports Spot', emoji: '\u{1F3C8}' }
+];
+
+const GOLD_ACCENT = 'var(--accent-color)';
 
 const StepDishes: React.FC = () => {
   const { t, language } = useI18n();
   const {
+    visitDraft,
+    setVisitDraft,
     dishDrafts,
     setDishDrafts,
     updateDishDraft,
@@ -35,8 +48,7 @@ const StepDishes: React.FC = () => {
   const [loadingMenuItems, setLoadingMenuItems] = useState(false);
   const [menuError, setMenuError] = useState<string | null>(null);
   const [addingMenuItem, setAddingMenuItem] = useState(false);
-  const [customCuisineInputs, setCustomCuisineInputs] = useState<Record<string, string>>({});
-  const [customCuisineSelections, setCustomCuisineSelections] = useState<Record<string, boolean>>({});
+  // Cuisine is now captured at the visit level (Step 1)
 
 
   // Track uploading state per dish for direct thumbnail upload
@@ -327,9 +339,6 @@ const StepDishes: React.FC = () => {
       if (!dish.dishCategory) {
         errors.push(`Dish ${idx + 1}: Category is required`);
       }
-      if (!dish.dishCuisine) {
-        errors.push(`Dish ${idx + 1}: Cuisine is required`);
-      }
       if (dish.rating < 0.1 || dish.rating > 10) {
         errors.push(`Dish ${idx + 1}: Rating must be between 0.1 and 10`);
       }
@@ -344,6 +353,25 @@ const StepDishes: React.FC = () => {
     if (!canProceed) return;
     showReward('dishes');
     goNext();
+  };
+
+  const vibeValues = visitDraft.vibes || {
+    loudQuiet: null,
+    casualFancy: null,
+    intimateSocial: null,
+    tags: []
+  };
+
+  const updateVibes = (updater: (prev: typeof vibeValues) => typeof vibeValues) => {
+    setVisitDraft(prev => ({
+      ...prev,
+      vibes: updater(prev.vibes || {
+        loudQuiet: null,
+        casualFancy: null,
+        intimateSocial: null,
+        tags: []
+      })
+    }));
   };
 
   if (!dishDrafts.length) {
@@ -591,8 +619,8 @@ const StepDishes: React.FC = () => {
                   ) : null}
                 </div>
 
-                {/* Category & Cuisine */}
-                <div className="grid grid-cols-2 gap-3">
+                {/* Category */}
+                <div>
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Category *</label>
                     <select
@@ -612,66 +640,6 @@ const StepDishes: React.FC = () => {
                       <option value="drink">Drink</option>
                     </select>
                   </div>
-                  <div>
-                    <label className="block text-xs font-medium text-slate-600 mb-1">Cuisine *</label>
-                    <select
-                      value={CUISINES.includes(dish.dishCuisine || '') ? dish.dishCuisine || '' : customCuisineSelections[dish.id] ? 'custom' : ''}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        if (!value) {
-                          setCustomCuisineSelections(prev => {
-                            const { [dish.id]: _omit, ...rest } = prev;
-                            return rest;
-                          });
-                          setCustomCuisineInputs(prev => {
-                            const { [dish.id]: _omit, ...rest } = prev;
-                            return rest;
-                          });
-                          updateDishDraft(dish.id, prev => ({ ...prev, dishCuisine: undefined }));
-                        } else if (value === 'custom') {
-                          const existing = customCuisineInputs[dish.id] || '';
-                          setCustomCuisineSelections(prev => ({ ...prev, [dish.id]: true }));
-                          setCustomCuisineInputs(prev => ({ ...prev, [dish.id]: existing }));
-                          updateDishDraft(dish.id, prev => ({ ...prev, dishCuisine: existing || undefined }));
-                        } else {
-                          setCustomCuisineSelections(prev => {
-                            const { [dish.id]: _omit, ...rest } = prev;
-                            return rest;
-                          });
-                          setCustomCuisineInputs(prev => {
-                            const { [dish.id]: _omit, ...rest } = prev;
-                            return rest;
-                          });
-                          updateDishDraft(dish.id, prev => ({ ...prev, dishCuisine: value }));
-                        }
-                      }}
-                      className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-red-400 focus:outline-none focus:ring-1 focus:ring-red-100"
-                    >
-                      <option value="">Select...</option>
-                      {CUISINES.map((cuisine) => (
-                        <option key={cuisine} value={cuisine}>
-                          {getCuisineLabel(cuisine)}
-                        </option>
-                      ))}
-                      <option value="custom">Other (specify)</option>
-                    </select>
-                    {customCuisineSelections[dish.id] && (
-                      <input
-                        type="text"
-                        value={customCuisineInputs[dish.id] || ''}
-                        onChange={(e) => {
-                          const value = e.target.value;
-                          setCustomCuisineInputs(prev => ({ ...prev, [dish.id]: value }));
-                          updateDishDraft(dish.id, prev => ({ ...prev, dishCuisine: value.trim() || undefined }));
-                          if (!value.trim()) {
-                            setCustomCuisineSelections(prev => ({ ...prev, [dish.id]: true }));
-                          }
-                        }}
-                        placeholder="Enter cuisine..."
-                        className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-red-400 focus:outline-none focus:ring-1 focus:ring-red-100"
-                      />
-                    )}
-                  </div>
                 </div>
 
                 {/* Rating */}
@@ -685,145 +653,7 @@ const StepDishes: React.FC = () => {
                 </div>
 
                 {/* Caption */}
-                <div className="pt-2">
-                  <label className="block text-xs font-medium text-slate-600 mb-1">Thoughts on this dish?</label>
-                  <textarea
-                    value={dish.caption || ''}
-                    onChange={(e) => updateDishDraft(dish.id, prev => ({ ...prev, caption: e.target.value || undefined }))}
-                    placeholder="Optional notes..."
-                    rows={3}
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-red-400 focus:outline-none focus:ring-1 focus:ring-red-100"
-                  />
-                </div>
-
-                {/* Taste Attributes */}
-                <div className="space-y-3 border-t border-slate-100 pt-4">
-                  <h4 className="text-xs font-semibold text-slate-700 uppercase">More Details (Optional)</h4>
-
-                  {/* Price Perception */}
-                  <div>
-                    <label className="block text-xs font-medium text-slate-600 mb-2">Was the price...?</label>
-                    <div className="flex gap-2">
-                      {['bargain', 'fair', 'overpriced'].map((val) => (
-                        <button
-                          key={val}
-                          type="button"
-                          onClick={() => updateDishDraft(dish.id, prev => ({
-                            ...prev,
-                            sentiment: {
-                              pricePerception: prev.sentiment?.pricePerception === val ? null : (val as any)
-                            }
-                          }))}
-                          className={`flex-1 py-1.5 rounded text-xs font-medium border ${
-                            dish.sentiment?.pricePerception === val
-                              ? 'bg-red-500 text-white border-red-500'
-                              : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
-                          }`}
-                        >
-                          {val.charAt(0).toUpperCase() + val.slice(1)}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Positive Attributes */}
-                  <div>
-                    <label className="block text-xs font-bold text-slate-600 mb-2">What stood out?</label>
-                    <div className="flex flex-wrap gap-1.5">
-                      {POSITIVE_ATTRIBUTES.map((attr) => {
-                        const isSelected = dish.explicit?.positiveTags?.includes(attr.value);
-                        return (
-                          <button
-                            key={attr.value}
-                            type="button"
-                            onClick={() => updateDishDraft(dish.id, prev => {
-                              const current = prev.explicit?.positiveTags || [];
-                              return {
-                                ...prev,
-                                explicit: {
-                                  ...(prev.explicit || { dishType: null, dishStyle: null, cuisine: null, positiveTags: [], negativeTags: [], occasions: [], dietary: [] }),
-                                  positiveTags: isSelected
-                                    ? current.filter(t => t !== attr.value)
-                                    : [...current, attr.value]
-                                }
-                              };
-                            })}
-                            className={`px-2 py-1 rounded text-xs font-medium transition ${
-                              isSelected
-                                ? 'bg-emerald-500 text-white'
-                                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                            }`}
-                          >
-                            {attr.label}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  {/* Negative Attributes */}
-                  <div>
-                    <label className="block text-xs font-bold text-slate-600 mb-2">Could be better?</label>
-                    <div className="flex flex-wrap gap-1.5">
-                      {NEGATIVE_ATTRIBUTES.map((attr) => {
-                        const isSelected = dish.explicit?.negativeTags?.includes(attr.value);
-                        return (
-                          <button
-                            key={attr.value}
-                            type="button"
-                            onClick={() => updateDishDraft(dish.id, prev => {
-                              const current = prev.explicit?.negativeTags || [];
-                              return {
-                                ...prev,
-                                explicit: {
-                                  ...(prev.explicit || { dishType: null, dishStyle: null, cuisine: null, positiveTags: [], negativeTags: [], occasions: [], dietary: [] }),
-                                  negativeTags: isSelected
-                                    ? current.filter(t => t !== attr.value)
-                                    : [...current, attr.value]
-                                }
-                              };
-                            })}
-                            className={`px-2 py-1 rounded text-xs font-medium transition ${
-                              isSelected
-                                ? 'bg-slate-400 text-white'
-                                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                            }`}
-                          >
-                            {attr.label}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  {/* Outcome Toggles */}
-                  <div className="space-y-2">
-                    <label className="flex items-center gap-2 text-xs font-medium text-slate-700 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={dish.outcome.orderAgain}
-                        onChange={(e) => updateDishDraft(dish.id, prev => ({
-                          ...prev,
-                          outcome: { ...prev.outcome, orderAgain: e.target.checked }
-                        }))}
-                        className="rounded"
-                      />
-                      Would order this again
-                    </label>
-                    <label className="flex items-center gap-2 text-xs font-medium text-slate-700 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={dish.outcome.recommend}
-                        onChange={(e) => updateDishDraft(dish.id, prev => ({
-                          ...prev,
-                          outcome: { ...prev.outcome, recommend: e.target.checked }
-                        }))}
-                        className="rounded"
-                      />
-                      Would recommend to friends
-                    </label>
-                  </div>
-                </div>
+                {/* Caption and taste details intentionally removed in simplified flow */}
 
                 {/* Delete Dish */}
                 {dishDrafts.length > 1 && (
@@ -863,6 +693,97 @@ const StepDishes: React.FC = () => {
         <Plus className="h-4 w-4 inline mr-2" />
         Add another dish
       </button>
+
+      {/* Vibes Section */}
+      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-md shadow-slate-200/60">
+        <div className="mb-4">
+          <h2 className="text-lg font-semibold text-slate-900">Vibes</h2>
+          <p className="text-sm text-slate-500">Optional — describe the atmosphere</p>
+        </div>
+
+        <div className="space-y-5">
+          {/* Loud / Quiet */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between text-xs font-medium text-slate-500">
+              <span>Loud</span>
+              <span>Quiet</span>
+            </div>
+            <RatingSlider
+              value={vibeValues.loudQuiet ?? 5}
+              onChange={(value) => updateVibes(prev => ({ ...prev, loudQuiet: value }))}
+              step={0.1}
+              min={1}
+              max={10}
+              accentColor={GOLD_ACCENT}
+            />
+          </div>
+
+          {/* Casual / Fancy */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between text-xs font-medium text-slate-500">
+              <span>Casual</span>
+              <span>Fancy</span>
+            </div>
+            <RatingSlider
+              value={vibeValues.casualFancy ?? 5}
+              onChange={(value) => updateVibes(prev => ({ ...prev, casualFancy: value }))}
+              step={0.1}
+              min={1}
+              max={10}
+              accentColor={GOLD_ACCENT}
+            />
+          </div>
+
+          {/* Intimate / Social */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between text-xs font-medium text-slate-500">
+              <span>Intimate</span>
+              <span>Social</span>
+            </div>
+            <RatingSlider
+              value={vibeValues.intimateSocial ?? 5}
+              onChange={(value) => updateVibes(prev => ({ ...prev, intimateSocial: value }))}
+              step={0.1}
+              min={1}
+              max={10}
+              accentColor={GOLD_ACCENT}
+            />
+          </div>
+        </div>
+
+        <div className="mt-6">
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-sm font-semibold text-slate-800">Vibe tags</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {VIBE_TAGS.map((tag) => {
+              const selected = (vibeValues.tags || []).includes(tag.id);
+              return (
+                <button
+                  key={tag.id}
+                  type="button"
+                  onClick={() => updateVibes(prev => {
+                    const current = prev.tags || [];
+                    const exists = current.includes(tag.id);
+                    const nextTags = exists
+                      ? current.filter(id => id !== tag.id)
+                      : [...current, tag.id];
+                    return { ...prev, tags: nextTags };
+                  })}
+                  className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition ${
+                    selected
+                      ? 'bg-emerald-100 text-emerald-700'
+                      : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                  }`}
+                >
+                  <span>{tag.emoji}</span>
+                  <span>{tag.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </section>
 
       {/* Errors */}
       {errors.length > 0 && (

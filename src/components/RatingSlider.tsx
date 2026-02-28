@@ -7,6 +7,7 @@ interface RatingSliderProps {
   step?: number;
   min?: number;
   max?: number;
+  accentColor?: string;
 }
 
 const RatingSlider: React.FC<RatingSliderProps> = ({
@@ -15,7 +16,8 @@ const RatingSlider: React.FC<RatingSliderProps> = ({
   label,
   step = 0.5,
   min = 0,
-  max = 10
+  max = 10,
+  accentColor
 }) => {
   const sliderRef = useRef<HTMLDivElement>(null);
   const isDragging = useRef(false);
@@ -97,6 +99,7 @@ const RatingSlider: React.FC<RatingSliderProps> = ({
   }, [handleMouseMove, handleMouseUp, handleTouchMove, handleTouchEnd]);
 
   const percentage = ((value - min) / (max - min)) * 100;
+  const accent = accentColor || '#ef4444';
 
   return (
     <div className="w-full">
@@ -130,9 +133,10 @@ const RatingSlider: React.FC<RatingSliderProps> = ({
         <div className="absolute h-2 top-8 w-full bg-slate-200 rounded-full pointer-events-none" />
         {/* Filled track */}
         <div
-          className="absolute h-2 top-8 bg-red-500 rounded-full pointer-events-none"
+          className="absolute h-2 top-8 rounded-full pointer-events-none"
           style={{
             width: `${percentage}%`,
+            backgroundColor: accent,
             transition: isDragging.current ? 'none' : 'width 0.1s ease-out'
           }}
         />
@@ -150,9 +154,10 @@ const RatingSlider: React.FC<RatingSliderProps> = ({
           <div className="absolute w-12 h-12 rounded-full" />
           {/* Visible handle with scale effect when active */}
           <div
-            className={`w-5 h-5 bg-white border-2 border-red-500 rounded-full shadow-lg transition-transform ${
+            className={`w-5 h-5 bg-white border-2 rounded-full shadow-lg transition-transform ${
               isActive ? 'scale-125' : 'scale-100'
             }`}
+            style={{ borderColor: accent }}
           />
         </div>
       </div>

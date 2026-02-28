@@ -10,6 +10,7 @@ import RatingBadge from '../components/RatingBadge';
 import { getAvatarUrl } from '../utils/avatarUtils';
 import { getTranslatedMenuItemText } from '../utils/menuItemTranslations';
 import BrandedLoader from '../components/common/BrandedLoader';
+import type { VisitVibesDraft } from '../dev/types/review';
 
 interface MenuItem {
   id: string;
@@ -49,8 +50,12 @@ interface Review {
   personalNote: string;
   negativeNote: string;
   images: string[];
+  media?: { photos?: string[] };
   createdAt: any;
   location: string;
+  caption?: string;
+  visitCaption?: string;
+  vibes?: VisitVibesDraft;
   // Tag fields for aggregation
   explicitTags?: string[];
   outcome?: {
@@ -69,6 +74,29 @@ interface ReviewAuthor {
   username: string;
   image: string;
 }
+
+const VIBE_TAG_META: Record<string, { label: string; emoji: string }> = {
+  family_friendly: { label: 'Family Friendly', emoji: '👨‍👩‍👧‍👦' },
+  pet_friendly: { label: 'Pet Friendly', emoji: '🐶' },
+  romantic: { label: 'Romantic', emoji: '💕' },
+  live_music: { label: 'Live Music', emoji: '🎶' },
+  cozy: { label: 'Cozy', emoji: '🕯️' },
+  girls_night: { label: 'Girls Night', emoji: '💃' },
+  good_view: { label: 'Good View', emoji: '🌅' },
+  sports_spot: { label: 'Sports Spot', emoji: '🏈' },
+};
+
+const getVibeTagMeta = (tag: string) => {
+  const meta = VIBE_TAG_META[tag];
+  if (meta) return meta;
+  const label = tag
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+  return { label, emoji: '' };
+};
+
+const clampVibeValue = (value: number) => Math.min(10, Math.max(1, value));
+const vibeValueToPercent = (value: number) => ((clampVibeValue(value) - 1) / 9) * 100;
 
 const MenuDetail: React.FC = () => {
   const renderStart = performance.now?.() ?? Date.now();
@@ -139,6 +167,91 @@ const MenuDetail: React.FC = () => {
   const averageRating = calculateAverageRating(reviews);
   const reviewImages = getAllReviewImages(reviews);
   const menuItemText = useMemo(() => getTranslatedMenuItemText(menuItem, language), [menuItem, language]);
+  const vibeSummary = useMemo(() => {
+    if (!reviews.length) return null;
+    const sums = {
+      loudQuiet: 0,
+      casualFancy: 0,
+      intimateSocial: 0,
+    };
+    const counts = {
+      loudQuiet: 0,
+      casualFancy: 0,
+      intimateSocial: 0,
+    };
+    const tagCounts: Record<string, number> = {};
+    let hasAny = false;
+
+    reviews.forEach((review) => {
+      const vibes = (review as any)?.vibes as VisitVibesDraft | undefined;
+      if (!vibes) return;
+      if (typeof vibes.loudQuiet === 'number') {
+        sums.loudQuiet += vibes.loudQuiet;
+        counts.loudQuiet += 1;
+        hasAny = true;
+      }
+      if (typeof vibes.casualFancy === 'number') {
+        sums.casualFancy += vibes.casualFancy;
+        counts.casualFancy += 1;
+        hasAny = true;
+      }
+      if (typeof vibes.intimateSocial === 'number') {
+        sums.intimateSocial += vibes.intimateSocial;
+        counts.intimateSocial += 1;
+        hasAny = true;
+      }
+      if (Array.isArray(vibes.tags) && vibes.tags.length > 0) {
+        vibes.tags.forEach((tag) => {
+          if (!tag) return;
+          tagCounts[tag] = (tagCounts[tag] || 0) + 1;
+        });
+        hasAny = true;
+      }
+    });
+
+    if (!hasAny) return null;
+
+    const topTags = Object.entries(tagCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3)
+      .map(([tag]) => tag);
+
+    return {
+      averages: {
+        loudQuiet: counts.loudQuiet ? sums.loudQuiet / counts.loudQuiet : null,
+        casualFancy: counts.casualFancy ? sums.casualFancy / counts.casualFancy : null,
+        intimateSocial: counts.intimateSocial ? sums.intimateSocial / counts.intimateSocial : null,
+      },
+      topTags,
+    };
+  }, [reviews]);
+
+  const renderVibeRow = (leftLabel: string, rightLabel: string, value: number | null) => {
+    const hasValue = typeof value === 'number';
+    const pct = hasValue ? vibeValueToPercent(value) : 0;
+    return (
+      <div className="flex items-center gap-2">
+        <span className="text-[11px] text-slate-500 w-12">{leftLabel}</span>
+        <div className="relative flex-1 overflow-visible">
+          <div className="h-1.5 bg-slate-200 rounded-full overflow-hidden">
+            {hasValue && (
+              <div
+                className="h-full rounded-full"
+                style={{ width: `${pct}%`, backgroundColor: 'var(--accent-color)' }}
+              />
+            )}
+          </div>
+          {hasValue && (
+            <span
+              className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-2.5 h-2.5 rounded-full border-2 bg-white"
+              style={{ left: `${pct}%`, borderColor: 'var(--accent-color)' }}
+            />
+          )}
+        </div>
+        <span className="text-[11px] text-slate-500 w-12 text-right">{rightLabel}</span>
+      </div>
+    );
+  };
 
   // Aggregate top tags from reviews
   const { topPositiveTags, topNegativeTags, topBestForTags } = useMemo(() => {
@@ -688,6 +801,32 @@ const MenuDetail: React.FC = () => {
       {/* Reviews Section */}
       <div className="bg-white mt-2 p-4 shadow-sm">
         <h3 className="font-semibold text-lg mb-4">Reviews ({reviews.length})</h3>
+        {vibeSummary && (
+          <div className="mb-4 rounded-2xl border border-slate-100 bg-slate-50/70 px-3 py-2">
+            <div className="text-[11px] font-semibold text-slate-600 uppercase tracking-wide mb-2">Vibes</div>
+            <div className="space-y-2">
+              {renderVibeRow('Loud', 'Quiet', vibeSummary.averages.loudQuiet)}
+              {renderVibeRow('Casual', 'Fancy', vibeSummary.averages.casualFancy)}
+              {renderVibeRow('Intimate', 'Social', vibeSummary.averages.intimateSocial)}
+            </div>
+            {vibeSummary.topTags.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {vibeSummary.topTags.map((tag) => {
+                  const meta = getVibeTagMeta(tag);
+                  return (
+                    <span
+                      key={tag}
+                      className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-medium text-slate-700"
+                    >
+                      {meta.emoji && <span>{meta.emoji}</span>}
+                      <span>{meta.label}</span>
+                    </span>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
         <div className="space-y-4">
           {reviews.length > 0 ? reviews.slice(0, 5).map((review) => {
             const author = authors[review.userId];
@@ -703,6 +842,7 @@ const MenuDetail: React.FC = () => {
                 : (v as Date)?.getTime?.() ?? Date.now();
               return new Date(ms).toLocaleDateString();
             })();
+            const captionText = (review as any).caption || (review as any).visitCaption;
             return (
               <div
                 key={review.id}
@@ -729,11 +869,11 @@ const MenuDetail: React.FC = () => {
                         </p>
                         <span className="text-xs text-gray-500">{createdAtText}</span>
                       </div>
-                      <RatingBadge rating={review.rating} size="md" />
-                    </div>
+                    <RatingBadge rating={review.rating} size="md" />
+                  </div>
 
-                    {(review as any).caption && (
-                      <p className="text-sm text-gray-700 mb-2">{(review as any).caption}</p>
+                    {captionText && (
+                      <p className="text-sm text-gray-700 mb-2">{captionText}</p>
                     )}
 
                     {(tasteChips.length > 0 || audienceTags.length > 0) && (

@@ -110,6 +110,12 @@ const buildInitialVisitDraft = (): VisitDraft => ({
   overallText: undefined,
   serviceSpeed: null,
   restaurantPriceLevel: null,
+  vibes: {
+    loudQuiet: null,
+    casualFancy: null,
+    intimateSocial: null,
+    tags: []
+  }
 });
 
 const buildInitialDishDraft = (dishCuisine?: string): DishDraft => ({
@@ -710,6 +716,7 @@ const Wizard: React.FC = () => {
           dishCategory: dish.dishCategory,
           ...(visitLevelCaption ? { visitCaption: visitLevelCaption } : {}),
           ...(visitMediaUrls.length ? { visitMedia: visitMediaUrls } : {}),
+          ...(visitDraft.vibes ? { vibes: visitDraft.vibes } : {}),
           ...(visitDraft.businessTags?.length ? { businessTags: visitDraft.businessTags } : {}),
           ...(visitDraft.isToGo !== undefined ? { isToGo: visitDraft.isToGo } : {}),
           ...(visitDraft.toGoFeedback && Object.keys(visitDraft.toGoFeedback).length > 0 ? { toGoFeedback: visitDraft.toGoFeedback } : {}),
