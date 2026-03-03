@@ -8,7 +8,6 @@ import { useReviewWizard } from './WizardContext';
 import RatingSlider from '../RatingSlider';
 import { db } from '../../lib/firebase';
 import { DishRecord } from './AddDishInline';
-import { CUISINES, getCuisineLabel } from '../../utils/taxonomy';
 
 const VIBE_TAGS = [
   { id: 'family_friendly', label: 'Family Friendly', emoji: '\u{1F468}\u200D\u{1F469}\u200D\u{1F467}\u200D\u{1F466}' },
@@ -49,17 +48,6 @@ const StepDishes: React.FC = () => {
   const [loadingMenuItems, setLoadingMenuItems] = useState(false);
   const [menuError, setMenuError] = useState<string | null>(null);
   const [addingMenuItem, setAddingMenuItem] = useState(false);
-  // Keep dish cuisines in sync with visit-level default (without overwriting user choices)
-  useEffect(() => {
-    const defaultCuisine =
-      visitDraft.spotCuisine || (selectedRestaurant as any)?.cuisines?.[0];
-    if (!defaultCuisine) return;
-    setDishDrafts(prev =>
-      prev.map(dish =>
-        dish.dishCuisine ? dish : { ...dish, dishCuisine: defaultCuisine }
-      )
-    );
-  }, [visitDraft.spotCuisine, selectedRestaurant, setDishDrafts]);
 
 
   // Track uploading state per dish for direct thumbnail upload
@@ -100,13 +88,11 @@ const StepDishes: React.FC = () => {
   }, [selectedRestaurant]);
 
   const addDish = () => {
-    const cuisineDefault = visitDraft.spotCuisine || (selectedRestaurant as any)?.cuisines?.[0];
     const newDish: DishDraft = {
       id: `dish_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
       mediaIds: [],
       dishName: '',
       dishCategory: undefined,
-      dishCuisine: cuisineDefault || undefined,
       rating: 7.5,
       explicit: undefined,
       sentiment: undefined,
@@ -349,9 +335,6 @@ const StepDishes: React.FC = () => {
       }
       if (!dish.dishCategory) {
         errors.push(`Dish ${idx + 1}: Category is required`);
-      }
-      if (!dish.dishCuisine) {
-        errors.push(`Dish ${idx + 1}: Cuisine is required`);
       }
       if (dish.rating < 0.1 || dish.rating > 10) {
         errors.push(`Dish ${idx + 1}: Rating must be between 0.1 and 10`);
@@ -654,26 +637,6 @@ const StepDishes: React.FC = () => {
                       <option value="drink">Drink</option>
                     </select>
                   </div>
-                </div>
-
-                {/* Cuisine */}
-                <div>
-                  <label className="block text-xs font-medium text-slate-600 mb-1">Cuisine *</label>
-                  <select
-                    value={dish.dishCuisine || ''}
-                    onChange={(e) => updateDishDraft(dish.id, prev => ({
-                      ...prev,
-                      dishCuisine: e.target.value || undefined
-                    }))}
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-red-400 focus:outline-none focus:ring-1 focus:ring-red-100"
-                  >
-                    <option value="">Select...</option>
-                    {CUISINES.map((cuisine) => (
-                      <option key={cuisine} value={cuisine}>
-                        {getCuisineLabel(cuisine)}
-                      </option>
-                    ))}
-                  </select>
                 </div>
 
                 {/* Rating */}

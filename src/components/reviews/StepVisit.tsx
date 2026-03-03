@@ -609,7 +609,14 @@ const StepVisit: React.FC = () => {
     };
   }, [placePredictions, mapsLoaded, userLocation]);
 
-  const canProceed = !!selectedRestaurant;
+  const canProceed = !!selectedRestaurant && !!visitDraft.spotCuisine;
+
+  const getMissingFields = () => {
+    const missing: string[] = [];
+    if (!selectedRestaurant) missing.push('restaurant');
+    if (!visitDraft.spotCuisine) missing.push('cuisine');
+    return missing;
+  };
 
   const handleNext = () => {
     if (!canProceed) return;
@@ -853,7 +860,7 @@ const StepVisit: React.FC = () => {
 
         {/* Cuisine Selector */}
         <div className="space-y-2">
-          <label className="block text-xs font-medium text-slate-600">Cuisine</label>
+          <label className="block text-xs font-medium text-slate-600">Cuisine *</label>
           <select
             value={visitDraft.spotCuisine || ''}
             onChange={(e) => setVisitDraft(prev => ({
@@ -1045,7 +1052,13 @@ const StepVisit: React.FC = () => {
       */}
 
       {/* Navigation */}
-      <div className="pt-4">
+      <div className="pt-4 flex flex-col items-end gap-2">
+        {!canProceed && getMissingFields().length > 0 && (
+          <div className="text-sm text-amber-600 bg-amber-50 border border-amber-200 rounded-2xl px-4 py-2">
+            <span className="font-medium">Please complete: </span>
+            <span>{getMissingFields().join(', ')}</span>
+          </div>
+        )}
         <button
           type="button"
           onClick={handleNext}

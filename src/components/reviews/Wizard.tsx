@@ -118,12 +118,11 @@ const buildInitialVisitDraft = (): VisitDraft => ({
   }
 });
 
-const buildInitialDishDraft = (dishCuisine?: string): DishDraft => ({
+const buildInitialDishDraft = (): DishDraft => ({
   id: safeId(),
   mediaIds: [],
   dishName: '',
   dishCategory: undefined,
-  dishCuisine: dishCuisine || undefined,
   rating: 7.5,
   explicit: undefined,
   sentiment: undefined,
@@ -307,7 +306,6 @@ const Wizard: React.FC = () => {
         return;
       }
 
-      const cuisines = extractRestaurantCuisines(restaurant);
       const restore = options?.restoreDraft ?? true;
       if (userId && restore) {
         try {
@@ -334,7 +332,7 @@ const Wizard: React.FC = () => {
         overallText: undefined,
         serviceSpeed: null,
       });
-      setDishDrafts([buildInitialDishDraft(cuisines?.[0])]);
+      setDishDrafts([buildInitialDishDraft()]);
       setActiveDishIndex(0);
     },
     [setDishDrafts, userId]
@@ -628,8 +626,7 @@ const Wizard: React.FC = () => {
       serviceSpeed: null,
     } : buildInitialVisitDraft());
 
-    const cuisines = keepRestaurant ? extractRestaurantCuisines(selectedRestaurant) : undefined;
-    setDishDrafts([buildInitialDishDraft(cuisines?.[0])]);
+    setDishDrafts([buildInitialDishDraft()]);
     setActiveDishIndex(0);
     setMediaItems((prev) => {
       prev.forEach((item) => revokePreview(item.previewUrl));
@@ -651,6 +648,10 @@ const Wizard: React.FC = () => {
     const visitLevelCaption = typeof visitDraft.overallText === 'string' && visitDraft.overallText.trim().length
       ? visitDraft.overallText.trim()
       : undefined;
+    const visitCuisineTags = sanitizeCuisinesInput(visitDraft.spotCuisine);
+    if (!visitCuisineTags || visitCuisineTags.length === 0) {
+      throw new Error('Cuisine is required');
+    }
 
     // Collect unassigned photos (vibes/visit-level media)
     const usedMediaIds = new Set<string>();
@@ -672,12 +673,6 @@ const Wizard: React.FC = () => {
         if (!dish.dishCategory) {
           throw new Error('All dishes must have a category');
         }
-        if (!dish.dishCuisine) {
-          throw new Error('All dishes must have a cuisine');
-        }
-
-        const dishCuisineTags = sanitizeCuisinesInput(dish.dishCuisine || visitDraft.spotCuisine);
-
         // Build media for this dish
         const media = buildMediaBundleForDish(dish, mediaItems);
 
@@ -711,8 +706,8 @@ const Wizard: React.FC = () => {
           explicitTags,
           derivedTags,
           tags: mergedTags,
-          restaurantCuisines: dishCuisineTags,
-          cuisines: dishCuisineTags,
+          restaurantCuisines: visitCuisineTags,
+          cuisines: visitCuisineTags,
           caption: dish.caption,
           visitId: sharedVisitId,
           dishCategory: dish.dishCategory,
