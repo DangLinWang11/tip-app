@@ -676,6 +676,8 @@ const Wizard: React.FC = () => {
           throw new Error('All dishes must have a cuisine');
         }
 
+        const dishCuisineTags = sanitizeCuisinesInput(dish.dishCuisine || visitDraft.spotCuisine);
+
         // Build media for this dish
         const media = buildMediaBundleForDish(dish, mediaItems);
 
@@ -709,8 +711,8 @@ const Wizard: React.FC = () => {
           explicitTags,
           derivedTags,
           tags: mergedTags,
-          restaurantCuisines: sanitizeCuisinesInput((selectedRestaurant as any).cuisines),
-          cuisines: sanitizeCuisinesInput((selectedRestaurant as any).cuisines),
+          restaurantCuisines: dishCuisineTags,
+          cuisines: dishCuisineTags,
           caption: dish.caption,
           visitId: sharedVisitId,
           dishCategory: dish.dishCategory,

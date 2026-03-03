@@ -1,6 +1,6 @@
 import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
-import { cleanCuisines } from './utils/profanityFilter';
+import { cleanCuisines, isValidCuisine } from './utils/profanityFilter';
 
 /**
  * Cloud Function to automatically update restaurant cuisines based on reviews
@@ -58,14 +58,21 @@ export const updateRestaurantCuisines = functions.firestore
         }
       });
 
-      // Clean cuisines (remove profanity, validate, deduplicate, normalize)
+      // Normalize + validate cuisines (keep duplicates for frequency counts)
+      const normalizedCuisines = allCuisines
+        .map((cuisine) => (typeof cuisine === 'string' ? cuisine : String(cuisine || '')))
+        .map((cuisine) => cuisine.trim())
+        .filter((cuisine) => isValidCuisine(cuisine))
+        .map((cuisine) => cuisine.toLowerCase());
+
+      // Clean cuisines for unique list (remove profanity, validate, deduplicate, normalize)
       const cleanedCuisines = cleanCuisines(allCuisines);
 
-      console.log(`Found ${allCuisines.length} total cuisine tags, cleaned to ${cleanedCuisines.length} valid cuisines`);
+      console.log(`Found ${allCuisines.length} total cuisine tags, cleaned to ${cleanedCuisines.length} unique cuisines (${normalizedCuisines.length} total normalized tags)`);
 
       // Count frequency of each cuisine
       const cuisineFrequency = new Map<string, number>();
-      cleanedCuisines.forEach(cuisine => {
+      normalizedCuisines.forEach(cuisine => {
         cuisineFrequency.set(cuisine, (cuisineFrequency.get(cuisine) || 0) + 1);
       });
 
@@ -74,13 +81,24 @@ export const updateRestaurantCuisines = functions.firestore
         .sort((a, b) => b[1] - a[1])
         .map(entry => entry[0]);
 
+      // Build cuisine counts map for easy analytics
+      const cuisineCounts: Record<string, number> = {};
+      cuisineFrequency.forEach((count, cuisine) => {
+        cuisineCounts[cuisine] = count;
+      });
+
       // Update the restaurant document
       const restaurantRef = admin.firestore().collection('restaurants').doc(restaurantId);
-
-      await restaurantRef.update({
+      const updatePayload: Record<string, any> = {
         cuisines: sortedCuisines,
+        cuisineCounts,
         updatedAt: admin.firestore.FieldValue.serverTimestamp()
-      });
+      };
+      if (sortedCuisines.length > 0) {
+        updatePayload.cuisine = sortedCuisines[0];
+      }
+
+      await restaurantRef.update(updatePayload);
 
       console.log(`Successfully updated restaurant ${restaurantId} with cuisines:`, sortedCuisines);
 
