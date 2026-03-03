@@ -10,14 +10,29 @@ import { db } from '../../lib/firebase';
 import { DishRecord } from './AddDishInline';
 
 const VIBE_TAGS = [
-  { id: 'family_friendly', label: 'Family Friendly', emoji: '\u{1F468}\u200D\u{1F469}\u200D\u{1F467}\u200D\u{1F466}' },
-  { id: 'pet_friendly', label: 'Pet Friendly', emoji: '\u{1F436}' },
+  // Occasion
+  { id: 'birthday_spot', label: 'Birthday Spot', emoji: '\u{1F382}' },
   { id: 'romantic', label: 'Romantic', emoji: '\u{1F495}' },
-  { id: 'live_music', label: 'Live Music', emoji: '\u{1F3B6}' },
-  { id: 'cozy', label: 'Cozy', emoji: '\u{1F56F}\uFE0F' },
   { id: 'girls_night', label: 'Girls Night', emoji: '\u{1F483}' },
+  { id: 'late_night', label: 'Late Night', emoji: '\u{1F319}' },
+  { id: 'family_friendly', label: 'Family Friendly', emoji: '\u{1F468}\u200D\u{1F469}\u200D\u{1F467}\u200D\u{1F466}' },
+
+  // Energy
+  { id: 'live_music', label: 'Live Music', emoji: '\u{1F3B6}' },
+  { id: 'sports_spot', label: 'Sports Spot', emoji: '\u{1F3C8}' },
+  { id: 'cozy', label: 'Cozy', emoji: '\u{1F56F}\uFE0F' },
+
+  // Setting
+  { id: 'waterfront', label: 'Waterfront', emoji: '\u{1F30A}' },
+  { id: 'sunset_spot', label: 'Sunset Spot', emoji: '\u{1F307}' },
   { id: 'good_view', label: 'Good View', emoji: '\u{1F305}' },
-  { id: 'sports_spot', label: 'Sports Spot', emoji: '\u{1F3C8}' }
+
+  // Social
+  { id: 'networking', label: 'Networking', emoji: '\u{1F4BC}' },
+  { id: 'work_friendly', label: 'Work Friendly', emoji: '\u{1F4BB}' },
+  { id: 'solo_friendly', label: 'Solo Friendly', emoji: '\u{1F9D1}' },
+  { id: 'big_groups', label: 'Big Groups', emoji: '\u{1F465}' },
+  { id: 'pet_friendly', label: 'Pet Friendly', emoji: '\u{1F436}' }
 ];
 
 const GOLD_ACCENT = 'var(--accent-color)';
