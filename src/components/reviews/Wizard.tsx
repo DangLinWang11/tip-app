@@ -521,7 +521,6 @@ const Wizard: React.FC = () => {
               storagePath: upload.storagePath,
               downloadURL: upload.downloadURL
             } : m));
-            showReward('media');
           } else {
             const uploads = await processAndUploadVideo(file, userId);
             setMediaItems((prev) => prev.map((m) => m.id === item.id ? {

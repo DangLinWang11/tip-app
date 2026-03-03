@@ -55,7 +55,11 @@ const StepDishes: React.FC = () => {
     if (autoAttachedFirstMediaRef.current) return;
     if (!dishDrafts.length) return;
     const firstDish = dishDrafts[0];
-    if (firstDish.mediaIds.length > 0) {
+    const hasCover = firstDish.mediaIds.some((id) => {
+      const media = mediaItems.find((item) => item.id === id);
+      return Boolean(media?.downloadURL || media?.previewUrl || media?.thumbnailURL);
+    });
+    if (hasCover) {
       autoAttachedFirstMediaRef.current = true;
       return;
     }
@@ -456,7 +460,7 @@ const StepDishes: React.FC = () => {
                         e.stopPropagation();
                         removeMediaFromDish(dish.id);
                       }}
-                      className="absolute left-2 top-2 rounded-full bg-white/90 p-1 text-slate-500 transition hover:text-slate-700"
+                      className="absolute left-1 top-1 rounded-full bg-white/90 p-1 text-slate-500 transition hover:text-slate-700"
                       aria-label="Remove photo from this dish"
                     >
                       <X className="h-3.5 w-3.5" />
