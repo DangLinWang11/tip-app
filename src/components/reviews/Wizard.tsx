@@ -819,7 +819,7 @@ const Wizard: React.FC = () => {
   const StepComponent = STEP_COMPONENTS[steps[currentStep].key];
 
   useEffect(() => {
-    if (currentStep !== 2 || typeof window === 'undefined') {
+    if (typeof window === 'undefined') {
       return;
     }
     requestAnimationFrame(() => {

@@ -49,6 +49,31 @@ const StepDishes: React.FC = () => {
   const [menuError, setMenuError] = useState<string | null>(null);
   const [addingMenuItem, setAddingMenuItem] = useState(false);
 
+  // Auto-attach first uploaded photo to the first dish once (visit-level convenience)
+  const autoAttachedFirstMediaRef = useRef(false);
+  useEffect(() => {
+    if (autoAttachedFirstMediaRef.current) return;
+    if (!dishDrafts.length) return;
+    const firstDish = dishDrafts[0];
+    if (firstDish.mediaIds.length > 0) {
+      autoAttachedFirstMediaRef.current = true;
+      return;
+    }
+    const firstPhoto = mediaItems.find((item) => item.kind === 'photo' && item.status === 'uploaded');
+    if (!firstPhoto) return;
+    setDishDrafts(prev => {
+      if (!prev.length) return prev;
+      if (prev[0].mediaIds.includes(firstPhoto.id)) return prev;
+      const next = [...prev];
+      next[0] = {
+        ...next[0],
+        mediaIds: [firstPhoto.id, ...next[0].mediaIds]
+      };
+      return next;
+    });
+    autoAttachedFirstMediaRef.current = true;
+  }, [dishDrafts, mediaItems, setDishDrafts]);
+
 
   // Track uploading state per dish for direct thumbnail upload
   const [uploadingForDish, setUploadingForDish] = useState<Record<string, boolean>>({});
@@ -431,10 +456,10 @@ const StepDishes: React.FC = () => {
                         e.stopPropagation();
                         removeMediaFromDish(dish.id);
                       }}
-                      className="absolute top-1 right-1 bg-red-500 hover:bg-red-600 rounded-full p-1 transition-colors shadow-sm"
+                      className="absolute left-2 top-2 rounded-full bg-white/90 p-1 text-slate-500 transition hover:text-slate-700"
                       aria-label="Remove photo from this dish"
                     >
-                      <X className="h-3 w-3 text-white" strokeWidth={3} />
+                      <X className="h-3.5 w-3.5" />
                     </button>
                   </div>
                 ) : (
