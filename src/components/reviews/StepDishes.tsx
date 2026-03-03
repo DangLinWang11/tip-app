@@ -678,8 +678,17 @@ const StepDishes: React.FC = () => {
                   />
                 </div>
 
-                {/* Caption */}
-                {/* Caption and taste details intentionally removed in simplified flow */}
+                {/* Comment */}
+                <div>
+                  <label className="block text-xs font-medium text-slate-600 mb-1">Comment (optional)</label>
+                  <textarea
+                    value={dish.caption || ''}
+                    onChange={(e) => updateDishDraft(dish.id, prev => ({ ...prev, caption: e.target.value }))}
+                    placeholder="What stood out about this dish?"
+                    rows={3}
+                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-red-400 focus:outline-none focus:ring-1 focus:ring-red-100"
+                  />
+                </div>
 
                 {/* Delete Dish */}
                 {dishDrafts.length > 1 && (
